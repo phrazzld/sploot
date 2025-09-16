@@ -27,7 +27,6 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^6.32.0",
-    "@clerk/themes": "^2.4.19",
     "@prisma/client": "^6.16.1",
     "@tanstack/react-virtual": "^3.13.12",
     "@upstash/redis": "^1.35.3",
