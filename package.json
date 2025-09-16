@@ -22,8 +22,8 @@
     "generate-icons": "node scripts/generate-icons.js",
     "generate-og": "node scripts/generate-og-image.js",
     "generate-assets": "npm run generate-icons && npm run generate-og",
-    "benchmark": "node scripts/benchmark.js",
-    "benchmark:large": "node scripts/benchmark.js 10000"
+    "benchmark": "ts-node scripts/benchmark.ts",
+    "benchmark:large": "ts-node scripts/benchmark.ts 10000"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.32.0",

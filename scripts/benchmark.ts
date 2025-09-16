@@ -1,15 +1,15 @@
-const { performance } = require('node:perf_hooks');
+// performance is already global in Node.js
 const { randomUUID } = require('node:crypto');
 const path = require('node:path');
 
 const rootDir = path.resolve(__dirname, '..');
 
-function resolveModule(modulePath) {
+function resolveModule(modulePath: string) {
   const absolute = path.resolve(rootDir, modulePath);
   return require(absolute);
 }
 
-async function seedMockAssets(count) {
+async function seedMockAssets(count: number) {
   const { resetMockStore, mockCreateAsset } = resolveModule('lib/mock-store.ts');
   resetMockStore();
 
@@ -30,7 +30,7 @@ async function seedMockAssets(count) {
   }
 }
 
-async function timeUploadFlow(iterations) {
+async function timeUploadFlow(iterations: number) {
   const { POST: uploadUrlPOST } = resolveModule('app/api/upload-url/route.ts');
   const { POST: assetsPOST } = resolveModule('app/api/assets/route.ts');
 
@@ -79,7 +79,7 @@ async function timeUploadFlow(iterations) {
   return total / iterations;
 }
 
-async function timeSearchFlow(iterations) {
+async function timeSearchFlow(iterations: number) {
   const { POST: searchPOST } = resolveModule('app/api/search/route.ts');
   let total = 0;
 
