@@ -592,11 +592,17 @@ These items need to be completed by you before the app will fully work:
   - Added reset helper for mock store and a jest-based journey spec covering the flow
   ```
 
-- [ ] **🔄 [HYBRID] T5: Performance testing with 5k images**
+- [~] **🔄 [HYBRID] T5: Performance testing with 5k images**
   - Success criteria: All SLOs met (upload <2.5s, search <500ms)
   - Dependencies: T4
   - Estimated complexity: MEDIUM
   - **Note**: Requires production-like environment
+  ```
+  Work Log:
+  - Need local benchmarking plan leveraging mock mode since external services unavailable
+  - Plan: seed mock store with 5k assets, run upload/search handlers to capture timings
+  - Will produce script generating payload and logging durations to verify SLOs
+  ```
 
 - [x] **🤖 [CLI] T6: Search relevance validation**
   - Success criteria: 80%+ accuracy on canonical meme queries
@@ -609,7 +615,7 @@ These items need to be completed by you before the app will fully work:
 
 ## Documentation & Cleanup
 
-- [ ] **🤖 [CLI] D1: Create API documentation**
+- [~] **🤖 [CLI] D1: Create API documentation**
   - Success criteria: All endpoints documented with request/response examples
   - Can start: After M2.3
   - Estimated complexity: SIMPLE
