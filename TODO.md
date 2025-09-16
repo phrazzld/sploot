@@ -714,11 +714,20 @@ These items need to be completed by you before the app will fully work:
   - Verified 0 console statements remain in production code paths
   ```
 
-- [ ] **🤖 [CLI] Merge duplicate upload zone components** (save 350+ lines)
+- [x] **🤖 [CLI] Merge duplicate upload zone components** (save 350+ lines)
   - Consolidate `upload-zone.tsx` (408 lines) and `upload-zone-with-sync.tsx` (468 lines)
   - Extract shared logic (80% duplicate) into single component
   - Use feature flag: `enableBackgroundSync?: boolean` prop
   - Delete redundant file after merge
+  ```
+  Work Log:
+  - Merged both components into single upload-zone.tsx (531 lines)
+  - Added optional enableBackgroundSync prop (default: false)
+  - Conditionally uses either useBackgroundSync or useUploadQueue hooks
+  - Exported UploadZoneWithSync wrapper for backwards compatibility
+  - Deleted upload-zone-with-sync.tsx (468 lines removed)
+  - Total savings: 345 lines (876 → 531)
+  ```
 
 ### High Priority: Bundle Size Reduction
 

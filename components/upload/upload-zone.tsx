@@ -5,6 +5,7 @@ import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
+import { useBackgroundSync } from '@/hooks/use-background-sync';
 
 interface UploadFile {
   id: string;
@@ -16,13 +17,37 @@ interface UploadFile {
   blobUrl?: string;
 }
 
-export function UploadZone() {
+interface UploadZoneProps {
+  /**
+   * Enable background sync for offline upload support.
+   * When true, uses service worker background sync.
+   * When false, uses localStorage-based queue.
+   * @default false
+   */
+  enableBackgroundSync?: boolean;
+}
+
+export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const { isOffline, isSlowConnection } = useOffline();
+
+  // Regular upload queue (localStorage-based)
   const { addToQueue } = useUploadQueue();
+
+  // Background sync (service worker-based)
+  const {
+    addToBackgroundSync,
+    supportsBackgroundSync,
+    queue: syncQueue,
+    retryFailedUploads: retryBackgroundSync,
+    clearCompleted: clearBackgroundSync,
+    pendingCount,
+    uploadingCount,
+    errorCount,
+  } = useBackgroundSync();
 
   // Handle file validation
   const validateFile = (file: File): string | null => {
@@ -35,8 +60,53 @@ export function UploadZone() {
     return null;
   };
 
-  // Process files for upload
-  const processFiles = useCallback((fileList: FileList | File[]) => {
+  // Process files for upload with background sync support
+  const processFilesWithSync = useCallback(async (fileList: FileList | File[]) => {
+    const newFiles: UploadFile[] = [];
+
+    for (const file of Array.from(fileList)) {
+      const error = validateFile(file);
+
+      if (error) {
+        newFiles.push({
+          id: `${Date.now()}-${Math.random()}`,
+          file,
+          status: 'error',
+          progress: 0,
+          error,
+        });
+      } else if (isOffline && supportsBackgroundSync) {
+        // Use background sync when offline
+        const id = await addToBackgroundSync(file);
+        newFiles.push({
+          id,
+          file,
+          status: 'queued',
+          progress: 0,
+        });
+      } else {
+        // Upload immediately or use fallback
+        newFiles.push({
+          id: `${Date.now()}-${Math.random()}`,
+          file,
+          status: 'pending',
+          progress: 0,
+        });
+      }
+    }
+
+    setFiles((prev) => [...prev, ...newFiles]);
+
+    // Start uploading valid files if online
+    if (!isOffline) {
+      newFiles
+        .filter((f) => f.status === 'pending')
+        .forEach((uploadFile) => uploadFileToServer(uploadFile));
+    }
+  }, [isOffline, supportsBackgroundSync, addToBackgroundSync]);
+
+  // Process files for upload with regular queue
+  const processFilesWithQueue = useCallback((fileList: FileList | File[]) => {
     const newFiles: UploadFile[] = [];
 
     Array.from(fileList).forEach((file) => {
@@ -72,6 +142,9 @@ export function UploadZone() {
         .forEach((uploadFile) => uploadFileToServer(uploadFile));
     }
   }, [isOffline, addToQueue]);
+
+  // Choose the appropriate file processor based on enableBackgroundSync
+  const processFiles = enableBackgroundSync ? processFilesWithSync : processFilesWithQueue;
 
   // Upload file to server
   const uploadFileToServer = async (uploadFile: UploadFile) => {
@@ -159,7 +232,7 @@ export function UploadZone() {
         )
       );
     } catch (error) {
-      console.error('Upload error:', error);
+      // Upload error
       setFiles((prev) =>
         prev.map((f) =>
           f.id === uploadFile.id
@@ -255,12 +328,48 @@ export function UploadZone() {
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Show background sync status if enabled
+  const showSyncStatus = enableBackgroundSync && (pendingCount > 0 || uploadingCount > 0 || errorCount > 0);
+
   return (
     <div
       className="w-full"
       onPaste={handlePaste}
       tabIndex={0}
     >
+      {/* Background sync status (only when enabled) */}
+      {showSyncStatus && (
+        <div className="mb-4 bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4 text-sm">
+              {pendingCount > 0 && (
+                <span className="text-[#B3B7BE]">
+                  Pending: <span className="text-[#E6E8EB] font-medium">{pendingCount}</span>
+                </span>
+              )}
+              {uploadingCount > 0 && (
+                <span className="text-[#7C5CFF]">
+                  Uploading: <span className="font-medium">{uploadingCount}</span>
+                </span>
+              )}
+              {errorCount > 0 && (
+                <span className="text-[#FF4D4D]">
+                  Failed: <span className="font-medium">{errorCount}</span>
+                </span>
+              )}
+            </div>
+            {errorCount > 0 && (
+              <button
+                onClick={() => retryBackgroundSync()}
+                className="text-[#7C5CFF] hover:text-[#9B7FFF] text-sm font-medium"
+              >
+                Retry All
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Drop Zone */}
       <div
         onDragEnter={handleDragEnter}
@@ -305,6 +414,11 @@ export function UploadZone() {
           <p className="text-[#B3B7BE]/60 text-xs">
             JPEG, PNG, WebP, GIF • Max 10MB per file
           </p>
+          {enableBackgroundSync && supportsBackgroundSync && (
+            <p className="text-[#7C5CFF]/60 text-xs mt-2">
+              Background sync enabled • Uploads continue offline
+            </p>
+          )}
         </div>
 
         {/* Accent stripe when dragging */}
@@ -372,6 +486,10 @@ export function UploadZone() {
                     </>
                   )}
 
+                  {file.status === 'queued' && (
+                    <span className="text-[#B3B7BE] text-xs">Queued</span>
+                  )}
+
                   {file.status === 'success' && (
                     <span className="text-[#B6FF6E] text-sm">✓</span>
                   )}
@@ -406,4 +524,9 @@ export function UploadZone() {
       )}
     </div>
   );
+}
+
+// Export the component with background sync enabled for backwards compatibility
+export function UploadZoneWithSync() {
+  return <UploadZone enableBackgroundSync={true} />;
 }
