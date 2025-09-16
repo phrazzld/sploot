@@ -1,0 +1,95 @@
+'use client';
+
+import { useState, useEffect, useCallback } from 'react';
+import { useSearchAssets } from '@/hooks/use-assets';
+import { SearchBar } from './search-bar';
+
+interface SearchBarWithResultsProps {
+  onResultsChange?: (results: any[]) => void;
+  className?: string;
+}
+
+export function SearchBarWithResults({
+  onResultsChange,
+  className = '',
+}: SearchBarWithResultsProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedQuery, setDebouncedQuery] = useState('');
+
+  const { assets, loading, error, total } = useSearchAssets(debouncedQuery, {
+    limit: 20,
+  });
+
+  // Debounce the search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedQuery(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Notify parent component when results change
+  useEffect(() => {
+    if (onResultsChange) {
+      onResultsChange(assets);
+    }
+  }, [assets, onResultsChange]);
+
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
+  return (
+    <div className={`relative ${className}`}>
+      <SearchBar
+        onSearch={handleSearch}
+        placeholder="Search your memes..."
+        className="mb-2"
+      />
+
+      {/* Search status */}
+      {debouncedQuery && (
+        <div className="mt-8 text-sm text-[#B3B7BE]">
+          {loading && (
+            <span className="flex items-center gap-2">
+              <svg
+                className="animate-spin h-4 w-4 text-[#7C5CFF]"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                />
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                />
+              </svg>
+              Searching for &ldquo;{debouncedQuery}&rdquo;...
+            </span>
+          )}
+
+          {!loading && !error && (
+            <span>
+              Found <span className="text-[#B6FF6E] font-semibold">{total}</span> results
+              for &ldquo;<span className="text-[#E6E8EB]">{debouncedQuery}</span>&rdquo;
+            </span>
+          )}
+
+          {error && (
+            <span className="text-[#FF4D4D]">
+              Error: {error}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

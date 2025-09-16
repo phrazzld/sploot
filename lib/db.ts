@@ -18,7 +18,7 @@ if (!isMockMode() && databaseConfigured) {
     global.prisma = prismaClient;
   }
 } else {
-  console.warn('Prisma client disabled: database configuration not detected. Using in-memory mocks.');
+  // Database configuration not detected. Using in-memory mocks.
 }
 
 export const prisma = prismaClient;
@@ -287,6 +287,6 @@ export async function logSearch(
     });
   } catch (error) {
     // Log search analytics failures shouldn't break the app
-    console.error('Failed to log search:', error);
+    // Search logging error suppressed
   }
 }

@@ -45,7 +45,7 @@ export class CacheService {
       const token = config?.token || process.env.UPSTASH_REDIS_REST_TOKEN;
 
       if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
-        console.warn('Cache service disabled: Upstash Redis credentials not configured');
+        // Cache service disabled: Upstash Redis credentials not configured
         this.enabled = false;
         return;
       }
@@ -56,9 +56,9 @@ export class CacheService {
       });
 
       this.enabled = true;
-      console.log('Cache service initialized successfully');
+      // Cache service initialized successfully
     } catch (error) {
-      console.error('Failed to initialize cache service:', error);
+      // Failed to initialize cache service
       this.enabled = false;
     }
   }
@@ -73,7 +73,7 @@ export class CacheService {
       const result = await this.redis.ping();
       return result === 'PONG';
     } catch (error) {
-      console.warn('Cache health check failed:', error);
+      // Cache health check failed
       return false;
     }
   }
@@ -89,13 +89,13 @@ export class CacheService {
       const cached = await this.redis!.get<number[]>(key);
 
       if (cached) {
-        console.log(`Cache hit: text embedding for "${text.substring(0, 50)}..."`);
+        // Cache hit: text embedding
         return cached;
       }
 
       return null;
     } catch (error) {
-      console.warn('Failed to get text embedding from cache:', error);
+      // Failed to get text embedding from cache
       return null;
     }
   }
@@ -109,9 +109,9 @@ export class CacheService {
     try {
       const key = CACHE_KEYS.TEXT_EMBEDDING(text);
       await this.redis!.setex(key, DEFAULT_TTL.TEXT_EMBEDDING, embedding);
-      console.log(`Cached text embedding for "${text.substring(0, 50)}..."`);
+      // Cached text embedding
     } catch (error) {
-      console.warn('Failed to cache text embedding:', error);
+      // Failed to cache text embedding
     }
   }
 
@@ -126,13 +126,13 @@ export class CacheService {
       const cached = await this.redis!.get<number[]>(key);
 
       if (cached) {
-        console.log(`Cache hit: image embedding for checksum ${checksum}`);
+        // Cache hit: image embedding
         return cached;
       }
 
       return null;
     } catch (error) {
-      console.warn('Failed to get image embedding from cache:', error);
+      // Failed to get image embedding from cache
       return null;
     }
   }
@@ -146,9 +146,9 @@ export class CacheService {
     try {
       const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
       await this.redis!.setex(key, DEFAULT_TTL.IMAGE_EMBEDDING, embedding);
-      console.log(`Cached image embedding for checksum ${checksum}`);
+      // Cached image embedding
     } catch (error) {
-      console.warn('Failed to cache image embedding:', error);
+      // Failed to cache image embedding
     }
   }
 
@@ -168,13 +168,13 @@ export class CacheService {
       const cached = await this.redis!.get<any[]>(key);
 
       if (cached) {
-        console.log(`Cache hit: search results for "${query}"`);
+        // Cache hit: search results
         return cached;
       }
 
       return null;
     } catch (error) {
-      console.warn('Failed to get search results from cache:', error);
+      // Failed to get search results from cache
       return null;
     }
   }
@@ -194,9 +194,9 @@ export class CacheService {
       const filterKey = JSON.stringify(filters);
       const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
       await this.redis!.setex(key, DEFAULT_TTL.SEARCH_RESULTS, results);
-      console.log(`Cached ${results.length} search results for "${query}"`);
+      // Cached search results
     } catch (error) {
-      console.warn('Failed to cache search results:', error);
+      // Failed to cache search results
     }
   }
 
@@ -211,13 +211,13 @@ export class CacheService {
       const cached = await this.redis!.get<number>(key);
 
       if (cached !== null) {
-        console.log(`Cache hit: asset count for user ${userId}`);
+        // Cache hit: asset count
         return cached;
       }
 
       return null;
     } catch (error) {
-      console.warn('Failed to get user asset count from cache:', error);
+      // Failed to get user asset count from cache
       return null;
     }
   }
@@ -231,9 +231,9 @@ export class CacheService {
     try {
       const key = CACHE_KEYS.USER_ASSETS_COUNT(userId);
       await this.redis!.setex(key, DEFAULT_TTL.ASSET_METADATA, count);
-      console.log(`Cached asset count (${count}) for user ${userId}`);
+      // Cached asset count
     } catch (error) {
-      console.warn('Failed to cache user asset count:', error);
+      // Failed to cache user asset count
     }
   }
 
@@ -255,11 +255,11 @@ export class CacheService {
         const keys = await this.redis!.keys(pattern);
         if (keys.length > 0) {
           await this.redis!.del(...keys);
-          console.log(`Invalidated ${keys.length} cache entries for user ${userId}`);
+          // Invalidated cache entries
         }
       }
     } catch (error) {
-      console.warn('Failed to invalidate user cache:', error);
+      // Failed to invalidate user cache
     }
   }
 
@@ -271,9 +271,9 @@ export class CacheService {
 
     try {
       await this.redis!.flushall();
-      console.log('Cleared all cache entries');
+      // Cleared all cache entries
     } catch (error) {
-      console.warn('Failed to clear cache:', error);
+      // Failed to clear cache
     }
   }
 
@@ -293,7 +293,7 @@ export class CacheService {
       try {
         stats.healthy = await this.isHealthy();
       } catch (error) {
-        console.warn('Failed to get cache stats:', error);
+        // Failed to get cache stats
       }
     }
 

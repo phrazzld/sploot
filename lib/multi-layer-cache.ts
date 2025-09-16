@@ -108,7 +108,7 @@ export class MultiLayerCache {
     // Initialize Layer 2 (Redis) cache
     this.initializeRedis(redisUrl, redisToken);
 
-    console.log('Multi-layer cache initialized');
+    // Multi-layer cache initialized
   }
 
   private initializeRedis(url?: string, token?: string) {
@@ -119,16 +119,16 @@ export class MultiLayerCache {
       if (!redisUrl || !redisToken ||
           redisUrl === 'your_redis_url' ||
           redisToken === 'your_redis_token') {
-        console.warn('Redis cache disabled: credentials not configured');
+        // Redis cache disabled: credentials not configured
         this.enabled = false;
         return;
       }
 
       this.redis = new Redis({ url: redisUrl, token: redisToken });
       this.enabled = true;
-      console.log('Redis cache layer initialized');
+      // Redis cache layer initialized
     } catch (error) {
-      console.error('Failed to initialize Redis:', error);
+      // Failed to initialize Redis
       this.enabled = false;
     }
   }
@@ -144,7 +144,7 @@ export class MultiLayerCache {
     if (l1Result) {
       this.stats.l1Hits++;
       this.updateStats(Date.now() - startTime);
-      console.log(`L1 cache hit: text embedding`);
+      // L1 cache hit: text embedding
       return l1Result;
     }
     this.stats.l1Misses++;
@@ -158,11 +158,11 @@ export class MultiLayerCache {
           // Promote to L1
           this.l1TextEmbeddings.set(key, l2Result);
           this.updateStats(Date.now() - startTime);
-          console.log(`L2 cache hit: text embedding`);
+          // L2 cache hit: text embedding
           return l2Result;
         }
       } catch (error) {
-        console.warn('L2 cache error:', error);
+        // L2 cache error
       }
     }
     this.stats.l2Misses++;
@@ -186,7 +186,7 @@ export class MultiLayerCache {
           embedding
         );
       } catch (error) {
-        console.warn('Failed to set L2 cache:', error);
+        // Failed to set L2 cache
       }
     }
   }
@@ -202,7 +202,7 @@ export class MultiLayerCache {
     if (l1Result) {
       this.stats.l1Hits++;
       this.updateStats(Date.now() - startTime);
-      console.log(`L1 cache hit: image embedding`);
+      // L1 cache hit: image embedding
       return l1Result;
     }
     this.stats.l1Misses++;
@@ -216,11 +216,11 @@ export class MultiLayerCache {
           // Promote to L1
           this.l1ImageEmbeddings.set(key, l2Result);
           this.updateStats(Date.now() - startTime);
-          console.log(`L2 cache hit: image embedding`);
+          // L2 cache hit: image embedding
           return l2Result;
         }
       } catch (error) {
-        console.warn('L2 cache error:', error);
+        // L2 cache error
       }
     }
     this.stats.l2Misses++;
@@ -244,7 +244,7 @@ export class MultiLayerCache {
           embedding
         );
       } catch (error) {
-        console.warn('Failed to set L2 cache:', error);
+        // Failed to set L2 cache
       }
     }
   }
@@ -265,7 +265,7 @@ export class MultiLayerCache {
     if (l1Result) {
       this.stats.l1Hits++;
       this.updateStats(Date.now() - startTime);
-      console.log(`L1 cache hit: search results for "${query}"`);
+      // L1 cache hit: search results
       return l1Result;
     }
     this.stats.l1Misses++;
@@ -279,11 +279,11 @@ export class MultiLayerCache {
           // Promote to L1
           this.l1SearchResults.set(key, l2Result);
           this.updateStats(Date.now() - startTime);
-          console.log(`L2 cache hit: search results for "${query}"`);
+          // L2 cache hit: search results
           return l2Result;
         }
       } catch (error) {
-        console.warn('L2 cache error:', error);
+        // L2 cache error
       }
     }
     this.stats.l2Misses++;
@@ -316,7 +316,7 @@ export class MultiLayerCache {
         // Track popular queries
         await this.trackPopularQuery(query);
       } catch (error) {
-        console.warn('Failed to set L2 cache:', error);
+        // Failed to set L2 cache
       }
     }
   }
@@ -342,7 +342,7 @@ export class MultiLayerCache {
         Object.fromEntries(sorted)
       );
     } catch (error) {
-      console.warn('Failed to track popular query:', error);
+      // Failed to track popular query
     }
   }
 
@@ -354,24 +354,24 @@ export class MultiLayerCache {
       const popularQueries = await this.redis.get<Record<string, number>>(key) || {};
       return Object.keys(popularQueries);
     } catch (error) {
-      console.warn('Failed to get popular queries:', error);
+      // Failed to get popular queries
       return [];
     }
   }
 
   // Cache Warming
   async warmCache(userId: string): Promise<void> {
-    console.log('Starting cache warming for user:', userId);
+    // Starting cache warming
 
     // Warm popular queries
     const popularQueries = await this.getPopularQueries();
-    console.log(`Warming ${popularQueries.length} popular queries`);
+    // Warming popular queries
 
     // Note: Actual warming would require access to the embedding service
     // This is a placeholder for the warming logic
     for (const query of popularQueries) {
       // The actual search endpoint will populate the cache
-      console.log(`Cache warm request for: "${query}"`);
+      // Cache warm request
     }
   }
 
@@ -381,22 +381,22 @@ export class MultiLayerCache {
     }
 
     // Initial warming
-    this.warmCache(userId).catch(console.error);
+    this.warmCache(userId).catch(() => {});
 
     // Periodic warming
     this.warmingInterval = setInterval(
-      () => this.warmCache(userId).catch(console.error),
+      () => this.warmCache(userId).catch(() => {}),
       CACHE_CONFIG.WARMING.REFRESH_INTERVAL
     );
 
-    console.log('Auto-warming started');
+    // Auto-warming started
   }
 
   stopAutoWarming(): void {
     if (this.warmingInterval) {
       clearInterval(this.warmingInterval);
       this.warmingInterval = null;
-      console.log('Auto-warming stopped');
+      // Auto-warming stopped
     }
   }
 
@@ -432,9 +432,9 @@ export class MultiLayerCache {
             await this.redis.del(...keys);
           }
         }
-        console.log(`Invalidated cache for user ${userId}`);
+        // Invalidated cache
       } catch (error) {
-        console.warn('Failed to invalidate L2 cache:', error);
+        // Failed to invalidate L2 cache
       }
     }
   }
@@ -471,16 +471,16 @@ export class MultiLayerCache {
     this.l1ImageEmbeddings.clear();
     this.l1SearchResults.clear();
     this.l1AssetMetadata.clear();
-    console.log('L1 cache cleared');
+    // L1 cache cleared
   }
 
   async clearL2Cache(): Promise<void> {
     if (this.enabled && this.redis) {
       try {
         await this.redis.flushall();
-        console.log('L2 cache cleared');
+        // L2 cache cleared
       } catch (error) {
-        console.warn('Failed to clear L2 cache:', error);
+        // Failed to clear L2 cache
       }
     }
   }

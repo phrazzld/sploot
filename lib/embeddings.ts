@@ -170,7 +170,7 @@ export class ReplicateEmbeddingService {
         throw error;
       }
 
-      console.error('Error generating text embedding:', error);
+      // Error generating text embedding
       throw new EmbeddingError(
         `Failed to generate text embedding: ${(error as Error).message}`,
         500,
@@ -265,7 +265,7 @@ export class ReplicateEmbeddingService {
         throw error;
       }
 
-      console.error('Error generating image embedding:', error);
+      // Error generating image embedding
       throw new EmbeddingError(
         `Failed to generate image embedding: ${(error as Error).message}`,
         500,
@@ -300,7 +300,7 @@ export class ReplicateEmbeddingService {
       } catch (error) {
         lastError = error as Error;
 
-        console.warn(`${context} attempt ${attempt} failed:`, (error as Error).message);
+        // Retry attempt failed
 
         if (
           error instanceof EmbeddingError &&
@@ -334,7 +334,7 @@ export function createEmbeddingService(): ReplicateEmbeddingService {
   const apiToken = process.env.REPLICATE_API_TOKEN;
 
   if (!apiToken || apiToken === 'your_replicate_token_here') {
-    console.warn('Replicate API token not configured. Enable mock services or add credentials.');
+    // Replicate API token not configured
     throw new EmbeddingError('Replicate API token not configured');
   }
 
