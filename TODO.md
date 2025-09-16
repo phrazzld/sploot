@@ -788,10 +788,17 @@ These items need to be completed by you before the app will fully work:
   - Also removed --turbopack flag from build script (was causing errors)
   ```
 
-- [ ] **🤖 [CLI] Inline ESLint config into package.json** (.eslintrc.json - 3 lines)
+- [x] **🤖 [CLI] Inline ESLint config into package.json** (.eslintrc.json - 3 lines)
   - Move `"extends": "next/core-web-vitals"` to package.json
   - Delete .eslintrc.json file
   - Add to package.json: `"eslintConfig": { "extends": "next/core-web-vitals" }`
+  ```
+  Work Log:
+  - Added eslintConfig field to package.json
+  - Deleted .eslintrc.json file (3 lines)
+  - Verified ESLint still works with inline config
+  - One less config file to maintain
+  ```
 
 - [ ] **🤖 [CLI] Consolidate 7 SETUP files into single SETUP.md**
   - Merge: SETUP_{BLOB,CLERK,DATABASE,REDIS,REPLICATE}.md
