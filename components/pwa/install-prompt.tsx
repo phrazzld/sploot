@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { error } from '@/lib/logger';
+import { error as logError } from '@/lib/logger';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -63,7 +63,7 @@ export function InstallPrompt() {
         setShowBanner(false);
       }
     } catch (error) {
-      error('Error installing PWA:', error);
+      logError('Error installing PWA:', error);
     } finally {
       setDeferredPrompt(null);
       setIsInstallable(false);

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useEffect } from 'react';
-import { error } from '@/lib/logger';
+import { error as logError } from '@/lib/logger';
 
 interface Asset {
   id: string;
@@ -77,7 +77,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
         setTotal(data.pagination?.total || 0);
         setHasMore(data.pagination?.hasMore || false);
       } catch (err) {
-        error('Error loading assets:', err);
+        logError('Error loading assets:', err);
         setError(err instanceof Error ? err.message : 'Failed to load assets');
       } finally {
         setLoading(false);
@@ -163,7 +163,7 @@ export function useSearchAssets(query: string, options: { limit?: number } = {})
       setAssets(data.results || []);
       setTotal(data.total || 0);
     } catch (err) {
-      error('Search error:', err);
+      logError('Search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
       setAssets([]);
       setTotal(0);

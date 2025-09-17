@@ -38,11 +38,11 @@ export default function OfflinePage() {
 
         {/* Offline Message */}
         <h1 className="text-3xl font-bold text-lab-text mb-4">
-          You're Offline
+          You&apos;re Offline
         </h1>
 
         <p className="text-lab-text-secondary mb-8">
-          It looks like you've lost your internet connection. Don't worry, your work is saved locally.
+          It looks like you&apos;ve lost your internet connection. Don&apos;t worry, your work is saved locally.
         </p>
 
         {/* Features Available Offline */}
@@ -84,7 +84,7 @@ export default function OfflinePage() {
                 />
               </svg>
               <span className="text-sm text-lab-text">
-                Queue uploads for when you're back online
+                Queue uploads for when you&apos;re back online
               </span>
             </li>
             <li className="flex items-start gap-3">

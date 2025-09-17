@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { error } from '@/lib/logger';
+import { error as logError } from '@/lib/logger';
 
 interface Asset {
   id: string;
@@ -42,7 +42,7 @@ export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTilePr
       });
       onFavorite(asset.id, !asset.favorite);
     } catch (error) {
-      error('Failed to toggle favorite:', error);
+      logError('Failed to toggle favorite:', error);
     } finally {
       setIsLoading(false);
     }
@@ -61,7 +61,7 @@ export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTilePr
       });
       onDelete(asset.id);
     } catch (error) {
-      error('Failed to delete asset:', error);
+      logError('Failed to delete asset:', error);
     } finally {
       setIsLoading(false);
     }
