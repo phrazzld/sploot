@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useOffline } from './use-offline';
+import { error as logError, info } from '@/lib/logger';
 
 export interface BackgroundUpload {
   id: string;
@@ -97,7 +98,7 @@ export function useBackgroundSync() {
         await loadQueue();
         setIsReady(true);
       } catch (error) {
-        console.error('Failed to initialize background sync:', error);
+        logError('Failed to initialize background sync:', error);
         setIsReady(true);
       }
     };
@@ -186,9 +187,9 @@ export function useBackgroundSync() {
     if (supportsBackgroundSync && swRegistrationRef.current) {
       try {
         await (swRegistrationRef.current as any).sync.register('upload-queue');
-        console.log('Background sync registered for upload queue');
+        info('Background sync registered for upload queue');
       } catch (error) {
-        console.error('Failed to register background sync:', error);
+        logError('Failed to register background sync:', error);
       }
     }
 
@@ -302,7 +303,7 @@ export function useBackgroundSync() {
       updateQueueItem(upload.id, { status: 'success' });
       setTimeout(() => removeFromQueue(upload.id), 2000);
     } catch (error) {
-      console.error('Failed to upload:', error);
+      logError('Failed to upload:', error);
 
       const newRetryCount = upload.retryCount + 1;
       updateQueueItem(upload.id, {
@@ -328,7 +329,7 @@ export function useBackgroundSync() {
       try {
         await (swRegistrationRef.current as any).sync.register('upload-queue');
       } catch (error) {
-        console.error('Failed to register background sync:', error);
+        logError('Failed to register background sync:', error);
       }
     } else {
       // Process immediately if online

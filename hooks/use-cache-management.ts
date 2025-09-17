@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { warn } from '@/lib/logger';
 
 export interface CacheStatus {
   [cacheName: string]: {
@@ -177,7 +178,7 @@ export function useCacheManagement() {
             }
           })
           .catch((err) => {
-            console.warn(`Failed to prefetch ${url}:`, err);
+            warn(`Failed to prefetch ${url}:`, err);
           })
       );
 

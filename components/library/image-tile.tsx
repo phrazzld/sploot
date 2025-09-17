@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { error } from '@/lib/logger';
 
 interface Asset {
   id: string;
@@ -41,7 +42,7 @@ export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTilePr
       });
       onFavorite(asset.id, !asset.favorite);
     } catch (error) {
-      console.error('Failed to toggle favorite:', error);
+      error('Failed to toggle favorite:', error);
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +61,7 @@ export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTilePr
       });
       onDelete(asset.id);
     } catch (error) {
-      console.error('Failed to delete asset:', error);
+      error('Failed to delete asset:', error);
     } finally {
       setIsLoading(false);
     }

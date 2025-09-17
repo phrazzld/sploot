@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useOffline } from './use-offline';
+import { error as logError } from '@/lib/logger';
 
 export interface QueuedUpload {
   id: string;
@@ -36,7 +37,7 @@ export function useUploadQueue() {
           item.status === 'queued' || item.status === 'error'
         ));
       } catch (error) {
-        console.error('Error loading upload queue:', error);
+        logError('Error loading upload queue:', error);
       }
     }
   }, []);

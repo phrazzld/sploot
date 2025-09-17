@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
+import { info, error as logError } from '@/lib/logger';
 
 export function UploadTest() {
   const [uploading, setUploading] = useState(false);
@@ -57,10 +58,10 @@ export function UploadTest() {
 
       // For now, we just show the upload configuration
       setUploadResult(uploadConfig);
-      console.log('Upload configuration:', uploadConfig);
+      info('Upload configuration:', uploadConfig);
 
     } catch (err) {
-      console.error('Upload error:', err);
+      logError('Upload error:', err);
       setError(err instanceof Error ? err.message : 'Upload failed');
     } finally {
       setUploading(false);
