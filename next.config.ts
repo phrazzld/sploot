@@ -7,6 +7,17 @@ const nextConfig: NextConfig = {
     NEXT_PUBLIC_ENABLE_MOCK_SERVICES:
       process.env.NEXT_PUBLIC_ENABLE_MOCK_SERVICES ?? (mockServicesEnabled ? "true" : "false"),
   },
+  // Compiler optimizations for production
+  compiler: {
+    // Remove all console statements in production builds
+    // This provides zero runtime overhead - console calls are completely stripped
+    removeConsole: process.env.NODE_ENV === "production" ? {
+      // Keep console.error and console.warn for production debugging
+      exclude: ["error", "warn"],
+    } : false,
+  },
+  // Additional optimization options
+  swcMinify: true, // Use SWC for minification (faster than Terser)
 };
 
 export default withPWA({
