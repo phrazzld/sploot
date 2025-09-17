@@ -22,13 +22,13 @@ These items need to be completed by you before the app will fully work:
      NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_your_actual_key
      CLERK_SECRET_KEY=sk_test_your_actual_secret
      ```
-   - **Guide**: See `SETUP_CLERK.md`
+   - **Guide**: See `SETUP.md#1-clerk-authentication`
 
 ### 2. **👤 [MANUAL] Vercel Deployment & Blob Storage**
    - [ ] Deploy to Vercel: `npx vercel`
    - [ ] Enable Blob Storage in Vercel Dashboard
    - [ ] Copy `BLOB_READ_WRITE_TOKEN` to `.env.local`
-   - **Guide**: See `SETUP_BLOB.md`
+   - **Guide**: See `SETUP.md#2-vercel-deployment--blob-storage`
 
 ### 3. **👤 [MANUAL] Database Setup (Vercel Postgres)**
    - [ ] Create Postgres database in Vercel Dashboard
@@ -86,7 +86,7 @@ These items need to be completed by you before the app will fully work:
   - [CLI DONE] Built landing page with auth detection and redirect
   - [CLI DONE] Created protected /app route that requires authentication
   - [CLI DONE] Styled auth components to match AESTHETIC.md
-  - [CLI DONE] Created SETUP_CLERK.md guide
+  - [CLI DONE] Created Clerk setup guide (now in SETUP.md)
   - [MANUAL NEEDED] User needs to add Clerk API keys to .env.local
   ```
 
@@ -118,7 +118,7 @@ These items need to be completed by you before the app will fully work:
   - [CLI DONE] Created POST /api/upload-url endpoint for generating pre-signed URLs
   - [CLI DONE] Built upload test component to verify functionality
   - [CLI DONE] Added proper authentication checks via Clerk
-  - [CLI DONE] Created SETUP_BLOB.md guide
+  - [CLI DONE] Created Blob setup guide (now in SETUP.md)
   - [MANUAL NEEDED] User needs to configure BLOB_READ_WRITE_TOKEN in Vercel Dashboard
   ```
 
@@ -135,7 +135,7 @@ These items need to be completed by you before the app will fully work:
   - [CLI DONE] Created SQL migration with optimized HNSW index (m=24, ef_construction=128)
   - [CLI DONE] Built database utility functions in lib/db.ts
   - [CLI DONE] Added database scripts to package.json
-  - [CLI DONE] Created SETUP_DATABASE.md guide
+  - [CLI DONE] Created Database setup guide (now in SETUP.md)
   - [CLI DONE] Created seed.ts for testing
   - [MANUAL NEEDED] User needs to:
     1. Create Postgres database in Vercel Dashboard
@@ -183,7 +183,7 @@ These items need to be completed by you before the app will fully work:
   - [CLI DONE] Created POST /api/embeddings/text endpoint for text embeddings
   - [CLI DONE] Created POST /api/embeddings/image endpoint for image embeddings
   - [CLI DONE] Added automatic embedding storage for assets
-  - [CLI DONE] Created SETUP_REPLICATE.md guide with detailed instructions
+  - [CLI DONE] Created Replicate setup guide (now in SETUP.md)
   - [CLI DONE] Using SigLIP Large model with 1152-dimension embeddings
   - [MANUAL NEEDED] User needs to:
     1. Create Replicate account at replicate.com
@@ -350,7 +350,7 @@ These items need to be completed by you before the app will fully work:
   - [CLI DONE] Updated asset upload pipeline to pass checksums for caching
   - [CLI DONE] Updated generate-embedding endpoint to use cached results
   - [CLI DONE] Cache service auto-initializes with embedding service
-  - [CLI DONE] Created comprehensive SETUP_REDIS.md guide
+  - [CLI DONE] Created Redis setup guide (now in SETUP.md)
   - [MANUAL NEEDED] User needs to:
     1. Create Upstash account at upstash.com
     2. Create Redis database (regional, allkeys-lru eviction)
@@ -800,11 +800,19 @@ These items need to be completed by you before the app will fully work:
   - One less config file to maintain
   ```
 
-- [ ] **🤖 [CLI] Consolidate 7 SETUP files into single SETUP.md**
+- [x] **🤖 [CLI] Consolidate 7 SETUP files into single SETUP.md**
   - Merge: SETUP_{BLOB,CLERK,DATABASE,REDIS,REPLICATE}.md
   - Create unified setup guide with sections
   - Reduce documentation overhead by 70%
   - Keep individual files as symlinks if needed
+  ```
+  Work Log:
+  - Consolidated 5 SETUP files (CLERK, BLOB, DATABASE, REPLICATE, REDIS) into single SETUP.md
+  - Created comprehensive guide with table of contents and deep links
+  - Deleted individual SETUP files to reduce clutter
+  - Updated references in README.md, TODO.md, and AGENTS.md
+  - Saved ~1000 lines of documentation duplication
+  ```
 
 ### Low Priority: Directory Cleanup
 
@@ -860,7 +868,7 @@ These items need to be completed by you before the app will fully work:
    pnpm install
    ```
 
-2. **Set up Clerk** (see SETUP_CLERK.md):
+2. **Set up Clerk** (see SETUP.md#1-clerk-authentication):
    - Create account at clerk.com
    - Get API keys
    - Add to .env.local

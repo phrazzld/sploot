@@ -63,11 +63,11 @@ cp .env.example .env.local
 
 Follow these guides in order:
 
-1. **[Clerk Authentication](./SETUP_CLERK.md)** - User authentication
-2. **[Vercel Deployment](./SETUP_BLOB.md)** - Deploy and enable Blob storage
-3. **[Database Setup](./SETUP_DATABASE.md)** - PostgreSQL with pgvector
-4. **[Replicate API](./SETUP_REPLICATE.md)** - AI embeddings
-5. **[Redis Cache](./SETUP_REDIS.md)** - Performance optimization (optional)
+1. **[Clerk Authentication](./SETUP.md#1-clerk-authentication)** - User authentication
+2. **[Vercel Deployment](./SETUP.md#2-vercel-deployment--blob-storage)** - Deploy and enable Blob storage
+3. **[Database Setup](./SETUP.md#3-postgresql-database-with-pgvector)** - PostgreSQL with pgvector
+4. **[Replicate API](./SETUP.md#4-replicate-api-for-embeddings)** - AI embeddings
+5. **[Redis Cache](./SETUP.md#5-upstash-redis-for-caching-optional)** - Performance optimization (optional)
 
 ### 4. Initialize Database
 

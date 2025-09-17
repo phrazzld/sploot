@@ -27,4 +27,4 @@ Jest with `@testing-library/react` powers UI and integration coverage. Create sp
 Write imperative, under-72-character commit subjects (for example, `Add asset search filters`) and include extra context in the body when necessary. Reference issues with `#123` syntax. Pull requests should explain motivation, list manual or automated verification, and attach screenshots for UI changes. Confirm lint, types, and tests succeed before requesting review.
 
 ## Environment & Services
-Follow the service setup notes in `SETUP_CLERK.md`, `SETUP_REDIS.md`, `SETUP_REPLICATE.md`, `SETUP_BLOB.md`, and `SETUP_DATABASE.md` when creating secrets. Store credentials only in `.env.local` (ignored by git). During deploys, run `pnpm db:migrate` to apply Prisma migrations.
+Follow the service setup notes in `SETUP.md` when creating secrets. Store credentials only in `.env.local` (ignored by git). During deploys, run `pnpm db:migrate` to apply Prisma migrations.
