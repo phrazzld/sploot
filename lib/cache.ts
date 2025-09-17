@@ -63,9 +63,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Check if cache is available and operational
-   */
   async isHealthy(): Promise<boolean> {
     if (!this.enabled || !this.redis) return false;
 
@@ -78,9 +75,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get cached text embedding
-   */
   async getTextEmbedding(text: string): Promise<number[] | null> {
     if (!this.enabled) return null;
 
@@ -100,9 +94,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Cache text embedding with TTL
-   */
   async setTextEmbedding(text: string, embedding: number[]): Promise<void> {
     if (!this.enabled || !embedding?.length) return;
 
@@ -115,9 +106,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get cached image embedding by checksum
-   */
   async getImageEmbedding(checksum: string): Promise<number[] | null> {
     if (!this.enabled) return null;
 
@@ -137,9 +125,7 @@ export class CacheService {
     }
   }
 
-  /**
-   * Cache image embedding by checksum (longer TTL since images are immutable)
-   */
+  // Images are immutable, use longer TTL
   async setImageEmbedding(checksum: string, embedding: number[]): Promise<void> {
     if (!this.enabled || !embedding?.length) return;
 
@@ -152,9 +138,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get cached search results
-   */
   async getSearchResults(
     userId: string,
     query: string,
@@ -179,9 +162,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Cache search results with TTL
-   */
   async setSearchResults(
     userId: string,
     query: string,
@@ -200,9 +180,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Get cached asset count for user
-   */
   async getUserAssetCount(userId: string): Promise<number | null> {
     if (!this.enabled) return null;
 
@@ -222,9 +199,6 @@ export class CacheService {
     }
   }
 
-  /**
-   * Cache user asset count
-   */
   async setUserAssetCount(userId: string, count: number): Promise<void> {
     if (!this.enabled) return;
 

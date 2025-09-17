@@ -522,10 +522,6 @@ let multiLayerCache: MultiLayerCache | null = null;
 /**
  * Factory function to create or get singleton MultiLayerCache instance.
  * Initializes Redis connection if credentials provided.
- *
- * @param redisUrl - Optional Upstash Redis URL
- * @param redisToken - Optional Upstash Redis token
- * @returns MultiLayerCache instance
  */
 export function createMultiLayerCache(
   redisUrl?: string,
@@ -539,8 +535,6 @@ export function createMultiLayerCache(
 
 /**
  * Get the current MultiLayerCache instance if it exists.
- *
- * @returns MultiLayerCache instance or null if not initialized
  */
 export function getMultiLayerCache(): MultiLayerCache | null {
   return multiLayerCache;
@@ -549,9 +543,6 @@ export function getMultiLayerCache(): MultiLayerCache | null {
 /**
  * Generate a hash string from input for cache key generation.
  * Uses fast non-cryptographic hash for performance.
- *
- * @param str - String to hash
- * @returns Base36 hash string
  */
 function hashString(str: string): string {
   let hash = 0;

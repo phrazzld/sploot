@@ -827,10 +827,20 @@ These items need to be completed by you before the app will fully work:
   - Placed in typescript section of .gitignore for logical grouping
   ```
 
-- [ ] **🤖 [CLI] Audit and trim verbose JSDoc comments** (lib/*.ts files)
+- [x] **🤖 [CLI] Audit and trim verbose JSDoc comments** (lib/*.ts files)
   - Keep only essential documentation
   - Remove obvious comments like `@param query - The search query`
   - Focus on complex business logic documentation
+  ```
+  Work Log:
+  - Reviewed all 9 lib/*.ts files for verbose JSDoc comments
+  - Removed obvious @param descriptions that just restated parameter names
+  - Removed simple getter/setter JSDoc comments in cache.ts
+  - Kept @throws documentation as it provides value
+  - Kept complex logic descriptions in multi-layer cache and embeddings
+  - Total: Simplified ~50 JSDoc comments across db.ts, cache.ts, embeddings.ts, blob.ts, multi-layer-cache.ts
+  - Reduced documentation bloat while preserving important technical details
+  ```
 
 ### Performance Optimizations
 

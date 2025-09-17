@@ -28,10 +28,6 @@ export const databaseAvailable = !!prismaClient;
 /**
  * Sync user data from Clerk to database.
  * Creates user if not exists, updates email if changed.
- *
- * @param clerkUserId - User ID from Clerk authentication
- * @param email - User email address
- * @returns User object with id, email, role, and timestamps
  */
 export async function syncUser(clerkUserId: string, email: string) {
   if (!prisma) {
@@ -55,12 +51,8 @@ export async function syncUser(clerkUserId: string, email: string) {
 }
 
 /**
- * Get existing user or create new one if doesn't exist.
- * Atomic operation to prevent race conditions.
- *
- * @param clerkUserId - User ID from Clerk authentication
- * @param email - User email address
- * @returns User object with id, email, role, and timestamps
+ * Atomic operation to get existing user or create new one.
+ * Prevents race conditions.
  */
 export async function getOrCreateUser(clerkUserId: string, email: string) {
   if (!prisma) {
@@ -92,10 +84,6 @@ export async function getOrCreateUser(clerkUserId: string, email: string) {
 /**
  * Check if asset with given checksum already exists for user.
  * Used for deduplication during upload process.
- *
- * @param userId - User ID to check
- * @param checksumSha256 - SHA-256 checksum of file
- * @returns true if asset exists, false otherwise
  */
 export async function assetExists(userId: string, checksumSha256: string) {
   if (!prisma) {
@@ -116,15 +104,6 @@ export async function assetExists(userId: string, checksumSha256: string) {
 /**
  * Get paginated list of user's assets with filtering and sorting.
  * Includes embeddings and tags for each asset.
- *
- * @param userId - User ID to fetch assets for
- * @param options - Query options for pagination and filtering
- * @param options.limit - Number of results to return (default: 50)
- * @param options.offset - Number of results to skip (default: 0)
- * @param options.favoriteOnly - Only return favorite assets
- * @param options.tagId - Filter by specific tag ID
- * @param options.orderBy - Field to sort by (default: 'createdAt')
- * @param options.order - Sort direction (default: 'desc')
  * @returns Object with assets array, total count, and hasMore flag
  */
 export async function getUserAssets(
@@ -263,9 +242,6 @@ export async function vectorSearch(
   return results;
 }
 
-/**
- * Helper function to log search queries for analytics
- */
 export async function logSearch(
   userId: string,
   query: string,

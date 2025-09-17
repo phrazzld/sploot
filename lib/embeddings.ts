@@ -182,10 +182,6 @@ export class ReplicateEmbeddingService {
   /**
    * Generate embeddings for image from URL.
    * Uses checksum for cache key when available for better deduplication.
-   *
-   * @param imageUrl - URL of image to embed
-   * @param checksum - Optional SHA-256 checksum for cache key
-   * @returns Embedding result with vector and metadata
    * @throws {EmbeddingError} If embedding generation fails after retries
    */
   async embedImage(imageUrl: string, checksum?: string): Promise<EmbeddingResult> {
@@ -322,8 +318,6 @@ export class ReplicateEmbeddingService {
 /**
  * Factory function to create embedding service instance.
  * Returns mock service in development when Replicate API not configured.
- *
- * @returns Configured embedding service instance
  * @throws {EmbeddingError} If API token not configured and not in mock mode
  */
 export function createEmbeddingService(): ReplicateEmbeddingService {
@@ -346,9 +340,6 @@ export function createEmbeddingService(): ReplicateEmbeddingService {
 
 /**
  * Normalize embedding vector to unit length for cosine similarity.
- *
- * @param embedding - Vector to normalize
- * @returns Normalized vector with magnitude 1
  */
 export function normalizeEmbedding(embedding: number[]): number[] {
   const magnitude = Math.sqrt(
@@ -365,10 +356,6 @@ export function normalizeEmbedding(embedding: number[]): number[] {
 /**
  * Calculate cosine similarity between two embedding vectors.
  * Returns value between -1 and 1, where 1 indicates identical direction.
- *
- * @param a - First embedding vector
- * @param b - Second embedding vector
- * @returns Cosine similarity score between -1 and 1
  * @throws {Error} If vectors have different dimensions
  */
 export function cosineSimilarity(a: number[], b: number[]): number {
