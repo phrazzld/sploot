@@ -43,4 +43,8 @@ next-env.d.ts
 # swc
 .swc
 
+# PWA generated files
+/public/sw.js
+/public/workbox-*.js
+
 /lib/generated/prisma
