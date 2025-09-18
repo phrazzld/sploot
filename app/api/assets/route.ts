@@ -3,7 +3,7 @@ import { isValidFileType, isValidFileSize } from '@/lib/blob';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';
 import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
-import { getAuth } from '@/lib/auth/server';
+import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, databaseAvailable } from '@/lib/db';
 import { isMockMode } from '@/lib/env';
 import {
@@ -13,13 +13,7 @@ import {
 
 export async function POST(req: NextRequest) {
   try {
-    const { userId } = await getAuth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    const userId = await requireUserIdWithSync();
 
     const body = await req.json();
     const {
@@ -190,7 +184,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await getAuth();
+    const { userId } = await getAuthWithUser();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },

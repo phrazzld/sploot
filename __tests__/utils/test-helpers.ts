@@ -4,8 +4,8 @@ import { jest } from '@jest/globals';
 // Mock Clerk auth
 export const mockAuth = (userId: string | null = 'test-user-id') => {
   jest.mock('@clerk/nextjs/server', () => ({
-    auth: jest.fn().mockResolvedValue({ userId }),
-    currentUser: jest.fn().mockResolvedValue(
+    auth: jest.fn<() => Promise<{ userId: string | null }>>().mockResolvedValue({ userId }),
+    currentUser: jest.fn<() => Promise<any>>().mockResolvedValue(
       userId
         ? {
             id: userId,
@@ -46,40 +46,40 @@ export const mockPrisma = () => {
 
   return {
     asset: {
-      create: jest.fn().mockResolvedValue(mockAsset),
-      findFirst: jest.fn().mockResolvedValue(null),
-      findMany: jest.fn().mockResolvedValue([mockAsset]),
-      findUnique: jest.fn().mockResolvedValue(mockAsset),
-      update: jest.fn().mockResolvedValue({ ...mockAsset, favorite: true }),
-      delete: jest.fn().mockResolvedValue(mockAsset),
-      count: jest.fn().mockResolvedValue(10),
+      create: jest.fn<() => Promise<any>>().mockResolvedValue(mockAsset),
+      findFirst: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+      findMany: jest.fn<() => Promise<any>>().mockResolvedValue([mockAsset]),
+      findUnique: jest.fn<() => Promise<any>>().mockResolvedValue(mockAsset),
+      update: jest.fn<() => Promise<any>>().mockResolvedValue({ ...mockAsset, favorite: true }),
+      delete: jest.fn<() => Promise<any>>().mockResolvedValue(mockAsset),
+      count: jest.fn<() => Promise<number>>().mockResolvedValue(10),
     },
     assetEmbedding: {
-      create: jest.fn().mockResolvedValue(mockAssetEmbedding),
-      findFirst: jest.fn().mockResolvedValue(null),
-      findUnique: jest.fn().mockResolvedValue(null),
-      update: jest.fn().mockResolvedValue(mockAssetEmbedding),
-      upsert: jest.fn().mockResolvedValue(mockAssetEmbedding),
+      create: jest.fn<() => Promise<any>>().mockResolvedValue(mockAssetEmbedding),
+      findFirst: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+      findUnique: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+      update: jest.fn<() => Promise<any>>().mockResolvedValue(mockAssetEmbedding),
+      upsert: jest.fn<() => Promise<any>>().mockResolvedValue(mockAssetEmbedding),
     },
     assetTag: {
-      findMany: jest.fn().mockResolvedValue([]),
-      deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-      create: jest.fn().mockResolvedValue({
+      findMany: jest.fn<() => Promise<any>>().mockResolvedValue([]),
+      deleteMany: jest.fn<() => Promise<any>>().mockResolvedValue({ count: 0 }),
+      create: jest.fn<() => Promise<any>>().mockResolvedValue({
         id: 'tag-123',
         assetId: 'asset-123',
         tagId: 'tag-456',
       }),
     },
     tag: {
-      findFirst: jest.fn().mockResolvedValue(null),
-      create: jest.fn().mockResolvedValue({
+      findFirst: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+      create: jest.fn<() => Promise<any>>().mockResolvedValue({
         id: 'tag-456',
         name: 'test-tag',
         userId: 'test-user-id',
       }),
     },
     searchLog: {
-      create: jest.fn().mockResolvedValue({
+      create: jest.fn<() => Promise<any>>().mockResolvedValue({
         id: 'log-123',
         userId: 'test-user-id',
         query: 'test query',
@@ -87,18 +87,18 @@ export const mockPrisma = () => {
         queryTime: 100,
         createdAt: new Date(),
       }),
-      findMany: jest.fn().mockResolvedValue([]),
-      groupBy: jest.fn().mockResolvedValue([]),
+      findMany: jest.fn<() => Promise<any>>().mockResolvedValue([]),
+      groupBy: jest.fn<() => Promise<any>>().mockResolvedValue([]),
     },
-    $queryRawUnsafe: jest.fn().mockResolvedValue([]),
-    $transaction: jest.fn().mockImplementation((callback) =>
+    $queryRawUnsafe: jest.fn<() => Promise<any>>().mockResolvedValue([]),
+    $transaction: jest.fn<(callback: any) => Promise<any>>().mockImplementation((callback) =>
       callback({
         asset: {
-          create: jest.fn().mockResolvedValue(mockAsset),
-          update: jest.fn().mockResolvedValue(mockAsset),
+          create: jest.fn<() => Promise<any>>().mockResolvedValue(mockAsset),
+          update: jest.fn<() => Promise<any>>().mockResolvedValue(mockAsset),
         },
         assetEmbedding: {
-          create: jest.fn().mockResolvedValue(mockAssetEmbedding),
+          create: jest.fn<() => Promise<any>>().mockResolvedValue(mockAssetEmbedding),
         },
       })
     ),
@@ -131,7 +131,7 @@ export const createMockRequest = (
 
   // Mock json() method
   if (body) {
-    (request as any).json = jest.fn().mockResolvedValue(body);
+    (request as any).json = jest.fn<() => Promise<any>>().mockResolvedValue(body);
   }
 
   return request;
@@ -140,20 +140,20 @@ export const createMockRequest = (
 // Mock blob storage functions
 export const mockBlobStorage = () => {
   return {
-    put: jest.fn().mockResolvedValue({
+    put: jest.fn<() => Promise<any>>().mockResolvedValue({
       url: 'https://example.blob.vercel-storage.com/test.jpg',
       pathname: 'test.jpg',
       contentType: 'image/jpeg',
       contentDisposition: 'inline',
     }),
-    del: jest.fn().mockResolvedValue(undefined),
-    head: jest.fn().mockResolvedValue({
+    del: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    head: jest.fn<() => Promise<any>>().mockResolvedValue({
       size: 1024000,
       uploadedAt: new Date(),
       pathname: 'test.jpg',
       contentType: 'image/jpeg',
     }),
-    list: jest.fn().mockResolvedValue({
+    list: jest.fn<() => Promise<any>>().mockResolvedValue({
       blobs: [],
       cursor: null,
       hasMore: false,
@@ -164,19 +164,19 @@ export const mockBlobStorage = () => {
 // Mock embedding service
 export const mockEmbeddingService = () => {
   return {
-    embedText: jest.fn().mockResolvedValue({
+    embedText: jest.fn<() => Promise<any>>().mockResolvedValue({
       embedding: Array(1152).fill(0.1),
       model: 'siglip-large',
       dimension: 1152,
       processingTime: 100,
     }),
-    embedImage: jest.fn().mockResolvedValue({
+    embedImage: jest.fn<() => Promise<any>>().mockResolvedValue({
       embedding: Array(1152).fill(0.1),
       model: 'siglip-large',
       dimension: 1152,
       processingTime: 150,
     }),
-    embedBatch: jest.fn().mockResolvedValue([
+    embedBatch: jest.fn<() => Promise<any[]>>().mockResolvedValue([
       {
         embedding: Array(1152).fill(0.1),
         model: 'siglip-large',
@@ -190,17 +190,17 @@ export const mockEmbeddingService = () => {
 // Mock cache service
 export const mockCacheService = () => {
   return {
-    getTextEmbedding: jest.fn().mockResolvedValue(null),
-    setTextEmbedding: jest.fn().mockResolvedValue(undefined),
-    getImageEmbedding: jest.fn().mockResolvedValue(null),
-    setImageEmbedding: jest.fn().mockResolvedValue(undefined),
-    getSearchResults: jest.fn().mockResolvedValue(null),
-    setSearchResults: jest.fn().mockResolvedValue(undefined),
-    invalidateUserData: jest.fn().mockResolvedValue(undefined),
-    getUserAssetCount: jest.fn().mockResolvedValue(null),
-    setUserAssetCount: jest.fn().mockResolvedValue(undefined),
-    isHealthy: jest.fn().mockResolvedValue(true),
-    getStats: jest.fn().mockResolvedValue({
+    getTextEmbedding: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    setTextEmbedding: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    getImageEmbedding: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    setImageEmbedding: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    getSearchResults: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    setSearchResults: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    invalidateUserData: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    getUserAssetCount: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    setUserAssetCount: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    isHealthy: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+    getStats: jest.fn<() => Promise<any>>().mockResolvedValue({
       enabled: true,
       healthy: true,
     }),
@@ -210,17 +210,17 @@ export const mockCacheService = () => {
 // Mock multi-layer cache
 export const mockMultiLayerCache = () => {
   return {
-    getTextEmbedding: jest.fn().mockResolvedValue(null),
-    setTextEmbedding: jest.fn().mockResolvedValue(undefined),
-    getImageEmbedding: jest.fn().mockResolvedValue(null),
-    setImageEmbedding: jest.fn().mockResolvedValue(undefined),
-    getSearchResults: jest.fn().mockResolvedValue(null),
-    setSearchResults: jest.fn().mockResolvedValue(undefined),
-    invalidateUserData: jest.fn().mockResolvedValue(undefined),
-    warmCache: jest.fn().mockResolvedValue(undefined),
-    startAutoWarming: jest.fn(),
-    stopAutoWarming: jest.fn(),
-    getStats: jest.fn().mockResolvedValue({
+    getTextEmbedding: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    setTextEmbedding: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    getImageEmbedding: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    setImageEmbedding: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    getSearchResults: jest.fn<() => Promise<any>>().mockResolvedValue(null),
+    setSearchResults: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    invalidateUserData: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    warmCache: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    startAutoWarming: jest.fn<() => void>(),
+    stopAutoWarming: jest.fn<() => void>(),
+    getStats: jest.fn<() => any>().mockReturnValue({
       l1Hits: 100,
       l1Misses: 20,
       l2Hits: 50,
@@ -230,7 +230,7 @@ export const mockMultiLayerCache = () => {
       avgLatency: 5.2,
       lastReset: new Date(),
     }),
-    isHealthy: jest.fn().mockResolvedValue({
+    isHealthy: jest.fn<() => Promise<any>>().mockResolvedValue({
       l1: true,
       l2: true,
       stats: {
@@ -244,10 +244,10 @@ export const mockMultiLayerCache = () => {
         lastReset: new Date(),
       },
     }),
-    clearL1Cache: jest.fn(),
-    clearL2Cache: jest.fn().mockResolvedValue(undefined),
-    clearAllCaches: jest.fn().mockResolvedValue(undefined),
-    resetStats: jest.fn(),
+    clearL1Cache: jest.fn<() => void>(),
+    clearL2Cache: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    clearAllCaches: jest.fn<() => Promise<void>>().mockResolvedValue(undefined),
+    resetStats: jest.fn<() => void>(),
   };
 };
 

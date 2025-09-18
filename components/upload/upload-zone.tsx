@@ -146,7 +146,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
   // Choose the appropriate file processor based on enableBackgroundSync
   const processFiles = enableBackgroundSync ? processFilesWithSync : processFilesWithQueue;
 
-  // Upload file to server
+  // Upload file to server - simplified direct upload
   const uploadFileToServer = async (uploadFile: UploadFile) => {
     setFiles((prev) =>
       prev.map((f) =>
@@ -155,68 +155,63 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
     );
 
     try {
-      // Step 1: Get upload URL
-      const response = await fetch('/api/upload-url', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          filename: uploadFile.file.name,
-          mimeType: uploadFile.file.type,
-          size: uploadFile.file.size,
-        }),
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', uploadFile.file);
+
+      // Track upload progress with XMLHttpRequest for better progress reporting
+      const xhr = new XMLHttpRequest();
+
+      // Create a promise to handle the XHR request
+      const uploadPromise = new Promise<any>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            setFiles((prev) =>
+              prev.map((f) =>
+                f.id === uploadFile.id
+                  ? { ...f, progress: Math.min(90, percentComplete) }
+                  : f
+              )
+            );
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            try {
+              const response = JSON.parse(xhr.responseText);
+              resolve(response);
+            } catch {
+              reject(new Error('Invalid response from server'));
+            }
+          } else {
+            try {
+              const error = JSON.parse(xhr.responseText);
+              reject(new Error(error.error || `Upload failed with status ${xhr.status}`));
+            } catch {
+              reject(new Error(`Upload failed with status ${xhr.status}`));
+            }
+          }
+        });
+
+        xhr.addEventListener('error', () => {
+          reject(new Error('Network error during upload'));
+        });
+
+        xhr.addEventListener('abort', () => {
+          reject(new Error('Upload cancelled'));
+        });
+
+        xhr.open('POST', '/api/upload');
+        xhr.send(formData);
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to get upload URL');
+      const result = await uploadPromise;
+
+      if (!result.success) {
+        throw new Error(result.error || 'Upload failed');
       }
-
-      const uploadConfig = await response.json();
-
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.id === uploadFile.id ? { ...f, progress: 30 } : f
-        )
-      );
-
-      // Step 2: Upload to blob storage
-      const uploadResponse = await fetch(uploadConfig.uploadUrl, {
-        method: uploadConfig.method || 'PUT',
-        body: uploadFile.file,
-        headers: {
-          'Content-Type': uploadFile.file.type,
-          ...uploadConfig.headers,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload file to storage');
-      }
-
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.id === uploadFile.id ? { ...f, progress: 70 } : f
-        )
-      );
-
-      // Step 3: Create asset record
-      const assetResponse = await fetch('/api/assets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          blobUrl: uploadConfig.downloadUrl || uploadConfig.uploadUrl,
-          pathname: uploadConfig.pathname,
-          filename: uploadFile.file.name,
-          mimeType: uploadFile.file.type,
-          size: uploadFile.file.size,
-        }),
-      });
-
-      if (!assetResponse.ok) {
-        throw new Error('Failed to create asset record');
-      }
-
-      const asset = await assetResponse.json();
 
       setFiles((prev) =>
         prev.map((f) =>
@@ -225,14 +220,22 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                 ...f,
                 status: 'success',
                 progress: 100,
-                assetId: asset.asset?.id,
-                blobUrl: asset.asset?.blobUrl,
+                assetId: result.asset?.id,
+                blobUrl: result.asset?.blobUrl,
               }
             : f
         )
       );
+
+      // Trigger a refresh of the asset list if there's a callback
+      if (window.location.pathname === '/app') {
+        // Dispatch a custom event that the library page can listen to
+        window.dispatchEvent(new CustomEvent('assetUploaded', { detail: result.asset }));
+      }
+
     } catch (error) {
-      // Upload error
+      console.error('Upload error:', error);
+
       setFiles((prev) =>
         prev.map((f) =>
           f.id === uploadFile.id

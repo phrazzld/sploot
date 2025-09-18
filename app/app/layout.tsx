@@ -5,14 +5,14 @@ import { UserMenu } from '@/components/navigation/user-menu';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { OfflineBanner } from '@/components/offline/offline-banner';
 import { OfflineProvider } from '@/components/offline/offline-provider';
-import { getAuth } from '@/lib/auth/server';
+import { getAuthWithUser } from '@/lib/auth/server';
 
 export default async function AppLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await getAuth();
+  const { userId } = await getAuthWithUser();
 
   if (!userId) {
     redirect('/sign-in');

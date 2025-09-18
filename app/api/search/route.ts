@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma, databaseAvailable, vectorSearch, logSearch } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
-import { getAuth } from '@/lib/auth/server';
+import { getAuthWithUser } from '@/lib/auth/server';
 import { isMockMode } from '@/lib/env';
 import { mockLogSearch, mockPopularSearches, mockRecentSearches, mockSearchAssets } from '@/lib/mock-store';
 
@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   let threshold: number = 0.6;
 
   try {
-    const { userId } = await getAuth();
+    const { userId } = await getAuthWithUser();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -195,7 +195,7 @@ export async function POST(req: NextRequest) {
 // GET endpoint for search suggestions or recent searches
 export async function GET(req: NextRequest) {
   try {
-    const { userId } = await getAuth();
+    const { userId } = await getAuthWithUser();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },

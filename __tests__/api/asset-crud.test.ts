@@ -59,7 +59,7 @@ describe('/api/assets/[id]', () => {
       mockAuth.mockResolvedValue({ userId: null });
 
       const request = createMockRequest('GET');
-      const response = await GET(request, { params: { id: 'asset-123' } });
+      const response = await GET(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -71,7 +71,7 @@ describe('/api/assets/[id]', () => {
       prisma.asset.findUnique.mockResolvedValue(null);
 
       const request = createMockRequest('GET');
-      const response = await GET(request, { params: { id: 'asset-123' } });
+      const response = await GET(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -86,7 +86,7 @@ describe('/api/assets/[id]', () => {
       });
 
       const request = createMockRequest('GET');
-      const response = await GET(request, { params: { id: 'asset-123' } });
+      const response = await GET(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(403);
@@ -102,7 +102,7 @@ describe('/api/assets/[id]', () => {
       ]);
 
       const request = createMockRequest('GET');
-      const response = await GET(request, { params: { id: 'asset-123' } });
+      const response = await GET(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -118,7 +118,7 @@ describe('/api/assets/[id]', () => {
       const request = createMockRequest('PATCH', {
         favorite: true,
       });
-      const response = await PATCH(request, { params: { id: 'asset-123' } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -132,7 +132,7 @@ describe('/api/assets/[id]', () => {
       const request = createMockRequest('PATCH', {
         favorite: true,
       });
-      const response = await PATCH(request, { params: { id: 'asset-123' } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -150,7 +150,7 @@ describe('/api/assets/[id]', () => {
       const request = createMockRequest('PATCH', {
         favorite: true,
       });
-      const response = await PATCH(request, { params: { id: 'asset-123' } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -175,7 +175,7 @@ describe('/api/assets/[id]', () => {
       const request = createMockRequest('PATCH', {
         tags: ['new-tag', 'another-tag'],
       });
-      const response = await PATCH(request, { params: { id: 'asset-123' } });
+      const response = await PATCH(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -198,7 +198,7 @@ describe('/api/assets/[id]', () => {
       const request = createMockRequest('PATCH', {
         favorite: true,
       });
-      await PATCH(request, { params: { id: 'asset-123' } });
+      await PATCH(request, { params: Promise.resolve({ id: 'asset-123' }) });
 
       expect(mockCache.invalidateUserData).toHaveBeenCalledWith('test-user-id');
     });
@@ -209,7 +209,7 @@ describe('/api/assets/[id]', () => {
       mockAuth.mockResolvedValue({ userId: null });
 
       const request = createMockRequest('DELETE');
-      const response = await DELETE(request, { params: { id: 'asset-123' } });
+      const response = await DELETE(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(401);
@@ -221,7 +221,7 @@ describe('/api/assets/[id]', () => {
       prisma.asset.findUnique.mockResolvedValue(null);
 
       const request = createMockRequest('DELETE');
-      const response = await DELETE(request, { params: { id: 'asset-123' } });
+      const response = await DELETE(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(404);
@@ -237,7 +237,7 @@ describe('/api/assets/[id]', () => {
       });
 
       const request = createMockRequest('DELETE');
-      const response = await DELETE(request, { params: { id: 'asset-123' } });
+      const response = await DELETE(request, { params: Promise.resolve({ id: 'asset-123' }) });
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -257,7 +257,7 @@ describe('/api/assets/[id]', () => {
       });
 
       const request = createMockRequest('DELETE');
-      await DELETE(request, { params: { id: 'asset-123' } });
+      await DELETE(request, { params: Promise.resolve({ id: 'asset-123' }) });
 
       expect(mockDel).toHaveBeenCalledWith(mockAsset.blobUrl);
     });
@@ -274,7 +274,7 @@ describe('/api/assets/[id]', () => {
       getMultiLayerCache.mockReturnValue(mockCache);
 
       const request = createMockRequest('DELETE');
-      await DELETE(request, { params: { id: 'asset-123' } });
+      await DELETE(request, { params: Promise.resolve({ id: 'asset-123' }) });
 
       expect(mockCache.invalidateUserData).toHaveBeenCalledWith('test-user-id');
     });

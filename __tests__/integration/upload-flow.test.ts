@@ -156,7 +156,7 @@ describe('Upload Flow Integration Tests', () => {
       const generateEmbeddingRequest = createMockRequest('POST');
       const embeddingResponse = await generateEmbeddingPOST(
         generateEmbeddingRequest,
-        { params: { id: 'asset-123' } }
+        { params: Promise.resolve({ id: 'asset-123' }) }
       );
 
       expect(embeddingResponse.status).toBe(200);
@@ -271,7 +271,7 @@ describe('Upload Flow Integration Tests', () => {
       ];
 
       prisma.asset.findFirst.mockResolvedValue(null);
-      prisma.asset.create.mockImplementation((data) =>
+      prisma.asset.create.mockImplementation((data: any) =>
         Promise.resolve({
           id: `asset-${data.data.filename}`,
           ...data.data,
@@ -373,7 +373,7 @@ describe('Upload Flow Integration Tests', () => {
       const request = createMockRequest('GET');
       const response = await embeddingStatusGET(
         request,
-        { params: { id: 'asset-123' } }
+        { params: Promise.resolve({ id: 'asset-123' }) }
       );
       const data = await response.json();
 
@@ -395,7 +395,7 @@ describe('Upload Flow Integration Tests', () => {
       const request = createMockRequest('GET');
       const response = await embeddingStatusGET(
         request,
-        { params: { id: 'asset-123' } }
+        { params: Promise.resolve({ id: 'asset-123' }) }
       );
       const data = await response.json();
 

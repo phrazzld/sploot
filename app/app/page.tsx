@@ -9,21 +9,6 @@ import { useRouter } from 'next/navigation';
 
 export default function AppPage() {
   const router = useRouter();
-  const {
-    assets,
-    loading,
-    hasMore,
-    total,
-    loadAssets,
-    updateAsset,
-    deleteAsset,
-  } = useAssets({
-    initialLimit: 50,
-    sortBy: sortBy === 'filename' ? 'createdAt' : sortBy,
-    sortOrder,
-    autoLoad: true,
-  });
-
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>(() => {
     if (typeof window !== 'undefined') {
@@ -44,6 +29,24 @@ export default function AppPage() {
     return 'desc';
   });
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+  // Convert filename to createdAt for the actual sorting
+  const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
+
+  const {
+    assets,
+    loading,
+    hasMore,
+    total,
+    loadAssets,
+    updateAsset,
+    deleteAsset,
+  } = useAssets({
+    initialLimit: 50,
+    sortBy: actualSortBy,
+    sortOrder,
+    autoLoad: true,
+  });
 
   // Save preferences to localStorage
   useEffect(() => {
