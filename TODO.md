@@ -98,10 +98,15 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - `pnpm lint` failed locally: Next.js SWC binary unavailable offline despite retry with elevated permissions
   ```
 
-- [ ] **Better empty state illustration** (`components/library/image-grid.tsx` lines 116-126)
+- [x] **Better empty state illustration** (`components/library/image-grid.tsx` lines 116-126)
   - Replace emoji with SVG illustration
   - Add "Drop files here" message
   - Include upload button directly in empty state
+  ```
+  Work Log:
+  - Swapped inlined emoji for vector illustration and dashed drop zone with CTA linking to `/app/upload`
+  - `pnpm lint` still fails: Next.js SWC binary unavailable in offline sandbox environment
+  ```
 
 - [ ] **Loading skeleton for images** (`components/library/image-tile.tsx`)
   - Show animated placeholder while loading
