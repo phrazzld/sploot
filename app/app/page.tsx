@@ -47,10 +47,67 @@ export default function AppPage() {
       {/* Header */}
       <div className="p-6 md:p-8 pb-0">
         <header className="mb-6">
-          <h1 className="text-3xl font-bold text-[#E6E8EB]">Your Library</h1>
-          <p className="text-[#B3B7BE] mt-2">
-            {total > 0 ? `${total} ${total === 1 ? 'meme' : 'memes'} in your collection` : 'Start building your meme collection'}
-          </p>
+          <div className="flex items-start justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-[#E6E8EB]">Your Library</h1>
+              <p className="text-[#B3B7BE] mt-2">
+                {total > 0 ? `${total} ${total === 1 ? 'meme' : 'memes'} in your collection` : 'Start building your meme collection'}
+              </p>
+            </div>
+            {/* View Mode Toggle */}
+            <div className="flex gap-1 p-1 bg-[#14171A] border border-[#2A2F37] rounded-lg">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
+                    : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
+                }`}
+                title="Grid view"
+              >
+                {/* Grid Icon */}
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <rect x="3" y="3" width="7" height="7" strokeWidth="2" />
+                  <rect x="14" y="3" width="7" height="7" strokeWidth="2" />
+                  <rect x="3" y="14" width="7" height="7" strokeWidth="2" />
+                  <rect x="14" y="14" width="7" height="7" strokeWidth="2" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('masonry')}
+                className={`p-2 rounded transition-colors ${
+                  viewMode === 'masonry'
+                    ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
+                    : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
+                }`}
+                title="Masonry view"
+              >
+                {/* Masonry Icon */}
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <rect x="3" y="3" width="7" height="10" strokeWidth="2" />
+                  <rect x="14" y="3" width="7" height="6" strokeWidth="2" />
+                  <rect x="3" y="17" width="7" height="4" strokeWidth="2" />
+                  <rect x="14" y="13" width="7" height="8" strokeWidth="2" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('compact')}
+                className={`p-2 rounded transition-colors ${
+                  viewMode === 'compact'
+                    ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
+                    : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
+                }`}
+                title="Compact view"
+              >
+                {/* List/Compact Icon */}
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <line x1="3" y1="6" x2="21" y2="6" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="3" y1="12" x2="21" y2="12" strokeWidth="2" strokeLinecap="round" />
+                  <line x1="3" y1="18" x2="21" y2="18" strokeWidth="2" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </header>
 
         {/* Search Bar */}
