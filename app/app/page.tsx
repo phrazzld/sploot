@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
+import { MasonryGrid } from '@/components/library/masonry-grid';
 import { SearchBar } from '@/components/search';
 import { useRouter } from 'next/navigation';
 
@@ -121,15 +122,27 @@ export default function AppPage() {
       <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 min-h-0">
         <div className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-6 h-full">
           <div className="h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
-            <ImageGrid
-              assets={assets}
-              loading={loading}
-              hasMore={hasMore}
-              onLoadMore={() => loadAssets()}
-              onAssetUpdate={updateAsset}
-              onAssetDelete={deleteAsset}
-              onAssetSelect={setSelectedAsset}
-            />
+            {viewMode === 'masonry' ? (
+              <MasonryGrid
+                assets={assets}
+                loading={loading}
+                hasMore={hasMore}
+                onLoadMore={() => loadAssets()}
+                onAssetUpdate={updateAsset}
+                onAssetDelete={deleteAsset}
+                onAssetSelect={setSelectedAsset}
+              />
+            ) : (
+              <ImageGrid
+                assets={assets}
+                loading={loading}
+                hasMore={hasMore}
+                onLoadMore={() => loadAssets()}
+                onAssetUpdate={updateAsset}
+                onAssetDelete={deleteAsset}
+                onAssetSelect={setSelectedAsset}
+              />
+            )}
           </div>
         </div>
       </div>
