@@ -1,16 +1,14 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { useAssets } from '@/hooks/use-assets';
+import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { MasonryGrid } from '@/components/library/masonry-grid';
 import { SearchBar } from '@/components/search';
-import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 export default function AppPage() {
-  const router = useRouter();
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>(() => {
     if (typeof window !== 'undefined') {
@@ -31,6 +29,7 @@ export default function AppPage() {
     return 'desc';
   });
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [libraryQuery, setLibraryQuery] = useState('');
   const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingScrollTopRef = useRef<number | null>(null);
@@ -52,6 +51,16 @@ export default function AppPage() {
     sortOrder,
     autoLoad: true,
   });
+
+  const {
+    assets: searchAssets,
+    loading: searchLoading,
+    error: searchError,
+    total: searchTotal,
+    updateAsset: updateSearchAsset,
+    deleteAsset: deleteSearchAsset,
+    search: runInlineSearch,
+  } = useSearchAssets(libraryQuery, { limit: 50 });
 
   // Save preferences to localStorage
   useEffect(() => {
@@ -103,9 +112,9 @@ export default function AppPage() {
     };
   }, [assets, total]);
 
-  const handleSearch = (query: string) => {
-    router.push(`/app/search?q=${encodeURIComponent(query)}`);
-  };
+  const handleInlineSearch = useCallback((query: string) => {
+    setLibraryQuery(query);
+  }, []);
 
   const handleScrollContainerReady = useCallback((node: HTMLDivElement | null) => {
     gridScrollRef.current = node;
@@ -198,6 +207,47 @@ export default function AppPage() {
 
     return sorted;
   }, [assets, sortBy, sortOrder]);
+
+  const trimmedLibraryQuery = libraryQuery.trim();
+  const isSearching = trimmedLibraryQuery.length > 0;
+
+  const activeAssets = useMemo(() => {
+    if (isSearching) {
+      return searchAssets;
+    }
+    return sortedAssets;
+  }, [isSearching, searchAssets, sortedAssets]);
+
+  const activeLoading = isSearching ? searchLoading : loading;
+  const activeHasMore = isSearching ? false : hasMore;
+
+  const handleLoadMore = useCallback(() => {
+    if (isSearching) return;
+    loadAssets();
+  }, [isSearching, loadAssets]);
+
+  const handleAssetUpdate = useCallback(
+    (id: string, updates: Partial<(typeof assets)[number]>) => {
+      updateAsset(id, updates);
+      updateSearchAsset(id, updates);
+    },
+    [updateAsset, updateSearchAsset]
+  );
+
+  const handleAssetDelete = useCallback(
+    (id: string) => {
+      deleteAsset(id);
+      deleteSearchAsset(id);
+    },
+    [deleteAsset, deleteSearchAsset]
+  );
+
+  useEffect(() => {
+    if (!trimmedLibraryQuery) {
+      return;
+    }
+    setSelectedAsset(null);
+  }, [trimmedLibraryQuery]);
 
   return (
     <div className="flex flex-col h-full">
@@ -359,8 +409,58 @@ export default function AppPage() {
         </header>
 
         {/* Search Bar */}
-        <div className="mb-6">
-          <SearchBar onSearch={handleSearch} />
+        <div className="mb-6 space-y-4">
+          <SearchBar onSearch={handleInlineSearch} inline />
+
+          {isSearching && (
+            <div className="space-y-3">
+              {searchError && (
+                <div className="p-4 bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 rounded-xl text-sm text-[#FF8686]">
+                  {searchError}
+                </div>
+              )}
+
+              {!searchError && searchLoading && (
+                <div className="flex items-center gap-3 p-4 bg-[#14171A] border border-[#2A2F37] rounded-xl text-sm text-[#B3B7BE]">
+                  <svg
+                    className="h-4 w-4 animate-spin text-[#7C5CFF]"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Searching for “{trimmedLibraryQuery}”…
+                </div>
+              )}
+
+              {!searchError && !searchLoading && (
+                <div className="p-4 bg-[#14171A] border border-[#2A2F37] rounded-xl text-sm text-[#B3B7BE]">
+                  {searchTotal > 0 ? (
+                    <span>
+                      Showing <span className="text-[#B6FF6E] font-semibold">{searchTotal}</span> matches
+                      for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
+                    </span>
+                  ) : (
+                    <span>
+                      No matches yet for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
       </div>
@@ -376,24 +476,26 @@ export default function AppPage() {
                 style={{ scrollbarGutter: 'stable' }}
               >
                 <MasonryGrid
-                  assets={sortedAssets}
-                  loading={loading}
-                  hasMore={hasMore}
-                  onLoadMore={() => loadAssets()}
-                  onAssetUpdate={updateAsset}
-                  onAssetDelete={deleteAsset}
+                  assets={activeAssets}
+                  loading={activeLoading}
+                  hasMore={activeHasMore}
+                  onLoadMore={!isSearching ? handleLoadMore : undefined}
+                  onAssetUpdate={handleAssetUpdate}
+                  onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
                 />
               </div>
             ) : (
-              <ImageGridErrorBoundary onRetry={() => loadAssets()}>
+              <ImageGridErrorBoundary
+                onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
+              >
                 <ImageGrid
-                  assets={sortedAssets}
-                  loading={loading}
-                  hasMore={hasMore}
-                  onLoadMore={() => loadAssets()}
-                  onAssetUpdate={updateAsset}
-                  onAssetDelete={deleteAsset}
+                  assets={activeAssets}
+                  loading={activeLoading}
+                  hasMore={activeHasMore}
+                  onLoadMore={!isSearching ? handleLoadMore : undefined}
+                  onAssetUpdate={handleAssetUpdate}
+                  onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
                   containerClassName={gridContainerClassName}
                   onScrollContainerReady={handleScrollContainerReady}

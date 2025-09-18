@@ -119,9 +119,15 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   ```
 
 ### Phase 5: Navigation & Library UX
-- [ ] **Keep library search inline** (`components/search/SearchBar.tsx` & `app/app/page.tsx`)
+- [x] **Keep library search inline** (`components/search/SearchBar.tsx` & `app/app/page.tsx`)
   - Add an `inline` mode that filters client-side without pushing to `/app/search`
   - Only route to the dedicated search page when invoked from global navigation
+  ```
+  Work Log:
+  - Introduced `inline` mode for `SearchBar` and wired `/app` to stream results using `useSearchAssets` with shared update/delete handlers
+  - Surface inline status + counts on the library page while keeping nav-based search routing intact
+  - `pnpm lint` still blocked: Next.js SWC binary download denied in sandbox
+  ```
 - [ ] **Add "View in Library" CTA post-upload** (`components/upload/upload-dialog.tsx`)
   - After a successful upload, surface a primary action that links back to `/app`
   - Clear uploaded state so the library view reflects the new asset count

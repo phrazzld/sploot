@@ -9,6 +9,7 @@ interface SearchBarProps {
   autoFocus?: boolean;
   className?: string;
   onSearch?: (query: string) => void;
+  inline?: boolean;
 }
 
 export function SearchBar({
@@ -16,6 +17,7 @@ export function SearchBar({
   autoFocus = false,
   className = '',
   onSearch,
+  inline = false,
 }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
@@ -45,8 +47,8 @@ export function SearchBar({
         if (onSearch) {
           // If a custom onSearch handler is provided, use it
           onSearch(trimmedQuery);
-        } else {
-          // Default behavior: navigate to search page with query
+        } else if (!inline) {
+          // Default behavior: navigate to search page with query when not in inline mode
           router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
         }
       } finally {
@@ -55,7 +57,7 @@ export function SearchBar({
     };
 
     performSearch();
-  }, [debouncedQuery, onSearch, router]);
+  }, [debouncedQuery, onSearch, router, inline]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // Add ESC key handler to clear search
@@ -74,7 +76,7 @@ export function SearchBar({
 
       if (onSearch) {
         onSearch(trimmedQuery);
-      } else {
+      } else if (!inline) {
         router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
       }
 
