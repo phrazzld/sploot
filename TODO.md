@@ -108,10 +108,15 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - `pnpm lint` still fails: Next.js SWC binary unavailable in offline sandbox environment
   ```
 
-- [ ] **Loading skeleton for images** (`components/library/image-tile.tsx`)
+- [x] **Loading skeleton for images** (`components/library/image-tile.tsx`)
   - Show animated placeholder while loading
   - Match final image dimensions to prevent jump
   - Subtle pulse animation
+  ```
+  Work Log:
+  - Added interim skeleton layer with pulse animation and CSS aspect-ratio guard to prevent layout shifts before image decode
+  - `pnpm lint` still failing locally because Next.js SWC binaries cannot be fetched in the sandboxed environment
+  ```
 
 ### Phase 5: Navigation & Library UX
 - [ ] **Keep library search inline** (`components/search/SearchBar.tsx` & `app/app/page.tsx`)

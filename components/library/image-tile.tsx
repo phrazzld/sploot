@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { error as logError } from '@/lib/logger';
 
@@ -40,6 +41,13 @@ export function ImageTile({
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const aspectRatioStyle = useMemo<CSSProperties | undefined>(() => {
+    if (!preserveAspectRatio) return undefined;
+    if (!asset.width || !asset.height) return undefined;
+    if (asset.width <= 0 || asset.height <= 0) return undefined;
+
+    return { aspectRatio: `${asset.width} / ${asset.height}` };
+  }, [preserveAspectRatio, asset.width, asset.height]);
 
   const handleFavoriteToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -99,10 +107,13 @@ export function ImageTile({
       )}
     >
       {/* Image container */}
-      <div className={cn(
-        "relative bg-[#1B1F24] overflow-hidden",
-        !preserveAspectRatio && "aspect-square"
-      )}>
+      <div
+        className={cn(
+          'relative bg-[#1B1F24] overflow-hidden',
+          !preserveAspectRatio && 'aspect-square'
+        )}
+        style={aspectRatioStyle}
+      >
         {imageError ? (
           <div className="w-full h-full flex items-center justify-center text-[#B3B7BE]">
             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -118,19 +129,25 @@ export function ImageTile({
           <>
             {/* Skeleton placeholder shown while loading */}
             {!imageLoaded && (
-              <div className="absolute inset-0 bg-[#1B1F24] animate-pulse" />
+              <div aria-hidden className="absolute inset-0 overflow-hidden rounded-2xl">
+                <div className="h-full w-full bg-[#1B1F24] animate-pulse" />
+              </div>
             )}
             <img
               src={asset.blobUrl}
               alt={asset.filename}
               className={cn(
-                "w-full",
-                preserveAspectRatio ? "h-auto" : "h-full object-cover",
-                imageLoaded ? "animate-fade-in" : "opacity-0"
+                'h-full w-full',
+                preserveAspectRatio ? 'object-contain' : 'object-cover',
+                imageLoaded ? 'opacity-100 animate-fade-in' : 'opacity-0',
+                'transition-opacity duration-300'
               )}
               loading="lazy"
               onLoad={() => setImageLoaded(true)}
-              onError={() => setImageError(true)}
+              onError={() => {
+                setImageError(true);
+                setImageLoaded(true);
+              }}
             />
           </>
         )}
