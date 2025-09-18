@@ -4,6 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
+import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { SearchBar } from '@/components/search';
 import Link from 'next/link';
 
@@ -124,15 +125,17 @@ function SearchContent() {
         {query ? (
           <div className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-6 h-full">
             <div className="h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
-              <ImageGrid
-                assets={assets}
-                loading={loading}
-                hasMore={false} // Search results don't have pagination yet
-                onLoadMore={() => {}}
-                onAssetUpdate={updateAsset}
-                onAssetDelete={deleteAsset}
-                onAssetSelect={setSelectedAsset}
-              />
+              <ImageGridErrorBoundary onRetry={handleSearch}>
+                <ImageGrid
+                  assets={assets}
+                  loading={loading}
+                  hasMore={false} // Search results don't have pagination yet
+                  onLoadMore={() => {}}
+                  onAssetUpdate={updateAsset}
+                  onAssetDelete={deleteAsset}
+                  onAssetSelect={setSelectedAsset}
+                />
+              </ImageGridErrorBoundary>
             </div>
           </div>
         ) : (

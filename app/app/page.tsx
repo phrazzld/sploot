@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
+import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { MasonryGrid } from '@/components/library/masonry-grid';
 import { SearchBar } from '@/components/search';
 import { useRouter } from 'next/navigation';
@@ -301,15 +302,17 @@ export default function AppPage() {
                 onAssetSelect={setSelectedAsset}
               />
             ) : (
-              <ImageGrid
-                assets={sortedAssets}
-                loading={loading}
-                hasMore={hasMore}
-                onLoadMore={() => loadAssets()}
-                onAssetUpdate={updateAsset}
-                onAssetDelete={deleteAsset}
-                onAssetSelect={setSelectedAsset}
-              />
+              <ImageGridErrorBoundary onRetry={() => loadAssets()}>
+                <ImageGrid
+                  assets={sortedAssets}
+                  loading={loading}
+                  hasMore={hasMore}
+                  onLoadMore={() => loadAssets()}
+                  onAssetUpdate={updateAsset}
+                  onAssetDelete={deleteAsset}
+                  onAssetSelect={setSelectedAsset}
+                />
+              </ImageGridErrorBoundary>
             )}
           </div>
         </div>
