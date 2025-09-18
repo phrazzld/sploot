@@ -1,6 +1,5 @@
 import Replicate from 'replicate';
-import { CacheService, getCacheService, createCacheService } from './cache';
-import { MultiLayerCache, createMultiLayerCache, getMultiLayerCache } from './multi-layer-cache';
+import { createMultiLayerCache, getMultiLayerCache } from './multi-layer-cache';
 import { isMockMode } from './env';
 
 export const SIGLIP_MODEL = 'daanelson/siglip-large-patch16-384:690ac94ac67ebec5c19bc09f9dc5d62e604f87db90ce5e5e4fc0f47f78e88871';
@@ -100,32 +99,16 @@ export class ReplicateEmbeddingService {
   async embedText(query: string): Promise<EmbeddingResult> {
     const startTime = Date.now();
 
-    // Check multi-layer cache first
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
-    const cachedEmbedding = await multiCache.getTextEmbedding(query);
+    // Check cache first
+    const cache = getMultiLayerCache() || createMultiLayerCache();
+    const cachedEmbedding = await cache.getTextEmbedding(query);
     if (cachedEmbedding) {
       return {
         embedding: cachedEmbedding,
         model: this.model,
         dimension: cachedEmbedding.length,
-        processingTime: Date.now() - startTime, // Very fast cache hit
+        processingTime: Date.now() - startTime,
       };
-    }
-
-    // Fallback to legacy cache if exists
-    const cache = getCacheService();
-    if (cache) {
-      const legacyCached = await cache.getTextEmbedding(query);
-      if (legacyCached) {
-        // Migrate to multi-layer cache
-        await multiCache.setTextEmbedding(query, legacyCached);
-        return {
-          embedding: legacyCached,
-          model: this.model,
-          dimension: legacyCached.length,
-          processingTime: Date.now() - startTime,
-        };
-      }
     }
 
     try {
@@ -151,13 +134,8 @@ export class ReplicateEmbeddingService {
         throw new EmbeddingError('Invalid embedding response from model');
       }
 
-      // Cache the result in multi-layer cache
-      await multiCache.setTextEmbedding(query, embedding);
-
-      // Also set in legacy cache for backward compatibility
-      if (cache) {
-        await cache.setTextEmbedding(query, embedding);
-      }
+      // Cache the result
+      await cache.setTextEmbedding(query, embedding);
 
       return {
         embedding,
@@ -187,31 +165,15 @@ export class ReplicateEmbeddingService {
   async embedImage(imageUrl: string, checksum?: string): Promise<EmbeddingResult> {
     const startTime = Date.now();
 
-    // Check multi-layer cache first if we have a checksum
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
+    // Check cache first if we have a checksum
+    const cache = getMultiLayerCache() || createMultiLayerCache();
     if (checksum) {
-      const cachedEmbedding = await multiCache.getImageEmbedding(checksum);
+      const cachedEmbedding = await cache.getImageEmbedding(checksum);
       if (cachedEmbedding) {
         return {
           embedding: cachedEmbedding,
           model: this.model,
           dimension: cachedEmbedding.length,
-          processingTime: Date.now() - startTime, // Very fast cache hit
-        };
-      }
-    }
-
-    // Fallback to legacy cache
-    const cache = getCacheService();
-    if (cache && checksum) {
-      const legacyCached = await cache.getImageEmbedding(checksum);
-      if (legacyCached) {
-        // Migrate to multi-layer cache
-        await multiCache.setImageEmbedding(checksum, legacyCached);
-        return {
-          embedding: legacyCached,
-          model: this.model,
-          dimension: legacyCached.length,
           processingTime: Date.now() - startTime,
         };
       }
@@ -240,13 +202,8 @@ export class ReplicateEmbeddingService {
         throw new EmbeddingError('Invalid embedding response from model');
       }
 
-      // Cache the result in multi-layer cache
+      // Cache the result
       if (checksum) {
-        await multiCache.setImageEmbedding(checksum, embedding);
-      }
-
-      // Also set in legacy cache for backward compatibility
-      if (cache && checksum) {
         await cache.setImageEmbedding(checksum, embedding);
       }
 
@@ -331,9 +288,6 @@ export function createEmbeddingService(): ReplicateEmbeddingService {
     // Replicate API token not configured
     throw new EmbeddingError('Replicate API token not configured');
   }
-
-  // Initialize cache service as well (gracefully handles missing Redis config)
-  createCacheService();
 
   return new ReplicateEmbeddingService({ apiToken });
 }

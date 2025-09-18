@@ -18,47 +18,26 @@ export async function GET(req: NextRequest) {
     const stats = multiCache.getStats();
 
     // Calculate cache effectiveness metrics
-    const totalHits = stats.l1Hits + stats.l2Hits;
     const effectiveHitRate = stats.totalRequests > 0
-      ? (totalHits / stats.totalRequests * 100).toFixed(2)
-      : '0.00';
-
-    // L1 vs L2 distribution
-    const l1Ratio = totalHits > 0
-      ? (stats.l1Hits / totalHits * 100).toFixed(2)
-      : '0.00';
-    const l2Ratio = totalHits > 0
-      ? (stats.l2Hits / totalHits * 100).toFixed(2)
+      ? (stats.hits / stats.totalRequests * 100).toFixed(2)
       : '0.00';
 
     return NextResponse.json({
       status: 'healthy',
-      layers: {
-        l1: {
-          status: health.l1 ? 'active' : 'inactive',
-          hits: stats.l1Hits,
-          misses: stats.l1Misses,
-          hitRate: stats.l1Hits + stats.l1Misses > 0
-            ? ((stats.l1Hits / (stats.l1Hits + stats.l1Misses)) * 100).toFixed(2)
-            : '0.00',
-        },
-        l2: {
-          status: health.l2 ? 'active' : 'inactive',
-          hits: stats.l2Hits,
-          misses: stats.l2Misses,
-          hitRate: stats.l2Hits + stats.l2Misses > 0
-            ? ((stats.l2Hits / (stats.l2Hits + stats.l2Misses)) * 100).toFixed(2)
-            : '0.00',
-        },
+      cache: {
+        status: health.l1 ? 'active' : 'inactive',
+        hits: stats.hits,
+        misses: stats.misses,
+        hitRate: stats.totalRequests > 0
+          ? ((stats.hits / stats.totalRequests) * 100).toFixed(2)
+          : '0.00',
       },
       overall: {
         totalRequests: stats.totalRequests,
-        totalHits,
-        totalMisses: stats.l1Misses + stats.l2Misses,
+        totalHits: stats.hits,
+        totalMisses: stats.misses,
         hitRate: `${effectiveHitRate}%`,
         avgLatency: `${stats.avgLatency.toFixed(2)}ms`,
-        l1Ratio: `${l1Ratio}%`,
-        l2Ratio: `${l2Ratio}%`,
       },
       performance: {
         meetsTarget: parseFloat(effectiveHitRate) >= 80,

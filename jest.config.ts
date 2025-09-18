@@ -39,7 +39,7 @@ const config: Config = {
   },
   testPathIgnorePatterns: ['/node_modules/', '/.next/'],
   transformIgnorePatterns: [
-    '/node_modules/(?!(replicate|@clerk/nextjs|@vercel/blob|@upstash/redis)/)',
+    '/node_modules/(?!(replicate|@clerk/nextjs|@vercel/blob)/)',
   ],
   moduleDirectories: ['node_modules', '<rootDir>/'],
   verbose: true,

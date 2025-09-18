@@ -8,8 +8,7 @@ This comprehensive guide covers all the external services and configurations nee
 3. [Vercel Deployment & Blob Storage](#2-vercel-deployment--blob-storage)
 4. [PostgreSQL Database with pgvector](#3-postgresql-database-with-pgvector)
 5. [Replicate API for Embeddings](#4-replicate-api-for-embeddings)
-6. [Upstash Redis for Caching (Optional)](#5-upstash-redis-for-caching-optional)
-7. [Environment Variables Reference](#environment-variables-reference)
+6. [Environment Variables Reference](#environment-variables-reference)
 8. [Troubleshooting](#troubleshooting)
 
 ---
@@ -26,7 +25,6 @@ This comprehensive guide covers all the external services and configurations nee
 2. **Vercel** - Deploy and enable Blob storage (10 minutes)
 3. **Database** - Create Postgres with pgvector (10 minutes)
 4. **Replicate** - Get API token for embeddings (5 minutes)
-5. **Redis** - Optional caching layer (5 minutes)
 
 ### Installation
 ```bash
@@ -215,49 +213,6 @@ REPLICATE_API_TOKEN=r8_your_actual_token_here
 
 ---
 
-## 5. Upstash Redis for Caching (Optional)
-
-### Why Redis?
-- Search latency: 500ms → 50ms (90% improvement)
-- API cost reduction: 60-80% for embeddings
-- Overall responsiveness: 2-3x faster
-
-### Create Upstash Account
-1. Go to [upstash.com](https://upstash.com)
-2. Sign up for free account
-
-### Create Redis Database
-1. Click "Create Database"
-2. Configure:
-   - **Name**: sploot-cache
-   - **Type**: Regional
-   - **Region**: Match your Vercel region
-   - **Eviction**: allkeys-lru
-
-### Get Credentials
-From REST API section:
-```env
-UPSTASH_REDIS_REST_URL=https://your-redis-url.upstash.io
-UPSTASH_REDIS_REST_TOKEN=your_redis_token_here
-```
-
-### Cache Strategy
-- **Text embeddings**: 15 minutes TTL
-- **Image embeddings**: 24 hours TTL
-- **Search results**: 5 minutes TTL
-- **User metadata**: 30 minutes TTL
-
-### Free Tier Limits
-- 10,000 commands/day
-- 256 MB storage
-- Sufficient for development/small apps
-
-### Verify Cache
-Check cache health:
-```bash
-curl http://localhost:3000/api/cache/stats
-```
-
 ---
 
 ## Environment Variables Reference
@@ -278,10 +233,6 @@ POSTGRES_URL_NON_POOLING=postgres://...
 
 # Replicate API (Required for search)
 REPLICATE_API_TOKEN=r8_...
-
-# Upstash Redis (Optional, for caching)
-UPSTASH_REDIS_REST_URL=https://...
-UPSTASH_REDIS_REST_TOKEN=...
 
 # Optional: Prisma Studio
 DATABASE_URL=${POSTGRES_URL_NON_POOLING}
@@ -319,10 +270,10 @@ Add all environment variables in Vercel Dashboard:
 - **Rate limiting**: Consider upgrading or implementing caching
 - **Slow embeddings**: First requests have cold start
 
-#### Cache Problems
-- **Service disabled**: Check Redis credentials
-- **No cache hits**: Verify connection and TTL settings
-- **Connection timeouts**: Try different region
+#### Cache Status
+- **In-memory cache**: Always enabled, no configuration needed
+- **Performance**: Automatically manages memory usage
+- **Stats endpoint**: Check `/api/cache/stats` for metrics
 
 ### Performance Optimization
 
@@ -359,7 +310,6 @@ SELECT pg_size_pretty(pg_total_relation_size('asset_embeddings'));
 ### Support Resources
 - [Clerk Documentation](https://clerk.com/docs)
 - [Vercel Documentation](https://vercel.com/docs)
-- [Upstash Documentation](https://docs.upstash.com)
 - [Replicate Documentation](https://replicate.com/docs)
 - [pgvector Documentation](https://github.com/pgvector/pgvector)
 
@@ -371,7 +321,6 @@ Before going to production:
 
 - [ ] All environment variables configured in Vercel
 - [ ] Database migrations run successfully
-- [ ] Redis cache configured (optional but recommended)
 - [ ] Authentication providers enabled in Clerk
 - [ ] Blob storage limits understood
 - [ ] Monitoring and alerts configured

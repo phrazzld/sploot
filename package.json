@@ -29,7 +29,6 @@
     "@clerk/nextjs": "^6.32.0",
     "@prisma/client": "^6.16.1",
     "@tanstack/react-virtual": "^3.13.12",
-    "@upstash/redis": "^1.35.3",
     "@vercel/blob": "^1.1.1",
     "clsx": "^2.1.1",
     "lru-cache": "^11.2.1",

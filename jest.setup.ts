@@ -145,8 +145,7 @@ process.env.BLOB_READ_WRITE_TOKEN = 'mock_blob_token';
 process.env.POSTGRES_URL = 'postgresql://mock:mock@localhost:5432/mock';
 process.env.POSTGRES_URL_NON_POOLING = 'postgresql://mock:mock@localhost:5432/mock';
 process.env.REPLICATE_API_TOKEN = 'r8_mock_token';
-process.env.UPSTASH_REDIS_REST_URL = 'http://localhost:8079';
-process.env.UPSTASH_REDIS_REST_TOKEN = 'mock_redis_token';
+// Redis removed - using in-memory cache only
 
 // Mock fetch globally
 global.fetch = jest.fn();

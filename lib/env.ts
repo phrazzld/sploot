@@ -5,8 +5,6 @@ const PLACEHOLDER_MARKERS = [
   'your_postgres_url',
   'your_postgres_url_non_pooling',
   'your_replicate_token',
-  'your_redis_url',
-  'your_redis_token',
   'your_replicate_token_here',
 ];
 
@@ -22,8 +20,6 @@ const hasBlobConfig = !isValueMissing(process.env.BLOB_READ_WRITE_TOKEN);
 const hasDatabaseConfig = !isValueMissing(process.env.POSTGRES_URL) &&
   !isValueMissing(process.env.POSTGRES_URL_NON_POOLING);
 const hasReplicateConfig = !isValueMissing(process.env.REPLICATE_API_TOKEN);
-const hasRedisConfig = !isValueMissing(process.env.UPSTASH_REDIS_REST_URL) &&
-  !isValueMissing(process.env.UPSTASH_REDIS_REST_TOKEN);
 
 const defaultMockEnabled = !hasClerkConfig || !hasBlobConfig || !hasDatabaseConfig || !hasReplicateConfig;
 
@@ -35,7 +31,6 @@ export const mockServicesEnabled = explicitSetting === 'true'
     ? false
     : defaultMockEnabled;
 
-export const redisConfigured = hasRedisConfig;
 export const databaseConfigured = hasDatabaseConfig;
 export const blobConfigured = hasBlobConfig;
 export const clerkConfigured = hasClerkConfig;

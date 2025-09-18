@@ -71,17 +71,6 @@ REPLICATE_API_TOKEN=r8_[your-token]
 
 **Test it works**: Upload image → Does search find it? ✅ or ❌
 
-### 5. **Redis Cache** (Optional but recommended) ⏱️ 5 minutes
-**Status**: ❌ Not configured
-**Impact**: Slow searches, high API costs
-
-1. Go to [upstash.com](https://upstash.com) and create free Redis
-2. Add to `.env.local`:
-```env
-UPSTASH_REDIS_REST_URL=https://[your-url]
-UPSTASH_REDIS_REST_TOKEN=[your-token]
-```
-
 ---
 
 ## 🟡 KNOWN ISSUES (After Setup)
@@ -155,8 +144,7 @@ After you complete the manual setup:
 
 If you just need it working for a demo:
 
-1. **Skip Redis** - Works fine without cache, just slower
-2. **Use mock mode** - Set `NEXT_PUBLIC_ENABLE_MOCK_SERVICES=true` for fake data
+1. **Use mock mode** - Set `NEXT_PUBLIC_ENABLE_MOCK_SERVICES=true` for fake data
 3. **Disable type checking** - Add to next.config.ts:
    ```js
    typescript: { ignoreBuildErrors: true },

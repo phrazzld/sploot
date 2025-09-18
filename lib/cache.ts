@@ -1,12 +1,19 @@
-import { Redis } from '@upstash/redis';
+import { LRUCache } from 'lru-cache';
 
 // Cache configuration
 const DEFAULT_TTL = {
-  TEXT_EMBEDDING: 15 * 60, // 15 minutes - embeddings are expensive but queries may evolve
-  IMAGE_EMBEDDING: 24 * 60 * 60, // 24 hours - image embeddings are static
-  SEARCH_RESULTS: 5 * 60, // 5 minutes - search results can change with new uploads
-  ASSET_METADATA: 30 * 60, // 30 minutes - asset data changes infrequently
-  USER_PREFERENCES: 60 * 60, // 1 hour - user settings change rarely
+  TEXT_EMBEDDING: 15 * 60 * 1000, // 15 minutes in ms
+  IMAGE_EMBEDDING: 24 * 60 * 60 * 1000, // 24 hours in ms
+  SEARCH_RESULTS: 5 * 60 * 1000, // 5 minutes in ms
+  ASSET_METADATA: 30 * 60 * 1000, // 30 minutes in ms
+  USER_PREFERENCES: 60 * 60 * 1000, // 1 hour in ms
+} as const;
+
+const CACHE_SIZES = {
+  TEXT_EMBEDDINGS: 100, // Store 100 most recent text embeddings
+  IMAGE_EMBEDDINGS: 500, // Store 500 most recent image embeddings
+  SEARCH_RESULTS: 50, // Store 50 most recent search results
+  ASSET_METADATA: 200, // Store 200 most recent asset metadata
 } as const;
 
 const CACHE_KEYS = {
@@ -29,113 +36,89 @@ export class CacheError extends Error {
   }
 }
 
-export interface CacheConfig {
-  url?: string;
-  token?: string;
-  timeout?: number;
-}
-
+/**
+ * Simple in-memory cache service using LRU eviction.
+ * Provides caching for embeddings and search results to reduce API calls.
+ * This is a simplified version for MVP - can be extended with Redis later.
+ */
 export class CacheService {
-  private redis: Redis | null = null;
-  private enabled: boolean = false;
+  private textEmbeddings: LRUCache<string, number[]>;
+  private imageEmbeddings: LRUCache<string, number[]>;
+  private searchResults: LRUCache<string, any[]>;
+  private assetMetadata: LRUCache<string, any>;
+  private enabled: boolean = true;
 
-  constructor(config?: CacheConfig) {
-    try {
-      const url = config?.url || process.env.UPSTASH_REDIS_REST_URL;
-      const token = config?.token || process.env.UPSTASH_REDIS_REST_TOKEN;
+  constructor() {
+    // Initialize in-memory LRU caches
+    this.textEmbeddings = new LRUCache<string, number[]>({
+      max: CACHE_SIZES.TEXT_EMBEDDINGS,
+      ttl: DEFAULT_TTL.TEXT_EMBEDDING,
+    });
 
-      if (!url || !token || url === 'your_redis_url' || token === 'your_redis_token') {
-        // Cache service disabled: Upstash Redis credentials not configured
-        this.enabled = false;
-        return;
-      }
+    this.imageEmbeddings = new LRUCache<string, number[]>({
+      max: CACHE_SIZES.IMAGE_EMBEDDINGS,
+      ttl: DEFAULT_TTL.IMAGE_EMBEDDING,
+    });
 
-      this.redis = new Redis({
-        url,
-        token,
-      });
+    this.searchResults = new LRUCache<string, any[]>({
+      max: CACHE_SIZES.SEARCH_RESULTS,
+      ttl: DEFAULT_TTL.SEARCH_RESULTS,
+    });
 
-      this.enabled = true;
-      // Cache service initialized successfully
-    } catch (error) {
-      // Failed to initialize cache service
-      this.enabled = false;
-    }
+    this.assetMetadata = new LRUCache<string, any>({
+      max: CACHE_SIZES.ASSET_METADATA,
+      ttl: DEFAULT_TTL.ASSET_METADATA,
+    });
+
+    // In-memory cache service initialized
   }
 
   async isHealthy(): Promise<boolean> {
-    if (!this.enabled || !this.redis) return false;
-
-    try {
-      const result = await this.redis.ping();
-      return result === 'PONG';
-    } catch (error) {
-      // Cache health check failed
-      return false;
-    }
+    return this.enabled;
   }
 
   async getTextEmbedding(text: string): Promise<number[] | null> {
     if (!this.enabled) return null;
 
-    try {
-      const key = CACHE_KEYS.TEXT_EMBEDDING(text);
-      const cached = await this.redis!.get<number[]>(key);
+    const key = CACHE_KEYS.TEXT_EMBEDDING(text);
+    const cached = this.textEmbeddings.get(key);
 
-      if (cached) {
-        // Cache hit: text embedding
-        return cached;
-      }
-
-      return null;
-    } catch (error) {
-      // Failed to get text embedding from cache
-      return null;
+    if (cached) {
+      // Cache hit: text embedding
+      return cached;
     }
+
+    return null;
   }
 
   async setTextEmbedding(text: string, embedding: number[]): Promise<void> {
     if (!this.enabled || !embedding?.length) return;
 
-    try {
-      const key = CACHE_KEYS.TEXT_EMBEDDING(text);
-      await this.redis!.setex(key, DEFAULT_TTL.TEXT_EMBEDDING, embedding);
-      // Cached text embedding
-    } catch (error) {
-      // Failed to cache text embedding
-    }
+    const key = CACHE_KEYS.TEXT_EMBEDDING(text);
+    this.textEmbeddings.set(key, embedding);
+    // Cached text embedding
   }
 
   async getImageEmbedding(checksum: string): Promise<number[] | null> {
     if (!this.enabled) return null;
 
-    try {
-      const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
-      const cached = await this.redis!.get<number[]>(key);
+    const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
+    const cached = this.imageEmbeddings.get(key);
 
-      if (cached) {
-        // Cache hit: image embedding
-        return cached;
-      }
-
-      return null;
-    } catch (error) {
-      // Failed to get image embedding from cache
-      return null;
+    if (cached) {
+      // Cache hit: image embedding
+      return cached;
     }
+
+    return null;
   }
 
-  // Images are immutable, use longer TTL
   async setImageEmbedding(checksum: string, embedding: number[]): Promise<void> {
     if (!this.enabled || !embedding?.length) return;
 
-    try {
-      const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
-      await this.redis!.setex(key, DEFAULT_TTL.IMAGE_EMBEDDING, embedding);
-      // Cached image embedding
-    } catch (error) {
-      // Failed to cache image embedding
-    }
+    const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
+    this.imageEmbeddings.set(key, embedding);
+    // Cached image embedding
   }
 
   async getSearchResults(
@@ -145,21 +128,16 @@ export class CacheService {
   ): Promise<any[] | null> {
     if (!this.enabled) return null;
 
-    try {
-      const filterKey = JSON.stringify(filters);
-      const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
-      const cached = await this.redis!.get<any[]>(key);
+    const filterKey = JSON.stringify(filters);
+    const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
+    const cached = this.searchResults.get(key);
 
-      if (cached) {
-        // Cache hit: search results
-        return cached;
-      }
-
-      return null;
-    } catch (error) {
-      // Failed to get search results from cache
-      return null;
+    if (cached) {
+      // Cache hit: search results
+      return cached;
     }
+
+    return null;
   }
 
   async setSearchResults(
@@ -170,45 +148,32 @@ export class CacheService {
   ): Promise<void> {
     if (!this.enabled || !results?.length) return;
 
-    try {
-      const filterKey = JSON.stringify(filters);
-      const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
-      await this.redis!.setex(key, DEFAULT_TTL.SEARCH_RESULTS, results);
-      // Cached search results
-    } catch (error) {
-      // Failed to cache search results
-    }
+    const filterKey = JSON.stringify(filters);
+    const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
+    this.searchResults.set(key, results);
+    // Cached search results
   }
 
   async getUserAssetCount(userId: string): Promise<number | null> {
     if (!this.enabled) return null;
 
-    try {
-      const key = CACHE_KEYS.USER_ASSETS_COUNT(userId);
-      const cached = await this.redis!.get<number>(key);
+    const key = CACHE_KEYS.USER_ASSETS_COUNT(userId);
+    const cached = this.assetMetadata.get(key);
 
-      if (cached !== null) {
-        // Cache hit: asset count
-        return cached;
-      }
-
-      return null;
-    } catch (error) {
-      // Failed to get user asset count from cache
-      return null;
+    if (cached !== null && cached !== undefined) {
+      // Cache hit: asset count
+      return cached;
     }
+
+    return null;
   }
 
   async setUserAssetCount(userId: string, count: number): Promise<void> {
     if (!this.enabled) return;
 
-    try {
-      const key = CACHE_KEYS.USER_ASSETS_COUNT(userId);
-      await this.redis!.setex(key, DEFAULT_TTL.ASSET_METADATA, count);
-      // Cached asset count
-    } catch (error) {
-      // Failed to cache user asset count
-    }
+    const key = CACHE_KEYS.USER_ASSETS_COUNT(userId);
+    this.assetMetadata.set(key, count);
+    // Cached asset count
   }
 
   /**
@@ -217,38 +182,41 @@ export class CacheService {
   async invalidateUserData(userId: string): Promise<void> {
     if (!this.enabled) return;
 
-    try {
-      // Get all keys that contain the user ID
-      const patterns = [
-        `search:${userId}:*`,
-        `assets:${userId}:*`,
-        `count:${userId}`,
-      ];
+    // Clear user-specific entries from caches
+    const patterns = [
+      `search:${userId}:`,
+      `assets:${userId}:`,
+      `count:${userId}`,
+    ];
 
-      for (const pattern of patterns) {
-        const keys = await this.redis!.keys(pattern);
-        if (keys.length > 0) {
-          await this.redis!.del(...keys);
-          // Invalidated cache entries
-        }
+    // Clear from search results cache
+    for (const [key] of this.searchResults) {
+      if (patterns.some(p => key.startsWith(p))) {
+        this.searchResults.delete(key);
       }
-    } catch (error) {
-      // Failed to invalidate user cache
     }
+
+    // Clear from asset metadata cache
+    for (const [key] of this.assetMetadata) {
+      if (patterns.some(p => key.startsWith(p))) {
+        this.assetMetadata.delete(key);
+      }
+    }
+
+    // Invalidated user cache entries
   }
 
   /**
-   * Clear all cache entries (admin function)
+   * Clear all cache entries
    */
   async clearAll(): Promise<void> {
     if (!this.enabled) return;
 
-    try {
-      await this.redis!.flushall();
-      // Cleared all cache entries
-    } catch (error) {
-      // Failed to clear cache
-    }
+    this.textEmbeddings.clear();
+    this.imageEmbeddings.clear();
+    this.searchResults.clear();
+    this.assetMetadata.clear();
+    // Cleared all cache entries
   }
 
   /**
@@ -257,21 +225,31 @@ export class CacheService {
   async getStats(): Promise<{
     enabled: boolean;
     healthy: boolean;
+    textEmbeddings: { size: number; max: number };
+    imageEmbeddings: { size: number; max: number };
+    searchResults: { size: number; max: number };
+    assetMetadata: { size: number; max: number };
   }> {
-    const stats = {
+    return {
       enabled: this.enabled,
-      healthy: false,
+      healthy: this.enabled,
+      textEmbeddings: {
+        size: this.textEmbeddings.size,
+        max: CACHE_SIZES.TEXT_EMBEDDINGS,
+      },
+      imageEmbeddings: {
+        size: this.imageEmbeddings.size,
+        max: CACHE_SIZES.IMAGE_EMBEDDINGS,
+      },
+      searchResults: {
+        size: this.searchResults.size,
+        max: CACHE_SIZES.SEARCH_RESULTS,
+      },
+      assetMetadata: {
+        size: this.assetMetadata.size,
+        max: CACHE_SIZES.ASSET_METADATA,
+      },
     };
-
-    if (this.enabled && this.redis) {
-      try {
-        stats.healthy = await this.isHealthy();
-      } catch (error) {
-        // Failed to get cache stats
-      }
-    }
-
-    return stats;
   }
 }
 
@@ -280,14 +258,11 @@ let cacheService: CacheService | null = null;
 
 /**
  * Factory function to create or get singleton CacheService instance.
- * Initializes Redis connection for embedding caching if configured.
- *
- * @param config - Optional cache configuration
  * @returns CacheService instance
  */
-export function createCacheService(config?: CacheConfig): CacheService {
+export function createCacheService(): CacheService {
   if (!cacheService) {
-    cacheService = new CacheService(config);
+    cacheService = new CacheService();
   }
   return cacheService;
 }
