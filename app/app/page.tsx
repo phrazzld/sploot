@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { MasonryGrid } from '@/components/library/masonry-grid';
@@ -39,6 +39,27 @@ export default function AppPage() {
     }
   }, [viewMode]);
 
+  // Calculate stats
+  const stats = useMemo(() => {
+    const favoriteCount = assets.filter(a => a.favorite).length;
+    const totalSize = assets.reduce((sum, asset) => sum + (asset.size || 0), 0);
+
+    // Format file size
+    const formatSize = (bytes: number) => {
+      if (bytes === 0) return '0 B';
+      if (bytes < 1024) return `${bytes} B`;
+      if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+      if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+      return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
+    };
+
+    return {
+      total,
+      favorites: favoriteCount,
+      sizeFormatted: formatSize(totalSize)
+    };
+  }, [assets, total]);
+
   const handleSearch = (query: string) => {
     router.push(`/app/search?q=${encodeURIComponent(query)}`);
   };
@@ -52,7 +73,21 @@ export default function AppPage() {
             <div>
               <h1 className="text-3xl font-bold text-[#E6E8EB]">Your Library</h1>
               <p className="text-[#B3B7BE] mt-2">
-                {total > 0 ? `${total} ${total === 1 ? 'meme' : 'memes'} in your collection` : 'Start building your meme collection'}
+                {stats.total > 0 ? (
+                  <>
+                    {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
+                    {stats.favorites > 0 && (
+                      <>
+                        <span className="mx-2">•</span>
+                        {stats.favorites} {stats.favorites === 1 ? 'favorite' : 'favorites'}
+                      </>
+                    )}
+                    <span className="mx-2">•</span>
+                    {stats.sizeFormatted}
+                  </>
+                ) : (
+                  'Start building your meme collection'
+                )}
               </p>
             </div>
             {/* View Mode Toggle */}
