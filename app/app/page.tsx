@@ -36,7 +36,7 @@ export default function AppPage() {
         <header className="mb-6">
           <h1 className="text-3xl font-bold text-[#E6E8EB]">Your Library</h1>
           <p className="text-[#B3B7BE] mt-2">
-            {total > 0 ? `${total} memes in your collection` : 'Start building your meme collection'}
+            {total > 0 ? `${total} ${total === 1 ? 'meme' : 'memes'} in your collection` : 'Start building your meme collection'}
           </p>
         </header>
 

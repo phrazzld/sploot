@@ -25,7 +25,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - They duplicate sidebar navigation and waste vertical space
   - Keep stats but integrate into header as inline text
 
-- [ ] **Fix singular/plural grammar** (`app/app/page.tsx` line 42)
+- [x] **Fix singular/plural grammar** (`app/app/page.tsx` line 42)
   - Change: `${total} memes in your collection`
   - To: `${total} ${total === 1 ? 'meme' : 'memes'} in your collection`
   - Also update empty state text
