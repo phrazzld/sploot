@@ -23,14 +23,29 @@ interface ImageTileProps {
   onFavorite?: (id: string, favorite: boolean) => void;
   onDelete?: (id: string) => void;
   onSelect?: (asset: Asset) => void;
+  onToggleFavorite?: () => void;
+  preserveAspectRatio?: boolean;
+  onClick?: () => void;
 }
 
-export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTileProps) {
+export function ImageTile({
+  asset,
+  onFavorite,
+  onDelete,
+  onSelect,
+  onToggleFavorite,
+  preserveAspectRatio = false,
+  onClick
+}: ImageTileProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
 
   const handleFavoriteToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (onToggleFavorite) {
+      onToggleFavorite();
+      return;
+    }
     if (!onFavorite || isLoading) return;
 
     setIsLoading(true);
@@ -75,7 +90,7 @@ export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTilePr
 
   return (
     <div
-      onClick={() => onSelect?.(asset)}
+      onClick={onClick || (() => onSelect?.(asset))}
       className={cn(
         'group bg-[#14171A] border border-[#2A2F37] rounded-2xl overflow-hidden',
         'hover:border-[#7C5CFF] hover:shadow-xs transition-all duration-200 cursor-pointer',
@@ -83,7 +98,10 @@ export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTilePr
       )}
     >
       {/* Image container */}
-      <div className="aspect-square relative bg-[#1B1F24] overflow-hidden">
+      <div className={cn(
+        "relative bg-[#1B1F24] overflow-hidden",
+        !preserveAspectRatio && "aspect-square"
+      )}>
         {imageError ? (
           <div className="w-full h-full flex items-center justify-center text-[#B3B7BE]">
             <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +117,10 @@ export function ImageTile({ asset, onFavorite, onDelete, onSelect }: ImageTilePr
           <img
             src={asset.blobUrl}
             alt={asset.filename}
-            className="w-full h-full object-cover"
+            className={cn(
+              "w-full",
+              preserveAspectRatio ? "h-auto" : "h-full object-cover"
+            )}
             loading="lazy"
             onError={() => setImageError(true)}
           />

@@ -55,7 +55,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Column count responsive: 2 → 3 → 4 → 5 → 6
   - Gap: 16px consistent with current design
 
-- [ ] **Update ImageTile for aspect ratio preservation** (`components/library/image-tile.tsx`)
+- [x] **Update ImageTile for aspect ratio preservation** (`components/library/image-tile.tsx`)
   - Add prop: `preserveAspectRatio: boolean`
   - When true, remove `aspect-square` class from container
   - Use `object-contain` instead of `object-cover` for img
