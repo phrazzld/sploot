@@ -69,13 +69,16 @@ export function ImageGrid({
     });
   }, [assets, columnCount]);
 
-  // Virtual scrolling setup (only when needed)
-  const virtualizer = useVirtualScrolling ? useVirtualizer({
+  // Virtual scrolling setup - hook must always be called
+  const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => containerRef.current,
     estimateSize: () => 380, // Estimated row height
     overscan: 2, // Render 2 rows outside viewport
-  }) : null;
+  });
+
+  // Only use virtualizer when needed
+  const activeVirtualizer = useVirtualScrolling ? virtualizer : null;
 
   // Update container width on resize
   useEffect(() => {
@@ -202,12 +205,12 @@ export function ImageGrid({
       >
         <div
           style={{
-            height: virtualizer!.getTotalSize(),
+            height: activeVirtualizer!.getTotalSize(),
             width: '100%',
             position: 'relative',
           }}
         >
-          {virtualizer!.getVirtualItems().map((virtualRow) => {
+          {activeVirtualizer!.getVirtualItems().map((virtualRow) => {
             const row = rows[virtualRow.index];
             if (!row) return null;
 
