@@ -39,7 +39,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Unnecessary clutter, Enter is standard behavior
 
 ### Phase 2: Gallery Display Improvements
-- [ ] **Add view mode state** (`app/app/page.tsx`)
+- [x] **Add view mode state** (`app/app/page.tsx`)
   - Add `const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>('grid')`
   - Store preference in localStorage: `localStorage.setItem('viewMode', viewMode)`
   - Load on mount: `useState(() => localStorage.getItem('viewMode') || 'grid')`

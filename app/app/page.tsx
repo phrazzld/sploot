@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { SearchBar } from '@/components/search';
@@ -24,6 +24,19 @@ export default function AppPage() {
   });
 
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('viewMode') as 'grid' | 'masonry' | 'compact') || 'grid';
+    }
+    return 'grid';
+  });
+
+  // Save view mode preference to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('viewMode', viewMode);
+    }
+  }, [viewMode]);
 
   const handleSearch = (query: string) => {
     router.push(`/app/search?q=${encodeURIComponent(query)}`);
