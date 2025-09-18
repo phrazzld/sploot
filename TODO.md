@@ -1,195 +1,187 @@
-# Sploot TODO - Prototype Phase
+# Sploot TODO - Functional Prototype → Polished Product
 
-## 🚨 CURRENT STATUS: Non-Functional Prototype
+## 🚀 CURRENT STATUS: Working Prototype
 
-The app has the UI built but **NOTHING WORKS** without external services configured. This is a prioritized list to get from mock prototype to working MVP.
-
----
-
-## 🔴 BLOCKERS: Manual Setup Required (You Must Do These)
-
-These external services are **REQUIRED** for the app to function. Without them, you're just looking at a pretty UI that does nothing.
-
-### 1. **Clerk Authentication** ⏱️ 5 minutes
-**Status**: ❌ Not configured
-**Impact**: Can't sign in, entire app is inaccessible
-
-1. Go to [clerk.com](https://clerk.com) and sign up
-2. Create a new application (free tier is fine)
-3. Enable: Google OAuth, Email Magic Link
-4. Get your API keys from the dashboard
-5. Add to `.env.local`:
-```env
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_[your-key-here]
-CLERK_SECRET_KEY=sk_test_[your-secret-here]
-```
-
-**Test it works**: `pnpm dev` → Can you sign in? ✅ or ❌
-
-### 2. **Vercel Postgres Database** ⏱️ 10 minutes
-**Status**: ❌ Not configured
-**Impact**: Can't store any data, app crashes on most operations
-
-1. Install Vercel CLI: `npm i -g vercel`
-2. Run `vercel` and link to your account
-3. Go to [Vercel Dashboard](https://vercel.com) → Storage → Create Database → Postgres
-4. **IMPORTANT**: After creating, click into the database and run this SQL:
-   ```sql
-   CREATE EXTENSION IF NOT EXISTS vector;
-   ```
-5. Copy the connection strings to `.env.local`:
-```env
-POSTGRES_URL="postgres://..."
-POSTGRES_URL_NON_POOLING="postgres://..."
-```
-6. Run migrations: `pnpm db:push`
-
-**Test it works**: `pnpm db:studio` → Can you see tables? ✅ or ❌
-
-### 3. **Vercel Blob Storage** ⏱️ 5 minutes
-**Status**: ❌ Not configured
-**Impact**: Can't upload images
-
-1. In Vercel Dashboard → Storage → Create → Blob
-2. Copy the token to `.env.local`:
-```env
-BLOB_READ_WRITE_TOKEN=vercel_blob_[your-token]
-```
-
-**Test it works**: Try uploading an image in the app ✅ or ❌
-
-### 4. **Replicate API for Search** ⏱️ 5 minutes
-**Status**: ❌ Not configured
-**Impact**: Search doesn't work (core feature!)
-
-1. Go to [replicate.com](https://replicate.com) and sign up
-2. Get API token from account settings
-3. Add to `.env.local`:
-```env
-REPLICATE_API_TOKEN=r8_[your-token]
-```
-
-**Test it works**: Upload image → Does search find it? ✅ or ❌
+The app is **FUNCTIONAL** with all services configured. Upload works, search works, auth works. Now focusing on UI/UX polish.
 
 ---
 
-## 🟡 KNOWN ISSUES (After Setup)
+## ✅ COMPLETED (Services Configured & Working)
 
-Once you've done the manual setup above, these are the current problems:
-
-### Critical Bugs
-- [ ] **Build fails with TypeScript errors** - Prisma schema field mismatch
-  - `imageEmbedding` field doesn't exist in schema
-  - Multiple hook errors with conditional calls
-  - Need to fix or disable type checking for now
-
-- [ ] **55 tests failing** - Mock infrastructure issues
-  - Tests written but mocks not properly configured
-  - Can ignore for prototype phase
-
-### Missing Core Features
-- [ ] **No image resize on upload** - Uploads full size (will eat storage)
-- [ ] **No duplicate detection working** - Checksum code exists but not wired up
-- [ ] **No tag system** - Database schema exists but no UI
-- [ ] **No delete confirmation** - Deletes are instant (dangerous!)
-- [ ] **No loading states** - UI freezes during operations
+- [x] **Clerk Authentication** - Working with Google/Email
+- [x] **Vercel Postgres** - Database connected with pgvector
+- [x] **Vercel Blob Storage** - Image uploads functional
+- [x] **Replicate API** - Embeddings and search operational
+- [x] **User Sync Fix** - Clerk users now properly sync to database
+- [x] **Upload Error Handling** - Proper error reporting and cleanup
 
 ---
 
-## 🟢 What Actually Works (Once Configured)
+## 🎨 UI/UX Improvements (Current Focus)
 
-After you complete the manual setup:
+### Phase 1: Remove Redundancy & Fix Grammar
+- [x] **Remove redundant stat cards** (`app/app/page.tsx` lines 52-100)
+  - Delete the 4 cards (Total, Favorites, Upload, Search)
+  - They duplicate sidebar navigation and waste vertical space
+  - Keep stats but integrate into header as inline text
 
-✅ **Authentication** - Sign in/out with Clerk
-✅ **Image Upload** - Drag & drop to Vercel Blob
-✅ **Basic Search** - Text → embedding → vector search
-✅ **Favorites** - Toggle favorite status
-✅ **PWA** - Installable web app
-✅ **Responsive Design** - Mobile/desktop layouts
+- [ ] **Fix singular/plural grammar** (`app/app/page.tsx` line 42)
+  - Change: `${total} memes in your collection`
+  - To: `${total} ${total === 1 ? 'meme' : 'memes'} in your collection`
+  - Also update empty state text
 
----
+- [ ] **Clean up search bar purple accent** (`components/search/search-bar.tsx` line 60)
+  - Remove the `<div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#7C5CFF] rounded-full" />`
+  - Looks disconnected and out of place
 
-## 📋 Practical Next Steps (In Priority Order)
+- [ ] **Remove keyboard hint** (`components/search/search-bar.tsx` lines 175-178)
+  - Delete the "Press Enter to search" hint div
+  - Unnecessary clutter, Enter is standard behavior
 
-### Phase 1: Get It Running (Today)
-1. [ ] Complete all manual setup above
-2. [ ] Add `typescript: { ignoreBuildErrors: true }` to next.config.ts
-3. [ ] Deploy to Vercel and test with real services
-4. [ ] Verify core flow: Sign in → Upload → Search → Find image
+### Phase 2: Gallery Display Improvements
+- [ ] **Add view mode state** (`app/app/page.tsx`)
+  - Add `const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>('grid')`
+  - Store preference in localStorage: `localStorage.setItem('viewMode', viewMode)`
+  - Load on mount: `useState(() => localStorage.getItem('viewMode') || 'grid')`
 
-### Phase 2: Fix Critical Issues (This Week)
-1. [ ] Fix Prisma schema to match code or vice versa
-2. [ ] Add error boundaries so app doesn't crash
-3. [ ] Add loading spinners for upload/search
-4. [ ] Implement image resize before upload (save storage costs)
-5. [ ] Add delete confirmation dialog
+- [ ] **Create view mode toggle buttons** (`app/app/page.tsx` header section)
+  - Add button group with 3 icons: Grid, Masonry, List
+  - Position: right side of header, inline with title
+  - Active state: bg-[#7C5CFF]/20 with text-[#7C5CFF]
 
-### Phase 3: Make It Usable (Next Week)
-1. [ ] Add tags UI (schema exists)
-2. [ ] Implement duplicate detection properly
-3. [ ] Add batch upload support
-4. [ ] Create settings page for user preferences
-5. [ ] Add export/backup functionality
+- [ ] **Implement masonry layout** (`components/library/masonry-grid.tsx` - new file)
+  - Use CSS columns for true masonry (no JS library needed)
+  - Preserve original aspect ratios
+  - Column count responsive: 2 → 3 → 4 → 5 → 6
+  - Gap: 16px consistent with current design
 
-### Phase 4: Polish (Later)
-- Performance optimizations
-- Better error messages
-- Keyboard shortcuts
-- Advanced search filters
-- Share functionality
+- [ ] **Update ImageTile for aspect ratio preservation** (`components/library/image-tile.tsx`)
+  - Add prop: `preserveAspectRatio: boolean`
+  - When true, remove `aspect-square` class from container
+  - Use `object-contain` instead of `object-cover` for img
 
----
+- [ ] **Simplify virtual scrolling logic** (`components/library/image-grid.tsx`)
+  - Only enable virtualizer when `assets.length > 100`
+  - Otherwise use SimpleImageGrid component
+  - Reduces complexity for typical collections
 
-## 💡 Quick Hacks for Prototype Demo
+### Phase 3: Enhanced Header Design
+- [ ] **Redesign header with inline stats** (`app/app/page.tsx` lines 38-44)
+  - Single line format: "247 memes • 12 favorites • 2.3GB"
+  - Use subtle separators (•) not boxes
+  - Text color: text-[#B3B7BE] for stats
 
-If you just need it working for a demo:
+- [ ] **Add sort/filter dropdown** (`app/app/page.tsx` header)
+  - Position: right side below view toggle
+  - Options: Date (newest/oldest), Favorites, Size, Name
+  - Store preference in localStorage
 
-1. **Use mock mode** - Set `NEXT_PUBLIC_ENABLE_MOCK_SERVICES=true` for fake data
-3. **Disable type checking** - Add to next.config.ts:
-   ```js
-   typescript: { ignoreBuildErrors: true },
-   eslint: { ignoreDuringBuilds: true }
-   ```
-4. **Skip tests** - They're broken anyway
+- [ ] **Implement live search** (`components/search/search-bar.tsx`)
+  - Add debounce hook: 300ms delay
+  - Trigger search automatically on type
+  - Remove Search button, just show loading spinner
+  - Add ESC key handler to clear
 
----
+### Phase 4: Polish & Animations
+- [ ] **Add image fade-in animation** (`components/library/image-tile.tsx`)
+  - Use `opacity-0 animate-fade-in` on img load
+  - CSS animation: 200ms ease-out
+  - Prevent layout shift during load
 
-## 📊 Success Metrics for MVP
+- [ ] **Smooth view mode transitions** (`app/app/page.tsx`)
+  - Add `transition-all duration-300` to grid container
+  - Use transform for smooth repositioning
+  - Maintain scroll position between modes
 
-You have a working prototype when:
+- [ ] **Better empty state illustration** (`components/library/image-grid.tsx` lines 116-126)
+  - Replace emoji with SVG illustration
+  - Add "Drop files here" message
+  - Include upload button directly in empty state
 
-- [ ] You can sign in with your Google account
-- [ ] You can upload 10 images
-- [ ] You can search "cat" and find your cat photos
-- [ ] You can mark images as favorites
-- [ ] It doesn't crash during basic operations
-
-Everything else is nice-to-have for a prototype.
-
----
-
-## 🗑️ Deprioritized (Moved from Previous TODO)
-
-<details>
-<summary>Click to see completed optimization work (not priority for prototype)</summary>
-
-### Completed Optimizations
-- [x] Consolidated SETUP documentation files
-- [x] Removed empty .swc directory
-- [x] Trimmed verbose JSDoc comments
-- [x] Added conditional debug logging
-- [x] Implemented build-time console stripping
-- [x] Fixed build errors from optimization changes
-
-### Skipped as Premature
-- [~] Bundle size analysis - App needs to work first
-- [ ] Further performance optimizations - Prototype doesn't need to be fast
-- [ ] Code coverage improvements - Tests are already broken
-- [ ] Documentation polish - Code needs to be stable first
-
-</details>
+- [ ] **Loading skeleton for images** (`components/library/image-tile.tsx`)
+  - Show animated placeholder while loading
+  - Match final image dimensions to prevent jump
+  - Subtle pulse animation
 
 ---
 
-**Last Updated**: 2025-09-17
-**Current Focus**: Getting external services configured for basic functionality
+## 🔧 Technical Debt & Bug Fixes
+
+### High Priority
+- [ ] **Fix TypeScript errors in tests** (`__tests__/api/asset-crud.test.ts`)
+  - Promise type mismatches on lines 62, 74, 89, 105, 121, 135
+  - Update mock return types to match actual API
+
+- [ ] **Add proper error boundaries**
+  - Wrap ImageGrid in error boundary component
+  - Show user-friendly error message
+  - Include "Reload" action button
+
+### Medium Priority
+- [ ] **Implement image resize on upload** (`app/api/upload/route.ts`)
+  - Use Sharp to resize images > 2048px
+  - Generate thumbnail (256px) for grid view
+  - Store both versions in Blob storage
+
+- [ ] **Add delete confirmation dialog**
+  - Replace `confirm()` with custom modal
+  - Show image preview in confirmation
+  - Add "Don't ask again" checkbox
+
+- [ ] **Wire up duplicate detection** (`lib/db.ts` assetExists function)
+  - Check checksum before upload
+  - Show "This image already exists" message
+  - Offer to view existing or upload anyway
+
+### Low Priority
+- [ ] **Add batch upload progress**
+  - Show overall progress bar
+  - Individual file status indicators
+  - Cancel remaining uploads option
+
+- [ ] **Implement tag system UI**
+  - Add tag input to upload modal
+  - Show tags in image tiles
+  - Filter by tag in sidebar
+
+---
+
+## 📊 Success Metrics
+
+### Current Sprint (UI Polish)
+- [ ] Gallery shows images in their original aspect ratios (masonry mode)
+- [ ] Can switch between view modes with one click
+- [ ] Search updates results as you type (live search)
+- [ ] No redundant UI elements visible
+- [ ] Smooth animations on all interactions
+
+### Next Sprint (Performance)
+- [ ] Images load with fade-in animation
+- [ ] Virtual scrolling works for 1000+ images
+- [ ] Upload generates thumbnails automatically
+- [ ] Page loads in < 1.5s
+- [ ] Search returns results in < 300ms
+
+---
+
+## 🗓️ Timeline
+
+**Week 1** (Current)
+- Complete Phase 1 & 2 UI improvements
+- Fix critical TypeScript errors
+- Deploy and test
+
+**Week 2**
+- Complete Phase 3 & 4 UI improvements
+- Add error boundaries
+- Implement image resize
+
+**Week 3**
+- Polish animations
+- Add duplicate detection
+- Tag system UI
+
+---
+
+**Last Updated**: 2025-09-18
+**Current Focus**: UI/UX Polish - Making the gallery beautiful and functional

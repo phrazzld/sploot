@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { SearchBar } from '@/components/search';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
 export default function AppPage() {
@@ -26,8 +25,6 @@ export default function AppPage() {
 
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
-  const favoriteCount = assets.filter(a => a.favorite).length;
-
   const handleSearch = (query: string) => {
     router.push(`/app/search?q=${encodeURIComponent(query)}`);
   };
@@ -48,56 +45,6 @@ export default function AppPage() {
           <SearchBar onSearch={handleSearch} />
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-6">
-          <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#7C5CFF]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#7C5CFF]">📁</span>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[#E6E8EB]">{total}</p>
-                <p className="text-xs text-[#B3B7BE]">Total</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#B6FF6E]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#B6FF6E]">⭐</span>
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-[#E6E8EB]">{favoriteCount}</p>
-                <p className="text-xs text-[#B3B7BE]">Favorites</p>
-              </div>
-            </div>
-          </div>
-
-          <Link href="/app/upload" className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4 hover:border-[#7C5CFF] transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#7C5CFF]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#7C5CFF]">📤</span>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-[#E6E8EB]">Upload</p>
-                <p className="text-xs text-[#B3B7BE]">Add memes</p>
-              </div>
-            </div>
-          </Link>
-
-          <Link href="/app/search" className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4 hover:border-[#7C5CFF] transition-colors">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-[#7C5CFF]/20 rounded-lg flex items-center justify-center">
-                <span className="text-[#7C5CFF]">🔍</span>
-              </div>
-              <div>
-                <p className="text-lg font-bold text-[#E6E8EB]">Search</p>
-                <p className="text-xs text-[#B3B7BE]">Find memes</p>
-              </div>
-            </div>
-          </Link>
-        </div>
       </div>
 
       {/* Image Grid - Fills remaining height */}
