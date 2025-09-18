@@ -54,11 +54,8 @@ export function SearchBar({
 
   return (
     <div className={`relative ${className}`}>
-      {/* Search bar container with pill shape and left stripe */}
+      {/* Search bar container with pill shape */}
       <div className="relative">
-        {/* Left accent stripe */}
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#7C5CFF] rounded-full" />
-
         <div className="relative flex items-center">
           {/* Search icon */}
           <div className="absolute left-6 pointer-events-none text-[#B3B7BE]">

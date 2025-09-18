@@ -30,7 +30,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - To: `${total} ${total === 1 ? 'meme' : 'memes'} in your collection`
   - Also update empty state text
 
-- [ ] **Clean up search bar purple accent** (`components/search/search-bar.tsx` line 60)
+- [x] **Clean up search bar purple accent** (`components/search/search-bar.tsx` line 60)
   - Remove the `<div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#7C5CFF] rounded-full" />`
   - Looks disconnected and out of place
 
