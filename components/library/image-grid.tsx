@@ -41,6 +41,10 @@ export function ImageGrid({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
 
+  // Use virtual scrolling only for large collections
+  const USE_VIRTUAL_SCROLLING_THRESHOLD = 100;
+  const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
+
   // Calculate columns based on container width
   const columnCount = useMemo(() => {
     if (!containerWidth) return 1;
@@ -65,13 +69,13 @@ export function ImageGrid({
     });
   }, [assets, columnCount]);
 
-  // Virtual scrolling setup
-  const virtualizer = useVirtualizer({
+  // Virtual scrolling setup (only when needed)
+  const virtualizer = useVirtualScrolling ? useVirtualizer({
     count: rows.length,
     getScrollElement: () => containerRef.current,
     estimateSize: () => 380, // Estimated row height
     overscan: 2, // Render 2 rows outside viewport
-  });
+  }) : null;
 
   // Update container width on resize
   useEffect(() => {
@@ -126,6 +130,69 @@ export function ImageGrid({
     );
   }
 
+  // Render simple grid for small collections
+  if (!useVirtualScrolling) {
+    return (
+      <div className="h-full">
+        <div
+          ref={containerRef}
+          className="h-full overflow-auto"
+          style={{ scrollbarGutter: 'stable' }}
+        >
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+            {assets.map((asset) => (
+              <ImageTile
+                key={asset.id}
+                asset={asset}
+                onFavorite={handleFavoriteToggle}
+                onDelete={onAssetDelete}
+                onSelect={onAssetSelect}
+              />
+            ))}
+          </div>
+
+          {/* Loading indicator */}
+          {loading && (
+            <div className="py-8 text-center">
+              <div className="inline-flex items-center gap-2 text-[#7C5CFF]">
+                <svg
+                  className="animate-spin h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+                <span className="text-sm font-medium">Loading more...</span>
+              </div>
+            </div>
+          )}
+
+          {/* End of list indicator */}
+          {!hasMore && assets.length > 0 && (
+            <div className="py-8 text-center">
+              <p className="text-[#B3B7BE] text-sm">
+                That&apos;s all your memes • {assets.length} total
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // Render virtualized grid for large collections
   return (
     <div className="h-full">
       <div
@@ -135,12 +202,12 @@ export function ImageGrid({
       >
         <div
           style={{
-            height: virtualizer.getTotalSize(),
+            height: virtualizer!.getTotalSize(),
             width: '100%',
             position: 'relative',
           }}
         >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
+          {virtualizer!.getVirtualItems().map((virtualRow) => {
             const row = rows[virtualRow.index];
             if (!row) return null;
 
@@ -223,45 +290,3 @@ export function ImageGrid({
   );
 }
 
-// Fallback grid without virtual scrolling for smaller datasets
-export function SimpleImageGrid({
-  assets,
-  onAssetUpdate,
-  onAssetDelete,
-  onAssetSelect,
-}: Omit<ImageGridProps, 'loading' | 'hasMore' | 'onLoadMore'>) {
-  const handleFavoriteToggle = useCallback(
-    (id: string, favorite: boolean) => {
-      onAssetUpdate?.(id, { favorite });
-    },
-    [onAssetUpdate]
-  );
-
-  if (assets.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-24 text-[#B3B7BE]">
-        <div className="text-center">
-          <div className="w-24 h-24 mx-auto mb-6 bg-[#1B1F24] rounded-2xl flex items-center justify-center">
-            <span className="text-4xl">🖼️</span>
-          </div>
-          <p className="text-[#E6E8EB] text-lg mb-2">no memes yet</p>
-          <p className="text-sm">upload some to get started</p>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
-      {assets.map((asset) => (
-        <ImageTile
-          key={asset.id}
-          asset={asset}
-          onFavorite={handleFavoriteToggle}
-          onDelete={onAssetDelete}
-          onSelect={onAssetSelect}
-        />
-      ))}
-    </div>
-  );
-}

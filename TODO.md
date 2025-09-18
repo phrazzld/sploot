@@ -60,7 +60,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - When true, remove `aspect-square` class from container
   - Use `object-contain` instead of `object-cover` for img
 
-- [ ] **Simplify virtual scrolling logic** (`components/library/image-grid.tsx`)
+- [x] **Simplify virtual scrolling logic** (`components/library/image-grid.tsx`)
   - Only enable virtualizer when `assets.length > 100`
   - Otherwise use SimpleImageGrid component
   - Reduces complexity for typical collections
