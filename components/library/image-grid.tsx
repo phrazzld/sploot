@@ -27,6 +27,8 @@ interface ImageGridProps {
   onAssetUpdate?: (id: string, updates: Partial<Asset>) => void;
   onAssetDelete?: (id: string) => void;
   onAssetSelect?: (asset: Asset) => void;
+  containerClassName?: string;
+  onScrollContainerReady?: (node: HTMLDivElement | null) => void;
 }
 
 export function ImageGrid({
@@ -37,9 +39,18 @@ export function ImageGrid({
   onAssetUpdate,
   onAssetDelete,
   onAssetSelect,
+  containerClassName,
+  onScrollContainerReady,
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const setContainerRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      containerRef.current = node;
+      onScrollContainerReady?.(node);
+    },
+    [onScrollContainerReady]
+  );
 
   // Use virtual scrolling only for large collections
   const USE_VIRTUAL_SCROLLING_THRESHOLD = 100;
@@ -138,8 +149,8 @@ export function ImageGrid({
     return (
       <div className="h-full">
         <div
-          ref={containerRef}
-          className="h-full overflow-auto"
+          ref={setContainerRef}
+          className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
@@ -199,8 +210,8 @@ export function ImageGrid({
   return (
     <div className="h-full">
       <div
-        ref={containerRef}
-        className="h-full overflow-auto"
+        ref={setContainerRef}
+        className={cn('h-full overflow-auto', containerClassName)}
         style={{ scrollbarGutter: 'stable' }}
       >
         <div
@@ -292,4 +303,3 @@ export function ImageGrid({
     </div>
   );
 }
-

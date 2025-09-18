@@ -88,10 +88,15 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - CSS animation: 200ms ease-out
   - Prevent layout shift during load
 
-- [ ] **Smooth view mode transitions** (`app/app/page.tsx`)
+- [x] **Smooth view mode transitions** (`app/app/page.tsx`)
   - Add `transition-all duration-300` to grid container
   - Use transform for smooth repositioning
   - Maintain scroll position between modes
+  ```
+  Work Log:
+  - Shared a transition class between grid + masonry containers with fade/scale animation and preserved scroll offset via ref handoff
+  - `pnpm lint` failed locally: Next.js SWC binary unavailable offline despite retry with elevated permissions
+  ```
 
 - [ ] **Better empty state illustration** (`components/library/image-grid.tsx` lines 116-126)
   - Replace emoji with SVG illustration
@@ -102,6 +107,17 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Show animated placeholder while loading
   - Match final image dimensions to prevent jump
   - Subtle pulse animation
+
+### Phase 5: Navigation & Library UX
+- [ ] **Keep library search inline** (`components/search/SearchBar.tsx` & `app/app/page.tsx`)
+  - Add an `inline` mode that filters client-side without pushing to `/app/search`
+  - Only route to the dedicated search page when invoked from global navigation
+- [ ] **Add "View in Library" CTA post-upload** (`components/upload/upload-dialog.tsx`)
+  - After a successful upload, surface a primary action that links back to `/app`
+  - Clear uploaded state so the library view reflects the new asset count
+- [ ] **Improve duplicate success messaging** (`components/upload/upload-dialog.tsx`)
+  - When the API reports an existing asset, show thumbnail + "View existing" button
+  - Treat duplicates as a non-error success path in the UI
 
 ---
 
@@ -118,6 +134,21 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - ✅ Show user-friendly error message
   - ✅ Include "Reload" action button
 
+- [ ] **Short-circuit duplicate uploads** (`app/api/upload/route.ts`)
+  - Calculate checksum before writing to blob storage
+  - Call `assetExists` to detect duplicates and return 200 with existing asset + "Image already exists in your library"
+  - Skip blob upload entirely when a duplicate is found
+
+- [ ] **Normalize Prisma duplicate violations** (`app/api/upload/route.ts`)
+  - Catch `PrismaClientKnownRequestError` with code `P2002`
+  - Respond with HTTP 409 and actionable copy instead of bubbling a 500
+  - Ensure caller receives structured error payload for UI messaging
+
+- [ ] **Generate embeddings for uploads** (`app/api/upload/route.ts`)
+  - Invoke the same `generateEmbeddingAsync` flow used in `app/api/assets`
+  - Defer execution asynchronously so request latency stays low
+  - Confirm all upload paths create vector embeddings for search
+
 ### Medium Priority
 - [ ] **Implement image resize on upload** (`app/api/upload/route.ts`)
   - Use Sharp to resize images > 2048px
@@ -129,10 +160,10 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Show image preview in confirmation
   - Add "Don't ask again" checkbox
 
-- [ ] **Wire up duplicate detection** (`lib/db.ts` assetExists function)
-  - Check checksum before upload
-  - Show "This image already exists" message
-  - Offer to view existing or upload anyway
+- [ ] **Harden `assetExists` helper** (`lib/db.ts`)
+  - Return typed asset metadata consumed by the upload API and preflight check
+  - Cover concurrency edge cases with transaction-safe query pattern
+  - Add targeted tests verifying duplicate detection scenarios
 
 ### Low Priority
 - [ ] **Add batch upload progress**
@@ -144,6 +175,21 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Add tag input to upload modal
   - Show tags in image tiles
   - Filter by tag in sidebar
+
+- [ ] **Introduce upload preflight check** (`app/api/upload/check/route.ts`)
+  - Accept checksum from client before upload begins
+  - Reuse `assetExists` to short-circuit duplicates and return existing asset metadata
+  - Document endpoint for frontend consumption
+
+- [ ] **Display embedding readiness state** (`components/library/image-tile.tsx`)
+  - Show "Processing…" badge until vectors are generated
+  - Flip to "Ready for search" once embeddings exist
+  - Ensure badge states integrate with live search UX
+
+- [ ] **Tighten upload error messaging** (`components/upload/upload-dialog.tsx`)
+  - Distinguish duplicate, storage, and database failures with specific copy
+  - Provide user actions for recovery (retry, view existing asset, contact support)
+  - Align API error payload schema with UI expectations
 
 ---
 

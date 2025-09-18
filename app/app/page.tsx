@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { MasonryGrid } from '@/components/library/masonry-grid';
 import { SearchBar } from '@/components/search';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 export default function AppPage() {
   const router = useRouter();
@@ -30,6 +31,9 @@ export default function AppPage() {
     return 'desc';
   });
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
+  const gridScrollRef = useRef<HTMLDivElement | null>(null);
+  const pendingScrollTopRef = useRef<number | null>(null);
 
   // Convert filename to createdAt for the actual sorting
   const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
@@ -103,6 +107,80 @@ export default function AppPage() {
     router.push(`/app/search?q=${encodeURIComponent(query)}`);
   };
 
+  const handleScrollContainerReady = useCallback((node: HTMLDivElement | null) => {
+    gridScrollRef.current = node;
+  }, []);
+
+  const captureScrollPosition = useCallback(() => {
+    if (gridScrollRef.current) {
+      pendingScrollTopRef.current = gridScrollRef.current.scrollTop;
+      return;
+    }
+
+    if (typeof document !== 'undefined' && document.scrollingElement) {
+      pendingScrollTopRef.current = (document.scrollingElement as HTMLElement).scrollTop;
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      pendingScrollTopRef.current = window.scrollY;
+    }
+  }, []);
+
+  const restoreScrollPosition = useCallback(() => {
+    if (pendingScrollTopRef.current == null) return;
+
+    const docScrollElement =
+      typeof document !== 'undefined' ? (document.scrollingElement as HTMLElement | null) : null;
+    const target = gridScrollRef.current || docScrollElement;
+
+    const desiredTop = pendingScrollTopRef.current;
+    pendingScrollTopRef.current = null;
+
+    if (target) {
+      target.scrollTo({ top: desiredTop });
+      return;
+    }
+
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: desiredTop });
+    }
+  }, []);
+
+  const handleViewModeChange = useCallback(
+    (mode: 'grid' | 'masonry' | 'compact') => {
+      if (mode === viewMode) return;
+
+      captureScrollPosition();
+      setIsViewModeTransitioning(true);
+      setViewMode(mode);
+    },
+    [captureScrollPosition, viewMode]
+  );
+
+  useEffect(() => {
+    restoreScrollPosition();
+  }, [viewMode, restoreScrollPosition]);
+
+  useEffect(() => {
+    if (!isViewModeTransitioning) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      setIsViewModeTransitioning(false);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [isViewModeTransitioning]);
+
+  const gridContainerClassName = useMemo(
+    () =>
+      cn(
+        'h-full overflow-auto transition-all duration-300 ease-out transform-gpu',
+        isViewModeTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+      ),
+    [isViewModeTransitioning]
+  );
+
   // Sort assets by filename if needed (since API doesn't support it)
   const sortedAssets = useMemo(() => {
     if (sortBy !== 'filename') return assets;
@@ -152,7 +230,7 @@ export default function AppPage() {
               {/* View Mode Toggle */}
               <div className="flex gap-1 p-1 bg-[#14171A] border border-[#2A2F37] rounded-lg">
               <button
-                onClick={() => setViewMode('grid')}
+                onClick={() => handleViewModeChange('grid')}
                 className={`p-2 rounded transition-colors ${
                   viewMode === 'grid'
                     ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
@@ -169,7 +247,7 @@ export default function AppPage() {
                 </svg>
               </button>
               <button
-                onClick={() => setViewMode('masonry')}
+                onClick={() => handleViewModeChange('masonry')}
                 className={`p-2 rounded transition-colors ${
                   viewMode === 'masonry'
                     ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
@@ -186,7 +264,7 @@ export default function AppPage() {
                 </svg>
               </button>
               <button
-                onClick={() => setViewMode('compact')}
+                onClick={() => handleViewModeChange('compact')}
                 className={`p-2 rounded transition-colors ${
                   viewMode === 'compact'
                     ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
@@ -292,15 +370,21 @@ export default function AppPage() {
         <div className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-6 h-full">
           <div className="h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
             {viewMode === 'masonry' ? (
-              <MasonryGrid
-                assets={sortedAssets}
-                loading={loading}
-                hasMore={hasMore}
-                onLoadMore={() => loadAssets()}
-                onAssetUpdate={updateAsset}
-                onAssetDelete={deleteAsset}
-                onAssetSelect={setSelectedAsset}
-              />
+              <div
+                ref={handleScrollContainerReady}
+                className={gridContainerClassName}
+                style={{ scrollbarGutter: 'stable' }}
+              >
+                <MasonryGrid
+                  assets={sortedAssets}
+                  loading={loading}
+                  hasMore={hasMore}
+                  onLoadMore={() => loadAssets()}
+                  onAssetUpdate={updateAsset}
+                  onAssetDelete={deleteAsset}
+                  onAssetSelect={setSelectedAsset}
+                />
+              </div>
             ) : (
               <ImageGridErrorBoundary onRetry={() => loadAssets()}>
                 <ImageGrid
@@ -311,6 +395,8 @@ export default function AppPage() {
                   onAssetUpdate={updateAsset}
                   onAssetDelete={deleteAsset}
                   onAssetSelect={setSelectedAsset}
+                  containerClassName={gridContainerClassName}
+                  onScrollContainerReady={handleScrollContainerReady}
                 />
               </ImageGridErrorBoundary>
             )}
