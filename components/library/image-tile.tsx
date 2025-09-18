@@ -39,6 +39,7 @@ export function ImageTile({
 }: ImageTileProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const handleFavoriteToggle = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -114,16 +115,24 @@ export function ImageTile({
             </svg>
           </div>
         ) : (
-          <img
-            src={asset.blobUrl}
-            alt={asset.filename}
-            className={cn(
-              "w-full",
-              preserveAspectRatio ? "h-auto" : "h-full object-cover"
+          <>
+            {/* Skeleton placeholder shown while loading */}
+            {!imageLoaded && (
+              <div className="absolute inset-0 bg-[#1B1F24] animate-pulse" />
             )}
-            loading="lazy"
-            onError={() => setImageError(true)}
-          />
+            <img
+              src={asset.blobUrl}
+              alt={asset.filename}
+              className={cn(
+                "w-full",
+                preserveAspectRatio ? "h-auto" : "h-full object-cover",
+                imageLoaded ? "animate-fade-in" : "opacity-0"
+              )}
+              loading="lazy"
+              onLoad={() => setImageLoaded(true)}
+              onError={() => setImageError(true)}
+            />
+          </>
         )}
 
         {/* Hover overlay with actions */}

@@ -83,7 +83,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - ✅ Add ESC key handler to clear
 
 ### Phase 4: Polish & Animations
-- [ ] **Add image fade-in animation** (`components/library/image-tile.tsx`)
+- [x] **Add image fade-in animation** (`components/library/image-tile.tsx`)
   - Use `opacity-0 animate-fade-in` on img load
   - CSS animation: 200ms ease-out
   - Prevent layout shift during load
