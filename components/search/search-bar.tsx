@@ -168,11 +168,6 @@ export function SearchBar({
           </div>
         </div>
       </div>
-
-      {/* Optional keyboard hint */}
-      <div className="absolute -bottom-6 left-14 text-xs text-[#6A6E78]">
-        Press <kbd className="px-1.5 py-0.5 bg-[#1B1F24] rounded text-[#B3B7BE]">Enter</kbd> to search
-      </div>
     </div>
   );
 }

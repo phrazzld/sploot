@@ -34,7 +34,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Remove the `<div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#7C5CFF] rounded-full" />`
   - Looks disconnected and out of place
 
-- [ ] **Remove keyboard hint** (`components/search/search-bar.tsx` lines 175-178)
+- [x] **Remove keyboard hint** (`components/search/search-bar.tsx` lines 175-178)
   - Delete the "Press Enter to search" hint div
   - Unnecessary clutter, Enter is standard behavior
 
