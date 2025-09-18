@@ -76,11 +76,11 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Options: Date (newest/oldest), Favorites, Size, Name
   - Store preference in localStorage
 
-- [ ] **Implement live search** (`components/search/search-bar.tsx`)
-  - Add debounce hook: 300ms delay
-  - Trigger search automatically on type
-  - Remove Search button, just show loading spinner
-  - Add ESC key handler to clear
+- [x] **Implement live search** (`components/search/search-bar.tsx`)
+  - ✅ Add debounce hook: 300ms delay
+  - ✅ Trigger search automatically on type
+  - ✅ Remove Search button, just show loading spinner
+  - ✅ Add ESC key handler to clear
 
 ### Phase 4: Polish & Animations
 - [ ] **Add image fade-in animation** (`components/library/image-tile.tsx`)

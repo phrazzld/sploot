@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useCallback, KeyboardEvent } from 'react';
+import { useState, useCallback, KeyboardEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useDebounce } from '@/hooks/use-debounce';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -20,28 +21,64 @@ export function SearchBar({
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  const handleSearch = useCallback(async () => {
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) return;
+  // Debounce the search query with 300ms delay
+  const debouncedQuery = useDebounce(query, 300);
 
-    setLoading(true);
+  // Handle search automatically when debounced query changes
+  useEffect(() => {
+    const trimmedQuery = debouncedQuery.trim();
 
-    try {
-      if (onSearch) {
-        // If a custom onSearch handler is provided, use it
-        onSearch(trimmedQuery);
-      } else {
-        // Default behavior: navigate to search page with query
-        router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
-      }
-    } finally {
+    // If query is empty, clear search results if onSearch handler provided
+    if (!trimmedQuery) {
       setLoading(false);
+      if (onSearch) {
+        onSearch('');
+      }
+      return;
     }
-  }, [query, onSearch, router]);
+
+    // Perform search
+    const performSearch = async () => {
+      setLoading(true);
+
+      try {
+        if (onSearch) {
+          // If a custom onSearch handler is provided, use it
+          onSearch(trimmedQuery);
+        } else {
+          // Default behavior: navigate to search page with query
+          router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    performSearch();
+  }, [debouncedQuery, onSearch, router]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !loading) {
-      handleSearch();
+    // Add ESC key handler to clear search
+    if (e.key === 'Escape') {
+      setQuery('');
+      if (onSearch) {
+        onSearch('');
+      }
+      // Blur the input to remove focus
+      e.currentTarget.blur();
+    }
+    // Keep Enter key for immediate search (skips debounce)
+    else if (e.key === 'Enter' && !loading && query.trim()) {
+      const trimmedQuery = query.trim();
+      setLoading(true);
+
+      if (onSearch) {
+        onSearch(trimmedQuery);
+      } else {
+        router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
+      }
+
+      // Loading will be set to false by the useEffect
     }
   };
 
@@ -82,22 +119,45 @@ export function SearchBar({
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
-            disabled={loading}
             className="
-              w-full h-[52px] pl-14 pr-24
+              w-full h-[52px] pl-14 pr-20
               bg-[#14171A] text-[#E6E8EB] placeholder-[#6A6E78]
               rounded-full border border-[#2A2F37]
               focus:outline-none focus:border-[#7C5CFF]
               focus:ring-2 focus:ring-[#7C5CFF]/20
               focus:shadow-[inset_0_0_12px_rgba(124,92,255,0.1)]
               transition-all duration-200
-              disabled:opacity-60 disabled:cursor-not-allowed
             "
           />
 
           {/* Action buttons */}
           <div className="absolute right-3 flex items-center gap-2">
-            {/* Clear button - only show when there's text */}
+            {/* Loading indicator */}
+            {loading && (
+              <div className="p-1.5 text-[#7C5CFF]">
+                <svg
+                  className="animate-spin h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                  />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              </div>
+            )}
+
+            {/* Clear button - only show when there's text and not loading */}
             {query && !loading && (
               <button
                 onClick={handleClear}
@@ -106,9 +166,10 @@ export function SearchBar({
                   transition-colors duration-200
                 "
                 aria-label="Clear search"
+                title="Clear search (ESC)"
               >
                 <svg
-                  className="w-4 h-4"
+                  className="w-5 h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -122,51 +183,13 @@ export function SearchBar({
                 </svg>
               </button>
             )}
-
-            {/* Search button / Loading indicator */}
-            <button
-              onClick={handleSearch}
-              disabled={loading || !query.trim()}
-              className="
-                px-4 py-1.5
-                bg-[#7C5CFF] text-white text-sm font-medium
-                rounded-full
-                hover:bg-[#6B4FE6] active:bg-[#5941CC]
-                disabled:opacity-50 disabled:cursor-not-allowed
-                transition-all duration-200
-                flex items-center gap-2
-              "
-              aria-label={loading ? 'Searching...' : 'Search'}
-            >
-              {loading ? (
-                <>
-                  <svg
-                    className="animate-spin h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
-                  </svg>
-                  <span className="hidden sm:inline">Searching...</span>
-                </>
-              ) : (
-                <span>Search</span>
-              )}
-            </button>
           </div>
         </div>
+      </div>
+
+      {/* Hint text for keyboard shortcuts */}
+      <div className="absolute -bottom-6 left-0 text-xs text-[#6A6E78] opacity-0 group-hover:opacity-100 transition-opacity">
+        <span className="hidden sm:inline">ESC to clear • Enter for instant search</span>
       </div>
     </div>
   );
