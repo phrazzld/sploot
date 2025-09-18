@@ -19,8 +19,8 @@ export default function AppPage() {
     deleteAsset,
   } = useAssets({
     initialLimit: 50,
-    sortBy: 'createdAt',
-    sortOrder: 'desc',
+    sortBy: sortBy === 'filename' ? 'createdAt' : sortBy,
+    sortOrder,
     autoLoad: true,
   });
 
@@ -31,13 +31,48 @@ export default function AppPage() {
     }
     return 'grid';
   });
+  const [sortBy, setSortBy] = useState<'createdAt' | 'favorite' | 'size' | 'filename'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('sortBy') as 'createdAt' | 'favorite' | 'size' | 'filename') || 'createdAt';
+    }
+    return 'createdAt';
+  });
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('sortOrder') as 'asc' | 'desc') || 'desc';
+    }
+    return 'desc';
+  });
+  const [showSortDropdown, setShowSortDropdown] = useState(false);
 
-  // Save view mode preference to localStorage
+  // Save preferences to localStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
       localStorage.setItem('viewMode', viewMode);
     }
   }, [viewMode]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sortBy', sortBy);
+      localStorage.setItem('sortOrder', sortOrder);
+    }
+  }, [sortBy, sortOrder]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest('.sort-dropdown-container')) {
+        setShowSortDropdown(false);
+      }
+    };
+
+    if (showSortDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showSortDropdown]);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -63,6 +98,24 @@ export default function AppPage() {
   const handleSearch = (query: string) => {
     router.push(`/app/search?q=${encodeURIComponent(query)}`);
   };
+
+  // Sort assets by filename if needed (since API doesn't support it)
+  const sortedAssets = useMemo(() => {
+    if (sortBy !== 'filename') return assets;
+
+    const sorted = [...assets].sort((a, b) => {
+      const nameA = a.filename.toLowerCase();
+      const nameB = b.filename.toLowerCase();
+
+      if (sortOrder === 'asc') {
+        return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+      } else {
+        return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+      }
+    });
+
+    return sorted;
+  }, [assets, sortBy, sortOrder]);
 
   return (
     <div className="flex flex-col h-full">
@@ -90,8 +143,10 @@ export default function AppPage() {
                 )}
               </p>
             </div>
-            {/* View Mode Toggle */}
-            <div className="flex gap-1 p-1 bg-[#14171A] border border-[#2A2F37] rounded-lg">
+            {/* View Controls */}
+            <div className="flex flex-col gap-2">
+              {/* View Mode Toggle */}
+              <div className="flex gap-1 p-1 bg-[#14171A] border border-[#2A2F37] rounded-lg">
               <button
                 onClick={() => setViewMode('grid')}
                 className={`p-2 rounded transition-colors ${
@@ -142,6 +197,81 @@ export default function AppPage() {
                   <line x1="3" y1="18" x2="21" y2="18" strokeWidth="2" strokeLinecap="round" />
                 </svg>
               </button>
+              </div>
+
+              {/* Sort Dropdown */}
+              <div className="relative sort-dropdown-container">
+                <button
+                  onClick={() => setShowSortDropdown(!showSortDropdown)}
+                  className="flex items-center gap-2 px-3 py-2 bg-[#14171A] border border-[#2A2F37] rounded-lg text-sm text-[#B3B7BE] hover:text-[#E6E8EB] hover:border-[#7C5CFF] transition-colors"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                  </svg>
+                  <span>
+                    {sortBy === 'createdAt' ? 'Date' :
+                     sortBy === 'favorite' ? 'Favorites' :
+                     sortBy === 'size' ? 'Size' : 'Name'}
+                    {sortOrder === 'desc' ? ' ↓' : ' ↑'}
+                  </span>
+                </button>
+
+                {/* Dropdown Menu */}
+                {showSortDropdown && (
+                  <div className="absolute right-0 mt-1 w-48 bg-[#14171A] border border-[#2A2F37] rounded-lg shadow-xl z-10">
+                    <div className="py-1">
+                      <button
+                        onClick={() => {
+                          setSortBy('createdAt');
+                          setSortOrder(sortBy === 'createdAt' && sortOrder === 'desc' ? 'asc' : 'desc');
+                          setShowSortDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                          sortBy === 'createdAt' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                        }`}
+                      >
+                        Date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('favorite');
+                          setSortOrder('desc');
+                          setShowSortDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                          sortBy === 'favorite' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                        }`}
+                      >
+                        Favorites first
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('size');
+                          setSortOrder(sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
+                          setShowSortDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                          sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                        }`}
+                      >
+                        Size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('filename');
+                          setSortOrder(sortBy === 'filename' && sortOrder === 'asc' ? 'desc' : 'asc');
+                          setShowSortDropdown(false);
+                        }}
+                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                          sortBy === 'filename' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                        }`}
+                      >
+                        Name {sortBy === 'filename' && (sortOrder === 'asc' ? '(A-Z)' : '(Z-A)')}
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -159,7 +289,7 @@ export default function AppPage() {
           <div className="h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
             {viewMode === 'masonry' ? (
               <MasonryGrid
-                assets={assets}
+                assets={sortedAssets}
                 loading={loading}
                 hasMore={hasMore}
                 onLoadMore={() => loadAssets()}
@@ -169,7 +299,7 @@ export default function AppPage() {
               />
             ) : (
               <ImageGrid
-                assets={assets}
+                assets={sortedAssets}
                 loading={loading}
                 hasMore={hasMore}
                 onLoadMore={() => loadAssets()}

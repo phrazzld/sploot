@@ -71,7 +71,7 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Use subtle separators (•) not boxes
   - Text color: text-[#B3B7BE] for stats
 
-- [ ] **Add sort/filter dropdown** (`app/app/page.tsx` header)
+- [x] **Add sort/filter dropdown** (`app/app/page.tsx` header)
   - Position: right side below view toggle
   - Options: Date (newest/oldest), Favorites, Size, Name
   - Store preference in localStorage
