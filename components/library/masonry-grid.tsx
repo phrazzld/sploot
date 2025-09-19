@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 interface Asset {
   id: string;
   blobUrl: string;
+  thumbnailUrl?: string | null;
   pathname: string;
   filename: string;
   mime: string;
@@ -15,6 +16,12 @@ interface Asset {
   favorite: boolean;
   createdAt: Date | string;
   tags?: Array<{ id: string; name: string }>;
+  embedding?: {
+    assetId: string;
+    modelName: string;
+    modelVersion: string;
+    createdAt: Date | string;
+  } | null;
 }
 
 interface MasonryGridProps {

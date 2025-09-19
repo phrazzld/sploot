@@ -24,6 +24,12 @@ interface Asset {
   favorite: boolean;
   createdAt: Date | string;
   tags?: Array<{ id: string; name: string }>;
+  embedding?: {
+    assetId: string;
+    modelName: string;
+    modelVersion: string;
+    createdAt: Date | string;
+  } | null;
 }
 
 export default function TagPage({

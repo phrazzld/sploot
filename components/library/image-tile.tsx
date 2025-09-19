@@ -19,6 +19,12 @@ interface Asset {
   favorite: boolean;
   createdAt: Date | string;
   tags?: Array<{ id: string; name: string }>;
+  embedding?: {
+    assetId: string;
+    modelName: string;
+    modelVersion: string;
+    createdAt: Date | string;
+  } | null;
 }
 
 interface ImageTileProps {
@@ -237,6 +243,25 @@ export function ImageTile({
             </div>
           </div>
         )}
+
+        {/* Embedding readiness indicator */}
+        <div className="absolute bottom-2 left-2 pointer-events-none">
+          {!asset.embedding ? (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full">
+              <div className="w-1.5 h-1.5 bg-[#FFA500] rounded-full animate-pulse" />
+              <span className="text-[10px] text-[#FFA500] font-medium uppercase tracking-wide">
+                Processing...
+              </span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+              <div className="w-1.5 h-1.5 bg-[#B6FF6E] rounded-full" />
+              <span className="text-[10px] text-[#B6FF6E] font-medium uppercase tracking-wide">
+                Ready for search
+              </span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Metadata */}

@@ -294,10 +294,20 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Handles authentication, database unavailable, and error cases
   ```
 
-- [ ] **Display embedding readiness state** (`components/library/image-tile.tsx`)
+- [x] **Display embedding readiness state** (`components/library/image-tile.tsx`)
   - Show "Processing…" badge until vectors are generated
   - Flip to "Ready for search" once embeddings exist
   - Ensure badge states integrate with live search UX
+  ```
+  Work Log:
+  - Added embedding field to Asset interface across all components
+  - Created visual indicator badge with orange "Processing..." when no embedding
+  - Shows green "Ready for search" badge on hover when embedding exists
+  - Badge positioned in bottom-left corner with backdrop blur for visibility
+  - Updated ImageTile, ImageGrid, MasonryGrid, and tag page components
+  - Uses pulsing animation for processing state to indicate active work
+  - Integrated seamlessly with existing hover interactions
+  ```
 
 - [ ] **Tighten upload error messaging** (`components/upload/upload-dialog.tsx`)
   - Distinguish duplicate, storage, and database failures with specific copy
