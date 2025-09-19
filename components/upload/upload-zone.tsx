@@ -32,8 +32,10 @@ interface UploadZoneProps {
 export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
+  const activeUploadsRef = useRef<Set<string>>(new Set());
   const { isOffline, isSlowConnection } = useOffline();
   const router = useRouter();
 
@@ -255,6 +257,9 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
             : f
         )
       );
+    } finally {
+      // Remove from active uploads
+      activeUploadsRef.current.delete(uploadFile.id);
     }
   };
 
@@ -336,6 +341,55 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
     if (bytes < 1024) return bytes + ' B';
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  // Calculate overall progress
+  const calculateOverallProgress = () => {
+    if (files.length === 0) return 0;
+
+    const totalProgress = files.reduce((acc, file) => {
+      if (file.status === 'success' || file.status === 'duplicate') {
+        return acc + 100;
+      } else if (file.status === 'uploading') {
+        return acc + file.progress;
+      } else if (file.status === 'error') {
+        return acc + 0;
+      } else {
+        return acc + 0; // pending/queued
+      }
+    }, 0);
+
+    return Math.round(totalProgress / files.length);
+  };
+
+  // Get upload statistics
+  const getUploadStats = () => {
+    const completed = files.filter(f => f.status === 'success' || f.status === 'duplicate').length;
+    const uploading = files.filter(f => f.status === 'uploading').length;
+    const pending = files.filter(f => f.status === 'pending' || f.status === 'queued').length;
+    const failed = files.filter(f => f.status === 'error').length;
+
+    return { completed, uploading, pending, failed, total: files.length };
+  };
+
+  // Cancel remaining uploads
+  const cancelRemainingUploads = () => {
+    setIsCancelling(true);
+
+    // Remove pending files
+    setFiles((prev) =>
+      prev.filter((f) =>
+        f.status === 'success' ||
+        f.status === 'duplicate' ||
+        f.status === 'error' ||
+        f.status === 'uploading'
+      )
+    );
+
+    // Clear active uploads tracking
+    activeUploadsRef.current.clear();
+
+    setTimeout(() => setIsCancelling(false), 500);
   };
 
   // Show background sync status if enabled
@@ -463,6 +517,75 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
       {/* File list */}
       {files.length > 0 && (
         <div className="mt-6 space-y-4">
+          {/* Batch Upload Progress Header */}
+          <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-[#E6E8EB] font-medium text-sm">Upload Progress</h3>
+                <p className="text-[#B3B7BE] text-xs mt-1">
+                  {(() => {
+                    const stats = getUploadStats();
+                    const parts = [];
+                    if (stats.completed > 0) parts.push(`${stats.completed} completed`);
+                    if (stats.uploading > 0) parts.push(`${stats.uploading} uploading`);
+                    if (stats.pending > 0) parts.push(`${stats.pending} pending`);
+                    if (stats.failed > 0) parts.push(`${stats.failed} failed`);
+                    return parts.join(' • ') || 'No files';
+                  })()}
+                </p>
+              </div>
+
+              {/* Cancel button */}
+              {hasActiveUploads && (
+                <button
+                  onClick={cancelRemainingUploads}
+                  disabled={isCancelling}
+                  className="text-[#FF4D4D] hover:text-[#FF6B6B] text-sm font-medium transition-colors disabled:opacity-50"
+                >
+                  {isCancelling ? 'Cancelling...' : 'Cancel Remaining'}
+                </button>
+              )}
+            </div>
+
+            {/* Overall progress bar */}
+            <div className="relative">
+              <div className="w-full h-2 bg-[#1B1F24] rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-[#7C5CFF] to-[#9B7FFF] transition-all duration-500 ease-out"
+                  style={{ width: `${calculateOverallProgress()}%` }}
+                />
+              </div>
+              <div className="flex justify-between mt-2">
+                <span className="text-[#B3B7BE] text-xs">
+                  {getUploadStats().completed} of {files.length} files
+                </span>
+                <span className="text-[#7C5CFF] text-xs font-medium">
+                  {calculateOverallProgress()}%
+                </span>
+              </div>
+            </div>
+
+            {/* Quick stats */}
+            <div className="grid grid-cols-4 gap-2 mt-3">
+              <div className="text-center">
+                <p className="text-[#B6FF6E] text-lg font-semibold">{getUploadStats().completed}</p>
+                <p className="text-[#B3B7BE] text-xs">Complete</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[#7C5CFF] text-lg font-semibold">{getUploadStats().uploading}</p>
+                <p className="text-[#B3B7BE] text-xs">Uploading</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[#B3B7BE] text-lg font-semibold">{getUploadStats().pending}</p>
+                <p className="text-[#B3B7BE] text-xs">Pending</p>
+              </div>
+              <div className="text-center">
+                <p className="text-[#FF4D4D] text-lg font-semibold">{getUploadStats().failed}</p>
+                <p className="text-[#B3B7BE] text-xs">Failed</p>
+              </div>
+            </div>
+          </div>
+
           <div className="space-y-2">
             {files.map((file) => (
               <div
