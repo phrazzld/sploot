@@ -278,10 +278,21 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Updated assets API to support filtering by tagId parameter
   ```
 
-- [ ] **Introduce upload preflight check** (`app/api/upload/check/route.ts`)
+- [x] **Introduce upload preflight check** (`app/api/upload/check/route.ts`)
   - Accept checksum from client before upload begins
   - Reuse `assetExists` to short-circuit duplicates and return existing asset metadata
   - Document endpoint for frontend consumption
+  ```
+  Work Log:
+  - Created POST /api/upload/check endpoint with comprehensive documentation
+  - Validates SHA256 checksum format (64 hex characters)
+  - Returns existing asset metadata if duplicate found
+  - Created client-side checksum calculation utilities using Web Crypto API
+  - Added useUploadPreflight hook for easy integration
+  - Includes batch preflight checking for multiple files
+  - Added comprehensive test suite for the endpoint
+  - Handles authentication, database unavailable, and error cases
+  ```
 
 - [ ] **Display embedding readiness state** (`components/library/image-tile.tsx`)
   - Show "Processing…" badge until vectors are generated
