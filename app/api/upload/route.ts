@@ -47,7 +47,11 @@ export async function POST(req: NextRequest) {
     // Validate file type
     if (!isValidFileType(file.type)) {
       return NextResponse.json(
-        { error: `Invalid file type: ${file.type}. Only JPEG, PNG, WebP, and GIF images are allowed.` },
+        {
+          error: `Invalid file type: ${file.type}. Only JPEG, PNG, WebP, and GIF images are allowed.`,
+          errorType: 'invalid_type',
+          userMessage: 'File type not supported. Use JPEG, PNG, WebP, or GIF'
+        },
         { status: 400 }
       );
     }
@@ -55,7 +59,11 @@ export async function POST(req: NextRequest) {
     // Validate file size
     if (!isValidFileSize(file.size)) {
       return NextResponse.json(
-        { error: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit` },
+        {
+          error: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit`,
+          errorType: 'file_too_large',
+          userMessage: `File is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB`
+        },
         { status: 400 }
       );
     }
@@ -214,7 +222,11 @@ export async function POST(req: NextRequest) {
         }
 
         return NextResponse.json(
-          { error: 'Database unavailable. Cannot complete upload.' },
+          {
+            error: 'Database unavailable. Cannot complete upload.',
+            errorType: 'database_failed',
+            userMessage: 'Service temporarily unavailable. Please try again'
+          },
           { status: 503 }
         );
       }

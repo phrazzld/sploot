@@ -8,6 +8,8 @@ import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 import { useBackgroundSync } from '@/hooks/use-background-sync';
 import { TagInput } from '@/components/tags/tag-input';
+import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
+import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 
 interface UploadFile {
   id: string;
@@ -15,6 +17,7 @@ interface UploadFile {
   status: 'pending' | 'uploading' | 'success' | 'error' | 'queued' | 'duplicate';
   progress: number;
   error?: string;
+  errorDetails?: UploadErrorDetails;
   assetId?: string;
   blobUrl?: string;
   isDuplicate?: boolean;
@@ -252,6 +255,13 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
     } catch (error) {
       console.error('Upload error:', error);
 
+      // Parse error for better messaging
+      const errorDetails = getUploadErrorDetails(
+        error instanceof Error ? error : new Error('Upload failed'),
+        error instanceof Error && error.message.includes('401') ? 401 :
+        error instanceof Error && error.message.includes('503') ? 503 : undefined
+      );
+
       setFiles((prev) =>
         prev.map((f) =>
           f.id === uploadFile.id
@@ -260,6 +270,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                 status: 'error',
                 progress: 0,
                 error: error instanceof Error ? error.message : 'Upload failed',
+                errorDetails,
               }
             : f
         )
@@ -697,8 +708,19 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                   </div>
                 </div>
 
-                {/* Error message */}
-                {file.error && (
+                {/* Error display */}
+                {file.error && file.errorDetails && (
+                  <div className="mt-2">
+                    <UploadErrorDisplay
+                      error={file.errorDetails}
+                      fileId={file.id}
+                      fileName={file.file.name}
+                      onRetry={() => retryUpload(file)}
+                      onDismiss={() => removeFile(file.id)}
+                    />
+                  </div>
+                )}
+                {file.error && !file.errorDetails && (
                   <p className="text-[#FF4D4D] text-xs mt-2">{file.error}</p>
                 )}
               </div>

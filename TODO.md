@@ -309,10 +309,20 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Integrated seamlessly with existing hover interactions
   ```
 
-- [ ] **Tighten upload error messaging** (`components/upload/upload-dialog.tsx`)
+- [x] **Tighten upload error messaging** (`components/upload/upload-zone.tsx`)
   - Distinguish duplicate, storage, and database failures with specific copy
   - Provide user actions for recovery (retry, view existing asset, contact support)
   - Align API error payload schema with UI expectations
+  ```
+  Work Log:
+  - Created UploadErrorDetails type with specific error categories
+  - Built getUploadErrorDetails function to map errors to user-friendly messages
+  - Created UploadErrorDisplay component with contextual icons and actions
+  - Added recovery actions: retry, view existing, sign in, upgrade, contact support
+  - Updated upload zone to use improved error handling with detailed messaging
+  - Enhanced API responses with errorType and userMessage fields
+  - Error messages now provide clear next steps for users
+  ```
 
 ---
 
