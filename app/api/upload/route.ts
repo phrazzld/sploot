@@ -3,7 +3,7 @@ import { put } from '@vercel/blob';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { blobConfigured, isMockMode } from '@/lib/env';
-import { prisma, databaseAvailable, assetExists } from '@/lib/db';
+import { prisma, databaseAvailable, assetExists, findOrCreateAsset, ExistingAssetMetadata } from '@/lib/db';
 import crypto from 'crypto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
@@ -64,11 +64,15 @@ export async function POST(req: NextRequest) {
 
     // Check if asset already exists with this checksum
     if (databaseAvailable && prisma) {
-      const existingAsset = await assetExists(userId, checksum);
+      const existingAsset = await assetExists(userId, checksum, {
+        includeEmbedding: true,
+      });
       if (existingAsset) {
         // Generate embeddings for existing asset if missing
         // This ensures old uploads get embeddings too
-        generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+        if (!existingAsset.hasEmbedding) {
+          generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+        }
 
         // Return existing asset with duplicate indicator
         return NextResponse.json({

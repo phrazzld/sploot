@@ -82,24 +82,206 @@ export async function getOrCreateUser(clerkUserId: string, email: string) {
 }
 
 /**
- * Check if asset with given checksum already exists for user.
- * Returns the existing asset data if found, or null if not.
- * Used for deduplication during upload process.
+ * Metadata returned for existing assets during duplicate detection
  */
-export async function assetExists(userId: string, checksumSha256: string) {
-  if (!prisma) {
+export interface ExistingAssetMetadata {
+  id: string;
+  blobUrl: string;
+  thumbnailUrl: string | null;
+  pathname: string;
+  mime: string;
+  size: number;
+  width: number | null;
+  height: number | null;
+  checksumSha256: string;
+  favorite: boolean;
+  createdAt: Date;
+  hasEmbedding?: boolean;
+}
+
+/**
+ * Check if asset with given checksum already exists for user.
+ * Returns typed asset metadata if found, or null if not.
+ * Used for deduplication during upload process.
+ *
+ * @param userId - The user ID to check assets for
+ * @param checksumSha256 - The SHA256 checksum to search for
+ * @param options - Additional options for the query
+ * @returns Typed asset metadata or null
+ */
+export async function assetExists(
+  userId: string,
+  checksumSha256: string,
+  options?: {
+    /**
+     * Run inside a transaction for concurrency safety
+     */
+    tx?: typeof prisma;
+    /**
+     * Include embedding existence check
+     */
+    includeEmbedding?: boolean;
+  }
+): Promise<ExistingAssetMetadata | null> {
+  const db = options?.tx || prisma;
+
+  if (!db) {
     return null;
   }
 
-  const asset = await prisma.asset.findFirst({
-    where: {
-      ownerUserId: userId,
-      checksumSha256,
-      deletedAt: null,
-    },
-  });
+  try {
+    const asset = await db.asset.findFirst({
+      where: {
+        ownerUserId: userId,
+        checksumSha256,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        blobUrl: true,
+        thumbnailUrl: true,
+        pathname: true,
+        mime: true,
+        size: true,
+        width: true,
+        height: true,
+        checksumSha256: true,
+        favorite: true,
+        createdAt: true,
+        // Include embedding check if requested
+        ...(options?.includeEmbedding && {
+          embedding: {
+            select: {
+              assetId: true,
+            },
+          },
+        }),
+      },
+    });
 
-  return asset;
+    if (!asset) {
+      return null;
+    }
+
+    // Transform to match ExistingAssetMetadata interface
+    const metadata: ExistingAssetMetadata = {
+      id: asset.id,
+      blobUrl: asset.blobUrl,
+      thumbnailUrl: asset.thumbnailUrl,
+      pathname: asset.pathname,
+      mime: asset.mime,
+      size: asset.size,
+      width: asset.width,
+      height: asset.height,
+      checksumSha256: asset.checksumSha256,
+      favorite: asset.favorite,
+      createdAt: asset.createdAt,
+    };
+
+    // Add embedding status if requested
+    if (options?.includeEmbedding && 'embedding' in asset) {
+      metadata.hasEmbedding = !!asset.embedding;
+    }
+
+    return metadata;
+  } catch (error) {
+    // Log error but don't throw - return null to indicate not found
+    console.error('Error checking asset existence:', error);
+    return null;
+  }
+}
+
+/**
+ * Find or create an asset atomically to prevent race conditions.
+ * Used for handling concurrent uploads of the same file.
+ *
+ * @param userId - The user ID creating the asset
+ * @param assetData - The asset data to create if it doesn't exist
+ * @returns The existing or newly created asset metadata
+ */
+export async function findOrCreateAsset(
+  userId: string,
+  assetData: {
+    checksumSha256: string;
+    blobUrl: string;
+    thumbnailUrl?: string | null;
+    pathname: string;
+    thumbnailPath?: string | null;
+    mime: string;
+    width?: number | null;
+    height?: number | null;
+    size: number;
+  }
+): Promise<ExistingAssetMetadata> {
+  if (!prisma) {
+    throw new Error('Database not available');
+  }
+
+  // Use a transaction to handle race conditions
+  return await prisma.$transaction(async (tx) => {
+    // First check if asset already exists
+    const existing = await assetExists(userId, assetData.checksumSha256, { tx });
+
+    if (existing) {
+      return existing;
+    }
+
+    // Create new asset if it doesn't exist
+    try {
+      const newAsset = await tx.asset.create({
+        data: {
+          ownerUserId: userId,
+          blobUrl: assetData.blobUrl,
+          thumbnailUrl: assetData.thumbnailUrl,
+          pathname: assetData.pathname,
+          thumbnailPath: assetData.thumbnailPath,
+          mime: assetData.mime,
+          width: assetData.width,
+          height: assetData.height,
+          size: assetData.size,
+          checksumSha256: assetData.checksumSha256,
+          favorite: false,
+        },
+        select: {
+          id: true,
+          blobUrl: true,
+          thumbnailUrl: true,
+          pathname: true,
+          mime: true,
+          size: true,
+          width: true,
+          height: true,
+          checksumSha256: true,
+          favorite: true,
+          createdAt: true,
+        },
+      });
+
+      return {
+        id: newAsset.id,
+        blobUrl: newAsset.blobUrl,
+        thumbnailUrl: newAsset.thumbnailUrl,
+        pathname: newAsset.pathname,
+        mime: newAsset.mime,
+        size: newAsset.size,
+        width: newAsset.width,
+        height: newAsset.height,
+        checksumSha256: newAsset.checksumSha256,
+        favorite: newAsset.favorite,
+        createdAt: newAsset.createdAt,
+      };
+    } catch (error) {
+      // Handle unique constraint violation (another request created it)
+      if (error instanceof Error && error.message.includes('Unique constraint')) {
+        // Try to fetch the asset again
+        const existing = await assetExists(userId, assetData.checksumSha256, { tx });
+        if (existing) {
+          return existing;
+        }
+      }
+      throw error;
+    }
+  });
 }
 
 /**

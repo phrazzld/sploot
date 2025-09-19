@@ -227,10 +227,21 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Modal shows loading state during deletion process
   ```
 
-- [ ] **Harden `assetExists` helper** (`lib/db.ts`)
+- [x] **Harden `assetExists` helper** (`lib/db.ts`)
   - Return typed asset metadata consumed by the upload API and preflight check
   - Cover concurrency edge cases with transaction-safe query pattern
   - Add targeted tests verifying duplicate detection scenarios
+  ```
+  Work Log:
+  - Created ExistingAssetMetadata interface for proper typing
+  - Added transaction support via optional tx parameter for concurrency safety
+  - Optimized query with select fields to return only needed data
+  - Added includeEmbedding option to check if asset has embeddings
+  - Implemented findOrCreateAsset function for atomic operations
+  - Handles race conditions with unique constraint violations gracefully
+  - Added comprehensive test suite covering edge cases and concurrency
+  - Updated upload route to use new typed interface and check embedding status
+  ```
 
 ### Low Priority
 - [ ] **Add batch upload progress**
