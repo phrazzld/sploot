@@ -3,14 +3,15 @@ import { requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, databaseAvailable } from '@/lib/db';
 
 /**
- * GET /api/assets/[assetId]/tags - Get tags for a specific asset
+ * GET /api/assets/[id]/tags - Get tags for a specific asset
  */
 export async function GET(
   req: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await requireUserIdWithSync();
+    const { id } = await params;
 
     if (!databaseAvailable || !prisma) {
       return NextResponse.json(
@@ -22,7 +23,7 @@ export async function GET(
     // Verify asset ownership
     const asset = await prisma.asset.findFirst({
       where: {
-        id: params.assetId,
+        id,
         ownerUserId: userId,
         deletedAt: null,
       },
@@ -60,14 +61,15 @@ export async function GET(
 }
 
 /**
- * POST /api/assets/[assetId]/tags - Add tags to an asset
+ * POST /api/assets/[id]/tags - Add tags to an asset
  */
 export async function POST(
   req: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await requireUserIdWithSync();
+    const { id } = await params;
     const { tagIds, tagNames } = await req.json();
 
     if (!databaseAvailable || !prisma) {
@@ -80,7 +82,7 @@ export async function POST(
     // Verify asset ownership
     const asset = await prisma.asset.findFirst({
       where: {
-        id: params.assetId,
+        id,
         ownerUserId: userId,
         deletedAt: null,
       },
@@ -111,7 +113,7 @@ export async function POST(
           const existingAssociation = await prisma.assetTag.findUnique({
             where: {
               assetId_tagId: {
-                assetId: params.assetId,
+                assetId: id,
                 tagId: tagId,
               },
             },
@@ -120,7 +122,7 @@ export async function POST(
           if (!existingAssociation) {
             await prisma.assetTag.create({
               data: {
-                assetId: params.assetId,
+                assetId: id,
                 tagId: tagId,
               },
             });
@@ -156,7 +158,7 @@ export async function POST(
         const existingAssociation = await prisma.assetTag.findUnique({
           where: {
             assetId_tagId: {
-              assetId: params.assetId,
+              assetId: id,
               tagId: tag.id,
             },
           },
@@ -165,7 +167,7 @@ export async function POST(
         if (!existingAssociation) {
           await prisma.assetTag.create({
             data: {
-              assetId: params.assetId,
+              assetId: id,
               tagId: tag.id,
             },
           });
@@ -192,14 +194,15 @@ export async function POST(
 }
 
 /**
- * DELETE /api/assets/[assetId]/tags - Remove tags from an asset
+ * DELETE /api/assets/[id]/tags - Remove tags from an asset
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { assetId: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const userId = await requireUserIdWithSync();
+    const { id } = await params;
     const { tagIds } = await req.json();
 
     if (!tagIds || !Array.isArray(tagIds) || tagIds.length === 0) {
@@ -219,7 +222,7 @@ export async function DELETE(
     // Verify asset ownership
     const asset = await prisma.asset.findFirst({
       where: {
-        id: params.assetId,
+        id,
         ownerUserId: userId,
         deletedAt: null,
       },
@@ -235,7 +238,7 @@ export async function DELETE(
     // Remove tag associations
     await prisma.assetTag.deleteMany({
       where: {
-        assetId: params.assetId,
+        assetId: id,
         tagId: {
           in: tagIds,
         },
