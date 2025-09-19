@@ -152,6 +152,65 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
 
 ---
 
+## 🚨 CRITICAL: Fix Embedding Generation (Search Not Working!)
+
+### Root Cause: Async Functions Don't Execute After Response
+The `generateEmbeddingAsync()` call in `/app/api/upload/route.ts` line 289 never executes because Next.js terminates the request context immediately after returning the response. Embeddings stay in "Processing..." state forever, breaking search functionality.
+
+### Immediate Fix - Implement waitUntil Pattern
+- [ ] **Install Vercel Functions package** (`package.json`)
+  - Run: `pnpm add @vercel/functions`
+  - Required for `waitUntil` API to ensure background work completes
+
+- [ ] **Import and apply waitUntil to upload route** (`app/api/upload/route.ts`)
+  - Add import: `import { waitUntil } from '@vercel/functions';`
+  - Wrap line 289: `waitUntil(generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256));`
+  - Do the same for line 328 (duplicate asset path)
+  - This ensures the Promise executes even after response is sent
+
+- [ ] **Add console logging to verify execution** (`app/api/upload/route.ts` in `generateEmbeddingAsync`)
+  - Already has logs at lines 445 and 460
+  - Verify "Generating embedding for asset..." appears in server logs
+  - Verify "Embedding generated successfully..." appears after Replicate API call
+
+- [ ] **Test with real upload**
+  - Upload a new image
+  - Check server logs for embedding generation messages
+  - Verify "Processing..." changes to "Ready for search" in UI
+  - Test search with natural language query
+
+### Fallback Solution - Client-Side Retry
+- [ ] **Create useEmbeddingStatus hook** (`hooks/use-embedding-status.ts`)
+  - Poll `/api/assets/[id]/embedding-status` every 2 seconds
+  - If no embedding after 5 seconds, trigger generation
+  - POST to `/api/assets/[id]/generate-embedding`
+  - Continue polling until embedding exists or max retries (10)
+
+- [ ] **Integrate retry mechanism in ImageTile** (`components/library/image-tile.tsx`)
+  - Use hook when `asset.embedding` is null
+  - Show retry button if generation fails after max attempts
+  - Log failures to console with asset ID for debugging
+
+### Long-term Solution - Queue-Based Processing
+- [ ] **Research Vercel Cron Jobs for batch processing**
+  - Create `/api/cron/process-embeddings` endpoint
+  - Query assets missing embeddings every 5 minutes
+  - Process in batches of 10 to avoid timeouts
+  - Add to `vercel.json` cron configuration
+
+### Verification Steps
+- [ ] **Confirm REPLICATE_API_TOKEN is valid**
+  - Test with curl: `curl -H "Authorization: Token $REPLICATE_API_TOKEN" https://api.replicate.com/v1/predictions`
+  - Should return JSON, not 401 Unauthorized
+  - Token should not be "your_replicate_token_here" placeholder
+
+- [ ] **Monitor Replicate API usage**
+  - Check dashboard at https://replicate.com/account/usage
+  - Verify predictions are being created
+  - Check for rate limiting or quota issues
+
+---
+
 ## 🔧 Technical Debt & Bug Fixes
 
 ### High Priority
