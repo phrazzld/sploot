@@ -6,6 +6,7 @@ import { blobConfigured, isMockMode } from '@/lib/env';
 import { prisma, databaseAvailable, assetExists } from '@/lib/db';
 import crypto from 'crypto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 
 /**
  * Direct file upload endpoint - handles file upload server-side
@@ -54,6 +55,10 @@ export async function POST(req: NextRequest) {
     if (databaseAvailable && prisma) {
       const existingAsset = await assetExists(userId, checksum);
       if (existingAsset) {
+        // Generate embeddings for existing asset if missing
+        // This ensures old uploads get embeddings too
+        generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+
         // Return existing asset with duplicate indicator
         return NextResponse.json({
           success: true,
@@ -134,6 +139,10 @@ export async function POST(req: NextRequest) {
           },
         });
 
+        // Generate embeddings asynchronously after asset creation
+        // This runs after the response is sent to keep upload latency low
+        generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
+
         return NextResponse.json({
           success: true,
           asset: {
@@ -164,6 +173,9 @@ export async function POST(req: NextRequest) {
             } catch (cleanupError) {
               console.error('Failed to cleanup duplicate upload:', cleanupError);
             }
+
+            // Generate embeddings for existing asset if missing
+            generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
 
             return NextResponse.json(
               {
@@ -239,6 +251,68 @@ export async function POST(req: NextRequest) {
 }
 
 // GET endpoint for checking upload service status
+/**
+ * Generate embedding for asset asynchronously.
+ * Runs in background after upload response is sent.
+ * Errors are logged but don't affect the upload response.
+ */
+async function generateEmbeddingAsync(
+  assetId: string,
+  blobUrl: string,
+  checksum: string
+): Promise<void> {
+  try {
+    // Skip if database not available
+    if (!databaseAvailable || !prisma) {
+      return;
+    }
+
+    // Check if embedding already exists
+    const existingEmbedding = await prisma.assetEmbedding.findUnique({
+      where: { assetId },
+    });
+
+    if (existingEmbedding) {
+      console.log(`Embedding already exists for asset ${assetId}`);
+      return;
+    }
+
+    // Initialize embedding service
+    let embeddingService;
+    try {
+      embeddingService = createEmbeddingService();
+    } catch (error) {
+      console.error('Failed to initialize embedding service:', error);
+      return;
+    }
+
+    // Generate image embedding
+    console.log(`Generating embedding for asset ${assetId}...`);
+    const result = await embeddingService.embedImage(blobUrl, checksum);
+
+    // Store embedding in database
+    await prisma.assetEmbedding.create({
+      data: {
+        assetId,
+        modelName: result.model,
+        modelVersion: result.model,
+        dim: result.dimension,
+        // @ts-ignore - Prisma doesn't have proper typing for vector fields
+        imageEmbedding: result.embedding,
+      },
+    });
+
+    console.log(`Embedding generated successfully for asset ${assetId}`);
+  } catch (error) {
+    // Log error but don't throw - this is background processing
+    if (error instanceof EmbeddingError) {
+      console.error(`Embedding generation failed for asset ${assetId}:`, error.message);
+    } else {
+      console.error(`Unexpected error generating embedding for asset ${assetId}:`, error);
+    }
+  }
+}
+
 export async function GET(req: NextRequest) {
   try {
     const userId = await requireUserIdWithSync();

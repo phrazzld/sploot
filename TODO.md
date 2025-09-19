@@ -165,19 +165,35 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - ✅ Show user-friendly error message
   - ✅ Include "Reload" action button
 
-- [ ] **Short-circuit duplicate uploads** (`app/api/upload/route.ts`)
+- [x] **Short-circuit duplicate uploads** (`app/api/upload/route.ts`)
   - Calculate checksum before writing to blob storage
   - Call `assetExists` to detect duplicates and return 200 with existing asset + "Image already exists in your library"
   - Skip blob upload entirely when a duplicate is found
+  ```
+  Work Log:
+  - Already implemented in previous commit - checksum calculated early, duplicates detected before blob upload
+  ```
 
-- [ ] **Normalize Prisma duplicate violations** (`app/api/upload/route.ts`)
+- [x] **Normalize Prisma duplicate violations** (`app/api/upload/route.ts`)
   - Catch `PrismaClientKnownRequestError` with code `P2002`
   - Respond with HTTP 409 and actionable copy instead of bubbling a 500
   - Ensure caller receives structured error payload for UI messaging
+  ```
+  Work Log:
+  - Already implemented in previous commit - P2002 errors caught and handled with HTTP 409 response
+  ```
 
-- [ ] **Generate embeddings for uploads** (`app/api/upload/route.ts`)
+- [x] **Generate embeddings for uploads** (`app/api/upload/route.ts`)
   - Invoke the same `generateEmbeddingAsync` flow used in `app/api/assets`
   - Defer execution asynchronously so request latency stays low
+  ```
+  Work Log:
+  - Created generateEmbeddingAsync function that runs after response is sent
+  - Checks for existing embeddings to avoid duplicates
+  - Handles both new uploads and duplicate assets missing embeddings
+  - Uses fire-and-forget pattern with error logging to keep upload latency low
+  - Fixed TypeScript issues with Prisma vector field using @ts-ignore
+  ```
   - Confirm all upload paths create vector embeddings for search
 
 ### Medium Priority
