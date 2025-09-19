@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 import { useBackgroundSync } from '@/hooks/use-background-sync';
+import { TagInput } from '@/components/tags/tag-input';
 
 interface UploadFile {
   id: string;
@@ -33,6 +34,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
@@ -163,6 +165,11 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('file', uploadFile.file);
+
+      // Add tags to the form data
+      if (tags.length > 0) {
+        formData.append('tags', JSON.stringify(tags));
+      }
 
       // Track upload progress with XMLHttpRequest for better progress reporting
       const xhr = new XMLHttpRequest();
@@ -402,6 +409,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
 
   const handleViewLibrary = () => {
     setFiles([]);
+    setTags([]);
     router.push('/app');
   };
 
@@ -513,6 +521,21 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
         onChange={handleFileSelect}
         className="hidden"
       />
+
+      {/* Tag Input - Only show when files are selected */}
+      {files.length > 0 && (
+        <div className="mt-6">
+          <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4 mb-4">
+            <h3 className="text-[#E6E8EB] font-medium text-sm mb-3">Add Tags</h3>
+            <TagInput
+              tags={tags}
+              onTagsChange={setTags}
+              placeholder="Add tags to these uploads..."
+              maxTags={10}
+            />
+          </div>
+        </div>
+      )}
 
       {/* File list */}
       {files.length > 0 && (

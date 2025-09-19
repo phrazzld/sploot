@@ -262,10 +262,21 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Overall progress calculation accounts for all file states
   ```
 
-- [ ] **Implement tag system UI**
+- [x] **Implement tag system UI**
   - Add tag input to upload modal
   - Show tags in image tiles
   - Filter by tag in sidebar
+  ```
+  Work Log:
+  - Created TagInput component with auto-complete and tag pills UI
+  - Added tag input to upload zone with max 10 tags limit
+  - Integrated tags into upload API, handling both new uploads and duplicates
+  - Created comprehensive tag CRUD API endpoints for managing tags
+  - Added tag display to ImageTile component (already had support)
+  - Created TagFilter component for sidebar navigation
+  - Added tag page for viewing assets filtered by specific tag
+  - Updated assets API to support filtering by tagId parameter
+  ```
 
 - [ ] **Introduce upload preflight check** (`app/api/upload/check/route.ts`)
   - Accept checksum from client before upload begins

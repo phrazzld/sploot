@@ -198,11 +198,19 @@ export async function GET(req: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'createdAt';
     const sortOrder = searchParams.get('sortOrder') || 'desc';
     const favorite = searchParams.get('favorite');
+    const tagId = searchParams.get('tagId');
 
     const where = {
       ownerUserId: userId,
       deletedAt: null,
       ...(favorite !== null && { favorite: favorite === 'true' }),
+      ...(tagId && {
+        tags: {
+          some: {
+            tagId: tagId,
+          },
+        },
+      }),
     };
 
     if (isMockMode() || !databaseAvailable || !prisma) {

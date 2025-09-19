@@ -21,12 +21,27 @@ export async function POST(req: NextRequest) {
     // Parse the multipart form data
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const tagsData = formData.get('tags') as string | null;
 
     if (!file) {
       return NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
       );
+    }
+
+    // Parse tags from JSON string
+    let tags: string[] = [];
+    if (tagsData) {
+      try {
+        tags = JSON.parse(tagsData);
+        if (!Array.isArray(tags)) {
+          tags = [];
+        }
+      } catch (e) {
+        console.error('Failed to parse tags:', e);
+        tags = [];
+      }
     }
 
     // Validate file type
@@ -72,6 +87,52 @@ export async function POST(req: NextRequest) {
         // This ensures old uploads get embeddings too
         if (!existingAsset.hasEmbedding) {
           generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+        }
+
+        // Add tags to existing asset if provided
+        if (tags.length > 0) {
+          try {
+            await prisma.$transaction(async (tx) => {
+              for (const tagName of tags) {
+                // Find or create tag
+                let tag = await tx.tag.findFirst({
+                  where: {
+                    ownerUserId: userId,
+                    name: tagName,
+                  },
+                });
+
+                if (!tag) {
+                  tag = await tx.tag.create({
+                    data: {
+                      ownerUserId: userId,
+                      name: tagName,
+                    },
+                  });
+                }
+
+                // Create association if it doesn't exist
+                const existingAssociation = await tx.assetTag.findFirst({
+                  where: {
+                    assetId: existingAsset.id,
+                    tagId: tag.id,
+                  },
+                });
+
+                if (!existingAssociation) {
+                  await tx.assetTag.create({
+                    data: {
+                      assetId: existingAsset.id,
+                      tagId: tag.id,
+                    },
+                  });
+                }
+              }
+            });
+          } catch (tagError) {
+            console.error('Failed to add tags to existing asset:', tagError);
+            // Continue without tags - not critical
+          }
         }
 
         // Return existing asset with duplicate indicator
@@ -159,20 +220,56 @@ export async function POST(req: NextRequest) {
       }
 
       try {
-        const asset = await prisma.asset.create({
-          data: {
-            ownerUserId: userId,
-            blobUrl: blob.url,
-            thumbnailUrl: thumbnailBlob?.url || null,
-            pathname: blob.pathname,
-            thumbnailPath: thumbnailBlob?.pathname || null,
-            mime: file.type,
-            width: processedImages?.main.width || null,
-            height: processedImages?.main.height || null,
-            size: processedImages?.main.size || file.size,
-            checksumSha256: checksum,
-            favorite: false,
-          },
+        // Create asset with tags in a transaction
+        const asset = await prisma.$transaction(async (tx) => {
+          // Create the asset
+          const newAsset = await tx.asset.create({
+            data: {
+              ownerUserId: userId,
+              blobUrl: blob.url,
+              thumbnailUrl: thumbnailBlob?.url || null,
+              pathname: blob.pathname,
+              thumbnailPath: thumbnailBlob?.pathname || null,
+              mime: file.type,
+              width: processedImages?.main.width || null,
+              height: processedImages?.main.height || null,
+              size: processedImages?.main.size || file.size,
+              checksumSha256: checksum,
+              favorite: false,
+            },
+          });
+
+          // Create or find tags and associate them with the asset
+          if (tags.length > 0) {
+            for (const tagName of tags) {
+              // Find or create tag
+              let tag = await tx.tag.findFirst({
+                where: {
+                  ownerUserId: userId,
+                  name: tagName,
+                },
+              });
+
+              if (!tag) {
+                tag = await tx.tag.create({
+                  data: {
+                    ownerUserId: userId,
+                    name: tagName,
+                  },
+                });
+              }
+
+              // Create association
+              await tx.assetTag.create({
+                data: {
+                  assetId: newAsset.id,
+                  tagId: tag.id,
+                },
+              });
+            }
+          }
+
+          return newAsset;
         });
 
         // Generate embeddings asynchronously after asset creation

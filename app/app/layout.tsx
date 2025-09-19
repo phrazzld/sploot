@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { AppNav } from '@/components/navigation/app-nav';
 import { MobileNav } from '@/components/navigation/mobile-nav';
 import { UserMenu } from '@/components/navigation/user-menu';
+import { TagFilter } from '@/components/navigation/tag-filter';
 import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { OfflineBanner } from '@/components/offline/offline-banner';
 import { OfflineProvider } from '@/components/offline/offline-provider';
@@ -35,8 +36,9 @@ export default async function AppLayout({
             </div>
 
             {/* Navigation */}
-            <nav className="flex-1 p-4">
+            <nav className="flex-1 p-4 overflow-y-auto">
               <AppNav />
+              <TagFilter />
             </nav>
 
             {/* User Menu */}
