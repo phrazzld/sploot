@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { error as logError } from '@/lib/logger';
+import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 
 interface Asset {
   id: string;
@@ -42,6 +43,7 @@ export function ImageTile({
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const deleteConfirmation = useDeleteConfirmation();
   const aspectRatioStyle = useMemo<CSSProperties | undefined>(() => {
     if (!preserveAspectRatio) return undefined;
     if (!asset.width || !asset.height) return undefined;
@@ -77,18 +79,33 @@ export function ImageTile({
     e.stopPropagation();
     if (!onDelete || isLoading) return;
 
-    if (!confirm('Are you sure you want to delete this image?')) return;
+    // Check if we should skip confirmation
+    const shouldDelete = deleteConfirmation.openConfirmation({
+      id: asset.id,
+      imageUrl: asset.thumbnailUrl || asset.blobUrl,
+      imageName: asset.filename,
+    });
 
+    if (shouldDelete) {
+      // User has chosen to skip confirmations, delete immediately
+      performDelete();
+    }
+  };
+
+  const performDelete = async () => {
     setIsLoading(true);
+    deleteConfirmation.setLoading(true);
     try {
       await fetch(`/api/assets/${asset.id}`, {
         method: 'DELETE',
       });
-      onDelete(asset.id);
+      onDelete!(asset.id);
+      deleteConfirmation.closeConfirmation();
     } catch (error) {
       logError('Failed to delete asset:', error);
     } finally {
       setIsLoading(false);
+      deleteConfirmation.setLoading(false);
     }
   };
 
@@ -99,7 +116,8 @@ export function ImageTile({
   };
 
   return (
-    <div
+    <>
+      <div
       onClick={onClick || (() => onSelect?.(asset))}
       className={cn(
         'group bg-[#14171A] border border-[#2A2F37] rounded-2xl overflow-hidden',
@@ -246,5 +264,18 @@ export function ImageTile({
         )}
       </div>
     </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmation.targetAsset && (
+        <DeleteConfirmationModal
+          isOpen={deleteConfirmation.isOpen}
+          onClose={deleteConfirmation.closeConfirmation}
+          onConfirm={performDelete}
+          imageUrl={deleteConfirmation.targetAsset.imageUrl}
+          imageName={deleteConfirmation.targetAsset.imageName}
+          loading={deleteConfirmation.loading}
+        />
+      )}
+    </>
   );
 }
