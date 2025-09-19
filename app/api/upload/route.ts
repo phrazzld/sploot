@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
+import { waitUntil } from '@vercel/functions';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { blobConfigured, isMockMode } from '@/lib/env';
@@ -286,7 +287,7 @@ export async function POST(req: NextRequest) {
 
         // Generate embeddings asynchronously after asset creation
         // This runs after the response is sent to keep upload latency low
-        generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
+        waitUntil(generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256));
 
         return NextResponse.json({
           success: true,
@@ -325,7 +326,7 @@ export async function POST(req: NextRequest) {
             }
 
             // Generate embeddings for existing asset if missing
-            generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+            waitUntil(generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256));
 
             return NextResponse.json(
               {
