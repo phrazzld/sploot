@@ -11,11 +11,12 @@ import { useBackgroundSync } from '@/hooks/use-background-sync';
 interface UploadFile {
   id: string;
   file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'queued';
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'queued' | 'duplicate';
   progress: number;
   error?: string;
   assetId?: string;
   blobUrl?: string;
+  isDuplicate?: boolean;
 }
 
 interface UploadZoneProps {
@@ -215,15 +216,19 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
         throw new Error(result.error || 'Upload failed');
       }
 
+      // Handle duplicate detection as a special success case
+      const isDuplicate = result.isDuplicate === true;
+
       setFiles((prev) =>
         prev.map((f) =>
           f.id === uploadFile.id
             ? {
                 ...f,
-                status: 'success',
+                status: isDuplicate ? 'duplicate' : 'success',
                 progress: 100,
                 assetId: result.asset?.id,
                 blobUrl: result.asset?.blobUrl,
+                isDuplicate,
               }
             : f
         )
@@ -335,7 +340,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
 
   // Show background sync status if enabled
   const showSyncStatus = enableBackgroundSync && (pendingCount > 0 || uploadingCount > 0 || errorCount > 0);
-  const successfulUploads = files.filter((file) => file.status === 'success');
+  const successfulUploads = files.filter((file) => file.status === 'success' || file.status === 'duplicate');
   const hasSuccessfulUploads = successfulUploads.length > 0;
   const hasActiveUploads = files.some((file) =>
     file.status === 'uploading' || file.status === 'pending' || file.status === 'queued'
@@ -510,6 +515,22 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                       <span className="text-[#B6FF6E] text-sm">✓</span>
                     )}
 
+                    {file.status === 'duplicate' && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-[#FFB020] text-xs">Already exists</span>
+                        <button
+                          onClick={() => {
+                            if (file.assetId) {
+                              router.push(`/app?highlight=${file.assetId}`);
+                            }
+                          }}
+                          className="text-[#7C5CFF] hover:text-[#9B7FFF] text-xs font-medium underline"
+                        >
+                          View
+                        </button>
+                      </div>
+                    )}
+
                     {file.status === 'error' && (
                       <button
                         onClick={() => retryUpload(file)}
@@ -553,16 +574,30 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                   </svg>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-[#E6E8EB]">
-                    {successfulUploads.length === 1
-                      ? '1 image added to your library'
-                      : `${successfulUploads.length} images added to your library`}
-                  </p>
-                  {hasActiveUploads ? (
-                    <p className="text-xs text-[#B3B7BE]">Finishing remaining uploads...</p>
-                  ) : (
-                    <p className="text-xs text-[#B3B7BE]">Jump back to browse everything in your collection.</p>
-                  )}
+                  {(() => {
+                    const newImages = successfulUploads.filter(f => !f.isDuplicate).length;
+                    const duplicates = successfulUploads.filter(f => f.isDuplicate).length;
+
+                    let message = '';
+                    if (newImages > 0 && duplicates > 0) {
+                      message = `${newImages} ${newImages === 1 ? 'image' : 'images'} added, ${duplicates} already existed`;
+                    } else if (newImages > 0) {
+                      message = `${newImages} ${newImages === 1 ? 'image' : 'images'} added to your library`;
+                    } else if (duplicates > 0) {
+                      message = `${duplicates} ${duplicates === 1 ? 'image' : 'images'} already in your library`;
+                    }
+
+                    return (
+                      <>
+                        <p className="text-sm font-medium text-[#E6E8EB]">{message}</p>
+                        {hasActiveUploads ? (
+                          <p className="text-xs text-[#B3B7BE]">Finishing remaining uploads...</p>
+                        ) : (
+                          <p className="text-xs text-[#B3B7BE]">Jump back to browse everything in your collection.</p>
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               </div>
 

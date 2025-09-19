@@ -83,11 +83,12 @@ export async function getOrCreateUser(clerkUserId: string, email: string) {
 
 /**
  * Check if asset with given checksum already exists for user.
+ * Returns the existing asset data if found, or null if not.
  * Used for deduplication during upload process.
  */
 export async function assetExists(userId: string, checksumSha256: string) {
   if (!prisma) {
-    return false;
+    return null;
   }
 
   const asset = await prisma.asset.findFirst({
@@ -98,7 +99,7 @@ export async function assetExists(userId: string, checksumSha256: string) {
     },
   });
 
-  return !!asset;
+  return asset;
 }
 
 /**

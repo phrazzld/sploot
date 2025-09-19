@@ -3,8 +3,9 @@ import { put } from '@vercel/blob';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { blobConfigured, isMockMode } from '@/lib/env';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma, databaseAvailable, assetExists } from '@/lib/db';
 import crypto from 'crypto';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
 /**
  * Direct file upload endpoint - handles file upload server-side
@@ -42,6 +43,36 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Calculate file checksum before uploading for deduplication
+    const buffer = Buffer.from(await file.arrayBuffer());
+    const checksum = crypto
+      .createHash('sha256')
+      .update(buffer)
+      .digest('hex');
+
+    // Check if asset already exists with this checksum
+    if (databaseAvailable && prisma) {
+      const existingAsset = await assetExists(userId, checksum);
+      if (existingAsset) {
+        // Return existing asset with duplicate indicator
+        return NextResponse.json({
+          success: true,
+          isDuplicate: true,
+          asset: {
+            id: existingAsset.id,
+            blobUrl: existingAsset.blobUrl,
+            pathname: existingAsset.pathname,
+            filename: file.name,
+            mimeType: existingAsset.mime,
+            size: existingAsset.size,
+            checksum: existingAsset.checksumSha256,
+            createdAt: existingAsset.createdAt,
+          },
+          message: 'This image already exists in your library'
+        });
+      }
+    }
+
     // Generate unique filename for storage
     const uniqueFilename = generateUniqueFilename(userId, file.name);
 
@@ -69,17 +100,10 @@ export async function POST(req: NextRequest) {
 
     // Upload to Vercel Blob storage
     try {
-      const blob = await put(uniqueFilename, file, {
+      const blob = await put(uniqueFilename, buffer, {
         access: 'public',
         addRandomSuffix: false,
       });
-
-      // Calculate file checksum for deduplication
-      const buffer = Buffer.from(await file.arrayBuffer());
-      const checksum = crypto
-        .createHash('sha256')
-        .update(buffer)
-        .digest('hex');
 
       // Create asset record in database (required for the asset to be visible)
       if (!databaseAvailable || !prisma) {
@@ -127,6 +151,40 @@ export async function POST(req: NextRequest) {
 
       } catch (dbError) {
         console.error('Database error creating asset:', dbError);
+
+        // Check if it's a duplicate key violation
+        if (dbError instanceof PrismaClientKnownRequestError && dbError.code === 'P2002') {
+          // Duplicate detected - try to find and return existing asset
+          const existingAsset = await assetExists(userId, checksum);
+          if (existingAsset) {
+            // Clean up the uploaded file since we have a duplicate
+            try {
+              const { del } = await import('@vercel/blob');
+              await del(blob.url);
+            } catch (cleanupError) {
+              console.error('Failed to cleanup duplicate upload:', cleanupError);
+            }
+
+            return NextResponse.json(
+              {
+                success: true,
+                isDuplicate: true,
+                asset: {
+                  id: existingAsset.id,
+                  blobUrl: existingAsset.blobUrl,
+                  pathname: existingAsset.pathname,
+                  filename: file.name,
+                  mimeType: existingAsset.mime,
+                  size: existingAsset.size,
+                  checksum: existingAsset.checksumSha256,
+                  createdAt: existingAsset.createdAt,
+                },
+                message: 'This image already exists in your library'
+              },
+              { status: 409 }
+            );
+          }
+        }
 
         // Clean up uploaded file since database record creation failed
         try {

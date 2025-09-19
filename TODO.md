@@ -137,9 +137,18 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Button disabled while uploads still processing to avoid dropping in-flight items
   - `pnpm lint` still blocked: Next.js SWC binary download denied in sandbox
   ```
-- [ ] **Improve duplicate success messaging** (`components/upload/upload-dialog.tsx`)
+- [x] **Improve duplicate success messaging** (`components/upload/upload-zone.tsx`)
   - When the API reports an existing asset, show thumbnail + "View existing" button
   - Treat duplicates as a non-error success path in the UI
+  ```
+  Work Log:
+  - Updated `assetExists` in lib/db.ts to return full asset data instead of boolean
+  - Modified upload API to check for duplicates BEFORE uploading to blob storage
+  - Added checksum calculation early in the upload process for efficiency
+  - Implemented special UI state for duplicates with "Already exists" indicator and View button
+  - Normalized Prisma P2002 duplicate violations to return HTTP 409 with existing asset
+  - Success summary now distinguishes between new uploads and duplicates
+  ```
 
 ---
 
