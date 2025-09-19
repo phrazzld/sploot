@@ -8,6 +8,7 @@ import { error as logError } from '@/lib/logger';
 interface Asset {
   id: string;
   blobUrl: string;
+  thumbnailUrl?: string | null;
   pathname: string;
   filename: string;
   mime: string;
@@ -134,7 +135,7 @@ export function ImageTile({
               </div>
             )}
             <img
-              src={asset.blobUrl}
+              src={asset.thumbnailUrl || asset.blobUrl}
               alt={asset.filename}
               className={cn(
                 'h-full w-full',

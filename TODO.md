@@ -197,10 +197,20 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Confirm all upload paths create vector embeddings for search
 
 ### Medium Priority
-- [ ] **Implement image resize on upload** (`app/api/upload/route.ts`)
+- [x] **Implement image resize on upload** (`app/api/upload/route.ts`)
   - Use Sharp to resize images > 2048px
   - Generate thumbnail (256px) for grid view
   - Store both versions in Blob storage
+  ```
+  Work Log:
+  - Created image-processing module using Sharp for optimized image handling
+  - Resizes main images if > 2048px on longest edge (preserves aspect ratio)
+  - Generates 256x256 square thumbnails for grid view using smart cropping
+  - Stores both main and thumbnail URLs in database
+  - Updated ImageTile component to use thumbnails when available
+  - Falls back gracefully if image processing fails
+  - Added thumbnailUrl and thumbnailPath fields to Asset model
+  ```
 
 - [ ] **Add delete confirmation dialog**
   - Replace `confirm()` with custom modal

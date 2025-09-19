@@ -7,6 +7,7 @@ import { prisma, databaseAvailable, assetExists } from '@/lib/db';
 import crypto from 'crypto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
+import { processUploadedImage } from '@/lib/image-processing';
 
 /**
  * Direct file upload endpoint - handles file upload server-side
@@ -44,12 +45,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Calculate file checksum before uploading for deduplication
+    // Calculate file checksum and process image
     const buffer = Buffer.from(await file.arrayBuffer());
     const checksum = crypto
       .createHash('sha256')
       .update(buffer)
       .digest('hex');
+
+    // Process image to create optimized versions
+    let processedImages;
+    try {
+      processedImages = await processUploadedImage(buffer, file.type);
+    } catch (error) {
+      console.error('Image processing failed:', error);
+      // Fall back to original image if processing fails
+      processedImages = null;
+    }
 
     // Check if asset already exists with this checksum
     if (databaseAvailable && prisma) {
@@ -78,8 +89,9 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Generate unique filename for storage
+    // Generate unique filenames for storage
     const uniqueFilename = generateUniqueFilename(userId, file.name);
+    const thumbnailFilename = uniqueFilename.replace(/\.(\w+)$/, '-thumb.$1');
 
     // Handle mock mode for development
     if (isMockMode() || !blobConfigured) {
@@ -105,10 +117,26 @@ export async function POST(req: NextRequest) {
 
     // Upload to Vercel Blob storage
     try {
-      const blob = await put(uniqueFilename, buffer, {
+      // Upload main image (processed or original)
+      const mainBuffer = processedImages ? processedImages.main.buffer : buffer;
+      const blob = await put(uniqueFilename, mainBuffer, {
         access: 'public',
         addRandomSuffix: false,
       });
+
+      // Upload thumbnail if processing succeeded
+      let thumbnailBlob = null;
+      if (processedImages) {
+        try {
+          thumbnailBlob = await put(thumbnailFilename, processedImages.thumbnail.buffer, {
+            access: 'public',
+            addRandomSuffix: false,
+          });
+        } catch (thumbError) {
+          console.error('Failed to upload thumbnail:', thumbError);
+          // Continue without thumbnail - not critical
+        }
+      }
 
       // Create asset record in database (required for the asset to be visible)
       if (!databaseAvailable || !prisma) {
@@ -131,9 +159,13 @@ export async function POST(req: NextRequest) {
           data: {
             ownerUserId: userId,
             blobUrl: blob.url,
+            thumbnailUrl: thumbnailBlob?.url || null,
             pathname: blob.pathname,
+            thumbnailPath: thumbnailBlob?.pathname || null,
             mime: file.type,
-            size: file.size,
+            width: processedImages?.main.width || null,
+            height: processedImages?.main.height || null,
+            size: processedImages?.main.size || file.size,
             checksumSha256: checksum,
             favorite: false,
           },
@@ -166,10 +198,15 @@ export async function POST(req: NextRequest) {
           // Duplicate detected - try to find and return existing asset
           const existingAsset = await assetExists(userId, checksum);
           if (existingAsset) {
-            // Clean up the uploaded file since we have a duplicate
+            // Clean up the uploaded files since we have a duplicate
             try {
               const { del } = await import('@vercel/blob');
               await del(blob.url);
+              if (thumbnailBlob) {
+                await del(thumbnailBlob.url).catch(err =>
+                  console.error('Failed to cleanup thumbnail:', err)
+                );
+              }
             } catch (cleanupError) {
               console.error('Failed to cleanup duplicate upload:', cleanupError);
             }
@@ -198,10 +235,15 @@ export async function POST(req: NextRequest) {
           }
         }
 
-        // Clean up uploaded file since database record creation failed
+        // Clean up uploaded files since database record creation failed
         try {
           const { del } = await import('@vercel/blob');
           await del(blob.url);
+          if (thumbnailBlob) {
+            await del(thumbnailBlob.url).catch(err =>
+              console.error('Failed to cleanup thumbnail:', err)
+            );
+          }
         } catch (cleanupError) {
           console.error('Failed to cleanup uploaded file:', cleanupError);
         }

@@ -36,7 +36,9 @@ model Asset {
   id              String    @id @default(cuid())
   ownerUserId     String    @map("owner_user_id")
   blobUrl         String    @map("blob_url")
+  thumbnailUrl    String?   @map("thumbnail_url") // URL for 256px thumbnail
   pathname        String    // Path in blob storage
+  thumbnailPath   String?   @map("thumbnail_path") // Path for thumbnail in blob storage
   mime            String
   width           Int?
   height          Int?
