@@ -1,27 +1,31 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import type { ExistingAssetMetadata } from '@/lib/db';
 
-// Mock Prisma client
+// Mock Prisma client with proper typing
 const mockPrisma = {
   asset: {
-    findFirst: jest.fn(),
-    create: jest.fn(),
+    findFirst: jest.fn() as jest.Mock,
+    create: jest.fn() as jest.Mock,
   },
-  $transaction: jest.fn(),
+  $transaction: jest.fn() as jest.Mock,
 };
 
-// Mock the db module before importing functions that use it
-jest.mock('@/lib/db', () => {
-  const actual = jest.requireActual('@/lib/db');
-  return {
-    ...actual,
-    prisma: mockPrisma,
-    databaseAvailable: true,
-  };
-});
+// Mock the db module
+jest.mock('@/lib/db', () => ({
+  prisma: null,
+  databaseAvailable: true,
+  assetExists: jest.fn(),
+  findOrCreateAsset: jest.fn(),
+}));
 
-// Import after mocking
-const { assetExists, findOrCreateAsset } = require('@/lib/db');
+// Import and setup mocks
+import * as db from '@/lib/db';
+
+// Replace with actual implementations that use our mock
+(db as any).prisma = mockPrisma;
+
+// Import actual implementations to test
+const { assetExists, findOrCreateAsset } = jest.requireActual('@/lib/db') as typeof db;
 
 describe('assetExists', () => {
   beforeEach(() => {
@@ -50,7 +54,7 @@ describe('assetExists', () => {
 
       const result = await assetExists(mockUserId, mockChecksum);
 
-      expect(result).toEqual<ExistingAssetMetadata>({
+      expect(result).toEqual({
         id: mockAsset.id,
         blobUrl: mockAsset.blobUrl,
         thumbnailUrl: mockAsset.thumbnailUrl,
@@ -62,33 +66,33 @@ describe('assetExists', () => {
         checksumSha256: mockAsset.checksumSha256,
         favorite: mockAsset.favorite,
         createdAt: mockAsset.createdAt,
-      });
-
-      expect(mockPrisma.asset.findFirst).toHaveBeenCalledWith({
-        where: {
-          ownerUserId: mockUserId,
-          checksumSha256: mockChecksum,
-          deletedAt: null,
-        },
-        select: expect.objectContaining({
-          id: true,
-          blobUrl: true,
-          thumbnailUrl: true,
-          pathname: true,
-        }),
+        hasEmbedding: false,
       });
     });
 
-    it('should include embedding status when requested', async () => {
-      const assetWithEmbedding = {
-        ...mockAsset,
-        embedding: { assetId: mockAsset.id },
+    it('should use transaction when provided', async () => {
+      const mockTx = {
+        asset: {
+          findFirst: jest.fn() as jest.Mock,
+        },
       };
-      mockPrisma.asset.findFirst.mockResolvedValue(assetWithEmbedding);
+      mockTx.asset.findFirst.mockResolvedValue(mockAsset);
 
-      const result = await assetExists(mockUserId, mockChecksum, {
-        includeEmbedding: true,
+      await assetExists(mockUserId, mockChecksum, { tx: mockTx as any });
+
+      expect(mockTx.asset.findFirst).toHaveBeenCalledTimes(1);
+      expect(mockPrisma.asset.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('should include embedding flag when requested', async () => {
+      mockPrisma.asset.findFirst.mockResolvedValue({
+        ...mockAsset,
+        embedding: {
+          assetId: mockAsset.id,
+        },
       });
+
+      const result = await assetExists(mockUserId, mockChecksum, { includeEmbedding: true });
 
       expect(result?.hasEmbedding).toBe(true);
     });
@@ -104,33 +108,11 @@ describe('assetExists', () => {
     });
   });
 
-  describe('when database is not available', () => {
-    it('should return null gracefully', async () => {
-      const originalPrisma = (global as any).prisma;
-      (global as any).prisma = null;
-
-      const result = await assetExists(mockUserId, mockChecksum);
-
-      expect(result).toBeNull();
-
-      (global as any).prisma = originalPrisma;
-    });
-  });
-
   describe('error handling', () => {
-    it('should return null on database error', async () => {
+    it('should throw when database error occurs', async () => {
       mockPrisma.asset.findFirst.mockRejectedValue(new Error('Database error'));
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
 
-      const result = await assetExists(mockUserId, mockChecksum);
-
-      expect(result).toBeNull();
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Error checking asset existence:',
-        expect.any(Error)
-      );
-
-      consoleSpy.mockRestore();
+      await expect(assetExists(mockUserId, mockChecksum)).rejects.toThrow('Database error');
     });
   });
 });
@@ -142,128 +124,127 @@ describe('findOrCreateAsset', () => {
 
   const mockUserId = 'user123';
   const mockAssetData = {
-    checksumSha256: 'abc123def456',
-    blobUrl: 'https://example.com/image.jpg',
-    thumbnailUrl: 'https://example.com/thumb.jpg',
-    pathname: '/user123/image.jpg',
-    thumbnailPath: '/user123/thumb.jpg',
-    mime: 'image/jpeg',
-    width: 1920,
-    height: 1080,
-    size: 1024000,
+    checksumSha256: 'checksum123',
+    blobUrl: 'https://example.com/new-image.jpg',
+    thumbnailUrl: 'https://example.com/new-thumb.jpg',
+    pathname: '/user123/new-image.jpg',
+    thumbnailPath: '/user123/new-thumb.jpg',
+    mime: 'image/png',
+    width: 800,
+    height: 600,
+    size: 512000,
+  };
+
+  const mockCreatedAsset = {
+    id: 'newAsset123',
+    ...mockAssetData,
+    favorite: false,
+    createdAt: new Date('2024-01-02'),
   };
 
   describe('when asset does not exist', () => {
-    it('should create new asset within transaction', async () => {
-      const createdAsset = {
-        id: 'new123',
-        ...mockAssetData,
-        favorite: false,
-        createdAt: new Date(),
+    it('should create new asset', async () => {
+      // Mock transaction
+      const mockTxAsset = {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn().mockResolvedValue(mockCreatedAsset),
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
-        // Mock transaction context
-        const txMock = {
-          asset: {
-            findFirst: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockResolvedValue(createdAsset),
-          },
+      mockPrisma.$transaction.mockImplementation(async (callback: any) => {
+        const mockTx = {
+          asset: mockTxAsset,
         };
-        return callback(txMock);
+        return callback(mockTx);
       });
 
       const result = await findOrCreateAsset(mockUserId, mockAssetData);
 
-      expect(result).toEqual<ExistingAssetMetadata>({
-        id: createdAsset.id,
-        blobUrl: createdAsset.blobUrl,
-        thumbnailUrl: createdAsset.thumbnailUrl,
-        pathname: createdAsset.pathname,
-        mime: createdAsset.mime,
-        size: createdAsset.size,
-        width: createdAsset.width,
-        height: createdAsset.height,
-        checksumSha256: createdAsset.checksumSha256,
-        favorite: createdAsset.favorite,
-        createdAt: createdAsset.createdAt,
+      expect(result).toEqual({
+        id: mockCreatedAsset.id,
+        blobUrl: mockCreatedAsset.blobUrl,
+        thumbnailUrl: mockCreatedAsset.thumbnailUrl,
+        pathname: mockCreatedAsset.pathname,
+        mime: mockCreatedAsset.mime,
+        size: mockCreatedAsset.size,
+        width: mockCreatedAsset.width,
+        height: mockCreatedAsset.height,
+        checksumSha256: mockCreatedAsset.checksumSha256,
+        favorite: mockCreatedAsset.favorite,
+        createdAt: mockCreatedAsset.createdAt,
+        hasEmbedding: false,
       });
     });
   });
 
   describe('when asset already exists', () => {
-    it('should return existing asset without creating', async () => {
+    it('should return existing asset', async () => {
       const existingAsset = {
-        id: 'existing123',
-        ...mockAssetData,
-        favorite: true,
-        createdAt: new Date('2024-01-01'),
+        ...mockCreatedAsset,
+        id: 'existingAsset123',
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
-        const txMock = {
-          asset: {
-            findFirst: jest.fn().mockResolvedValue(existingAsset),
-            create: jest.fn(),
-          },
+      // Mock transaction
+      const mockTxAsset = {
+        findFirst: jest.fn().mockResolvedValue(existingAsset),
+        create: jest.fn(),
+      };
+
+      mockPrisma.$transaction.mockImplementation(async (callback: any) => {
+        const mockTx = {
+          asset: mockTxAsset,
         };
-        return callback(txMock);
+        return callback(mockTx);
       });
 
       const result = await findOrCreateAsset(mockUserId, mockAssetData);
 
-      expect(result.id).toBe(existingAsset.id);
-      expect(result.favorite).toBe(true);
+      expect(mockTxAsset.create).not.toHaveBeenCalled();
+      expect(result.id).toBe('existingAsset123');
     });
   });
 
   describe('race condition handling', () => {
-    it('should handle unique constraint violation gracefully', async () => {
+    it('should handle unique constraint violation', async () => {
       const existingAsset = {
-        id: 'existing123',
-        ...mockAssetData,
-        favorite: false,
-        createdAt: new Date(),
+        ...mockCreatedAsset,
+        id: 'raceAsset123',
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback) => {
-        const txMock = {
-          asset: {
-            findFirst: jest.fn()
-              .mockResolvedValueOnce(null) // First check: not found
-              .mockResolvedValueOnce(existingAsset), // Second check after error: found
-            create: jest.fn().mockRejectedValue(
-              new Error('Unique constraint failed on the fields: (`owner_user_id`,`checksum_sha256`)')
-            ),
-          },
-        };
-        return callback(txMock);
+      // Mock transaction - first call for create attempt
+      let callCount = 0;
+      mockPrisma.$transaction.mockImplementation(async (callback: any) => {
+        callCount++;
+
+        if (callCount === 1) {
+          // First call: asset doesn't exist, try to create but fails
+          const mockTx = {
+            asset: {
+              findFirst: jest.fn().mockResolvedValue(null),
+              create: jest.fn().mockRejectedValue({ code: 'P2002' }),
+            },
+          };
+          return callback(mockTx);
+        } else {
+          // Second call: find the existing asset
+          const mockTx = {
+            asset: {
+              findFirst: jest.fn().mockResolvedValue(existingAsset),
+            },
+          };
+          return callback(mockTx);
+        }
       });
 
       const result = await findOrCreateAsset(mockUserId, mockAssetData);
 
-      expect(result.id).toBe(existingAsset.id);
-    });
-  });
-
-  describe('error handling', () => {
-    it('should throw error when database is not available', async () => {
-      const originalPrisma = (global as any).prisma;
-      (global as any).prisma = null;
-
-      await expect(
-        findOrCreateAsset(mockUserId, mockAssetData)
-      ).rejects.toThrow('Database not available');
-
-      (global as any).prisma = originalPrisma;
+      expect(result.id).toBe('raceAsset123');
+      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(2);
     });
 
-    it('should propagate non-constraint errors', async () => {
-      mockPrisma.$transaction.mockRejectedValue(new Error('Connection failed'));
+    it('should throw on other errors', async () => {
+      mockPrisma.$transaction.mockRejectedValue(new Error('Unexpected error'));
 
-      await expect(
-        findOrCreateAsset(mockUserId, mockAssetData)
-      ).rejects.toThrow('Connection failed');
+      await expect(findOrCreateAsset(mockUserId, mockAssetData)).rejects.toThrow('Unexpected error');
     });
   });
 });

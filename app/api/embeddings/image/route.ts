@@ -77,6 +77,7 @@ export async function POST(req: NextRequest) {
         });
 
         if (existingEmbedding) {
+          // @ts-ignore - Prisma doesn't handle vector type properly
           await prisma.assetEmbedding.update({
             where: { assetId },
             data: {
@@ -87,6 +88,7 @@ export async function POST(req: NextRequest) {
             },
           });
         } else {
+          // @ts-ignore - Prisma doesn't handle vector type properly
           await prisma.assetEmbedding.create({
             data: {
               assetId,

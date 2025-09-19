@@ -196,7 +196,7 @@ export async function POST(req: NextRequest) {
       OFFSET ${offset}
     `;
 
-    const results = await prisma.$queryRawUnsafe<Array<{
+    const results = await prisma!.$queryRawUnsafe<Array<{
       id: string;
       blob_url: string;
       pathname: string;
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
     let filteredResults = results;
     if (filters.tags && filters.tags.length > 0) {
       const assetIds = results.map(r => r.id);
-      const assetsWithTags = await prisma.asset.findMany({
+      const assetsWithTags = await prisma!.asset.findMany({
         where: {
           id: { in: assetIds },
           tags: {

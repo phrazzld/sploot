@@ -51,6 +51,7 @@ describe('/api/upload/check', () => {
         width: 800,
         height: 600,
         checksumSha256: 'a'.repeat(64),
+        favorite: false,
         hasEmbedding: true,
         createdAt: new Date('2024-01-01'),
       };

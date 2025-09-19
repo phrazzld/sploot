@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
           id: existingAsset.id,
           blobUrl: existingAsset.blobUrl,
           pathname: existingAsset.pathname,
-          filename: existingAsset.filename,
+          filename: existingAsset.pathname.split('/').pop() || existingAsset.pathname,
           mime: existingAsset.mime,
           size: existingAsset.size,
           width: existingAsset.width,
@@ -312,6 +312,7 @@ async function generateEmbeddingAsync(
 
     if (existingEmbedding) {
       // Update existing embedding
+      // @ts-ignore - Prisma doesn't handle vector type properly
       await prisma.assetEmbedding.update({
         where: { assetId },
         data: {
@@ -324,6 +325,7 @@ async function generateEmbeddingAsync(
       });
     } else {
       // Create new embedding
+      // @ts-ignore - Prisma doesn't handle vector type properly
       await prisma.assetEmbedding.create({
         data: {
           assetId,
