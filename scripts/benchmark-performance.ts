@@ -13,7 +13,7 @@ import path from 'path';
 
 // Set environment to use mock mode
 process.env.MOCK_MODE = 'true';
-process.env.NODE_ENV = 'test';
+(process.env as any).NODE_ENV = 'test';
 
 interface BenchmarkResult {
   operation: string;

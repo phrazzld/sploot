@@ -4,7 +4,7 @@ import { getOrCreateUser } from '../db';
 interface AuthResult {
   userId: string | null;
   sessionId: string | null;
-  getToken: (options?: unknown) => Promise<string | null>;
+  getToken: (options?: any) => Promise<string | null>;
 }
 
 interface AuthWithUserResult extends AuthResult {
@@ -27,7 +27,12 @@ export async function getAuth(): Promise<AuthResult> {
 
   try {
     const clerk = await import('@clerk/nextjs/server');
-    return clerk.auth();
+    const auth = await clerk.auth();
+    return {
+      userId: auth.userId,
+      sessionId: auth.sessionId,
+      getToken: auth.getToken as any,
+    };
   } catch (error) {
     if (isMockMode()) {
       return MOCK_AUTH_RESULT;
@@ -50,7 +55,11 @@ export async function getAuthWithUser(): Promise<AuthWithUserResult> {
     const authResult = await clerk.auth();
 
     if (!authResult.userId) {
-      return authResult;
+      return {
+        userId: authResult.userId,
+        sessionId: authResult.sessionId,
+        getToken: authResult.getToken as any,
+      };
     }
 
     // Get the full user details from Clerk
@@ -62,12 +71,18 @@ export async function getAuthWithUser(): Promise<AuthWithUserResult> {
       await getOrCreateUser(authResult.userId, email);
 
       return {
-        ...authResult,
+        userId: authResult.userId,
+        sessionId: authResult.sessionId,
+        getToken: authResult.getToken as any,
         userEmail: email,
       };
     }
 
-    return authResult;
+    return {
+      userId: authResult.userId,
+      sessionId: authResult.sessionId,
+      getToken: authResult.getToken as any,
+    };
   } catch (error) {
     if (isMockMode()) {
       return MOCK_AUTH_RESULT;

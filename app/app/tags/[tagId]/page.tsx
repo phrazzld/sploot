@@ -144,8 +144,12 @@ export default function TagPage({
       <div className="p-8">
         <ImageGrid
           assets={assets}
-          onDelete={handleDelete}
-          onFavorite={handleFavorite}
+          onAssetDelete={handleDelete}
+          onAssetUpdate={(id, updates) => {
+            if ('favorite' in updates) {
+              handleFavorite(id, updates.favorite!);
+            }
+          }}
         />
       </div>
     </div>

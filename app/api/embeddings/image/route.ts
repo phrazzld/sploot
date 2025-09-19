@@ -77,24 +77,24 @@ export async function POST(req: NextRequest) {
         });
 
         if (existingEmbedding) {
-          // @ts-ignore - Prisma doesn't handle vector type properly
           await prisma.assetEmbedding.update({
             where: { assetId },
             data: {
-              imageEmbedding: result.embedding as any,
               modelName: result.model,
-              dimension: result.dimension,
+              modelVersion: result.model,
+              dim: result.dimension,
               updatedAt: new Date(),
+              ...({ imageEmbedding: result.embedding } as any),
             },
           });
         } else {
-          // @ts-ignore - Prisma doesn't handle vector type properly
           await prisma.assetEmbedding.create({
             data: {
               assetId,
-              imageEmbedding: result.embedding as any,
               modelName: result.model,
-              dimension: result.dimension,
+              modelVersion: result.model,
+              dim: result.dimension,
+              ...({ imageEmbedding: result.embedding } as any),
             },
           });
         }

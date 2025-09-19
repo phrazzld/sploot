@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
 
     // Get tags for all results
     const resultIds = filteredResults.map((r: any) => r.id);
-    const allTags = await prisma.assetTag.findMany({
+    const allTags = await prisma!.assetTag.findMany({
       where: { assetId: { in: resultIds } },
       include: { tag: true },
     });
@@ -285,7 +285,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Log search
-    prisma.searchLog.create({
+    prisma!.searchLog.create({
       data: {
         userId,
         query,
@@ -377,7 +377,7 @@ async function performMetadataSearch(
     where.height = { gte: filters.minHeight };
   }
 
-  const assets = await prisma.asset.findMany({
+  const assets = await prisma!.asset.findMany({
     where,
     take: limit,
     skip: offset,

@@ -90,14 +90,13 @@ export async function POST(
     const result = await embeddingService.embedImage(asset.blobUrl, asset.checksumSha256);
 
     // Store embedding in database
-    // @ts-ignore - Prisma doesn't handle vector type properly
     const embedding = await prisma.assetEmbedding.create({
       data: {
         assetId: asset.id,
-        imageEmbedding: result.embedding as any,
         modelName: result.model,
         modelVersion: result.model,
         dim: result.dimension,
+        ...({ imageEmbedding: result.embedding } as any),
       },
     });
 

@@ -4,10 +4,10 @@ import type { ExistingAssetMetadata } from '@/lib/db';
 // Mock Prisma client with proper typing
 const mockPrisma = {
   asset: {
-    findFirst: jest.fn() as jest.Mock,
-    create: jest.fn() as jest.Mock,
+    findFirst: jest.fn() as jest.MockedFunction<any>,
+    create: jest.fn() as jest.MockedFunction<any>,
   },
-  $transaction: jest.fn() as jest.Mock,
+  $transaction: jest.fn() as jest.MockedFunction<any>,
 };
 
 // Mock the db module
@@ -73,7 +73,7 @@ describe('assetExists', () => {
     it('should use transaction when provided', async () => {
       const mockTx = {
         asset: {
-          findFirst: jest.fn() as jest.Mock,
+          findFirst: jest.fn() as jest.MockedFunction<any>,
         },
       };
       mockTx.asset.findFirst.mockResolvedValue(mockAsset);
@@ -146,8 +146,8 @@ describe('findOrCreateAsset', () => {
     it('should create new asset', async () => {
       // Mock transaction
       const mockTxAsset = {
-        findFirst: jest.fn().mockResolvedValue(null),
-        create: jest.fn().mockResolvedValue(mockCreatedAsset),
+        findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(null),
+        create: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(mockCreatedAsset),
       };
 
       mockPrisma.$transaction.mockImplementation(async (callback: any) => {
@@ -185,8 +185,8 @@ describe('findOrCreateAsset', () => {
 
       // Mock transaction
       const mockTxAsset = {
-        findFirst: jest.fn().mockResolvedValue(existingAsset),
-        create: jest.fn(),
+        findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(existingAsset),
+        create: jest.fn() as jest.MockedFunction<any>,
       };
 
       mockPrisma.$transaction.mockImplementation(async (callback: any) => {
@@ -219,8 +219,8 @@ describe('findOrCreateAsset', () => {
           // First call: asset doesn't exist, try to create but fails
           const mockTx = {
             asset: {
-              findFirst: jest.fn().mockResolvedValue(null),
-              create: jest.fn().mockRejectedValue({ code: 'P2002' }),
+              findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(null),
+              create: (jest.fn() as jest.MockedFunction<any>).mockRejectedValue({ code: 'P2002' }),
             },
           };
           return callback(mockTx);
@@ -228,7 +228,7 @@ describe('findOrCreateAsset', () => {
           // Second call: find the existing asset
           const mockTx = {
             asset: {
-              findFirst: jest.fn().mockResolvedValue(existingAsset),
+              findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(existingAsset),
             },
           };
           return callback(mockTx);

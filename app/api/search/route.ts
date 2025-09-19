@@ -113,7 +113,7 @@ export async function POST(req: NextRequest) {
     const formattedResults = await Promise.all(
       searchResults.map(async (result: any) => {
         // Get tags for each asset
-        const assetTags = await prisma.assetTag.findMany({
+        const assetTags = await prisma!.assetTag.findMany({
           where: { assetId: result.id },
           include: { tag: true },
         });
@@ -221,7 +221,7 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      const recentSearches = await prisma.searchLog.findMany({
+      const recentSearches = await prisma!.searchLog.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: 10,
@@ -249,7 +249,7 @@ export async function GET(req: NextRequest) {
         });
       }
 
-      const popularSearches = await prisma.searchLog.groupBy({
+      const popularSearches = await prisma!.searchLog.groupBy({
         by: ['query'],
         _count: {
           query: true,

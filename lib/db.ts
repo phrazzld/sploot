@@ -116,7 +116,7 @@ export async function assetExists(
     /**
      * Run inside a transaction for concurrency safety
      */
-    tx?: typeof prisma;
+    tx?: any;
     /**
      * Include embedding existence check
      */
@@ -220,7 +220,7 @@ export async function findOrCreateAsset(
   // Use a transaction to handle race conditions
   return await prisma.$transaction(async (tx) => {
     // First check if asset already exists
-    const existing = await assetExists(userId, assetData.checksumSha256, { tx });
+    const existing = await assetExists(userId, assetData.checksumSha256, { tx: tx as any });
 
     if (existing) {
       return existing;
@@ -274,7 +274,7 @@ export async function findOrCreateAsset(
       // Handle unique constraint violation (another request created it)
       if (error instanceof Error && error.message.includes('Unique constraint')) {
         // Try to fetch the asset again
-        const existing = await assetExists(userId, assetData.checksumSha256, { tx });
+        const existing = await assetExists(userId, assetData.checksumSha256, { tx: tx as any });
         if (existing) {
           return existing;
         }

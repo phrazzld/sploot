@@ -125,7 +125,7 @@ function SearchContent() {
         {query ? (
           <div className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-6 h-full">
             <div className="h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
-              <ImageGridErrorBoundary onRetry={handleSearch}>
+              <ImageGridErrorBoundary onRetry={() => handleSearch(query)}>
                 <ImageGrid
                   assets={assets}
                   loading={loading}

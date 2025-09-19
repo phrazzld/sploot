@@ -312,27 +312,25 @@ async function generateEmbeddingAsync(
 
     if (existingEmbedding) {
       // Update existing embedding
-      // @ts-ignore - Prisma doesn't handle vector type properly
       await prisma.assetEmbedding.update({
         where: { assetId },
         data: {
-          imageEmbedding: result.embedding as any,
           modelName: result.model,
           modelVersion: result.model,
           dim: result.dimension,
           updatedAt: new Date(),
+          ...({ imageEmbedding: result.embedding } as any),
         },
       });
     } else {
       // Create new embedding
-      // @ts-ignore - Prisma doesn't handle vector type properly
       await prisma.assetEmbedding.create({
         data: {
           assetId,
-          imageEmbedding: result.embedding as any,
           modelName: result.model,
           modelVersion: result.model,
           dim: result.dimension,
+          ...({ imageEmbedding: result.embedding } as any),
         },
       });
     }
