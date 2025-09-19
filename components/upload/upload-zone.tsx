@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, DragEvent, ClipboardEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
@@ -33,6 +34,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const { isOffline, isSlowConnection } = useOffline();
+  const router = useRouter();
 
   // Regular upload queue (localStorage-based)
   const { addToQueue } = useUploadQueue();
@@ -333,6 +335,16 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
 
   // Show background sync status if enabled
   const showSyncStatus = enableBackgroundSync && (pendingCount > 0 || uploadingCount > 0 || errorCount > 0);
+  const successfulUploads = files.filter((file) => file.status === 'success');
+  const hasSuccessfulUploads = successfulUploads.length > 0;
+  const hasActiveUploads = files.some((file) =>
+    file.status === 'uploading' || file.status === 'pending' || file.status === 'queued'
+  );
+
+  const handleViewLibrary = () => {
+    setFiles([]);
+    router.push('/app');
+  };
 
   return (
     <div
@@ -445,84 +457,124 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
 
       {/* File list */}
       {files.length > 0 && (
-        <div className="mt-6 space-y-2">
-          {files.map((file) => (
-            <div
-              key={file.id}
-              className="bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]"
-            >
-              <div className="flex items-center gap-3">
-                {/* File icon/preview */}
-                <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden">
-                  {file.blobUrl ? (
-                    <img
-                      src={file.blobUrl}
-                      alt={file.file.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-2xl">🖼️</span>
-                  )}
-                </div>
+        <div className="mt-6 space-y-4">
+          <div className="space-y-2">
+            {files.map((file) => (
+              <div
+                key={file.id}
+                className="bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]"
+              >
+                <div className="flex items-center gap-3">
+                  {/* File icon/preview */}
+                  <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden">
+                    {file.blobUrl ? (
+                      <img
+                        src={file.blobUrl}
+                        alt={file.file.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl">🖼️</span>
+                    )}
+                  </div>
 
-                {/* File info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-[#E6E8EB] text-sm font-medium truncate">
-                    {file.file.name}
-                  </p>
-                  <p className="text-[#B3B7BE] text-xs">
-                    {formatFileSize(file.file.size)}
-                  </p>
-                </div>
+                  {/* File info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[#E6E8EB] text-sm font-medium truncate">
+                      {file.file.name}
+                    </p>
+                    <p className="text-[#B3B7BE] text-xs">
+                      {formatFileSize(file.file.size)}
+                    </p>
+                  </div>
 
-                {/* Status */}
-                <div className="flex items-center gap-2">
-                  {file.status === 'uploading' && (
-                    <>
-                      <div className="w-24 h-1 bg-[#2A2F37] rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#7C5CFF] transition-all duration-300"
-                          style={{ width: `${file.progress}%` }}
-                        />
-                      </div>
-                      <span className="text-[#7C5CFF] text-xs">{file.progress}%</span>
-                    </>
-                  )}
+                  {/* Status */}
+                  <div className="flex items-center gap-2">
+                    {file.status === 'uploading' && (
+                      <>
+                        <div className="w-24 h-1 bg-[#2A2F37] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#7C5CFF] transition-all duration-300"
+                            style={{ width: `${file.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-[#7C5CFF] text-xs">{file.progress}%</span>
+                      </>
+                    )}
 
-                  {file.status === 'queued' && (
-                    <span className="text-[#B3B7BE] text-xs">Queued</span>
-                  )}
+                    {file.status === 'queued' && (
+                      <span className="text-[#B3B7BE] text-xs">Queued</span>
+                    )}
 
-                  {file.status === 'success' && (
-                    <span className="text-[#B6FF6E] text-sm">✓</span>
-                  )}
+                    {file.status === 'success' && (
+                      <span className="text-[#B6FF6E] text-sm">✓</span>
+                    )}
 
-                  {file.status === 'error' && (
+                    {file.status === 'error' && (
+                      <button
+                        onClick={() => retryUpload(file)}
+                        className="text-[#FF4D4D] hover:text-[#FF6B6B] text-xs underline"
+                      >
+                        Retry
+                      </button>
+                    )}
+
                     <button
-                      onClick={() => retryUpload(file)}
-                      className="text-[#FF4D4D] hover:text-[#FF6B6B] text-xs underline"
+                      onClick={() => removeFile(file.id)}
+                      className="text-[#B3B7BE] hover:text-[#E6E8EB] transition-colors"
                     >
-                      Retry
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
                     </button>
-                  )}
+                  </div>
+                </div>
 
-                  <button
-                    onClick={() => removeFile(file.id)}
-                    className="text-[#B3B7BE] hover:text-[#E6E8EB] transition-colors"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
+                {/* Error message */}
+                {file.error && (
+                  <p className="text-[#FF4D4D] text-xs mt-2">{file.error}</p>
+                )}
+              </div>
+            ))}
+          </div>
+
+          {hasSuccessfulUploads && (
+            <div className="flex flex-col gap-3 rounded-xl border border-[#2A2F37] bg-[#14171A] p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#B6FF6E]/10 text-[#B6FF6E]">
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                      d="M5 13l4 4L19 7"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-[#E6E8EB]">
+                    {successfulUploads.length === 1
+                      ? '1 image added to your library'
+                      : `${successfulUploads.length} images added to your library`}
+                  </p>
+                  {hasActiveUploads ? (
+                    <p className="text-xs text-[#B3B7BE]">Finishing remaining uploads...</p>
+                  ) : (
+                    <p className="text-xs text-[#B3B7BE]">Jump back to browse everything in your collection.</p>
+                  )}
                 </div>
               </div>
 
-              {/* Error message */}
-              {file.error && (
-                <p className="text-[#FF4D4D] text-xs mt-2">{file.error}</p>
-              )}
+              <button
+                onClick={handleViewLibrary}
+                className="inline-flex items-center justify-center rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0] disabled:cursor-not-allowed disabled:bg-[#2A2F37] disabled:text-[#6A6E78]"
+                disabled={hasActiveUploads}
+              >
+                View in Library
+              </button>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

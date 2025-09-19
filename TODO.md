@@ -128,9 +128,15 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
   - Surface inline status + counts on the library page while keeping nav-based search routing intact
   - `pnpm lint` still blocked: Next.js SWC binary download denied in sandbox
   ```
-- [ ] **Add "View in Library" CTA post-upload** (`components/upload/upload-dialog.tsx`)
+- [x] **Add "View in Library" CTA post-upload** (`components/upload/upload-zone.tsx`)
   - After a successful upload, surface a primary action that links back to `/app`
   - Clear uploaded state so the library view reflects the new asset count
+  ```
+  Work Log:
+  - Added success summary + "View in Library" button in `UploadZone`; clears staged files and routes to `/app`
+  - Button disabled while uploads still processing to avoid dropping in-flight items
+  - `pnpm lint` still blocked: Next.js SWC binary download denied in sandbox
+  ```
 - [ ] **Improve duplicate success messaging** (`components/upload/upload-dialog.tsx`)
   - When the API reports an existing asset, show thumbnail + "View existing" button
   - Treat duplicates as a non-error success path in the UI
