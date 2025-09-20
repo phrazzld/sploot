@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuthActions, useAuthUser } from '@/lib/auth/client';
 import { cn } from '@/lib/utils';
+import { usePwaInstallPrompt } from '@/hooks/use-pwa-install';
 
 interface UserMenuProps {
   variant?: 'desktop' | 'mobile';
@@ -12,9 +13,17 @@ export function UserMenu({ variant = 'desktop' }: UserMenuProps) {
   const { signOut } = useAuthActions();
   const { user } = useAuthUser();
   const [isOpen, setIsOpen] = useState(false);
+  const { installable, promptInstall } = usePwaInstallPrompt();
 
   const handleSignOut = () => {
     signOut();
+  };
+
+  const handleInstallClick = async () => {
+    const outcome = await promptInstall();
+    if (outcome !== 'unavailable') {
+      setIsOpen(false);
+    }
   };
 
   if (variant === 'mobile') {
@@ -39,6 +48,14 @@ export function UserMenu({ variant = 'desktop' }: UserMenuProps) {
                   {user?.emailAddresses?.[0]?.emailAddress}
                 </p>
               </div>
+              {installable && (
+                <button
+                  onClick={handleInstallClick}
+                  className="w-full text-left px-3 py-2 text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#1B1F24] transition-colors text-sm"
+                >
+                  Install app
+                </button>
+              )}
               <button
                 onClick={handleSignOut}
                 className="w-full text-left px-3 py-2 text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#1B1F24] transition-colors text-sm"
@@ -92,6 +109,17 @@ export function UserMenu({ variant = 'desktop' }: UserMenuProps) {
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute bottom-full left-0 right-0 mb-2 bg-[#14171A] border border-[#2A2F37] rounded-lg shadow-lg z-50">
+            {installable && (
+              <button
+                onClick={handleInstallClick}
+                className="w-full flex items-center gap-3 px-3 py-2.5 text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#1B1F24] transition-colors rounded-lg"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v9m0 0l-3-3m3 3l3-3m6 4v4a1 1 0 01-1 1H6a1 1 0 01-1-1v-4" />
+                </svg>
+                <span className="text-sm font-medium">Install app</span>
+              </button>
+            )}
             <button
               onClick={handleSignOut}
               className="w-full flex items-center gap-3 px-3 py-2.5 text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#1B1F24] transition-colors rounded-lg"

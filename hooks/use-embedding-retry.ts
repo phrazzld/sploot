@@ -2,10 +2,21 @@
 
 import { useEffect, useRef, useState } from 'react';
 
+interface EmbeddingResponse {
+  success?: boolean;
+  message?: string;
+  embedding?: {
+    modelName: string;
+    dimension: number;
+    processingTime?: number;
+    createdAt: string;
+  };
+}
+
 interface UseEmbeddingRetryOptions {
   assetId: string;
   hasEmbedding: boolean;
-  onEmbeddingGenerated?: () => void;
+  onEmbeddingGenerated?: (result: EmbeddingResponse) => void;
   retryDelay?: number; // Delay before first retry (ms)
   maxRetries?: number;
 }
@@ -45,11 +56,11 @@ export function useEmbeddingRetry({
         });
 
         if (response.ok) {
-          const result = await response.json();
+          const result: EmbeddingResponse = await response.json();
           console.log(`[Auto-retry] Successfully generated embedding for asset ${assetId}`, result);
 
           if (onEmbeddingGenerated) {
-            onEmbeddingGenerated();
+            onEmbeddingGenerated(result);
           }
         } else {
           const errorData = await response.json().catch(() => ({}));
@@ -99,11 +110,11 @@ export function useEmbeddingRetry({
       });
 
       if (response.ok) {
-        const result = await response.json();
+        const result: EmbeddingResponse = await response.json();
         console.log(`[Manual retry] Successfully generated embedding for asset ${assetId}`, result);
 
         if (onEmbeddingGenerated) {
-          onEmbeddingGenerated();
+          onEmbeddingGenerated(result);
         }
       } else {
         const errorData = await response.json().catch(() => ({}));

@@ -3,7 +3,6 @@ import { AppNav } from '@/components/navigation/app-nav';
 import { MobileNav } from '@/components/navigation/mobile-nav';
 import { UserMenu } from '@/components/navigation/user-menu';
 import { TagFilter } from '@/components/navigation/tag-filter';
-import { InstallPrompt } from '@/components/pwa/install-prompt';
 import { OfflineBanner } from '@/components/offline/offline-banner';
 import { OfflineProvider } from '@/components/offline/offline-provider';
 import { getAuthWithUser } from '@/lib/auth/server';
@@ -75,8 +74,6 @@ export default async function AppLayout({
         <MobileNav />
       </div>
 
-      {/* PWA Install Prompt */}
-      <InstallPrompt />
     </div>
     </OfflineProvider>
   );

@@ -115,6 +115,7 @@ export function MasonryGrid({
               onDelete={onAssetDelete ? () => onAssetDelete(asset.id) : undefined}
               onClick={onAssetSelect ? () => onAssetSelect(asset) : undefined}
               preserveAspectRatio={true}
+              onAssetUpdate={onAssetUpdate}
             />
           </div>
         ))}

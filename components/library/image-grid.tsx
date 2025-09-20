@@ -212,6 +212,7 @@ export function ImageGrid({
                 onFavorite={handleFavoriteToggle}
                 onDelete={onAssetDelete}
                 onSelect={onAssetSelect}
+                onAssetUpdate={onAssetUpdate}
               />
             ))}
           </div>
@@ -300,6 +301,7 @@ export function ImageGrid({
                       onFavorite={handleFavoriteToggle}
                       onDelete={onAssetDelete}
                       onSelect={onAssetSelect}
+                      onAssetUpdate={onAssetUpdate}
                     />
                   ))}
                   {/* Empty cells for last row */}

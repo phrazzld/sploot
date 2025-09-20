@@ -39,6 +39,7 @@ interface ImageTileProps {
   onToggleFavorite?: () => void;
   preserveAspectRatio?: boolean;
   onClick?: () => void;
+  onAssetUpdate?: (id: string, updates: Partial<Asset>) => void;
 }
 
 export function ImageTile({
@@ -48,7 +49,8 @@ export function ImageTile({
   onSelect,
   onToggleFavorite,
   preserveAspectRatio = false,
-  onClick
+  onClick,
+  onAssetUpdate
 }: ImageTileProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -57,15 +59,30 @@ export function ImageTile({
   const [hasEmbedding, setHasEmbedding] = useState(!!asset.embedding);
   const deleteConfirmation = useDeleteConfirmation();
 
+  const handleEmbeddingSuccess = (result?: { embedding?: { modelName: string; dimension: number; createdAt: string } }) => {
+    setHasEmbedding(true);
+
+    if (onAssetUpdate) {
+      const embeddingInfo = result?.embedding;
+      const modelName = embeddingInfo?.modelName ?? 'unknown/model';
+      const createdAt = embeddingInfo?.createdAt ?? new Date().toISOString();
+
+      onAssetUpdate(asset.id, {
+        embedding: {
+          assetId: asset.id,
+          modelName,
+          modelVersion: modelName,
+          createdAt,
+        },
+      });
+    }
+  };
+
   // Auto-retry embedding generation for assets stuck in processing
   const { isRetrying, error: retryError } = useEmbeddingRetry({
     assetId: asset.id,
     hasEmbedding,
-    onEmbeddingGenerated: () => {
-      setHasEmbedding(true);
-      // Optionally trigger a refresh
-      window.location.reload();
-    },
+    onEmbeddingGenerated: handleEmbeddingSuccess,
     retryDelay: 5000, // Start retry after 5 seconds
     maxRetries: 3,
   });
@@ -112,15 +129,8 @@ export function ImageTile({
 
       if (response.ok) {
         const result = await response.json();
-        setHasEmbedding(true);
         console.log('Embedding generated successfully', result);
-
-        // Optionally refresh the asset data
-        if (onFavorite) {
-          // Trigger a refresh by toggling and untoggling favorite
-          // This is a hack but works for now
-          window.location.reload();
-        }
+        handleEmbeddingSuccess(result);
       } else {
         console.error('Failed to generate embedding');
       }
