@@ -158,17 +158,17 @@ The app is **FUNCTIONAL** with all services configured. Upload works, search wor
 The `generateEmbeddingAsync()` call in `/app/api/upload/route.ts` line 289 never executes because Next.js terminates the request context immediately after returning the response. Embeddings stay in "Processing..." state forever, breaking search functionality.
 
 ### Immediate Fix - Implement waitUntil Pattern
-- [ ] **Install Vercel Functions package** (`package.json`)
+- [x] **Install Vercel Functions package** (`package.json`)
   - Run: `pnpm add @vercel/functions`
   - Required for `waitUntil` API to ensure background work completes
 
-- [ ] **Import and apply waitUntil to upload route** (`app/api/upload/route.ts`)
+- [x] **Import and apply waitUntil to upload route** (`app/api/upload/route.ts`)
   - Add import: `import { waitUntil } from '@vercel/functions';`
   - Wrap line 289: `waitUntil(generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256));`
   - Do the same for line 328 (duplicate asset path)
   - This ensures the Promise executes even after response is sent
 
-- [ ] **Add console logging to verify execution** (`app/api/upload/route.ts` in `generateEmbeddingAsync`)
+- [x] **Add console logging to verify execution** (`app/api/upload/route.ts` in `generateEmbeddingAsync`)
   - Already has logs at lines 445 and 460
   - Verify "Generating embedding for asset..." appears in server logs
   - Verify "Embedding generated successfully..." appears after Replicate API call
