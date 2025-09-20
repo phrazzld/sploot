@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse, after } from 'next/server';
 import { put } from '@vercel/blob';
-import { waitUntil } from '@vercel/functions';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { blobConfigured, isMockMode } from '@/lib/env';
@@ -287,7 +286,9 @@ export async function POST(req: NextRequest) {
 
         // Generate embeddings asynchronously after asset creation
         // This runs after the response is sent to keep upload latency low
-        waitUntil(generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256));
+        after(async () => {
+          await generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
+        });
 
         return NextResponse.json({
           success: true,
@@ -326,7 +327,9 @@ export async function POST(req: NextRequest) {
             }
 
             // Generate embeddings for existing asset if missing
-            waitUntil(generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256));
+            after(async () => {
+              await generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+            });
 
             return NextResponse.json(
               {
@@ -417,7 +420,7 @@ async function generateEmbeddingAsync(
   blobUrl: string,
   checksum: string
 ): Promise<void> {
-  console.log(`[waitUntil] Starting async embedding generation for asset ${assetId}`);
+  console.log(`[after] Starting async embedding generation for asset ${assetId}`);
   try {
     // Skip if database not available
     if (!databaseAvailable || !prisma) {
