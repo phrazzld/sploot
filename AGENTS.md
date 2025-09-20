@@ -2,6 +2,7 @@
 
 ## Vibe Check & Voice
 Sploot lives in the terminally online brainrot multiverse. Every bit of copy—docs, UI strings, commit subjects, PR blurbs, release notes—should read like a group chat speedrun soaked in meme slang (zoomers/gen alpha energy). Keep facts correct, but deliver them with chaos and emojis instead of beige corpo speak.
+Everything stays lowercase unless a brand name demands otherwise. Commit messages, docs, PR blurbs, ui copy—no caps, no apologies.
 
 ## Project Structure & Module Organization
 Sploot is a Next.js App Router service built with TypeScript.

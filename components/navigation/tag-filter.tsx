@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 interface Tag {
@@ -16,7 +15,9 @@ export function TagFilter() {
   const [tags, setTags] = useState<Tag[]>([]);
   const [loading, setLoading] = useState(true);
   const [isExpanded, setIsExpanded] = useState(true);
-  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTagId = searchParams.get('tagId');
 
   useEffect(() => {
     fetchTags();
@@ -68,18 +69,46 @@ export function TagFilter() {
         </svg>
       </button>
 
-      {isExpanded && (
+      {isExpanded && tags.length > 0 && (
         <div className="mt-1 space-y-0.5">
+          <button
+            onClick={() => {
+              const params = new URLSearchParams(searchParams.toString());
+              params.delete('tagId');
+              router.push(`/app${params.toString() ? `?${params}` : ''}`);
+            }}
+            className={cn(
+              'flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200',
+              'hover:bg-[#1B1F24] group',
+              !activeTagId ? 'bg-[#7C5CFF]/10 text-[#7C5CFF]' : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
+            )}
+          >
+            <span className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#B6FF6E]" />
+              All memes
+            </span>
+            {!activeTagId && (
+              <span className="text-xs text-[#7C5CFF]">∞</span>
+            )}
+          </button>
+
           {tags.map(tag => {
-            const tagPath = `/app/tags/${tag.id}`;
-            const isActive = pathname === tagPath;
+            const isActive = activeTagId === tag.id;
 
             return (
-              <Link
+              <button
                 key={tag.id}
-                href={tagPath}
+                onClick={() => {
+                  const params = new URLSearchParams(searchParams.toString());
+                  if (isActive) {
+                    params.delete('tagId');
+                  } else {
+                    params.set('tagId', tag.id);
+                  }
+                  router.push(`/app${params.toString() ? `?${params}` : ''}`);
+                }}
                 className={cn(
-                  'flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200',
+                  'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 text-left',
                   'hover:bg-[#1B1F24] group',
                   isActive ?
                     'bg-[#7C5CFF]/10 text-[#7C5CFF]' :
@@ -102,7 +131,7 @@ export function TagFilter() {
                 )}>
                   {tag.assetCount}
                 </span>
-              </Link>
+              </button>
             );
           })}
         </div>

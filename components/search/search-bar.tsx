@@ -10,6 +10,7 @@ interface SearchBarProps {
   className?: string;
   onSearch?: (query: string) => void;
   inline?: boolean;
+  initialQuery?: string;
 }
 
 export function SearchBar({
@@ -18,13 +19,19 @@ export function SearchBar({
   className = '',
   onSearch,
   inline = false,
+  initialQuery = '',
 }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   // Debounce the search query with 300ms delay
   const debouncedQuery = useDebounce(query, 300);
+
+  // Keep local state in sync with parent-controlled initial query
+  useEffect(() => {
+    setQuery(initialQuery);
+  }, [initialQuery]);
 
   // Handle search automatically when debounced query changes
   useEffect(() => {

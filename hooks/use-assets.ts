@@ -26,6 +26,7 @@ interface UseAssetsOptions {
   sortOrder?: 'asc' | 'desc';
   filterFavorites?: boolean;
   autoLoad?: boolean;
+  tagId?: string;
 }
 
 export function useAssets(options: UseAssetsOptions = {}) {
@@ -35,6 +36,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
     sortOrder = 'desc',
     filterFavorites,
     autoLoad = true,
+    tagId,
   } = options;
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -58,8 +60,15 @@ export function useAssets(options: UseAssetsOptions = {}) {
           offset: currentOffset.toString(),
           sortBy,
           sortOrder,
-          ...(filterFavorites !== undefined && { favorite: filterFavorites.toString() }),
         });
+
+        if (filterFavorites !== undefined) {
+          params.set('favorite', filterFavorites.toString());
+        }
+
+        if (tagId) {
+          params.set('tagId', tagId);
+        }
 
         const response = await fetch(`/api/assets?${params}`);
 
@@ -86,7 +95,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
         setLoading(false);
       }
     },
-    [loading, hasMore, offset, initialLimit, sortBy, sortOrder, filterFavorites]
+    [loading, hasMore, offset, initialLimit, sortBy, sortOrder, filterFavorites, tagId]
   );
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {

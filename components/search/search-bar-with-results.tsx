@@ -47,6 +47,7 @@ export function SearchBarWithResults({
         onSearch={handleSearch}
         placeholder="Search your memes..."
         className="mb-2"
+        initialQuery={searchQuery}
       />
 
       {/* Search status */}
