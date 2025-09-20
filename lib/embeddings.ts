@@ -2,8 +2,9 @@ import Replicate from 'replicate';
 import { createMultiLayerCache, getMultiLayerCache } from './multi-layer-cache';
 import { isMockMode } from './env';
 
-export const SIGLIP_MODEL = 'daanelson/siglip-large-patch16-384:690ac94ac67ebec5c19bc09f9dc5d62e604f87db90ce5e5e4fc0f47f78e88871';
-export const EMBEDDING_DIMENSION = 1152;
+// Updated to working CLIP model (SigLIP model was deprecated)
+export const CLIP_MODEL = 'krthr/clip-embeddings:1c0371070cb827ec3c7f2f28adcdde54b50dcd239aa6faea0bc98b174ef03fb4';
+export const EMBEDDING_DIMENSION = 768; // CLIP embedding dimension
 export const MAX_RETRY_ATTEMPTS = 3;
 export const DEFAULT_TIMEOUT = 30000;
 
@@ -91,7 +92,7 @@ export class ReplicateEmbeddingService {
     this.replicate = new Replicate({
       auth: config.apiToken,
     });
-    this.model = config.model || SIGLIP_MODEL;
+    this.model = config.model || CLIP_MODEL;
     this.timeout = config.timeout || DEFAULT_TIMEOUT;
     this.retryAttempts = config.retryAttempts || MAX_RETRY_ATTEMPTS;
   }
@@ -119,7 +120,6 @@ export class ReplicateEmbeddingService {
             {
               input: {
                 text: query,
-                mode: 'text',
               },
             }
           );
@@ -187,7 +187,6 @@ export class ReplicateEmbeddingService {
             {
               input: {
                 image: imageUrl,
-                mode: 'image',
               },
             }
           );
