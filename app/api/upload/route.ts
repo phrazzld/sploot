@@ -417,6 +417,7 @@ async function generateEmbeddingAsync(
   blobUrl: string,
   checksum: string
 ): Promise<void> {
+  console.log(`[waitUntil] Starting async embedding generation for asset ${assetId}`);
   try {
     // Skip if database not available
     if (!databaseAvailable || !prisma) {
