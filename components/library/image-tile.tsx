@@ -49,6 +49,8 @@ export function ImageTile({
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [isGeneratingEmbedding, setIsGeneratingEmbedding] = useState(false);
+  const [hasEmbedding, setHasEmbedding] = useState(!!asset.embedding);
   const deleteConfirmation = useDeleteConfirmation();
   const aspectRatioStyle = useMemo<CSSProperties | undefined>(() => {
     if (!preserveAspectRatio) return undefined;
@@ -78,6 +80,37 @@ export function ImageTile({
       logError('Failed to toggle favorite:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGenerateEmbedding = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isGeneratingEmbedding || hasEmbedding) return;
+
+    setIsGeneratingEmbedding(true);
+    try {
+      const response = await fetch(`/api/assets/${asset.id}/generate-embedding`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setHasEmbedding(true);
+        console.log('Embedding generated successfully', result);
+
+        // Optionally refresh the asset data
+        if (onFavorite) {
+          // Trigger a refresh by toggling and untoggling favorite
+          // This is a hack but works for now
+          window.location.reload();
+        }
+      } else {
+        console.error('Failed to generate embedding');
+      }
+    } catch (error) {
+      logError('Failed to generate embedding:', error);
+    } finally {
+      setIsGeneratingEmbedding(false);
     }
   };
 
@@ -245,16 +278,24 @@ export function ImageTile({
         )}
 
         {/* Embedding readiness indicator */}
-        <div className="absolute bottom-2 left-2 pointer-events-none">
-          {!asset.embedding ? (
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full">
-              <div className="w-1.5 h-1.5 bg-[#FFA500] rounded-full animate-pulse" />
+        <div className="absolute bottom-2 left-2">
+          {!hasEmbedding ? (
+            <button
+              onClick={handleGenerateEmbedding}
+              disabled={isGeneratingEmbedding}
+              className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full hover:bg-black/80 transition-colors duration-200 cursor-pointer"
+              title="Click to generate search embedding"
+            >
+              <div className={cn(
+                "w-1.5 h-1.5 rounded-full",
+                isGeneratingEmbedding ? "bg-[#7C5CFF] animate-spin" : "bg-[#FFA500] animate-pulse"
+              )} />
               <span className="text-[10px] text-[#FFA500] font-medium uppercase tracking-wide">
-                Processing...
+                {isGeneratingEmbedding ? "Generating..." : "Processing..."}
               </span>
-            </div>
+            </button>
           ) : (
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+            <div className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
               <div className="w-1.5 h-1.5 bg-[#B6FF6E] rounded-full" />
               <span className="text-[10px] text-[#B6FF6E] font-medium uppercase tracking-wide">
                 Ready for search
