@@ -5,6 +5,7 @@ import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
+import { useEmbeddingRetry } from '@/hooks/use-embedding-retry';
 
 interface Asset {
   id: string;
@@ -52,6 +53,19 @@ export function ImageTile({
   const [isGeneratingEmbedding, setIsGeneratingEmbedding] = useState(false);
   const [hasEmbedding, setHasEmbedding] = useState(!!asset.embedding);
   const deleteConfirmation = useDeleteConfirmation();
+
+  // Auto-retry embedding generation for assets stuck in processing
+  const { isRetrying, error: retryError } = useEmbeddingRetry({
+    assetId: asset.id,
+    hasEmbedding,
+    onEmbeddingGenerated: () => {
+      setHasEmbedding(true);
+      // Optionally trigger a refresh
+      window.location.reload();
+    },
+    retryDelay: 5000, // Start retry after 5 seconds
+    maxRetries: 3,
+  });
   const aspectRatioStyle = useMemo<CSSProperties | undefined>(() => {
     if (!preserveAspectRatio) return undefined;
     if (!asset.width || !asset.height) return undefined;
@@ -288,10 +302,13 @@ export function ImageTile({
             >
               <div className={cn(
                 "w-1.5 h-1.5 rounded-full",
-                isGeneratingEmbedding ? "bg-[#7C5CFF] animate-spin" : "bg-[#FFA500] animate-pulse"
+                (isGeneratingEmbedding || isRetrying) ? "bg-[#7C5CFF] animate-spin" : "bg-[#FFA500] animate-pulse"
               )} />
-              <span className="text-[10px] text-[#FFA500] font-medium uppercase tracking-wide">
-                {isGeneratingEmbedding ? "Generating..." : "Processing..."}
+              <span className={cn(
+                "text-[10px] font-medium uppercase tracking-wide",
+                retryError ? "text-red-500" : "text-[#FFA500]"
+              )}>
+                {isGeneratingEmbedding || isRetrying ? "Generating..." : retryError ? "Retry Failed" : "Processing..."}
               </span>
             </button>
           ) : (

@@ -1,0 +1,125 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+
+interface UseEmbeddingRetryOptions {
+  assetId: string;
+  hasEmbedding: boolean;
+  onEmbeddingGenerated?: () => void;
+  retryDelay?: number; // Delay before first retry (ms)
+  maxRetries?: number;
+}
+
+export function useEmbeddingRetry({
+  assetId,
+  hasEmbedding,
+  onEmbeddingGenerated,
+  retryDelay = 5000, // 5 seconds default
+  maxRetries = 3,
+}: UseEmbeddingRetryOptions) {
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const [error, setError] = useState<string | null>(null);
+  const timeoutRef = useRef<NodeJS.Timeout>();
+  const hasTriggeredRef = useRef(false);
+
+  useEffect(() => {
+    // Skip if already has embedding or already triggered
+    if (hasEmbedding || hasTriggeredRef.current || retryCount >= maxRetries) {
+      return;
+    }
+
+    // Set up auto-retry after delay
+    timeoutRef.current = setTimeout(async () => {
+      if (hasEmbedding) return; // Double-check before retrying
+
+      hasTriggeredRef.current = true;
+      setIsRetrying(true);
+      setError(null);
+
+      try {
+        console.log(`[Auto-retry] Attempting to generate embedding for asset ${assetId} (attempt ${retryCount + 1}/${maxRetries})`);
+
+        const response = await fetch(`/api/assets/${assetId}/generate-embedding`, {
+          method: 'POST',
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`[Auto-retry] Successfully generated embedding for asset ${assetId}`, result);
+
+          if (onEmbeddingGenerated) {
+            onEmbeddingGenerated();
+          }
+        } else {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMessage = errorData.error || `Failed to generate embedding (status: ${response.status})`;
+          console.error(`[Auto-retry] Failed to generate embedding for asset ${assetId}:`, errorMessage);
+          setError(errorMessage);
+
+          // Increment retry count for next attempt
+          if (retryCount + 1 < maxRetries) {
+            setRetryCount(prev => prev + 1);
+            hasTriggeredRef.current = false; // Allow next retry
+          }
+        }
+      } catch (err) {
+        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+        console.error(`[Auto-retry] Error generating embedding for asset ${assetId}:`, errorMessage);
+        setError(errorMessage);
+
+        // Increment retry count for next attempt
+        if (retryCount + 1 < maxRetries) {
+          setRetryCount(prev => prev + 1);
+          hasTriggeredRef.current = false; // Allow next retry
+        }
+      } finally {
+        setIsRetrying(false);
+      }
+    }, retryDelay);
+
+    // Cleanup on unmount
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, [assetId, hasEmbedding, retryDelay, retryCount, maxRetries, onEmbeddingGenerated]);
+
+  // Manual retry function
+  const manualRetry = async () => {
+    if (isRetrying || hasEmbedding) return;
+
+    setIsRetrying(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/assets/${assetId}/generate-embedding`, {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`[Manual retry] Successfully generated embedding for asset ${assetId}`, result);
+
+        if (onEmbeddingGenerated) {
+          onEmbeddingGenerated();
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({}));
+        setError(errorData.error || 'Failed to generate embedding');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setIsRetrying(false);
+    }
+  };
+
+  return {
+    isRetrying,
+    retryCount,
+    error,
+    manualRetry,
+  };
+}
