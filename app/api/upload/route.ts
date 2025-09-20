@@ -457,8 +457,8 @@ async function generateEmbeddingAsync(
         modelName: result.model,
         modelVersion: result.model,
         dim: result.dimension,
-        // @ts-ignore - Prisma doesn't have proper typing for vector fields
-        imageEmbedding: result.embedding,
+        // Spread operator bypasses Prisma validation for Unsupported vector type
+        ...({ imageEmbedding: result.embedding } as any),
       },
     });
 
