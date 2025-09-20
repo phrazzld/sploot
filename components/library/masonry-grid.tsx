@@ -36,6 +36,7 @@ interface MasonryGridProps {
   onAssetDelete?: (id: string) => void;
   onAssetSelect?: (asset: Asset) => void;
   className?: string;
+  onUploadClick?: () => void;
 }
 
 export function MasonryGrid({
@@ -47,18 +48,34 @@ export function MasonryGrid({
   onAssetDelete,
   onAssetSelect,
   className,
+  onUploadClick,
 }: MasonryGridProps) {
   // Empty state
   if (assets.length === 0 && !loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[400px]">
-        <div className="text-6xl mb-4">📷</div>
-        <h3 className="text-xl font-semibold text-[#E6E8EB] mb-2">
-          No images yet
+      <div className="flex flex-col items-center justify-center h-full min-h-[400px] gap-3 text-center">
+        <div className="text-6xl">📷</div>
+        <h3 className="text-xl font-semibold text-[#E6E8EB]">
+          No memes yet
         </h3>
-        <p className="text-[#B3B7BE] text-center">
-          Upload your first meme to get started
+        <p className="text-[#B3B7BE] max-w-sm">
+          Hit the upload button and seed this feed with your favorite reaction pics.
         </p>
+        <button
+          onClick={() => onUploadClick?.()}
+          className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
+        >
+          <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path
+              d="M10 4v12M4 10h12"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+          Upload images
+        </button>
       </div>
     );
   }

@@ -78,7 +78,7 @@
       "name": "Upload Meme",
       "short_name": "Upload",
       "description": "Add a new meme to your library",
-      "url": "/app/upload",
+      "url": "/app?upload=1",
       "icons": [
         {
           "src": "/icons/upload-96x96.png",
@@ -91,7 +91,7 @@
       "name": "Search Memes",
       "short_name": "Search",
       "description": "Search your meme collection",
-      "url": "/app/search",
+      "url": "/app?q=reaction",
       "icons": [
         {
           "src": "/icons/search-96x96.png",

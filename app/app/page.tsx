@@ -1,14 +1,23 @@
 'use client';
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { MasonryGrid } from '@/components/library/masonry-grid';
 import { SearchBar } from '@/components/search';
 import { cn } from '@/lib/utils';
+import { UploadZone } from '@/components/upload/upload-zone';
 
 export default function AppPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const queryParam = searchParams.get('q') ?? '';
+  const tagIdParam = searchParams.get('tagId');
+  const favoritesOnly = searchParams.get('favorite') === 'true';
+
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>(() => {
     if (typeof window !== 'undefined') {
@@ -29,13 +38,51 @@ export default function AppPage() {
     return 'desc';
   });
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [libraryQuery, setLibraryQuery] = useState('');
+  const [libraryQuery, setLibraryQuery] = useState(queryParam);
   const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
+  const [showUploadPanel, setShowUploadPanel] = useState(false);
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingScrollTopRef = useRef<number | null>(null);
+  const filtersRef = useRef<{
+    tagId: string | null;
+    favorites: boolean;
+    sortBy: string;
+    sortOrder: string;
+  }>();
+  const pendingRefreshRef = useRef(false);
 
   // Convert filename to createdAt for the actual sorting
   const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
+
+  useEffect(() => {
+    setLibraryQuery(queryParam);
+  }, [queryParam]);
+
+  const updateUrlParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === '') {
+          params.delete(key);
+        } else {
+          params.set(key, value);
+        }
+      });
+
+      const target = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
+      router.replace(target);
+    },
+    [pathname, router, searchParams]
+  );
+
+  const uploadParam = searchParams.get('upload');
+
+  useEffect(() => {
+    if (uploadParam === '1') {
+      setShowUploadPanel(true);
+      updateUrlParams({ upload: null });
+    }
+  }, [uploadParam, updateUrlParams]);
 
   const {
     assets,
@@ -45,18 +92,20 @@ export default function AppPage() {
     loadAssets,
     updateAsset,
     deleteAsset,
+    refresh,
   } = useAssets({
     initialLimit: 50,
     sortBy: actualSortBy,
     sortOrder,
     autoLoad: true,
+    filterFavorites: favoritesOnly ? true : undefined,
+    tagId: tagIdParam ?? undefined,
   });
 
   const {
     assets: searchAssets,
     loading: searchLoading,
     error: searchError,
-    total: searchTotal,
     updateAsset: updateSearchAsset,
     deleteAsset: deleteSearchAsset,
     search: runInlineSearch,
@@ -113,9 +162,39 @@ export default function AppPage() {
     };
   }, [assets, total]);
 
+  const filteredSearchAssets = useMemo(() => {
+    let results = searchAssets;
+    if (favoritesOnly) {
+      results = results.filter((asset) => asset.favorite);
+    }
+    if (tagIdParam) {
+      results = results.filter((asset) => asset.tags?.some((tag) => tag.id === tagIdParam));
+    }
+    return results;
+  }, [searchAssets, favoritesOnly, tagIdParam]);
+
+  const searchHitCount = filteredSearchAssets.length;
+
+  const activeTagName = useMemo(() => {
+    if (!tagIdParam) return null;
+    const fromAssets = [...assets, ...searchAssets].find((asset) =>
+      asset.tags?.some((tag) => tag.id === tagIdParam)
+    );
+    return fromAssets?.tags?.find((tag) => tag.id === tagIdParam)?.name ?? null;
+  }, [assets, searchAssets, tagIdParam]);
+
   const handleInlineSearch = useCallback((query: string) => {
     setLibraryQuery(query);
-  }, []);
+    updateUrlParams({ q: query ? query : null });
+  }, [updateUrlParams]);
+
+  const toggleFavoritesOnly = useCallback(() => {
+    updateUrlParams({ favorite: favoritesOnly ? null : 'true' });
+  }, [favoritesOnly, updateUrlParams]);
+
+  const clearTagFilter = useCallback(() => {
+    updateUrlParams({ tagId: null });
+  }, [updateUrlParams]);
 
   const handleScrollContainerReady = useCallback((node: HTMLDivElement | null) => {
     gridScrollRef.current = node;
@@ -214,10 +293,10 @@ export default function AppPage() {
 
   const activeAssets = useMemo(() => {
     if (isSearching) {
-      return searchAssets;
+      return filteredSearchAssets;
     }
     return sortedAssets;
-  }, [isSearching, searchAssets, sortedAssets]);
+  }, [isSearching, filteredSearchAssets, sortedAssets]);
 
   const activeLoading = isSearching ? searchLoading : loading;
   const activeHasMore = isSearching ? false : hasMore;
@@ -242,6 +321,41 @@ export default function AppPage() {
     },
     [deleteAsset, deleteSearchAsset]
   );
+
+  useEffect(() => {
+    const prev = filtersRef.current;
+    const current = {
+      tagId: tagIdParam ?? null,
+      favorites: favoritesOnly,
+      sortBy: actualSortBy,
+      sortOrder,
+    };
+
+    if (!prev) {
+      filtersRef.current = current;
+      return;
+    }
+
+    const filtersChanged =
+      prev.tagId !== current.tagId ||
+      prev.favorites !== current.favorites ||
+      prev.sortBy !== current.sortBy ||
+      prev.sortOrder !== current.sortOrder;
+
+    if (filtersChanged) {
+      if (isSearching) {
+        pendingRefreshRef.current = true;
+      } else {
+        refresh();
+        pendingRefreshRef.current = false;
+      }
+    } else if (!isSearching && pendingRefreshRef.current) {
+      refresh();
+      pendingRefreshRef.current = false;
+    }
+
+    filtersRef.current = current;
+  }, [tagIdParam, favoritesOnly, actualSortBy, sortOrder, isSearching, refresh]);
 
   useEffect(() => {
     if (!trimmedLibraryQuery) {
@@ -409,8 +523,69 @@ export default function AppPage() {
           </div>
         </header>
 
-        {/* Search Bar */}
+        {/* Search + Quick Actions */}
         <div className="mb-6 space-y-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => setShowUploadPanel((prev) => !prev)}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                showUploadPanel
+                  ? 'bg-[#7C5CFF] text-white hover:bg-[#6B4FE6]'
+                  : 'bg-[#1B1F24] text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37]'
+              )}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8l-8-8-8 8" />
+              </svg>
+              {showUploadPanel ? 'Close drip zone' : 'Drop fresh memes'}
+            </button>
+
+            <button
+              onClick={toggleFavoritesOnly}
+              className={cn(
+                'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                favoritesOnly
+                  ? 'bg-[#B6FF6E]/20 text-[#B6FF6E] hover:bg-[#B6FF6E]/30'
+                  : 'bg-[#1B1F24] text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37]'
+              )}
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {favoritesOnly ? 'Only bangers' : 'All memes'}
+            </button>
+
+            {tagIdParam && (
+              <button
+                onClick={clearTagFilter}
+                className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-[#1B1F24] text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37] transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
+                </svg>
+                Clear tag {activeTagName ? `#${activeTagName}` : ''}
+              </button>
+            )}
+          </div>
+
+          {!isSearching && (favoritesOnly || tagIdParam) && (
+            <div className="text-xs text-[#B3B7BE]">
+              {favoritesOnly && <span className="mr-2">Favorites-only filter is lit.</span>}
+              {tagIdParam && (
+                <span>
+                  Serving only tag <span className="text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>.
+                </span>
+              )}
+            </div>
+          )}
+
+          {showUploadPanel && (
+            <div className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-4">
+              <UploadZone />
+            </div>
+          )}
+
           <SearchBar onSearch={handleInlineSearch} inline />
 
           {isSearching && (
@@ -442,27 +617,27 @@ export default function AppPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Searching for “{trimmedLibraryQuery}”…
+                  Summoning results for “{trimmedLibraryQuery}”…
                 </div>
               )}
 
               {!searchError && !searchLoading && (
                 <div className="p-4 bg-[#14171A] border border-[#2A2F37] rounded-xl text-sm text-[#B3B7BE]">
-                  {searchTotal > 0 ? (
+                  {searchHitCount > 0 ? (
                     <span className="flex flex-col gap-1">
                       <span>
-                        Showing <span className="text-[#B6FF6E] font-semibold">{searchTotal}</span> matches
+                        Showing <span className="text-[#B6FF6E] font-semibold">{searchHitCount}</span> matches
                         for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
                       </span>
                       {searchMetadata?.thresholdFallback && (
                         <span className="text-xs text-[#FFAA5C]">
-                          Added extra results below {Math.round((searchMetadata.requestedThreshold ?? 0) * 100)}% similarity so you still see the closest matches.
+                          Pulled a few low-sim homies so your vibes aren’t empty.
                         </span>
                       )}
                     </span>
                   ) : (
                     <span>
-                      No matches yet for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
+                      No matches yet for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”. Remix the prompt and try again.
                     </span>
                   )}
                 </div>
@@ -491,6 +666,7 @@ export default function AppPage() {
                   onAssetUpdate={handleAssetUpdate}
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
+                  onUploadClick={() => setShowUploadPanel(true)}
                 />
               </div>
             ) : (
@@ -507,6 +683,7 @@ export default function AppPage() {
                   onAssetSelect={setSelectedAsset}
                   containerClassName={gridContainerClassName}
                   onScrollContainerReady={handleScrollContainerReady}
+                  onUploadClick={() => setShowUploadPanel(true)}
                 />
               </ImageGridErrorBoundary>
             )}

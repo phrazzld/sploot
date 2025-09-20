@@ -40,6 +40,7 @@ interface ImageGridProps {
   onAssetSelect?: (asset: Asset) => void;
   containerClassName?: string;
   onScrollContainerReady?: (node: HTMLDivElement | null) => void;
+  onUploadClick?: () => void;
 }
 
 export function ImageGrid({
@@ -52,6 +53,7 @@ export function ImageGrid({
   onAssetSelect,
   containerClassName,
   onScrollContainerReady,
+  onUploadClick,
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -174,21 +176,39 @@ export function ImageGrid({
 
           <div className="flex flex-col items-center gap-3 sm:flex-row">
             <span className="text-xs uppercase tracking-wide text-[#7C5CFF]">or</span>
-            <Link
-              href="/app/upload"
-              className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
-            >
-              <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path
-                  d="M10 4v12M4 10h12"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-              Upload images
-            </Link>
+            {onUploadClick ? (
+              <button
+                onClick={onUploadClick}
+                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M10 4v12M4 10h12"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Upload images
+              </button>
+            ) : (
+              <Link
+                href="/app?upload=1"
+                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M10 4v12M4 10h12"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                Upload images
+              </Link>
+            )}
           </div>
         </div>
       </div>
