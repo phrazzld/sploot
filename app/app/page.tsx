@@ -60,7 +60,8 @@ export default function AppPage() {
     updateAsset: updateSearchAsset,
     deleteAsset: deleteSearchAsset,
     search: runInlineSearch,
-  } = useSearchAssets(libraryQuery, { limit: 50 });
+    metadata: searchMetadata,
+  } = useSearchAssets(libraryQuery, { limit: 50, threshold: 0.2 });
 
   // Save preferences to localStorage
   useEffect(() => {
@@ -448,9 +449,16 @@ export default function AppPage() {
               {!searchError && !searchLoading && (
                 <div className="p-4 bg-[#14171A] border border-[#2A2F37] rounded-xl text-sm text-[#B3B7BE]">
                   {searchTotal > 0 ? (
-                    <span>
-                      Showing <span className="text-[#B6FF6E] font-semibold">{searchTotal}</span> matches
-                      for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
+                    <span className="flex flex-col gap-1">
+                      <span>
+                        Showing <span className="text-[#B6FF6E] font-semibold">{searchTotal}</span> matches
+                        for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
+                      </span>
+                      {searchMetadata?.thresholdFallback && (
+                        <span className="text-xs text-[#FFAA5C]">
+                          Added extra results below {Math.round((searchMetadata.requestedThreshold ?? 0) * 100)}% similarity so you still see the closest matches.
+                        </span>
+                      )}
                     </span>
                   ) : (
                     <span>

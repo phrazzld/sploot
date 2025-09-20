@@ -26,6 +26,9 @@ interface Asset {
     modelVersion: string;
     createdAt: Date | string;
   } | null;
+  similarity?: number;
+  relevance?: number;
+  belowThreshold?: boolean;
 }
 
 interface ImageTileProps {
@@ -274,9 +277,21 @@ export function ImageTile({
           {/* Bottom info on hover */}
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <p className="text-white text-sm font-medium truncate">{asset.filename}</p>
-            <p className="text-white/80 text-xs">
-              {asset.width}×{asset.height} • {formatFileSize(asset.size || 0)}
-            </p>
+            <div className="flex items-center justify-between text-white/80 text-xs">
+              <span>
+                {asset.width}×{asset.height} • {formatFileSize(asset.size || 0)}
+              </span>
+              {typeof asset.relevance === 'number' && (
+                <span
+                  className={cn(
+                    'ml-2 font-semibold',
+                    asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
+                  )}
+                >
+                  {Math.round(asset.relevance)}% match
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -328,6 +343,24 @@ export function ImageTile({
         <p className="text-[#B3B7BE] text-xs mt-1">
           {asset.mime.split('/')[1].toUpperCase()}
         </p>
+
+        {typeof asset.relevance === 'number' && (
+          <div className="mt-2 flex items-center gap-2 text-xs">
+            <span
+              className={cn(
+                'font-semibold',
+                asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
+              )}
+            >
+              {Math.round(asset.relevance)}% match
+            </span>
+            {asset.belowThreshold && (
+              <span className="text-[10px] uppercase tracking-wide text-[#FFAA5C]/80">
+                Below threshold
+              </span>
+            )}
+          </div>
+        )}
 
         {/* Tags */}
         {asset.tags && asset.tags.length > 0 && (

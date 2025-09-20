@@ -15,6 +15,9 @@ interface Asset {
   favorite: boolean;
   createdAt: Date | string;
   tags?: Array<{ id: string; name: string }>;
+  similarity?: number;
+  relevance?: number;
+  belowThreshold?: boolean;
 }
 
 interface UseAssetsOptions {
@@ -126,18 +129,28 @@ export function useAssets(options: UseAssetsOptions = {}) {
 }
 
 // Hook for searching assets
-export function useSearchAssets(query: string, options: { limit?: number } = {}) {
-  const { limit = 50 } = options;
+interface SearchMetadata {
+  limit: number;
+  requestedLimit: number;
+  threshold: number;
+  requestedThreshold: number;
+  thresholdFallback: boolean;
+}
+
+export function useSearchAssets(query: string, options: { limit?: number; threshold?: number } = {}) {
+  const { limit = 50, threshold = 0.2 } = options;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
+  const [metadata, setMetadata] = useState<SearchMetadata | null>(null);
 
   const search = useCallback(async () => {
     if (!query.trim()) {
       setAssets([]);
       setTotal(0);
+      setMetadata(null);
       return;
     }
 
@@ -151,7 +164,7 @@ export function useSearchAssets(query: string, options: { limit?: number } = {})
         body: JSON.stringify({
           query: query.trim(),
           limit,
-          threshold: 0.5,
+          threshold,
         }),
       });
 
@@ -162,15 +175,23 @@ export function useSearchAssets(query: string, options: { limit?: number } = {})
       const data = await response.json();
       setAssets(data.results || []);
       setTotal(data.total || 0);
+      setMetadata({
+        limit: data.limit ?? limit,
+        requestedLimit: data.requestedLimit ?? limit,
+        threshold: data.threshold ?? threshold,
+        requestedThreshold: data.requestedThreshold ?? threshold,
+        thresholdFallback: Boolean(data.thresholdFallback),
+      });
     } catch (err) {
       logError('Search error:', err);
       setError(err instanceof Error ? err.message : 'Search failed');
       setAssets([]);
       setTotal(0);
+      setMetadata(null);
     } finally {
       setLoading(false);
     }
-  }, [query, limit]);
+  }, [query, limit, threshold]);
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
     setAssets((prev) =>
@@ -207,5 +228,6 @@ export function useSearchAssets(query: string, options: { limit?: number } = {})
     search,
     updateAsset,
     deleteAsset,
+    metadata,
   };
 }

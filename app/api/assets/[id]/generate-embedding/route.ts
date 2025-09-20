@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma, databaseAvailable, upsertAssetEmbedding } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { getAuth } from '@/lib/auth/server';
 import { isMockMode } from '@/lib/env';
@@ -90,15 +90,17 @@ export async function POST(
     const result = await embeddingService.embedImage(asset.blobUrl, asset.checksumSha256);
 
     // Store embedding in database
-    const embedding = await prisma.assetEmbedding.create({
-      data: {
-        assetId: asset.id,
-        modelName: result.model,
-        modelVersion: result.model,
-        dim: result.dimension,
-        ...({ imageEmbedding: result.embedding } as any),
-      },
+    const embedding = await upsertAssetEmbedding({
+      assetId: asset.id,
+      modelName: result.model,
+      modelVersion: result.model,
+      dim: result.dimension,
+      embedding: result.embedding,
     });
+
+    if (!embedding) {
+      throw new Error('Failed to persist embedding record');
+    }
 
     return NextResponse.json({
       success: true,

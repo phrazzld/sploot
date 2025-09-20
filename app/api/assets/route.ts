@@ -4,7 +4,7 @@ import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';
 import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma, databaseAvailable, upsertAssetEmbedding } from '@/lib/db';
 import { isMockMode } from '@/lib/env';
 import {
   mockCreateAsset,
@@ -310,30 +310,13 @@ async function generateEmbeddingAsync(
       where: { assetId },
     });
 
-    if (existingEmbedding) {
-      // Update existing embedding
-      await prisma.assetEmbedding.update({
-        where: { assetId },
-        data: {
-          modelName: result.model,
-          modelVersion: result.model,
-          dim: result.dimension,
-          updatedAt: new Date(),
-          ...({ imageEmbedding: result.embedding } as any),
-        },
-      });
-    } else {
-      // Create new embedding
-      await prisma.assetEmbedding.create({
-        data: {
-          assetId,
-          modelName: result.model,
-          modelVersion: result.model,
-          dim: result.dimension,
-          ...({ imageEmbedding: result.embedding } as any),
-        },
-      });
-    }
+    await upsertAssetEmbedding({
+      assetId,
+      modelName: result.model,
+      modelVersion: result.model,
+      dim: result.dimension,
+      embedding: result.embedding,
+    });
 
     // Successfully generated embedding
   } catch (error) {

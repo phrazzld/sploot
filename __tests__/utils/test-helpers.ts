@@ -90,6 +90,7 @@ export const mockPrisma = () => {
       findMany: jest.fn<() => Promise<any>>().mockResolvedValue([]),
       groupBy: jest.fn<() => Promise<any>>().mockResolvedValue([]),
     },
+    $queryRaw: jest.fn<() => Promise<any>>().mockResolvedValue([]),
     $queryRawUnsafe: jest.fn<() => Promise<any>>().mockResolvedValue([]),
     $transaction: jest.fn<(callback: any) => Promise<any>>().mockImplementation((callback) =>
       callback({

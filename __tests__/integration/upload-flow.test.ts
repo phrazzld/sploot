@@ -14,8 +14,10 @@ jest.mock('@/lib/db', () => {
   const helpers = require('../utils/test-helpers');
   return {
     prisma: helpers.mockPrisma(),
+    upsertAssetEmbedding: jest.fn(),
     vectorSearch: jest.fn(),
     logSearch: jest.fn(),
+    databaseAvailable: true,
   };
 });
 
@@ -43,7 +45,7 @@ const mockPut = put as jest.MockedFunction<typeof put>;
 const mockDel = del as jest.MockedFunction<typeof del>;
 const { createEmbeddingService } = require('@/lib/embeddings');
 const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer-cache');
-const { prisma } = require('@/lib/db');
+const { prisma, upsertAssetEmbedding } = require('@/lib/db');
 
 describe('Upload Flow Integration Tests', () => {
   const testUserId = 'test-user-id';
@@ -146,11 +148,13 @@ describe('Upload Flow Integration Tests', () => {
       });
 
       prisma.asset.findUnique.mockResolvedValue(mockAsset);
-      prisma.assetEmbedding.upsert.mockResolvedValue({
-        id: 'embedding-123',
+      upsertAssetEmbedding.mockResolvedValue({
         assetId: 'asset-123',
-        imageEmbedding: mockEmbedding,
+        modelName: 'siglip-large',
+        modelVersion: 'siglip-large',
+        dim: 1152,
         createdAt: new Date(),
+        updatedAt: new Date(),
       });
 
       const generateEmbeddingRequest = createMockRequest('POST');

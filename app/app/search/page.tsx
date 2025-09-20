@@ -22,7 +22,8 @@ function SearchContent() {
     total,
     updateAsset,
     deleteAsset,
-  } = useSearchAssets(query, { limit: 50 });
+    metadata,
+  } = useSearchAssets(query, { limit: 50, threshold: 0.2 });
 
   // Update query when URL changes
   useEffect(() => {
@@ -75,10 +76,17 @@ function SearchContent() {
         {/* Search Results Info */}
         {query && !loading && !error && (
           <div className="mb-4 p-4 bg-[#14171A] border border-[#2A2F37] rounded-xl">
-            <p className="text-sm text-[#B3B7BE]">
-              Found <span className="text-[#B6FF6E] font-semibold">{total}</span> results
-              for &ldquo;<span className="text-[#E6E8EB] font-medium">{query}</span>&rdquo;
-            </p>
+            <div className="flex flex-col gap-2 text-sm text-[#B3B7BE]">
+              <p>
+                Found <span className="text-[#B6FF6E] font-semibold">{total}</span> results
+                for &ldquo;<span className="text-[#E6E8EB] font-medium">{query}</span>&rdquo;
+              </p>
+              {metadata?.thresholdFallback && (
+                <p className="text-xs text-[#FFAA5C]">
+                  Showing additional matches below {Math.round((metadata.requestedThreshold ?? 0) * 100)}% similarity so you still see the closest memes.
+                </p>
+              )}
+            </div>
           </div>
         )}
 

@@ -1,5 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import { databaseConfigured, isMockMode } from './env';
+import logger from './logger';
 
 // Declare global type for PrismaClient to prevent multiple instances in development
 declare global {
@@ -367,6 +368,94 @@ export async function getUserAssets(
   };
 }
 
+export interface AssetEmbeddingWriteArgs {
+  assetId: string;
+  modelName: string;
+  modelVersion: string;
+  dim: number;
+  embedding: number[];
+}
+
+export interface AssetEmbeddingRecord {
+  assetId: string;
+  modelName: string;
+  modelVersion: string;
+  dim: number;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+/**
+ * Insert or update an asset embedding using raw SQL to support pgvector writes.
+ */
+export async function upsertAssetEmbedding(
+  data: AssetEmbeddingWriteArgs
+): Promise<AssetEmbeddingRecord | null> {
+  if (!prisma) {
+    return null;
+  }
+
+  const { assetId, modelName, modelVersion, dim, embedding } = data;
+
+  if (!Array.isArray(embedding) || embedding.length === 0) {
+    throw new Error('Embedding vector must be a non-empty array');
+  }
+
+  if (embedding.length !== dim) {
+    throw new Error('Embedding dimension does not match provided dim value');
+  }
+
+  // Construct ARRAY[...] literal so Postgres can parameterize each element
+  const vectorSql = Prisma.sql`ARRAY[${Prisma.join(embedding)}]`;
+
+  try {
+    const rows = await prisma.$queryRaw<Array<AssetEmbeddingRecord>>(Prisma.sql`
+      INSERT INTO "asset_embeddings" (
+        "asset_id",
+        "model_name",
+        "model_version",
+        "dim",
+        "image_embedding",
+        "createdAt",
+        "updatedAt"
+      ) VALUES (
+        ${assetId},
+        ${modelName},
+        ${modelVersion},
+        ${dim},
+        ${vectorSql}::vector,
+        NOW(),
+        NOW()
+      )
+      ON CONFLICT ("asset_id") DO UPDATE SET
+        "model_name" = EXCLUDED."model_name",
+        "model_version" = EXCLUDED."model_version",
+        "dim" = EXCLUDED."dim",
+        "image_embedding" = EXCLUDED."image_embedding",
+        "updatedAt" = NOW()
+      RETURNING
+        "asset_id" AS "assetId",
+        "model_name" AS "modelName",
+        "model_version" AS "modelVersion",
+        "dim",
+        "createdAt",
+        "updatedAt";
+    `);
+
+    return rows[0] ?? null;
+  } catch (error) {
+    logger.error('Failed to upsert asset embedding', {
+      assetId,
+      modelName,
+      modelVersion,
+      dim,
+      embeddingLength: embedding.length,
+      error: error instanceof Error ? error.message : error,
+    });
+    throw error;
+  }
+}
+
 /**
  * Helper function to execute vector similarity search
  * Note: This uses raw SQL since Prisma doesn't natively support pgvector operations
@@ -383,46 +472,69 @@ export async function vectorSearch(
     return [];
   }
 
-  const { limit = 30, threshold = 0.7 } = options || {};
+  const { limit = 30, threshold } = options || {};
 
   // Convert embedding array to pgvector format
-  const embeddingStr = `[${queryEmbedding.join(',')}]`;
+  const vectorSql = Prisma.sql`ARRAY[${Prisma.join(queryEmbedding)}]::vector`;
 
-  // Execute vector similarity search with cosine distance
-  const results = await prisma.$queryRaw<
-    Array<{
-      id: string;
-      blob_url: string;
-      pathname: string;
-      mime: string;
-      width: number | null;
-      height: number | null;
-      favorite: boolean;
-      created_at: Date;
-      distance: number;
-    }>
-  >`
-    SELECT
-      a.id,
-      a.blob_url,
-      a.pathname,
-      a.mime,
-      a.width,
-      a.height,
-      a.favorite,
-      a.created_at,
-      1 - (ae.image_embedding <=> ${embeddingStr}::vector) as distance
-    FROM assets a
-    INNER JOIN asset_embeddings ae ON a.id = ae.asset_id
-    WHERE
-      a.owner_user_id = ${userId}
-      AND a.deleted_at IS NULL
-      AND 1 - (ae.image_embedding <=> ${embeddingStr}::vector) > ${threshold}
-    ORDER BY ae.image_embedding <=> ${embeddingStr}::vector
-    LIMIT ${limit}
-  `;
+  // Fetch more candidates when thresholding so we can filter in application code
+  const fetchLimit =
+    typeof threshold === 'number' && threshold > 0
+      ? Math.min(limit * 3, 120)
+      : limit;
 
-  return results;
+  try {
+    // Execute vector similarity search with cosine distance
+    const results = await prisma.$queryRaw<
+      Array<{
+        id: string;
+        blob_url: string;
+        pathname: string;
+        mime: string;
+        width: number | null;
+        height: number | null;
+        favorite: boolean;
+        size: number;
+        created_at: Date;
+        distance: number;
+      }>
+    >(Prisma.sql`
+      SELECT
+        a.id,
+        a.blob_url,
+        a.pathname,
+        a.mime,
+        a.width,
+        a.height,
+        a.favorite,
+        a.size,
+        a."createdAt" AS created_at,
+        1 - (ae.image_embedding <=> ${vectorSql}) AS distance
+      FROM "assets" a
+      INNER JOIN "asset_embeddings" ae ON a.id = ae.asset_id
+      WHERE
+        a.owner_user_id = ${userId}
+        AND a.deleted_at IS NULL
+      ORDER BY ae.image_embedding <=> ${vectorSql}
+      LIMIT ${fetchLimit}
+    `);
+
+    const filtered =
+      typeof threshold === 'number'
+        ? results.filter(result => result.distance >= threshold)
+        : results;
+
+    return filtered.slice(0, limit);
+  } catch (error) {
+    logger.error('Vector search query failed', {
+      userId,
+      limit,
+      threshold,
+      embeddingLength: queryEmbedding.length,
+      error: error instanceof Error ? error.message : error,
+    });
+    throw error;
+  }
 }
 
 export async function logSearch(

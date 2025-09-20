@@ -726,7 +726,7 @@ describe('Search Flow Integration Tests', () => {
       expect(vectorSearch).toHaveBeenCalledWith(
         testUserId,
         mockEmbedding,
-        { limit: 30, threshold: 0.6 }
+        { limit: 30, threshold: 0.2 }
       );
     });
   });

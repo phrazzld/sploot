@@ -16,8 +16,9 @@ export function SearchBarWithResults({
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
-  const { assets, loading, error, total } = useSearchAssets(debouncedQuery, {
+  const { assets, loading, error, total, metadata } = useSearchAssets(debouncedQuery, {
     limit: 20,
+    threshold: 0.2,
   });
 
   // Debounce the search query
@@ -80,6 +81,11 @@ export function SearchBarWithResults({
             <span>
               Found <span className="text-[#B6FF6E] font-semibold">{total}</span> results
               for &ldquo;<span className="text-[#E6E8EB]">{debouncedQuery}</span>&rdquo;
+              {metadata?.thresholdFallback && (
+                <span className="ml-2 text-[#FFAA5C]">
+                  Showing additional matches below {Math.round((metadata.requestedThreshold ?? 0) * 100)}% similarity
+                </span>
+              )}
             </span>
           )}
 

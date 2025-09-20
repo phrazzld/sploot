@@ -210,8 +210,94 @@ describe('/api/search', () => {
         'test-user-id',
         'test search',
         expect.any(Array),
-        expect.objectContaining({ limit: 30, threshold: 0.6 })
+        expect.objectContaining({ limit: 30, threshold: 0.2 })
       );
+    });
+
+    it('should include fallback matches when fewer than ten results meet the threshold', async () => {
+      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+
+      const mockCache = mockMultiLayerCache();
+      mockCache.getSearchResults.mockResolvedValue(null);
+      getMultiLayerCache.mockReturnValue(mockCache);
+
+      const primaryResults = [
+        {
+          id: 'asset-primary-1',
+          blob_url: 'https://example.blob.vercel-storage.com/primary1.jpg',
+          pathname: 'primary1.jpg',
+          mime: 'image/jpeg',
+          width: 1024,
+          height: 768,
+          favorite: false,
+          size: 150000,
+          created_at: new Date(),
+          distance: 0.86,
+        },
+        {
+          id: 'asset-primary-2',
+          blob_url: 'https://example.blob.vercel-storage.com/primary2.jpg',
+          pathname: 'primary2.jpg',
+          mime: 'image/jpeg',
+          width: 900,
+          height: 900,
+          favorite: false,
+          size: 150000,
+          created_at: new Date(),
+          distance: 0.81,
+        },
+      ];
+
+      const fallbackResults = [
+        ...primaryResults,
+        ...Array.from({ length: 10 }).map((_, index) => ({
+          id: `asset-fallback-${index}`,
+          blob_url: `https://example.blob.vercel-storage.com/fallback-${index}.jpg`,
+          pathname: `fallback-${index}.jpg`,
+          mime: 'image/jpeg',
+          width: 800,
+          height: 800,
+          favorite: false,
+          size: 120000,
+          created_at: new Date(),
+          distance: Number((0.45 - index * 0.01).toFixed(2)),
+        })),
+      ];
+
+      vectorSearch
+        .mockResolvedValueOnce(primaryResults)
+        .mockResolvedValueOnce(fallbackResults);
+
+      prisma.assetTag.findMany.mockResolvedValue([]);
+
+      const request = createMockRequest('POST', {
+        query: 'test search',
+        limit: 12,
+        threshold: 0.8,
+      });
+
+      const response = await POST(request);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(vectorSearch).toHaveBeenNthCalledWith(
+        1,
+        'test-user-id',
+        expect.any(Array),
+        { limit: 12, threshold: 0.8 }
+      );
+      expect(vectorSearch).toHaveBeenNthCalledWith(
+        2,
+        'test-user-id',
+        expect.any(Array),
+        { limit: 12, threshold: 0 }
+      );
+
+      expect(data.thresholdFallback).toBe(true);
+      expect(data.results).toHaveLength(12);
+      const belowThresholdMatches = data.results.filter((result: any) => result.belowThreshold);
+      expect(belowThresholdMatches.length).toBeGreaterThan(0);
+      expect(belowThresholdMatches.every((result: any) => result.relevance < 80)).toBe(true);
     });
 
     it('should handle embedding service errors gracefully', async () => {

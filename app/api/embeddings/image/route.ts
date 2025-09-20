@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma, databaseAvailable, upsertAssetEmbedding } from '@/lib/db';
 import { getAuth } from '@/lib/auth/server';
 import { isMockMode } from '@/lib/env';
 import { mockGenerateEmbedding, mockGetAsset } from '@/lib/mock-store';
@@ -72,32 +72,13 @@ export async function POST(req: NextRequest) {
       if (isMockMode() || !databaseAvailable || !prisma) {
         mockGenerateEmbedding(userId, assetId);
       } else {
-        const existingEmbedding = await prisma.assetEmbedding.findUnique({
-          where: { assetId },
+        await upsertAssetEmbedding({
+          assetId,
+          modelName: result.model,
+          modelVersion: result.model,
+          dim: result.dimension,
+          embedding: result.embedding,
         });
-
-        if (existingEmbedding) {
-          await prisma.assetEmbedding.update({
-            where: { assetId },
-            data: {
-              modelName: result.model,
-              modelVersion: result.model,
-              dim: result.dimension,
-              updatedAt: new Date(),
-              ...({ imageEmbedding: result.embedding } as any),
-            },
-          });
-        } else {
-          await prisma.assetEmbedding.create({
-            data: {
-              assetId,
-              modelName: result.model,
-              modelVersion: result.model,
-              dim: result.dimension,
-              ...({ imageEmbedding: result.embedding } as any),
-            },
-          });
-        }
       }
     }
 

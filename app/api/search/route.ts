@@ -6,11 +6,13 @@ import { getAuthWithUser } from '@/lib/auth/server';
 import { isMockMode } from '@/lib/env';
 import { mockLogSearch, mockPopularSearches, mockRecentSearches, mockSearchAssets } from '@/lib/mock-store';
 
+const MIN_SIMILAR_RESULTS = 10;
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   let query: string = '';
   let limit: number = 30;
-  let threshold: number = 0.6;
+  let threshold: number = 0.2;
 
   try {
     const { userId } = await getAuthWithUser();
@@ -22,7 +24,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    ({ query, limit = 30, threshold = 0.6 } = body);
+    ({ query, limit = 30, threshold = 0.2 } = body);
 
     if (!query || typeof query !== 'string') {
       return NextResponse.json(
@@ -30,6 +32,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    const effectiveLimit = Math.max(limit, MIN_SIMILAR_RESULTS);
 
     if (query.length > 500) {
       return NextResponse.json(
@@ -48,32 +52,39 @@ export async function POST(req: NextRequest) {
       cachedResults = await multiCache.getSearchResults(
         userId,
         query,
-        { limit, threshold }
+        { limit: effectiveLimit, threshold }
       );
     }
 
     if (cachedResults) {
+      const cachedFallbackUsed = cachedResults.some((result) => Boolean(result?.belowThreshold));
       // Cache hit for search
       return NextResponse.json({
         results: cachedResults,
         query,
         total: cachedResults.length,
-        limit,
+        limit: effectiveLimit,
+        requestedLimit: limit,
         threshold,
+        requestedThreshold: threshold,
+        thresholdFallback: cachedFallbackUsed,
         processingTime: Date.now() - startTime,
         cached: true,
       });
     }
 
     if (useMock) {
-      const results = mockSearchAssets(userId, query, { limit });
+      const results = mockSearchAssets(userId, query, { limit: effectiveLimit });
       mockLogSearch(userId, query, results.length);
       return NextResponse.json({
         results,
         query,
         total: results.length,
-        limit,
+        limit: effectiveLimit,
+        requestedLimit: limit,
         threshold,
+        requestedThreshold: threshold,
+        thresholdFallback: false,
         processingTime: Date.now() - startTime,
         embeddingModel: 'mock/sploot-embedding:local',
         cached: false,
@@ -93,8 +104,12 @@ export async function POST(req: NextRequest) {
         results: [],
         query,
         total: 0,
-        limit,
+        limit: effectiveLimit,
+        requestedLimit: limit,
         processingTime: Date.now() - startTime,
+        requestedThreshold: threshold,
+        threshold,
+        thresholdFallback: false,
         error: 'Search is currently unavailable. Please configure Replicate API token.',
       });
     }
@@ -103,11 +118,48 @@ export async function POST(req: NextRequest) {
     const embeddingResult = await embeddingService.embedText(query);
 
     // Perform vector similarity search
-    const searchResults = await vectorSearch(
+    let appliedThreshold = threshold;
+    let usedFallbackThreshold = false;
+
+    let searchResults = await vectorSearch(
       userId,
       embeddingResult.embedding,
-      { limit, threshold }
+      { limit: effectiveLimit, threshold: appliedThreshold }
     );
+
+    if ((searchResults.length === 0 || searchResults.length < MIN_SIMILAR_RESULTS) && appliedThreshold > 0) {
+      const fallbackLimit = Math.max(effectiveLimit, MIN_SIMILAR_RESULTS);
+      const fallbackResults = await vectorSearch(
+        userId,
+        embeddingResult.embedding,
+        { limit: fallbackLimit, threshold: 0 }
+      );
+
+      const mergedResults: typeof searchResults = [];
+      const seen = new Set<string>();
+
+      for (const result of searchResults) {
+        mergedResults.push(result);
+        seen.add(result.id);
+      }
+
+      for (const result of fallbackResults) {
+        if (seen.has(result.id)) {
+          continue;
+        }
+        mergedResults.push(result);
+        seen.add(result.id);
+      }
+
+      if (mergedResults.length > searchResults.length) {
+        usedFallbackThreshold = true;
+      }
+
+      searchResults = mergedResults.slice(0, fallbackLimit);
+    }
+
+    // Ensure we only return up to the effective limit
+    searchResults = searchResults.slice(0, effectiveLimit);
 
     // Format results with additional metadata
     const formattedResults = await Promise.all(
@@ -126,9 +178,11 @@ export async function POST(req: NextRequest) {
           width: result.width,
           height: result.height,
           favorite: result.favorite,
+          size: result.size,
           createdAt: result.created_at,
           similarity: result.distance, // 0-1 score, higher is better
           relevance: Math.round(result.distance * 100), // Percentage for UI
+          belowThreshold: appliedThreshold > 0 && result.distance < appliedThreshold,
           tags: assetTags.map((at: any) => ({
             id: at.tag.id,
             name: at.tag.name,
@@ -145,7 +199,7 @@ export async function POST(req: NextRequest) {
         userId,
         query,
         formattedResults,
-        { limit, threshold }
+        { limit: effectiveLimit, threshold }
       );
     }
 
@@ -158,11 +212,14 @@ export async function POST(req: NextRequest) {
       results: formattedResults,
       query,
       total: formattedResults.length,
-      limit,
-      threshold,
+      limit: effectiveLimit,
+      requestedLimit: limit,
+      threshold: appliedThreshold,
+      requestedThreshold: threshold,
       processingTime: queryTime,
       embeddingModel: embeddingResult.model,
       cached: false,
+      thresholdFallback: usedFallbackThreshold,
     });
 
   } catch (error) {

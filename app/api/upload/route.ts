@@ -3,7 +3,7 @@ import { put } from '@vercel/blob';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { blobConfigured, isMockMode } from '@/lib/env';
-import { prisma, databaseAvailable, assetExists, findOrCreateAsset, ExistingAssetMetadata } from '@/lib/db';
+import { prisma, databaseAvailable, assetExists, findOrCreateAsset, ExistingAssetMetadata, upsertAssetEmbedding } from '@/lib/db';
 import crypto from 'crypto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
@@ -451,15 +451,12 @@ async function generateEmbeddingAsync(
     const result = await embeddingService.embedImage(blobUrl, checksum);
 
     // Store embedding in database
-    await prisma.assetEmbedding.create({
-      data: {
-        assetId,
-        modelName: result.model,
-        modelVersion: result.model,
-        dim: result.dimension,
-        // Spread operator bypasses Prisma validation for Unsupported vector type
-        ...({ imageEmbedding: result.embedding } as any),
-      },
+    await upsertAssetEmbedding({
+      assetId,
+      modelName: result.model,
+      modelVersion: result.model,
+      dim: result.dimension,
+      embedding: result.embedding,
     });
 
     console.log(`Embedding generated successfully for asset ${assetId}`);

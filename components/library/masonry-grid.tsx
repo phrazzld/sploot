@@ -22,6 +22,9 @@ interface Asset {
     modelVersion: string;
     createdAt: Date | string;
   } | null;
+  similarity?: number;
+  relevance?: number;
+  belowThreshold?: boolean;
 }
 
 interface MasonryGridProps {
