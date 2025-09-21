@@ -31,8 +31,8 @@ export function useEmbeddingRetry({
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout>();
-  const hasTriggeredRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const hasTriggeredRef = useRef<boolean>(false);
 
   useEffect(() => {
     // Skip if already has embedding or already triggered

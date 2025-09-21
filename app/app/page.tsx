@@ -48,8 +48,8 @@ export default function AppPage() {
     favorites: boolean;
     sortBy: string;
     sortOrder: string;
-  }>();
-  const pendingRefreshRef = useRef(false);
+  } | undefined>(undefined);
+  const pendingRefreshRef = useRef<boolean>(false);
 
   // Convert filename to createdAt for the actual sorting
   const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;

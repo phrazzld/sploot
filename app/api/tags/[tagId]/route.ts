@@ -7,9 +7,10 @@ import { prisma, databaseAvailable } from '@/lib/db';
  */
 export async function PATCH(
   req: NextRequest,
-  { params }: { params: { tagId: string } }
+  { params }: { params: Promise<{ tagId: string }> }
 ) {
   try {
+    const { tagId } = await params;
     const userId = await requireUserIdWithSync();
     const { name, color } = await req.json();
 
@@ -23,7 +24,7 @@ export async function PATCH(
     // Verify tag ownership
     const existingTag = await prisma.tag.findFirst({
       where: {
-        id: params.tagId,
+        id: tagId,
         ownerUserId: userId,
       },
     });
@@ -42,7 +43,7 @@ export async function PATCH(
           ownerUserId: userId,
           name: name.trim().toLowerCase(),
           NOT: {
-            id: params.tagId,
+            id: tagId,
           },
         },
       });
@@ -57,7 +58,7 @@ export async function PATCH(
 
     const updatedTag = await prisma.tag.update({
       where: {
-        id: params.tagId,
+        id: tagId,
       },
       data: {
         ...(name && { name: name.trim().toLowerCase() }),
@@ -88,9 +89,10 @@ export async function PATCH(
  */
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { tagId: string } }
+  { params }: { params: Promise<{ tagId: string }> }
 ) {
   try {
+    const { tagId } = await params;
     const userId = await requireUserIdWithSync();
 
     if (!databaseAvailable || !prisma) {
@@ -103,7 +105,7 @@ export async function DELETE(
     // Verify tag ownership
     const existingTag = await prisma.tag.findFirst({
       where: {
-        id: params.tagId,
+        id: tagId,
         ownerUserId: userId,
       },
     });
@@ -118,7 +120,7 @@ export async function DELETE(
     // Delete tag (cascade will remove AssetTag associations)
     await prisma.tag.delete({
       where: {
-        id: params.tagId,
+        id: tagId,
       },
     });
 
