@@ -54,6 +54,9 @@ export default function AppPage() {
   // Convert filename to createdAt for the actual sorting
   const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
 
+  useEffect(() => {
+    setLibraryQuery(queryParam);
+  }, [queryParam]);
   const updateUrlParams = useCallback(
     (updates: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -181,18 +184,8 @@ export default function AppPage() {
 
   const handleInlineSearch = useCallback((query: string) => {
     setLibraryQuery(query);
-
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      if (query) {
-        params.set('q', query);
-      } else {
-        params.delete('q');
-      }
-      const newUrl = `${window.location.pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-      window.history.replaceState(null, '', newUrl);
-    }
-  }, []);
+    updateUrlParams({ q: query ? query : null });
+  }, [updateUrlParams]);
 
   const toggleFavoritesOnly = useCallback(() => {
     updateUrlParams({ favorite: favoritesOnly ? null : 'true' });
