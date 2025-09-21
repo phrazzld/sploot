@@ -369,7 +369,7 @@ export default function AppPage() {
         <header className="mb-6">
           <div className="flex items-start justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-[#E6E8EB]">Your Library</h1>
+              <h1 className="text-3xl font-bold text-[#E6E8EB]">your library</h1>
               <p className="text-[#B3B7BE] mt-2">
                 {stats.total > 0 ? (
                   <>
@@ -384,7 +384,7 @@ export default function AppPage() {
                     {stats.sizeFormatted}
                   </>
                 ) : (
-                  'Start building your meme collection'
+                  'start building your meme collection'
                 )}
               </p>
             </div>
@@ -399,7 +399,7 @@ export default function AppPage() {
                     ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
                     : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
                 }`}
-                title="Grid view"
+                title="grid view"
               >
                 {/* Grid Icon */}
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -416,7 +416,7 @@ export default function AppPage() {
                     ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
                     : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
                 }`}
-                title="Masonry view"
+                title="masonry view"
               >
                 {/* Masonry Icon */}
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -433,7 +433,7 @@ export default function AppPage() {
                     ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
                     : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
                 }`}
-                title="Compact view"
+                title="compact view"
               >
                 {/* List/Compact Icon */}
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -454,9 +454,9 @@ export default function AppPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
                   </svg>
                   <span>
-                    {sortBy === 'createdAt' ? 'Date' :
-                     sortBy === 'favorite' ? 'Favorites' :
-                     sortBy === 'size' ? 'Size' : 'Name'}
+                    {sortBy === 'createdAt' ? 'date' :
+                     sortBy === 'favorite' ? 'favorites' :
+                     sortBy === 'size' ? 'size' : 'name'}
                     {sortOrder === 'desc' ? ' ↓' : ' ↑'}
                   </span>
                 </button>
@@ -475,7 +475,7 @@ export default function AppPage() {
                           sortBy === 'createdAt' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
                         }`}
                       >
-                        Date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
+                        date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
                       </button>
                       <button
                         onClick={() => {
@@ -487,7 +487,7 @@ export default function AppPage() {
                           sortBy === 'favorite' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
                         }`}
                       >
-                        Favorites first
+                        favorites first
                       </button>
                       <button
                         onClick={() => {
@@ -499,7 +499,7 @@ export default function AppPage() {
                           sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
                         }`}
                       >
-                        Size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
+                        size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
                       </button>
                       <button
                         onClick={() => {
@@ -511,7 +511,7 @@ export default function AppPage() {
                           sortBy === 'filename' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
                         }`}
                       >
-                        Name {sortBy === 'filename' && (sortOrder === 'asc' ? '(A-Z)' : '(Z-A)')}
+                        name {sortBy === 'filename' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
                       </button>
                     </div>
                   </div>
@@ -536,7 +536,7 @@ export default function AppPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8l-8-8-8 8" />
               </svg>
-              {showUploadPanel ? 'Close drip zone' : 'Drop fresh memes'}
+              {showUploadPanel ? 'close drip zone' : 'drop fresh memes'}
             </button>
 
             <button
@@ -551,7 +551,7 @@ export default function AppPage() {
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
               </svg>
-              {favoritesOnly ? 'Only bangers' : 'All memes'}
+              {favoritesOnly ? 'only bangers' : 'all memes'}
             </button>
 
             {tagIdParam && (
@@ -562,17 +562,17 @@ export default function AppPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
                 </svg>
-                Clear tag {activeTagName ? `#${activeTagName}` : ''}
+                clear tag {activeTagName ? `#${activeTagName}` : ''}
               </button>
             )}
           </div>
 
           {!isSearching && (favoritesOnly || tagIdParam) && (
             <div className="text-xs text-[#B3B7BE]">
-              {favoritesOnly && <span className="mr-2">Favorites-only filter is lit.</span>}
+              {favoritesOnly && <span className="mr-2">favorites-only filter is lit.</span>}
               {tagIdParam && (
                 <span>
-                  Serving only tag <span className="text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>.
+                  serving only tag <span className="text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>.
                 </span>
               )}
             </div>
@@ -615,7 +615,7 @@ export default function AppPage() {
                       d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     />
                   </svg>
-                  Summoning results for “{trimmedLibraryQuery}”…
+                  summoning results for "{trimmedLibraryQuery}"…
                 </div>
               )}
 
@@ -624,18 +624,18 @@ export default function AppPage() {
                   {searchHitCount > 0 ? (
                     <span className="flex flex-col gap-1">
                       <span>
-                        Showing <span className="text-[#B6FF6E] font-semibold">{searchHitCount}</span> matches
+                        showing <span className="text-[#B6FF6E] font-semibold">{searchHitCount}</span> matches
                         for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
                       </span>
                       {searchMetadata?.thresholdFallback && (
                         <span className="text-xs text-[#FFAA5C]">
-                          Pulled a few low-sim homies so your vibes aren’t empty.
+                          pulled a few low-sim homies so your vibes aren't empty.
                         </span>
                       )}
                     </span>
                   ) : (
                     <span>
-                      No matches yet for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”. Remix the prompt and try again.
+                      no matches yet for "<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>". remix the prompt and try again.
                     </span>
                   )}
                 </div>

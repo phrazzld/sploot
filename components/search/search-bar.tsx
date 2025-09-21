@@ -14,7 +14,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({
-  placeholder = 'Search your memes...',
+  placeholder = 'search your memes...',
   autoFocus = false,
   className = '',
   onSearch,
@@ -161,8 +161,8 @@ export function SearchBar({
                   p-1.5 text-[#6A6E78] hover:text-[#B3B7BE]
                   transition-colors duration-200
                 "
-                aria-label="Clear search"
-                title="Clear search (ESC)"
+                aria-label="clear search"
+                title="clear search (esc)"
               >
                 <svg
                   className="w-5 h-5"
@@ -185,7 +185,7 @@ export function SearchBar({
 
       {/* Hint text for keyboard shortcuts */}
       <div className="absolute -bottom-6 left-0 text-xs text-[#6A6E78] opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="hidden sm:inline">ESC to clear • Enter for instant search</span>
+        <span className="hidden sm:inline">esc to clear • enter for instant search</span>
       </div>
     </div>
   );

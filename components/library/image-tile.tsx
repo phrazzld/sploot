@@ -333,14 +333,14 @@ export function ImageTile({
                 "text-[10px] font-medium uppercase tracking-wide",
                 retryError ? "text-red-500" : "text-[#FFA500]"
               )}>
-                {isGeneratingEmbedding || isRetrying ? "Generating..." : retryError ? "Retry Failed" : "Processing..."}
+                {isGeneratingEmbedding || isRetrying ? "generating..." : retryError ? "retry failed" : "processing..."}
               </span>
             </button>
           ) : (
             <div className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
               <div className="w-1.5 h-1.5 bg-[#B6FF6E] rounded-full" />
               <span className="text-[10px] text-[#B6FF6E] font-medium uppercase tracking-wide">
-                Ready for search
+                ready for search
               </span>
             </div>
           )}

@@ -500,17 +500,17 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
           </div>
 
           <p className="text-[#E6E8EB] font-medium mb-1">
-            {isDragging ? 'Drop your images here' : 'Drag & drop images here'}
+            {isDragging ? 'drop your images here' : 'drag & drop images here'}
           </p>
           <p className="text-[#B3B7BE] text-sm mb-4">
             or click to browse • paste from clipboard
           </p>
           <p className="text-[#B3B7BE]/60 text-xs">
-            JPEG, PNG, WebP, GIF • Max 10MB per file
+            jpeg, png, webp, gif • max 10mb per file
           </p>
           {enableBackgroundSync && supportsBackgroundSync && (
             <p className="text-[#7C5CFF]/60 text-xs mt-2">
-              Background sync enabled • Uploads continue offline
+              background sync enabled • uploads continue offline
             </p>
           )}
         </div>
@@ -556,7 +556,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
           <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <h3 className="text-[#E6E8EB] font-medium text-sm">Upload Progress</h3>
+                <h3 className="text-[#E6E8EB] font-medium text-sm">upload progress</h3>
                 <p className="text-[#B3B7BE] text-xs mt-1">
                   {(() => {
                     const stats = getUploadStats();
@@ -565,7 +565,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                     if (stats.uploading > 0) parts.push(`${stats.uploading} uploading`);
                     if (stats.pending > 0) parts.push(`${stats.pending} pending`);
                     if (stats.failed > 0) parts.push(`${stats.failed} failed`);
-                    return parts.join(' • ') || 'No files';
+                    return parts.join(' • ') || 'no files';
                   })()}
                 </p>
               </div>
@@ -577,7 +577,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                   disabled={isCancelling}
                   className="text-[#FF4D4D] hover:text-[#FF6B6B] text-sm font-medium transition-colors disabled:opacity-50"
                 >
-                  {isCancelling ? 'Cancelling...' : 'Cancel Remaining'}
+                  {isCancelling ? 'cancelling...' : 'cancel remaining'}
                 </button>
               )}
             </div>
@@ -604,19 +604,19 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
             <div className="grid grid-cols-4 gap-2 mt-3">
               <div className="text-center">
                 <p className="text-[#B6FF6E] text-lg font-semibold">{getUploadStats().completed}</p>
-                <p className="text-[#B3B7BE] text-xs">Complete</p>
+                <p className="text-[#B3B7BE] text-xs">complete</p>
               </div>
               <div className="text-center">
                 <p className="text-[#7C5CFF] text-lg font-semibold">{getUploadStats().uploading}</p>
-                <p className="text-[#B3B7BE] text-xs">Uploading</p>
+                <p className="text-[#B3B7BE] text-xs">uploading</p>
               </div>
               <div className="text-center">
                 <p className="text-[#B3B7BE] text-lg font-semibold">{getUploadStats().pending}</p>
-                <p className="text-[#B3B7BE] text-xs">Pending</p>
+                <p className="text-[#B3B7BE] text-xs">pending</p>
               </div>
               <div className="text-center">
                 <p className="text-[#FF4D4D] text-lg font-semibold">{getUploadStats().failed}</p>
-                <p className="text-[#B3B7BE] text-xs">Failed</p>
+                <p className="text-[#B3B7BE] text-xs">failed</p>
               </div>
             </div>
           </div>
@@ -675,7 +675,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
 
                     {file.status === 'duplicate' && (
                       <div className="flex items-center gap-2">
-                        <span className="text-[#FFB020] text-xs">Already exists</span>
+                        <span className="text-[#FFB020] text-xs">already exists</span>
                         <button
                           onClick={() => {
                             if (file.assetId) {
@@ -684,7 +684,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                           }}
                           className="text-[#7C5CFF] hover:text-[#9B7FFF] text-xs font-medium underline"
                         >
-                          View
+                          view
                         </button>
                       </div>
                     )}
@@ -694,7 +694,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                         onClick={() => retryUpload(file)}
                         className="text-[#FF4D4D] hover:text-[#FF6B6B] text-xs underline"
                       >
-                        Retry
+                        retry
                       </button>
                     )}
 
@@ -775,7 +775,7 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                 className="inline-flex items-center justify-center rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0] disabled:cursor-not-allowed disabled:bg-[#2A2F37] disabled:text-[#6A6E78]"
                 disabled={hasActiveUploads}
               >
-                View in Library
+                view in library
               </button>
             </div>
           )}

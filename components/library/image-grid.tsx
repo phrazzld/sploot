@@ -168,9 +168,9 @@ export function ImageGrid({
           </div>
 
           <div>
-            <h3 className="text-xl font-semibold text-[#E6E8EB]">Drop files here</h3>
+            <h3 className="text-xl font-semibold text-[#E6E8EB]">drop files here</h3>
             <p className="mt-2 text-sm text-[#B3B7BE]">
-              Drag and drop images into your library or start an upload to see them appear instantly.
+              drag and drop images into your library or start an upload to see them appear instantly.
             </p>
           </div>
 
@@ -190,7 +190,7 @@ export function ImageGrid({
                     strokeLinejoin="round"
                   />
                 </svg>
-                Upload images
+                upload images
               </button>
             ) : (
               <Link
@@ -206,7 +206,7 @@ export function ImageGrid({
                     strokeLinejoin="round"
                   />
                 </svg>
-                Upload images
+                upload images
               </Link>
             )}
           </div>
