@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { useEmbeddingRetry } from '@/hooks/use-embedding-retry';
+import { HeartIcon } from '@/components/icons/heart-icon';
 
 interface Asset {
   id: string;
@@ -237,53 +238,50 @@ export function ImageTile({
           </>
         )}
 
-        {/* Hover overlay with actions */}
+        {/* Floating actions */}
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleFavoriteToggle}
+            disabled={isLoading}
+            aria-pressed={asset.favorite}
+            className={cn(
+              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm border border-transparent',
+              asset.favorite
+                ? 'bg-[#FF64C5] text-black shadow-[0_8px_24px_-10px_rgba(255,100,197,0.85)] ring-1 ring-[#FF8AD6]/60'
+                : 'bg-black/60 text-white border border-[#2A2F37] hover:border-transparent hover:bg-[#FF64C5] hover:text-black hover:shadow-[0_6px_20px_-10px_rgba(255,100,197,0.9)]',
+              isLoading && 'opacity-70 cursor-wait'
+            )}
+            title={asset.favorite ? 'drop from bangers' : 'crown as banger'}
+          >
+            <HeartIcon className="w-4 h-4" filled={asset.favorite} />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleDelete}
+            disabled={isLoading}
+            className={cn(
+              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm bg-black/60 text-white',
+              'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0',
+              'hover:bg-red-500 hover:text-white',
+              isLoading && 'pointer-events-none cursor-wait group-hover:opacity-60'
+            )}
+            title="rage delete"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+              />
+            </svg>
+          </button>
+        </div>
+
+        {/* Hover overlay with metadata */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-          <div className="absolute top-2 right-2 flex gap-2">
-            {/* Favorite button */}
-            <button
-              onClick={handleFavoriteToggle}
-              disabled={isLoading}
-              className={cn(
-                'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200',
-                'backdrop-blur-sm',
-                asset.favorite
-                  ? 'bg-[#B6FF6E] text-black hover:bg-[#B6FF6E]/90'
-                  : 'bg-black/50 text-white hover:bg-[#7C5CFF] hover:text-white'
-              )}
-            >
-              <svg
-                className="w-4 h-4"
-                fill={asset.favorite ? 'currentColor' : 'none'}
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"
-                />
-              </svg>
-            </button>
-
-            {/* Delete button */}
-            <button
-              onClick={handleDelete}
-              disabled={isLoading}
-              className="w-8 h-8 rounded-full bg-black/50 text-white hover:bg-red-500 hover:text-white flex items-center justify-center transition-all duration-200 backdrop-blur-sm"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-            </button>
-          </div>
-
           {/* Bottom info on hover */}
           <div className="absolute bottom-0 left-0 right-0 p-3">
             <p className="text-white text-sm font-medium truncate">{asset.filename}</p>
@@ -305,46 +303,24 @@ export function ImageTile({
           </div>
         </div>
 
-        {/* Favorite indicator (always visible) */}
-        {asset.favorite && (
-          <div className="absolute top-2 left-2 pointer-events-none">
-            <div className="w-6 h-6 bg-[#B6FF6E] rounded-full flex items-center justify-center">
-              <svg className="w-3 h-3 text-black" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-              </svg>
-            </div>
-          </div>
-        )}
-
-        {/* Embedding readiness indicator */}
-        <div className="absolute bottom-2 left-2">
-          {!hasEmbedding ? (
+        {/* Embedding status - only show if missing */}
+        {!hasEmbedding && (
+          <div className="absolute bottom-2 left-2">
             <button
               onClick={handleGenerateEmbedding}
               disabled={isGeneratingEmbedding}
-              className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full hover:bg-black/80 transition-colors duration-200 cursor-pointer"
-              title="Click to generate search embedding"
+              className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded transition-colors duration-200 cursor-pointer"
+              title="Click to enable search"
             >
-              <div className={cn(
-                "w-1.5 h-1.5 rounded-full",
-                (isGeneratingEmbedding || isRetrying) ? "bg-[#7C5CFF] animate-spin" : "bg-[#FFA500] animate-pulse"
-              )} />
-              <span className={cn(
-                "text-[10px] font-medium uppercase tracking-wide",
-                retryError ? "text-red-500" : "text-[#FFA500]"
-              )}>
-                {isGeneratingEmbedding || isRetrying ? "generating..." : retryError ? "retry failed" : "processing..."}
+              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-[9px] text-white font-medium lowercase">
+                {isGeneratingEmbedding || isRetrying ? "fixing..." : "no search"}
               </span>
             </button>
-          ) : (
-            <div className="flex items-center gap-1.5 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-              <div className="w-1.5 h-1.5 bg-[#B6FF6E] rounded-full" />
-              <span className="text-[10px] text-[#B6FF6E] font-medium uppercase tracking-wide">
-                ready for search
-              </span>
-            </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Metadata */}

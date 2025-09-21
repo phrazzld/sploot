@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { OfflineBanner } from './offline-banner';
+import { OfflineStatusBar } from './offline-status-bar';
 import { UploadQueueDisplay } from './upload-queue-display';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 
@@ -18,8 +18,8 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
 
   return (
     <>
+      <OfflineStatusBar />
       {children}
-      <OfflineBanner />
       <UploadQueueDisplay
         queue={queue}
         onRemove={removeFromQueue}
