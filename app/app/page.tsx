@@ -38,7 +38,8 @@ export default function AppPage() {
     return 'desc';
   });
   const [showSortDropdown, setShowSortDropdown] = useState(false);
-  const [libraryQuery, setLibraryQuery] = useState(queryParam);
+  // Use URL params as single source of truth for search query
+  const libraryQuery = queryParam;
   const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
@@ -54,9 +55,7 @@ export default function AppPage() {
   // Convert filename to createdAt for the actual sorting
   const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
 
-  useEffect(() => {
-    setLibraryQuery(queryParam);
-  }, [queryParam]);
+  // Removed useEffect that was causing circular updates - URL params are now the single source of truth
   const updateUrlParams = useCallback(
     (updates: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
@@ -183,7 +182,7 @@ export default function AppPage() {
   }, [assets, searchAssets, tagIdParam]);
 
   const handleInlineSearch = useCallback((query: string) => {
-    setLibraryQuery(query);
+    // Only update URL params - libraryQuery will follow automatically
     updateUrlParams({ q: query ? query : null });
   }, [updateUrlParams]);
 

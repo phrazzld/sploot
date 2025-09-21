@@ -33,37 +33,24 @@ export function SearchBar({
     setQuery(initialQuery);
   }, [initialQuery]);
 
-  // Handle search automatically when debounced query changes
+  // Handle search when debounced query changes
   useEffect(() => {
     const trimmedQuery = debouncedQuery.trim();
 
-    // If query is empty, clear search results if onSearch handler provided
-    if (!trimmedQuery) {
-      setLoading(false);
-      if (onSearch) {
-        onSearch('');
-      }
-      return;
-    }
-
-    // Perform search
-    const performSearch = async () => {
-      setLoading(true);
-
-      try {
-        if (onSearch) {
-          // If a custom onSearch handler is provided, use it
-          onSearch(trimmedQuery);
-        } else if (!inline) {
-          // Default behavior: navigate to search page with query when not in inline mode
-          router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
-        }
-      } finally {
+    // Always call onSearch if provided, even with empty string
+    if (onSearch) {
+      setLoading(trimmedQuery.length > 0);
+      onSearch(trimmedQuery);
+      // Loading state will be cleared when results arrive
+      if (trimmedQuery) {
+        setTimeout(() => setLoading(false), 500);
+      } else {
         setLoading(false);
       }
-    };
-
-    performSearch();
+    } else if (trimmedQuery && !inline) {
+      // Default behavior: navigate to search page
+      router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
+    }
   }, [debouncedQuery, onSearch, router, inline]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

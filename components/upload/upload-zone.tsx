@@ -218,7 +218,8 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
           reject(new Error('Upload cancelled'));
         });
 
-        xhr.open('POST', '/api/upload');
+        // Use synchronous embedding generation for reliability
+        xhr.open('POST', '/api/upload?sync_embeddings=true');
         xhr.send(formData);
       });
 

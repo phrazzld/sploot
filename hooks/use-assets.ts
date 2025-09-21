@@ -177,11 +177,23 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
         }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Search failed');
+        // Check if the error is related to embeddings/search service
+        const errorMessage = data.error || 'Search failed';
+        if (errorMessage.includes('embedding') || errorMessage.includes('Replicate')) {
+          setError('Search is temporarily unavailable. Images may still be processing.');
+        } else {
+          setError(errorMessage);
+        }
+        setAssets([]);
+        setTotal(0);
+        setMetadata(null);
+        return;
       }
 
-      const data = await response.json();
+      // Handle successful response
       setAssets(data.results || []);
       setTotal(data.total || 0);
       setMetadata({
@@ -191,9 +203,12 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
         requestedThreshold: data.requestedThreshold ?? threshold,
         thresholdFallback: Boolean(data.thresholdFallback),
       });
+
+      // Clear any previous errors on success
+      setError(null);
     } catch (err) {
       logError('Search error:', err);
-      setError(err instanceof Error ? err.message : 'Search failed');
+      setError('Unable to search. Please try again.');
       setAssets([]);
       setTotal(0);
       setMetadata(null);
@@ -215,18 +230,15 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
     setTotal((prev) => Math.max(0, prev - 1));
   }, []);
 
-  // Auto-search when query changes
+  // Auto-search when query changes - no debouncing here as SearchBar handles it
   useEffect(() => {
-    const timer = setTimeout(() => {
-      if (query) {
-        search();
-      } else {
-        setAssets([]);
-        setTotal(0);
-      }
-    }, 300); // Debounce
-
-    return () => clearTimeout(timer);
+    if (query) {
+      search();
+    } else {
+      setAssets([]);
+      setTotal(0);
+      setError(null);
+    }
   }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {

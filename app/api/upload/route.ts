@@ -15,6 +15,10 @@ import { processUploadedImage } from '@/lib/image-processing';
  */
 export async function POST(req: NextRequest) {
   try {
+    // Check if we should generate embeddings synchronously (slower but more reliable)
+    const url = new URL(req.url);
+    const syncEmbeddings = url.searchParams.get('sync_embeddings') === 'true';
+
     // Check authentication and ensure user exists in database
     const userId = await requireUserIdWithSync();
 
@@ -94,7 +98,17 @@ export async function POST(req: NextRequest) {
         // Generate embeddings for existing asset if missing
         // This ensures old uploads get embeddings too
         if (!existingAsset.hasEmbedding) {
-          generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+          if (syncEmbeddings) {
+            // Synchronous generation for existing assets missing embeddings
+            try {
+              await generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+            } catch (embError) {
+              console.error(`[sync] Failed to generate embedding for existing asset:`, embError);
+            }
+          } else {
+            // Fire and forget for async
+            generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+          }
         }
 
         // Add tags to existing asset if provided
@@ -284,11 +298,22 @@ export async function POST(req: NextRequest) {
           return newAsset;
         });
 
-        // Generate embeddings asynchronously after asset creation
-        // This runs after the response is sent to keep upload latency low
-        after(async () => {
-          await generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
-        });
+        // Generate embeddings based on sync preference
+        if (syncEmbeddings) {
+          // Synchronous: Generate embeddings immediately (slower but reliable)
+          try {
+            await generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
+            console.log(`[sync] Successfully generated embedding for asset ${asset.id}`);
+          } catch (embError) {
+            console.error(`[sync] Failed to generate embedding for asset ${asset.id}:`, embError);
+            // Don't fail the upload if embedding fails
+          }
+        } else {
+          // Asynchronous: Generate embeddings after response (faster but may fail in dev)
+          after(async () => {
+            await generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
+          });
+        }
 
         return NextResponse.json({
           success: true,
@@ -327,9 +352,17 @@ export async function POST(req: NextRequest) {
             }
 
             // Generate embeddings for existing asset if missing
-            after(async () => {
-              await generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
-            });
+            if (syncEmbeddings) {
+              try {
+                await generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+              } catch (embError) {
+                console.error(`[sync] Failed to generate embedding for duplicate asset:`, embError);
+              }
+            } else {
+              after(async () => {
+                await generateEmbeddingAsync(existingAsset.id, existingAsset.blobUrl, existingAsset.checksumSha256);
+              });
+            }
 
             return NextResponse.json(
               {
