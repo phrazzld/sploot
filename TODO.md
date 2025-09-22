@@ -99,7 +99,7 @@
 
 ### Phase 4: Visual Feedback & UX
 
-- [ ] **Add embedding status badge to ImageTile** (`components/library/image-tile.tsx`)
+- [x] **Add embedding status badge to ImageTile** (`components/library/image-tile.tsx`)
   - Display states:
     - `pending`: Yellow dot with pulse animation
     - `processing`: Blue spinner (CSS animation, no JS)

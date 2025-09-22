@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
 import { cn } from '@/lib/utils';
 import { error as logError } from '@/lib/logger';
@@ -20,6 +20,8 @@ interface ImageTileProps {
   onAssetUpdate?: (id: string, updates: Partial<Asset>) => void;
 }
 
+type EmbeddingStatusType = 'pending' | 'processing' | 'ready' | 'failed';
+
 export function ImageTile({
   asset,
   onFavorite,
@@ -35,10 +37,17 @@ export function ImageTile({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [isGeneratingEmbedding, setIsGeneratingEmbedding] = useState(false);
   const [hasEmbedding, setHasEmbedding] = useState(!!asset.embedding);
+  const [embeddingStatus, setEmbeddingStatus] = useState<EmbeddingStatusType>(() => {
+    if (asset.embedding) return 'ready';
+    if (asset.embeddingStatus === 'failed') return 'failed';
+    if (asset.embeddingStatus === 'processing') return 'processing';
+    return 'pending';
+  });
   const deleteConfirmation = useDeleteConfirmation();
 
   const handleEmbeddingSuccess = (result?: { embedding?: { modelName: string; dimension: number; createdAt: string } }) => {
     setHasEmbedding(true);
+    setEmbeddingStatus('ready');
 
     if (onAssetUpdate) {
       const embeddingInfo = result?.embedding;
@@ -64,6 +73,13 @@ export function ImageTile({
     retryDelay: 5000, // Start retry after 5 seconds
     maxRetries: 3,
   });
+
+  // Update embedding status when retrying
+  useEffect(() => {
+    if (isRetrying && embeddingStatus !== 'processing') {
+      setEmbeddingStatus('processing');
+    }
+  }, [isRetrying, embeddingStatus]);
   const aspectRatioStyle = useMemo<CSSProperties | undefined>(() => {
     if (!preserveAspectRatio) return undefined;
     if (!asset.width || !asset.height) return undefined;
@@ -100,6 +116,7 @@ export function ImageTile({
     if (isGeneratingEmbedding || hasEmbedding) return;
 
     setIsGeneratingEmbedding(true);
+    setEmbeddingStatus('processing');
     try {
       const response = await fetch(`/api/assets/${asset.id}/generate-embedding`, {
         method: 'POST',
@@ -111,9 +128,11 @@ export function ImageTile({
         handleEmbeddingSuccess(result);
       } else {
         console.error('Failed to generate embedding');
+        setEmbeddingStatus('failed');
       }
     } catch (error) {
       logError('Failed to generate embedding:', error);
+      setEmbeddingStatus('failed');
     } finally {
       setIsGeneratingEmbedding(false);
     }
@@ -280,22 +299,58 @@ export function ImageTile({
           </div>
         </div>
 
-        {/* Embedding status - only show if missing */}
-        {!hasEmbedding && (
-          <div className="absolute bottom-2 left-2">
+        {/* Embedding status badge */}
+        {embeddingStatus !== 'ready' && (
+          <div className="absolute bottom-2 left-2 z-10">
             <button
-              onClick={handleGenerateEmbedding}
-              disabled={isGeneratingEmbedding}
-              className="flex items-center gap-1 px-1.5 py-0.5 bg-red-500/80 hover:bg-red-500 backdrop-blur-sm rounded transition-colors duration-200 cursor-pointer"
-              title="Click to enable search"
+              onClick={embeddingStatus === 'failed' ? handleGenerateEmbedding : undefined}
+              disabled={embeddingStatus === 'processing'}
+              className={cn(
+                'flex items-center justify-center w-6 h-6 rounded-full backdrop-blur-sm transition-all duration-200',
+                embeddingStatus === 'pending' && 'bg-yellow-500/80 hover:bg-yellow-500 cursor-default',
+                embeddingStatus === 'processing' && 'bg-blue-500/80 cursor-wait',
+                embeddingStatus === 'failed' && 'bg-red-500/80 hover:bg-red-500 cursor-pointer',
+                'shadow-sm'
+              )}
+              title={
+                embeddingStatus === 'pending' ? 'Embedding pending' :
+                embeddingStatus === 'processing' ? 'Generating embedding...' :
+                embeddingStatus === 'failed' ? 'Click to retry' : ''
+              }
             >
-              <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-[9px] text-white font-medium lowercase">
-                {isGeneratingEmbedding || isRetrying ? "fixing..." : "no search"}
-              </span>
+              {embeddingStatus === 'pending' && (
+                <div className="relative">
+                  <div className="w-2 h-2 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
+                  <div className="w-2 h-2 bg-yellow-300 rounded-full relative" />
+                </div>
+              )}
+              {embeddingStatus === 'processing' && (
+                <svg className="w-3.5 h-3.5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  />
+                </svg>
+              )}
+              {embeddingStatus === 'failed' && (
+                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              )}
             </button>
+          </div>
+        )}
+
+        {/* Success checkmark - only show briefly when ready */}
+        {embeddingStatus === 'ready' && hasEmbedding && (
+          <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/80 backdrop-blur-sm animate-fade-in-scale">
+              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
           </div>
         )}
       </div>
