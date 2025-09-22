@@ -56,7 +56,7 @@
   - Add: `{ assetId, needsEmbedding: true }`
   - Client uses this to start monitoring immediately
 
-- [ ] **Implement client-side embedding monitor** (`hooks/use-batch-embedding-status.ts`)
+- [x] **Implement client-side embedding monitor** (`hooks/use-batch-embedding-status.ts`)
   - Monitor multiple assets simultaneously
   - Poll `/api/assets/batch/embedding-status` (new endpoint)
   - Batch status checks: Send array of asset IDs, receive status map
