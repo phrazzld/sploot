@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, DragEvent, ClipboardEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, DragEvent, ClipboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';

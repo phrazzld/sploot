@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
 import { prisma, databaseAvailable } from '@/lib/db';
-import { getAuth } from '@/lib/auth/server';
-import { isMockMode } from '@/lib/env';
-import { mockEmbeddingStatus, mockGetAsset } from '@/lib/mock-store';
 
+/**
+ * GET /api/assets/[id]/embedding-status
+ * Check if an asset has embeddings generated
+ */
 export async function GET(
-  req: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { userId } = await getAuth();
+    const { userId } = await auth();
+    const { id } = await params;
+
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -17,33 +21,14 @@ export async function GET(
       );
     }
 
-    const { id } = await params;
-
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const status = mockEmbeddingStatus(userId, id);
-      const asset = mockGetAsset(userId, id);
-      if (!asset) {
-        return NextResponse.json(
-          { error: 'Asset not found' },
-          { status: 404 }
-        );
-      }
-
-      return NextResponse.json({
-        assetId: asset.id,
-        status: status.status === 'ready' ? 'completed' : 'pending',
-        hasEmbedding: status.status === 'ready',
-        embedding: status.status === 'ready'
-          ? {
-              modelName: 'mock/sploot-embedding:local',
-              dimension: asset.embedding?.length ?? 32,
-              createdAt: asset.createdAt,
-            }
-          : null,
-        mock: true,
-      });
+    if (!databaseAvailable || !prisma) {
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
     }
 
+    // Get the asset and check if it has embeddings
     const asset = await prisma.asset.findFirst({
       where: {
         id,
@@ -51,7 +36,13 @@ export async function GET(
         deletedAt: null,
       },
       include: {
-        embedding: true,
+        embedding: {
+          select: {
+            assetId: true,
+            modelName: true,
+            createdAt: true,
+          },
+        },
       },
     });
 
@@ -62,35 +53,13 @@ export async function GET(
       );
     }
 
-    // Determine embedding status
-    let status: 'pending' | 'completed' | 'failed' | 'unavailable';
-
-    if (asset.embedding) {
-      status = 'completed';
-    } else {
-      // Check if Replicate is configured
-      const replicateConfigured = process.env.REPLICATE_API_TOKEN &&
-                                  process.env.REPLICATE_API_TOKEN !== 'your_replicate_token_here';
-
-      if (!replicateConfigured) {
-        status = 'unavailable';
-      } else {
-        status = 'pending';
-      }
-    }
-
     return NextResponse.json({
       assetId: asset.id,
-      status,
       hasEmbedding: !!asset.embedding,
-      embedding: asset.embedding ? {
-        modelName: asset.embedding.modelName,
-        dimension: asset.embedding.dim,
-        createdAt: asset.embedding.createdAt,
-      } : null,
+      status: asset.embedding ? 'ready' : 'pending',
     });
   } catch (error) {
-    // Error checking embedding status
+    console.error('Error checking embedding status:', error);
     return NextResponse.json(
       { error: 'Failed to check embedding status' },
       { status: 500 }
