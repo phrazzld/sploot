@@ -155,11 +155,12 @@ export function UploadZone({
 
     setFiles((prev) => [...prev, ...newFiles]);
 
-    // Start uploading valid files if online
+    // Start uploading valid files if online with parallel batching
     if (!isOffline) {
-      newFiles
-        .filter((f) => f.status === 'pending')
-        .forEach((uploadFile) => uploadFileToServer(uploadFile));
+      const filesToUpload = newFiles.filter((f) => f.status === 'pending');
+      if (filesToUpload.length > 0) {
+        uploadBatch(filesToUpload);
+      }
     }
   }, [isOffline, supportsBackgroundSync, addToBackgroundSync]);
 
@@ -193,16 +194,45 @@ export function UploadZone({
 
     setFiles((prev) => [...prev, ...newFiles]);
 
-    // Start uploading valid files if online
+    // Start uploading valid files if online with parallel batching
     if (!isOffline) {
-      newFiles
-        .filter((f) => f.status === 'pending')
-        .forEach((uploadFile) => uploadFileToServer(uploadFile));
+      const filesToUpload = newFiles.filter((f) => f.status === 'pending');
+      if (filesToUpload.length > 0) {
+        uploadBatch(filesToUpload);
+      }
     }
   }, [isOffline, addToQueue]);
 
   // Choose the appropriate file processor based on enableBackgroundSync
   const processFiles = enableBackgroundSync ? processFilesWithSync : processFilesWithQueue;
+
+  // Batch upload files with concurrency control
+  const MAX_CONCURRENT_UPLOADS = 3;
+
+  const uploadBatch = async (uploadFiles: UploadFile[]) => {
+    // Create chunks for parallel processing with concurrency limit
+    const uploadQueue = [...uploadFiles];
+    const activeUploads = new Set<Promise<void>>();
+
+    while (uploadQueue.length > 0 || activeUploads.size > 0) {
+      // Start new uploads up to concurrency limit
+      while (uploadQueue.length > 0 && activeUploads.size < MAX_CONCURRENT_UPLOADS) {
+        const file = uploadQueue.shift()!;
+        const uploadPromise = uploadFileToServer(file).then(() => {
+          activeUploads.delete(uploadPromise);
+        }).catch((error) => {
+          console.error(`Upload failed for file ${file.file.name}:`, error);
+          activeUploads.delete(uploadPromise);
+        });
+        activeUploads.add(uploadPromise);
+      }
+
+      // Wait for at least one upload to complete before continuing
+      if (activeUploads.size > 0) {
+        await Promise.race(activeUploads);
+      }
+    }
+  };
 
   // Upload file to server - simplified direct upload
   const uploadFileToServer = async (uploadFile: UploadFile) => {
