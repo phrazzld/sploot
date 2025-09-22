@@ -45,7 +45,35 @@ export function ImageTile({
   });
   const deleteConfirmation = useDeleteConfirmation();
 
+  // Debug mode tracking
+  const [debugInfo, setDebugInfo] = useState<{
+    queuePosition?: number;
+    apiResponseTime?: number;
+    lastTransition?: string;
+  }>({});
+  const [isDebugMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('debug_embeddings') === 'true';
+    }
+    return false;
+  });
+
+  // Simulate queue position in debug mode
+  useEffect(() => {
+    if (isDebugMode && embeddingStatus === 'processing' && !debugInfo.queuePosition) {
+      // Simulate a queue position for debugging
+      const simulatedPosition = Math.floor(Math.random() * 5) + 1;
+      setDebugInfo(prev => ({ ...prev, queuePosition: simulatedPosition }));
+      console.log(`[debug_embeddings] Asset ${asset.id}: Simulated queue position - #${simulatedPosition}`);
+    }
+  }, [isDebugMode, embeddingStatus, debugInfo.queuePosition, asset.id]);
+
   const handleEmbeddingSuccess = (result?: { embedding?: { modelName: string; dimension: number; createdAt: string } }) => {
+    if (isDebugMode) {
+      console.log(`[debug_embeddings] Asset ${asset.id}: Embedding generation succeeded`);
+      console.log('[debug_embeddings] Result:', result);
+      setDebugInfo(prev => ({ ...prev, lastTransition: 'processing → ready' }));
+    }
     setHasEmbedding(true);
     setEmbeddingStatus('ready');
 
@@ -77,9 +105,37 @@ export function ImageTile({
   // Update embedding status when retrying
   useEffect(() => {
     if (isRetrying && embeddingStatus !== 'processing') {
+      if (isDebugMode) {
+        console.log(`[debug_embeddings] Asset ${asset.id}: Auto-retry initiated`);
+        console.log(`[debug_embeddings] Retry count: ${asset.embeddingRetryCount || 0}`);
+        setDebugInfo(prev => ({ ...prev, lastTransition: `${embeddingStatus} → processing (auto-retry)` }));
+      }
       setEmbeddingStatus('processing');
     }
-  }, [isRetrying, embeddingStatus]);
+  }, [isRetrying, embeddingStatus, isDebugMode, asset.id, asset.embeddingRetryCount]);
+
+  // Log initial status and transitions in debug mode
+  useEffect(() => {
+    if (isDebugMode) {
+      console.log(`[debug_embeddings] Asset ${asset.id}: Initial status - ${embeddingStatus}`);
+      if (asset.embeddingError) {
+        console.log(`[debug_embeddings] Asset ${asset.id}: Error - ${asset.embeddingError}`);
+      }
+      if (asset.embeddingRetryCount) {
+        console.log(`[debug_embeddings] Asset ${asset.id}: Retry count - ${asset.embeddingRetryCount}`);
+      }
+      if (asset.embeddingLastAttempt) {
+        console.log(`[debug_embeddings] Asset ${asset.id}: Last attempt - ${asset.embeddingLastAttempt}`);
+      }
+    }
+  }, [isDebugMode, asset.id, asset.embeddingError, asset.embeddingRetryCount, asset.embeddingLastAttempt]);
+
+  // Log status changes in debug mode
+  useEffect(() => {
+    if (isDebugMode) {
+      console.log(`[debug_embeddings] Asset ${asset.id}: Status changed to ${embeddingStatus}`);
+    }
+  }, [embeddingStatus, isDebugMode, asset.id]);
   const aspectRatioStyle = useMemo<CSSProperties | undefined>(() => {
     if (!preserveAspectRatio) return undefined;
     if (!asset.width || !asset.height) return undefined;
@@ -115,6 +171,12 @@ export function ImageTile({
     e.stopPropagation();
     if (isGeneratingEmbedding || hasEmbedding) return;
 
+    const startTime = Date.now();
+    if (isDebugMode) {
+      console.log(`[debug_embeddings] Asset ${asset.id}: Manual embedding generation triggered`);
+      setDebugInfo(prev => ({ ...prev, lastTransition: `${embeddingStatus} → processing (manual)` }));
+    }
+
     setIsGeneratingEmbedding(true);
     setEmbeddingStatus('processing');
     try {
@@ -122,15 +184,32 @@ export function ImageTile({
         method: 'POST',
       });
 
+      const apiResponseTime = Date.now() - startTime;
+      if (isDebugMode) {
+        console.log(`[debug_embeddings] Asset ${asset.id}: API response time - ${apiResponseTime}ms`);
+        setDebugInfo(prev => ({ ...prev, apiResponseTime }));
+      }
+
       if (response.ok) {
         const result = await response.json();
-        console.log('Embedding generated successfully', result);
+        if (isDebugMode) {
+          console.log(`[debug_embeddings] Asset ${asset.id}: Embedding generated successfully`, result);
+        }
         handleEmbeddingSuccess(result);
       } else {
-        console.error('Failed to generate embedding');
+        const errorText = await response.text();
+        if (isDebugMode) {
+          console.error(`[debug_embeddings] Asset ${asset.id}: Failed to generate embedding - ${response.status}`);
+          console.error('[debug_embeddings] Error response:', errorText);
+          setDebugInfo(prev => ({ ...prev, lastTransition: 'processing → failed' }));
+        }
         setEmbeddingStatus('failed');
       }
     } catch (error) {
+      if (isDebugMode) {
+        console.error(`[debug_embeddings] Asset ${asset.id}: Exception during embedding generation:`, error);
+        setDebugInfo(prev => ({ ...prev, lastTransition: 'processing → failed (exception)' }));
+      }
       logError('Failed to generate embedding:', error);
       setEmbeddingStatus('failed');
     } finally {
@@ -306,38 +385,90 @@ export function ImageTile({
               onClick={embeddingStatus === 'failed' ? handleGenerateEmbedding : undefined}
               disabled={embeddingStatus === 'processing'}
               className={cn(
-                'flex items-center justify-center w-6 h-6 rounded-full backdrop-blur-sm transition-all duration-200',
+                'flex items-center justify-center',
+                isDebugMode ? 'min-w-[24px] h-6 px-1 rounded-md' : 'w-6 h-6 rounded-full',
+                'backdrop-blur-sm transition-all duration-200',
                 embeddingStatus === 'pending' && 'bg-yellow-500/80 hover:bg-yellow-500 cursor-default',
                 embeddingStatus === 'processing' && 'bg-blue-500/80 cursor-wait',
                 embeddingStatus === 'failed' && 'bg-red-500/80 hover:bg-red-500 cursor-pointer',
                 'shadow-sm'
               )}
               title={
-                embeddingStatus === 'pending' ? 'Embedding pending' :
-                embeddingStatus === 'processing' ? 'Generating embedding...' :
-                embeddingStatus === 'failed' ? 'Click to retry' : ''
+                isDebugMode ? (
+                  `Status: ${embeddingStatus}\n` +
+                  `Retry count: ${asset.embeddingRetryCount || 0}\n` +
+                  (asset.embeddingError ? `Error: ${asset.embeddingError}\n` : '') +
+                  (debugInfo.apiResponseTime ? `Last API time: ${debugInfo.apiResponseTime}ms\n` : '') +
+                  (debugInfo.lastTransition ? `Last transition: ${debugInfo.lastTransition}` : '')
+                ) : (
+                  embeddingStatus === 'pending' ? 'Embedding pending' :
+                  embeddingStatus === 'processing' ? 'Generating embedding...' :
+                  embeddingStatus === 'failed' ? 'Click to retry' : ''
+                )
               }
             >
-              {embeddingStatus === 'pending' && (
-                <div className="relative">
-                  <div className="w-2 h-2 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
-                  <div className="w-2 h-2 bg-yellow-300 rounded-full relative" />
+              {isDebugMode ? (
+                <div className="flex items-center gap-1 text-white">
+                  {embeddingStatus === 'pending' && (
+                    <div className="flex items-center gap-1">
+                      <div className="relative">
+                        <div className="w-2 h-2 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
+                        <div className="w-2 h-2 bg-yellow-300 rounded-full relative" />
+                      </div>
+                      <span className="text-[10px] font-mono">P</span>
+                    </div>
+                  )}
+                  {embeddingStatus === 'processing' && (
+                    <div className="flex items-center gap-1">
+                      <svg className="w-3 h-3 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
+                      </svg>
+                      <span className="text-[10px] font-mono">#{debugInfo.queuePosition || '?'}</span>
+                      {asset.embeddingRetryCount && asset.embeddingRetryCount > 0 && (
+                        <span className="text-[10px] font-mono">R{asset.embeddingRetryCount}</span>
+                      )}
+                    </div>
+                  )}
+                  {embeddingStatus === 'failed' && (
+                    <div className="flex items-center gap-1">
+                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      {asset.embeddingRetryCount !== undefined && (
+                        <span className="text-[10px] font-mono">R{asset.embeddingRetryCount}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
-              )}
-              {embeddingStatus === 'processing' && (
-                <svg className="w-3.5 h-3.5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-              )}
-              {embeddingStatus === 'failed' && (
-                <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              ) : (
+                <>
+                  {embeddingStatus === 'pending' && (
+                    <div className="relative">
+                      <div className="w-2 h-2 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
+                      <div className="w-2 h-2 bg-yellow-300 rounded-full relative" />
+                    </div>
+                  )}
+                  {embeddingStatus === 'processing' && (
+                    <svg className="w-3.5 h-3.5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                  )}
+                  {embeddingStatus === 'failed' && (
+                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  )}
+                </>
               )}
             </button>
           </div>
@@ -346,10 +477,16 @@ export function ImageTile({
         {/* Success checkmark - only show briefly when ready */}
         {embeddingStatus === 'ready' && hasEmbedding && (
           <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-green-500/80 backdrop-blur-sm animate-fade-in-scale">
+            <div className={cn(
+              'flex items-center justify-center rounded-full bg-green-500/80 backdrop-blur-sm animate-fade-in-scale',
+              isDebugMode ? 'min-w-[24px] h-6 px-1 rounded-md gap-1' : 'w-6 h-6'
+            )}>
               <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
               </svg>
+              {isDebugMode && debugInfo.apiResponseTime && (
+                <span className="text-[10px] font-mono text-white">{debugInfo.apiResponseTime}ms</span>
+              )}
             </div>
           </div>
         )}
@@ -376,6 +513,29 @@ export function ImageTile({
               <span className="text-[10px] uppercase tracking-wide text-[#FFAA5C]/80">
                 Below threshold
               </span>
+            )}
+          </div>
+        )}
+
+        {/* Debug info when in debug mode */}
+        {isDebugMode && (embeddingStatus !== 'ready' || debugInfo.apiResponseTime) && (
+          <div className="mt-2 p-2 bg-[#0F1012] rounded border border-[#2A2F37] text-[10px] font-mono text-[#B3B7BE]">
+            <div className="font-semibold text-[#7C5CFF] mb-1">🐛 Embedding Debug</div>
+            <div>Status: {embeddingStatus}</div>
+            {asset.embeddingRetryCount !== undefined && (
+              <div>Retries: {asset.embeddingRetryCount}</div>
+            )}
+            {debugInfo.apiResponseTime && (
+              <div>API Time: {debugInfo.apiResponseTime}ms</div>
+            )}
+            {debugInfo.lastTransition && (
+              <div>Transition: {debugInfo.lastTransition}</div>
+            )}
+            {asset.embeddingError && (
+              <div className="text-red-400 mt-1">Error: {asset.embeddingError}</div>
+            )}
+            {asset.embeddingLastAttempt && (
+              <div>Last Try: {new Date(asset.embeddingLastAttempt).toLocaleTimeString()}</div>
             )}
           </div>
         )}
