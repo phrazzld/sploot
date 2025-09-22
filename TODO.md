@@ -82,7 +82,7 @@
   - Max 50 assets per request
   - Response time target: <100ms for 50 assets
 
-- [ ] **Optimize embedding generation endpoint** (`app/api/assets/[id]/generate-embedding/route.ts`)
+- [x] **Optimize embedding generation endpoint** (`app/api/assets/[id]/generate-embedding/route.ts`)
   - Add request deduplication (if already processing, return early)
   - Track in-flight requests in memory: `Map<assetId, Promise>`
   - Log performance metrics: Replicate API response time
