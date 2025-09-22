@@ -7,30 +7,7 @@ import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { useEmbeddingRetry } from '@/hooks/use-embedding-retry';
 import { HeartIcon } from '@/components/icons/heart-icon';
-
-interface Asset {
-  id: string;
-  blobUrl: string;
-  thumbnailUrl?: string | null;
-  pathname: string;
-  filename: string;
-  mime: string;
-  size: number;
-  width?: number | null;
-  height?: number | null;
-  favorite: boolean;
-  createdAt: Date | string;
-  tags?: Array<{ id: string; name: string }>;
-  embedding?: {
-    assetId: string;
-    modelName: string;
-    modelVersion: string;
-    createdAt: Date | string;
-  } | null;
-  similarity?: number;
-  relevance?: number;
-  belowThreshold?: boolean;
-}
+import type { Asset } from '@/lib/types';
 
 interface ImageTileProps {
   asset: Asset;
@@ -187,7 +164,7 @@ export function ImageTile({
       <div
       onClick={onClick || (() => onSelect?.(asset))}
       className={cn(
-        'group bg-[#14171A] border border-[#2A2F37] rounded-2xl overflow-hidden',
+        'group bg-[#14171A] border border-[#2A2F37] rounded-2xl overflow-hidden w-full',
         'hover:border-[#7C5CFF] hover:shadow-xs transition-all duration-200 cursor-pointer',
         'flex flex-col'
       )}
@@ -246,7 +223,7 @@ export function ImageTile({
             disabled={isLoading}
             aria-pressed={asset.favorite}
             className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm border border-transparent',
+              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm border border-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
               asset.favorite
                 ? 'bg-[#FF64C5] text-black shadow-[0_8px_24px_-10px_rgba(255,100,197,0.85)] ring-1 ring-[#FF8AD6]/60'
                 : 'bg-black/60 text-white border border-[#2A2F37] hover:border-transparent hover:bg-[#FF64C5] hover:text-black hover:shadow-[0_6px_20px_-10px_rgba(255,100,197,0.9)]',
@@ -263,8 +240,8 @@ export function ImageTile({
             disabled={isLoading}
             className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm bg-black/60 text-white',
-              'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0',
-              'hover:bg-red-500 hover:text-white',
+              'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 focus-visible:opacity-100 focus-visible:translate-x-0',
+              'hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]',
               isLoading && 'pointer-events-none cursor-wait group-hover:opacity-60'
             )}
             title="rage delete"

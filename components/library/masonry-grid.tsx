@@ -3,29 +3,7 @@
 import { ImageTile } from './image-tile';
 import { cn } from '@/lib/utils';
 
-interface Asset {
-  id: string;
-  blobUrl: string;
-  thumbnailUrl?: string | null;
-  pathname: string;
-  filename: string;
-  mime: string;
-  size: number;
-  width?: number | null;
-  height?: number | null;
-  favorite: boolean;
-  createdAt: Date | string;
-  tags?: Array<{ id: string; name: string }>;
-  embedding?: {
-    assetId: string;
-    modelName: string;
-    modelVersion: string;
-    createdAt: Date | string;
-  } | null;
-  similarity?: number;
-  relevance?: number;
-  belowThreshold?: boolean;
-}
+import type { Asset } from '@/lib/types';
 
 interface MasonryGridProps {
   assets: Asset[];
@@ -87,36 +65,20 @@ export function MasonryGrid({
         <style jsx>{`
           .masonry-grid {
             column-gap: 16px;
-            column-count: 2;
+            column-width: 260px;
+            max-width: 100%;
           }
 
-          @media (min-width: 640px) {
+          @media (max-width: 640px) {
             .masonry-grid {
-              column-count: 3;
-            }
-          }
-
-          @media (min-width: 1024px) {
-            .masonry-grid {
-              column-count: 4;
-            }
-          }
-
-          @media (min-width: 1280px) {
-            .masonry-grid {
-              column-count: 5;
-            }
-          }
-
-          @media (min-width: 1536px) {
-            .masonry-grid {
-              column-count: 6;
+              column-width: 220px;
             }
           }
 
           .masonry-item {
             break-inside: avoid;
             margin-bottom: 16px;
+            width: 100%;
           }
         `}</style>
 

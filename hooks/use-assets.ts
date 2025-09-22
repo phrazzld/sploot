@@ -2,32 +2,7 @@
 
 import { useState, useCallback, useEffect } from 'react';
 import { error as logError } from '@/lib/logger';
-
-interface Asset {
-  id: string;
-  blobUrl: string;
-  pathname: string;
-  filename: string;
-  mime: string;
-  size: number;
-  width?: number | null;
-  height?: number | null;
-  favorite: boolean;
-  createdAt: Date | string;
-  tags?: Array<{ id: string; name: string }>;
-  similarity?: number;
-  relevance?: number;
-  belowThreshold?: boolean;
-}
-
-interface UseAssetsOptions {
-  initialLimit?: number;
-  sortBy?: 'createdAt' | 'favorite' | 'size';
-  sortOrder?: 'asc' | 'desc';
-  filterFavorites?: boolean;
-  autoLoad?: boolean;
-  tagId?: string;
-}
+import type { Asset, UseAssetsOptions } from '@/lib/types';
 
 export function useAssets(options: UseAssetsOptions = {}) {
   const {

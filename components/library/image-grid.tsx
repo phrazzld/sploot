@@ -5,30 +5,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageTile } from './image-tile';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
-
-interface Asset {
-  id: string;
-  blobUrl: string;
-  thumbnailUrl?: string | null;
-  pathname: string;
-  filename: string;
-  mime: string;
-  size: number;
-  width?: number | null;
-  height?: number | null;
-  favorite: boolean;
-  createdAt: Date | string;
-  tags?: Array<{ id: string; name: string }>;
-  embedding?: {
-    assetId: string;
-    modelName: string;
-    modelVersion: string;
-    createdAt: Date | string;
-  } | null;
-  similarity?: number;
-  relevance?: number;
-  belowThreshold?: boolean;
-}
+import type { Asset } from '@/lib/types';
 
 interface ImageGridProps {
   assets: Asset[];
@@ -73,10 +50,10 @@ export function ImageGrid({
   const columnCount = useMemo(() => {
     if (!containerWidth) return 1;
 
-    const ITEM_WIDTH = 260; // Slightly smaller than design for better fit
+    const ITEM_WIDTH = 280;
     const GAP = 16;
     const MIN_COLUMNS = 1;
-    const MAX_COLUMNS = 6;
+    const MAX_COLUMNS = 5;
 
     const availableWidth = containerWidth;
     const columns = Math.floor((availableWidth + GAP) / (ITEM_WIDTH + GAP));
@@ -224,7 +201,7 @@ export function ImageGrid({
           className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
             {assets.map((asset) => (
               <ImageTile
                 key={asset.id}
@@ -267,10 +244,8 @@ export function ImageGrid({
 
           {/* End of list indicator */}
           {!hasMore && assets.length > 0 && (
-            <div className="py-8 text-center">
-              <p className="text-[#B3B7BE] text-sm">
-                That&apos;s all your memes • {assets.length} total
-              </p>
+            <div className="py-6 text-center text-xs uppercase tracking-wide text-[#474C58]">
+              no more memes in this view
             </div>
           )}
         </div>
