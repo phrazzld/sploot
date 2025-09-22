@@ -6,10 +6,12 @@ import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { MasonryGrid } from '@/components/library/masonry-grid';
+import { ImageList } from '@/components/library/image-list';
 import { SearchBar } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
 import { HeartIcon } from '@/components/icons/heart-icon';
+import { showToast } from '@/components/ui/toast';
 
 export default function AppPage() {
   const router = useRouter();
@@ -20,9 +22,9 @@ export default function AppPage() {
   const favoritesOnly = searchParams.get('favorite') === 'true';
 
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>(() => {
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem('viewMode') as 'grid' | 'masonry' | 'compact') || 'grid';
+      return (localStorage.getItem('viewMode') as 'grid' | 'masonry' | 'list') || 'grid';
     }
     return 'grid';
   });
@@ -236,7 +238,7 @@ export default function AppPage() {
   }, []);
 
   const handleViewModeChange = useCallback(
-    (mode: 'grid' | 'masonry' | 'compact') => {
+    (mode: 'grid' | 'masonry' | 'list') => {
       if (mode === viewMode) return;
 
       captureScrollPosition();
@@ -263,7 +265,7 @@ export default function AppPage() {
   const gridContainerClassName = useMemo(
     () =>
       cn(
-        'h-full overflow-auto transition-all duration-300 ease-out transform-gpu',
+        'h-full overflow-y-auto overflow-x-hidden transition-all duration-300 ease-out transform-gpu',
         isViewModeTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
       ),
     [isViewModeTransitioning]
@@ -364,111 +366,141 @@ export default function AppPage() {
   }, [trimmedLibraryQuery]);
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="p-6 md:p-8 pb-0">
-        <header className="mb-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-[#E6E8EB]">your library</h1>
-              <div className="text-[#B3B7BE] mt-2">
-                {stats.total > 0 ? (
-                  <div className="flex flex-wrap items-center gap-2 text-sm">
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#2A2F37] bg-[#14171A]/80">
-                      {stats.total} {stats.total === 1 ? 'meme' : 'memes'} in the vault
-                    </span>
-                    {stats.favorites > 0 && (
-                      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full border border-[#40204F] bg-[#21102A]/80 text-[#FF64C5]">
-                        <HeartIcon className="w-3.5 h-3.5" filled />
-                        {stats.favorites}{' '}
-                        {stats.favorites === 1 ? 'certified banger' : 'certified bangers'}
-                      </span>
-                    )}
-                    <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-[#2A2F37] bg-[#14171A]/80">
-                      {stats.sizeFormatted} of meme mass
-                    </span>
-                  </div>
-                ) : (
-                  'start building your meme collection'
-                )}
+    <div className="flex h-full flex-col">
+      <div className="px-6 pb-0 pt-6 md:px-10">
+        <div className="mx-auto w-full max-w-7xl">
+          <header className="flex flex-col gap-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <h1 className="text-3xl font-semibold text-[#E6E8EB]">your library</h1>
+                <p className="mt-2 text-sm text-[#B3B7BE]">
+                  {stats.total > 0 ? (
+                    <>
+                      {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
+                      {stats.favorites > 0 && (
+                        <>
+                          {' '}• {stats.favorites}{' '}
+                          {stats.favorites === 1 ? 'banger' : 'bangers'}
+                        </>
+                      )}
+                      {' '}• {stats.sizeFormatted}
+                    </>
+                  ) : (
+                    'start building your meme collection'
+                  )}
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowUploadPanel((prev) => !prev)}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                    showUploadPanel
+                      ? 'bg-[#7C5CFF]/20 text-[#CBB8FF] ring-1 ring-[#7C5CFF]/40'
+                      : 'bg-[#7C5CFF] text-white hover:bg-[#6B4FE0]'
+                  )}
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v12M4 10h12" />
+                  </svg>
+                  {showUploadPanel ? 'close upload tray' : 'upload new meme'}
+                </button>
+                <button
+                  type="button"
+                  onClick={toggleFavoritesOnly}
+                  className={cn(
+                    'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                    favoritesOnly
+                      ? 'border-[#FF8AD6]/50 bg-[#FF64C5]/15 text-[#FF8AD6]'
+                      : 'border-[#2A2F37] bg-[#14171A] text-[#B3B7BE] hover:text-[#E6E8EB]'
+                  )}
+                >
+                  <HeartIcon className="h-4 w-4" filled={favoritesOnly} />
+                  {favoritesOnly ? 'show bangers only' : 'show all memes'}
+                </button>
               </div>
             </div>
-            {/* View Controls */}
-            <div className="flex flex-col gap-2">
-              {/* View Mode Toggle */}
-              <div className="flex gap-1 p-1 bg-[#14171A] border border-[#2A2F37] rounded-lg">
-              <button
-                onClick={() => handleViewModeChange('grid')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'grid'
-                    ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
-                    : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
-                }`}
-                title="grid view"
-              >
-                {/* Grid Icon */}
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <rect x="3" y="3" width="7" height="7" strokeWidth="2" />
-                  <rect x="14" y="3" width="7" height="7" strokeWidth="2" />
-                  <rect x="3" y="14" width="7" height="7" strokeWidth="2" />
-                  <rect x="14" y="14" width="7" height="7" strokeWidth="2" />
-                </svg>
-              </button>
-              <button
-                onClick={() => handleViewModeChange('masonry')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'masonry'
-                    ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
-                    : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
-                }`}
-                title="masonry view"
-              >
-                {/* Masonry Icon */}
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <rect x="3" y="3" width="7" height="10" strokeWidth="2" />
-                  <rect x="14" y="3" width="7" height="6" strokeWidth="2" />
-                  <rect x="3" y="17" width="7" height="4" strokeWidth="2" />
-                  <rect x="14" y="13" width="7" height="8" strokeWidth="2" />
-                </svg>
-              </button>
-              <button
-                onClick={() => handleViewModeChange('compact')}
-                className={`p-2 rounded transition-colors ${
-                  viewMode === 'compact'
-                    ? 'bg-[#7C5CFF]/20 text-[#7C5CFF]'
-                    : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
-                }`}
-                title="compact view"
-              >
-                {/* List/Compact Icon */}
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <line x1="3" y1="6" x2="21" y2="6" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="3" y1="12" x2="21" y2="12" strokeWidth="2" strokeLinecap="round" />
-                  <line x1="3" y1="18" x2="21" y2="18" strokeWidth="2" strokeLinecap="round" />
-                </svg>
-              </button>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 rounded-full bg-[#14171A] p-1 ring-1 ring-[#1F2328]">
+                {(
+                  [
+                    {
+                      value: 'grid' as const,
+                      label: 'grid',
+                      icon: (
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <rect x="4" y="4" width="6" height="6" />
+                          <rect x="14" y="4" width="6" height="6" />
+                          <rect x="4" y="14" width="6" height="6" />
+                          <rect x="14" y="14" width="6" height="6" />
+                        </svg>
+                      ),
+                    },
+                    {
+                      value: 'masonry' as const,
+                      label: 'masonry',
+                      icon: (
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <rect x="4" y="4" width="7" height="10" />
+                          <rect x="15" y="4" width="5" height="6" />
+                          <rect x="4" y="16" width="5" height="4" />
+                          <rect x="11" y="12" width="9" height="8" />
+                        </svg>
+                      ),
+                    },
+                    {
+                      value: 'list' as const,
+                      label: 'list',
+                      icon: (
+                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                          <line x1="4" x2="20" y1="7" y2="7" strokeLinecap="round" />
+                          <line x1="4" x2="20" y1="12" y2="12" strokeLinecap="round" />
+                          <line x1="4" x2="20" y1="17" y2="17" strokeLinecap="round" />
+                        </svg>
+                      ),
+                    },
+                  ]
+                ).map((option) => {
+                  const isActive = viewMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => handleViewModeChange(option.value)}
+                      aria-pressed={isActive}
+                      className={cn(
+                        'flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                        isActive
+                          ? 'bg-[#7C5CFF] text-white shadow-[0_12px_20px_-14px_rgba(124,92,255,0.95)]'
+                          : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
+                      )}
+                    >
+                      {option.icon}
+                      <span className="hidden text-xs font-medium capitalize sm:inline">{option.label}</span>
+                    </button>
+                  );
+                })}
               </div>
 
-              {/* Sort Dropdown */}
               <div className="relative sort-dropdown-container">
                 <button
-                  onClick={() => setShowSortDropdown(!showSortDropdown)}
-                  className="flex items-center gap-2 px-3 py-2 bg-[#14171A] border border-[#2A2F37] rounded-lg text-sm text-[#B3B7BE] hover:text-[#E6E8EB] hover:border-[#7C5CFF] transition-colors"
+                  type="button"
+                  onClick={() => setShowSortDropdown((prev) => !prev)}
+                  className="flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
                   </svg>
                   <span>
-                    {sortBy === 'createdAt' ? 'date' :
-                     sortBy === 'favorite' ? 'bangers' :
-                     sortBy === 'size' ? 'size' : 'name'}
+                    {sortBy === 'createdAt' ? 'date' : sortBy === 'favorite' ? 'bangers' : sortBy === 'size' ? 'size' : 'name'}
                     {sortOrder === 'desc' ? ' ↓' : ' ↑'}
                   </span>
                 </button>
 
-                {/* Dropdown Menu */}
                 {showSortDropdown && (
-                  <div className="absolute right-0 mt-1 w-48 bg-[#14171A] border border-[#2A2F37] rounded-lg shadow-xl z-10">
+                  <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-[#2A2F37] bg-[#0F1216] shadow-2xl">
                     <div className="py-1">
                       <button
                         onClick={() => {
@@ -476,9 +508,10 @@ export default function AppPage() {
                           setSortOrder(sortBy === 'createdAt' && sortOrder === 'desc' ? 'asc' : 'desc');
                           setShowSortDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                        className={cn(
+                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
                           sortBy === 'createdAt' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        }`}
+                        )}
                       >
                         date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
                       </button>
@@ -488,9 +521,10 @@ export default function AppPage() {
                           setSortOrder('desc');
                           setShowSortDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                        className={cn(
+                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
                           sortBy === 'favorite' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        }`}
+                        )}
                       >
                         bangers first
                       </button>
@@ -500,9 +534,10 @@ export default function AppPage() {
                           setSortOrder(sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
                           setShowSortDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                        className={cn(
+                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
                           sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        }`}
+                        )}
                       >
                         size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
                       </button>
@@ -512,9 +547,10 @@ export default function AppPage() {
                           setSortOrder(sortBy === 'filename' && sortOrder === 'asc' ? 'desc' : 'asc');
                           setShowSortDropdown(false);
                         }}
-                        className={`w-full px-4 py-2 text-left text-sm hover:bg-[#1B1F24] transition-colors ${
+                        className={cn(
+                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
                           sortBy === 'filename' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        }`}
+                        )}
                       >
                         name {sortBy === 'filename' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
                       </button>
@@ -522,141 +558,138 @@ export default function AppPage() {
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </header>
 
-        {/* Search + Quick Actions */}
-        <div className="mb-6 space-y-4">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => setShowUploadPanel((prev) => !prev)}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                showUploadPanel
-                  ? 'bg-[#7C5CFF] text-white hover:bg-[#6B4FE6]'
-                  : 'bg-[#1B1F24] text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37]'
-              )}
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8l-8-8-8 8" />
-              </svg>
-              {showUploadPanel ? 'close drip zone' : 'drop fresh memes'}
-            </button>
-
-            <button
-              onClick={toggleFavoritesOnly}
-              className={cn(
-                'inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                favoritesOnly
-                  ? 'bg-[#FF64C5]/15 text-[#FF64C5] ring-1 ring-[#FF8AD6]/40 hover:bg-[#FF64C5]/25'
-                  : 'bg-[#1B1F24] text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37]'
-              )}
-            >
-              <HeartIcon className="w-4 h-4" filled={favoritesOnly} />
-              {favoritesOnly ? 'only bangers' : 'all memes'}
-            </button>
-
-            {tagIdParam && (
-              <button
-                onClick={clearTagFilter}
-                className="inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-[#1B1F24] text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37] transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 6L6 18M6 6l12 12" />
-                </svg>
-                clear tag {activeTagName ? `#${activeTagName}` : ''}
-              </button>
-            )}
-          </div>
-
-          {!isSearching && (favoritesOnly || tagIdParam) && (
-            <div className="text-xs text-[#B3B7BE]">
-              {favoritesOnly && <span className="mr-2">banger hoard engaged 💖</span>}
               {tagIdParam && (
-                <span>
-                  serving only tag <span className="text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>.
-                </span>
-              )}
-            </div>
-          )}
-
-          {showUploadPanel && (
-            <div className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-4">
-              <UploadZone />
-            </div>
-          )}
-
-          <SearchBar onSearch={handleInlineSearch} inline initialQuery={libraryQuery} />
-
-          {isSearching && (
-            <div className="space-y-3">
-              {searchError && (
-                <div className="p-4 bg-[#FF4D4D]/10 border border-[#FF4D4D]/20 rounded-xl text-sm text-[#FF8686]">
-                  {searchError}
-                </div>
-              )}
-
-              {!searchError && searchLoading && (
-                <div className="flex items-center gap-3 p-4 bg-[#14171A] border border-[#2A2F37] rounded-xl text-sm text-[#B3B7BE]">
-                  <svg
-                    className="h-4 w-4 animate-spin text-[#7C5CFF]"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    />
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    />
+                <button
+                  type="button"
+                  onClick={clearTagFilter}
+                  className="inline-flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                >
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12" />
                   </svg>
-                  summoning results for "{trimmedLibraryQuery}"…
-                </div>
-              )}
-
-              {!searchError && !searchLoading && (
-                <div className="p-4 bg-[#14171A] border border-[#2A2F37] rounded-xl text-sm text-[#B3B7BE]">
-                  {searchHitCount > 0 ? (
-                    <span className="flex flex-col gap-1">
-                      <span>
-                        showing <span className="text-[#B6FF6E] font-semibold">{searchHitCount}</span> matches
-                        for “<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>”.
-                      </span>
-                      {searchMetadata?.thresholdFallback && (
-                        <span className="text-xs text-[#FFAA5C]">
-                          pulled a few low-sim homies so your vibes aren't empty.
-                        </span>
-                      )}
-                    </span>
-                  ) : (
-                    <span>
-                      no matches yet for "<span className="text-[#E6E8EB] font-medium">{trimmedLibraryQuery}</span>". remix the prompt and try again.
-                    </span>
-                  )}
-                </div>
+                  clear tag {activeTagName ? `#${activeTagName}` : ''}
+                </button>
               )}
             </div>
-          )}
-        </div>
 
+            {(!isSearching && (favoritesOnly || tagIdParam)) && (
+              <div className="flex flex-wrap items-center gap-2 text-xs text-[#B3B7BE]">
+                {favoritesOnly && (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#14151C] px-3 py-1 text-[#FF8AD6]">
+                    <HeartIcon className="h-3.5 w-3.5" filled />
+                    banger hoard engaged
+                  </span>
+                )}
+                {tagIdParam && (
+                  <span className="inline-flex items-center gap-2 rounded-full bg-[#14151C] px-3 py-1">
+                    filtering tag <span className="font-medium text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>
+                  </span>
+                )}
+              </div>
+            )}
+
+            <SearchBar onSearch={handleInlineSearch} inline initialQuery={libraryQuery} />
+
+            {showUploadPanel && (
+              <div className="rounded-3xl border border-dashed border-[#2A2F37] bg-[#111419] p-5">
+                <UploadZone
+                  isOnDashboard={true}
+                  onUploadComplete={(stats) => {
+                    // Refresh the gallery
+                    refresh();
+
+                    // Show success toast
+                    if (stats.uploaded > 0 && stats.duplicates > 0) {
+                      showToast(
+                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'meme' : 'memes'} added, ${stats.duplicates} already existed`,
+                        'success'
+                      );
+                    } else if (stats.uploaded > 0) {
+                      showToast(
+                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'meme' : 'memes'} added to your vault`,
+                        'success'
+                      );
+                    } else if (stats.duplicates > 0) {
+                      showToast(
+                        `${stats.duplicates} ${stats.duplicates === 1 ? 'image' : 'images'} already in your vault`,
+                        'info'
+                      );
+                    }
+
+                    // Optionally close the upload panel after a delay
+                    // setTimeout(() => setShowUploadPanel(false), 2000);
+                  }}
+                />
+              </div>
+            )}
+
+            {isSearching && (
+              <div className="space-y-3">
+                {searchError && (
+                  <div className="rounded-2xl border border-[#FF4D4D]/30 bg-[#251014] p-4 text-sm text-[#FF8C9B]">
+                    {searchError}
+                  </div>
+                )}
+
+                {!searchError && searchLoading && (
+                  <div className="flex items-center gap-3 rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
+                    <svg
+                      className="h-4 w-4 animate-spin text-[#7C5CFF]"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      />
+                    </svg>
+                    summoning results for "{trimmedLibraryQuery}"…
+                  </div>
+                )}
+
+                {!searchError && !searchLoading && (
+                  <div className="rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
+                    {searchHitCount > 0 ? (
+                      <span className="flex flex-col gap-1">
+                        <span>
+                          showing <span className="font-semibold text-[#B6FF6E]">{searchHitCount}</span> matches for “<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>”.
+                        </span>
+                        {searchMetadata?.thresholdFallback && (
+                          <span className="text-xs text-[#FFAA5C]">
+                            pulled a few low-sim homies so your vibes aren't empty.
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span>
+                        no matches yet for "<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>". remix the prompt and try again.
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </header>
+        </div>
       </div>
 
-      {/* Image Grid - Fills remaining height */}
-      <div className="flex-1 px-6 md:px-8 pb-6 md:pb-8 min-h-0">
-        <div className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-6 h-full">
-          <div className="h-full" style={{ maxHeight: 'calc(100vh - 320px)' }}>
+      <div className="flex-1 overflow-hidden px-6 pb-8 pt-6 md:px-10">
+        <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-[#1F2328] bg-[#101319]">
+          <div className="h-full flex-1 overflow-hidden">
             {viewMode === 'masonry' ? (
               <div
                 ref={handleScrollContainerReady}
-                className={gridContainerClassName}
+                className={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
                 style={{ scrollbarGutter: 'stable' }}
               >
                 <MasonryGrid
@@ -668,8 +701,22 @@ export default function AppPage() {
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
                   onUploadClick={() => setShowUploadPanel(true)}
+                  className="mx-auto w-full max-w-6xl"
                 />
               </div>
+            ) : viewMode === 'list' ? (
+              <ImageList
+                assets={activeAssets}
+                loading={activeLoading}
+                hasMore={activeHasMore}
+                onLoadMore={!isSearching ? handleLoadMore : undefined}
+                onAssetUpdate={handleAssetUpdate}
+                onAssetDelete={handleAssetDelete}
+                onAssetSelect={setSelectedAsset}
+                onScrollContainerReady={handleScrollContainerReady}
+                containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                onUploadClick={() => setShowUploadPanel(true)}
+              />
             ) : (
               <ImageGridErrorBoundary
                 onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
@@ -682,7 +729,7 @@ export default function AppPage() {
                   onAssetUpdate={handleAssetUpdate}
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
-                  containerClassName={gridContainerClassName}
+                  containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
                   onScrollContainerReady={handleScrollContainerReady}
                   onUploadClick={() => setShowUploadPanel(true)}
                 />

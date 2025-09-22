@@ -11,63 +11,72 @@ export default async function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black text-white flex items-center justify-center">
-      <div className="max-w-4xl mx-auto px-4 py-16 text-center">
-        <h1 className="text-6xl md:text-8xl font-bold mb-6">
-          <span className="bg-gradient-to-r from-violet-500 to-violet-700 bg-clip-text text-transparent">
-            Sploot
+    <div className="min-h-screen bg-[#04060a] bg-[radial-gradient(circle_at_top,_rgba(124,92,255,0.12),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(255,100,197,0.08),_transparent_50%)] text-white">
+      <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center px-6 pb-16 pt-20 md:pt-24">
+        <header className="w-full text-center">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white/70">
+            meme brain engaged
           </span>
-        </h1>
+          <h1 className="mt-6 text-6xl font-semibold lowercase tracking-tight text-white md:text-7xl">
+            <span className="bg-gradient-to-r from-[#FF64C5] via-[#C399FF] to-[#7C5CFF] bg-clip-text text-transparent">
+              sploot
+            </span>
+          </h1>
+          <p className="mt-4 text-lg text-white/70 md:text-xl">
+            your private meme search engine — find any reaction in seconds
+          </p>
+          <p className="mt-3 text-sm text-white/50 md:text-base">
+            ai-powered search for your personal meme vault. type what you remember, get what you need.
+          </p>
 
-        <p className="text-xl md:text-2xl text-gray-400 mb-4">
-          Your personal meme library with lightning-fast semantic search
-        </p>
-
-        <p className="text-lg text-gray-500 mb-12 max-w-2xl mx-auto">
-          Store, organize, and instantly find any meme in your collection using natural language.
-          No more endless scrolling through folders.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
-          <Link
-            href="/sign-up"
-            className="px-8 py-4 bg-violet-600 hover:bg-violet-700 rounded-lg font-semibold text-lg transition-colors duration-200 inline-block"
-          >
-            Get Started
-          </Link>
-          <Link
-            href="/sign-in"
-            className="px-8 py-4 bg-gray-800 hover:bg-gray-700 rounded-lg font-semibold text-lg transition-colors duration-200 inline-block border border-gray-700"
-          >
-            Sign In
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-left">
-          <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-lg border border-gray-800">
-            <div className="text-3xl mb-3">⚡</div>
-            <h3 className="text-xl font-semibold mb-2 text-violet-400">Lightning Fast</h3>
-            <p className="text-gray-400">
-              Find any meme in milliseconds with AI-powered semantic search
-            </p>
+          <div className="mt-10 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link
+              href="/sign-up"
+              className="inline-flex w-full items-center justify-center rounded-2xl bg-[#7C5CFF] px-8 py-3 text-base font-semibold lowercase text-white transition-all duration-200 hover:bg-[#6B4FE0] hover:shadow-[0_18px_38px_-20px_rgba(124,92,255,0.9)] sm:w-auto"
+            >
+              start collecting
+            </Link>
+            <Link
+              href="/sign-in"
+              className="inline-flex w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-8 py-3 text-base font-semibold lowercase text-white/80 transition-all duration-200 hover:border-white/25 hover:text-white sm:w-auto"
+            >
+              sign in
+            </Link>
           </div>
+        </header>
 
-          <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-lg border border-gray-800">
-            <div className="text-3xl mb-3">🔒</div>
-            <h3 className="text-xl font-semibold mb-2 text-violet-400">Private & Secure</h3>
-            <p className="text-gray-400">
-              Your personal collection, accessible from anywhere
-            </p>
-          </div>
+        <section className="mt-16 grid w-full grid-cols-1 gap-6 text-left md:grid-cols-3">
+          {[
+            {
+              emoji: '⚡',
+              title: 'semantic search',
+              blurb: 'type "disappointed drake" or "guy looking back" — our ai knows exactly what you mean.'
+            },
+            {
+              emoji: '🛡️',
+              title: 'private & secure',
+              blurb: 'your collection stays locked behind auth. no algorithms, no timeline pollution, just your vault.'
+            },
+            {
+              emoji: '📱',
+              title: 'works everywhere',
+              blurb: 'install on any device. stays fast whether you\'re on desktop, mobile, or that tablet from 2019.'
+            }
+          ].map((card) => (
+            <div
+              key={card.title}
+              className="rounded-2xl border border-white/8 bg-white/[0.04] p-6 shadow-[0_20px_45px_-30px_rgba(124,92,255,0.6)] backdrop-blur"
+            >
+              <div className="text-3xl">{card.emoji}</div>
+              <h3 className="mt-4 text-lg font-semibold lowercase text-white">{card.title}</h3>
+              <p className="mt-2 text-sm text-white/60">{card.blurb}</p>
+            </div>
+          ))}
+        </section>
 
-          <div className="bg-gray-900/50 backdrop-blur-sm p-6 rounded-lg border border-gray-800">
-            <div className="text-3xl mb-3">📱</div>
-            <h3 className="text-xl font-semibold mb-2 text-violet-400">Works Everywhere</h3>
-            <p className="text-gray-400">
-              Progressive web app works on desktop and mobile
-            </p>
-          </div>
-        </div>
+        <footer className="mt-14 w-full text-center text-xs lowercase text-white/40">
+          built for the chronically online. save responsibly.
+        </footer>
       </div>
     </div>
   );

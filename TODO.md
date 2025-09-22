@@ -66,7 +66,7 @@
 
 ### Phase 3: Optimized API Endpoints
 
-- [ ] **Create batch embedding status endpoint** (`app/api/assets/batch/embedding-status/route.ts`)
+- [x] **Create batch embedding status endpoint** (`app/api/assets/batch/embedding-status/route.ts`)
   ```typescript
   POST /api/assets/batch/embedding-status
   Body: { assetIds: string[] }
