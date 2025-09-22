@@ -31,9 +31,29 @@ interface UploadZoneProps {
    * @default false
    */
   enableBackgroundSync?: boolean;
+
+  /**
+   * Callback when uploads complete successfully
+   */
+  onUploadComplete?: (stats: {
+    uploaded: number;
+    duplicates: number;
+    failed: number;
+  }) => void;
+
+  /**
+   * Whether the upload zone is being used on the dashboard
+   * When true, removes redundant "view in library" button
+   * @default false
+   */
+  isOnDashboard?: boolean;
 }
 
-export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
+export function UploadZone({
+  enableBackgroundSync = false,
+  onUploadComplete,
+  isOnDashboard = false
+}: UploadZoneProps) {
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
@@ -43,6 +63,34 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const { isOffline, isSlowConnection } = useOffline();
   const router = useRouter();
+
+  // Track when all uploads complete
+  useEffect(() => {
+    if (!onUploadComplete) return;
+
+    const hasActiveUploads = files.some(file =>
+      file.status === 'uploading' || file.status === 'pending' || file.status === 'queued'
+    );
+
+    const successfulUploads = files.filter(file => file.status === 'success');
+    const duplicates = files.filter(file => file.status === 'duplicate');
+    const failed = files.filter(file => file.status === 'error');
+
+    // Trigger callback when all uploads are done and we have at least one file
+    if (files.length > 0 && !hasActiveUploads && (successfulUploads.length > 0 || duplicates.length > 0)) {
+      // Only trigger once when uploads complete
+      const stats = {
+        uploaded: successfulUploads.length,
+        duplicates: duplicates.length,
+        failed: failed.length
+      };
+
+      // Small delay to ensure UI updates first
+      setTimeout(() => {
+        onUploadComplete(stats);
+      }, 100);
+    }
+  }, [files, onUploadComplete]);
 
   // Regular upload queue (localStorage-based)
   const { addToQueue } = useUploadQueue();
@@ -218,8 +266,8 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
           reject(new Error('Upload cancelled'));
         });
 
-        // Use synchronous embedding generation for reliability
-        xhr.open('POST', '/api/upload?sync_embeddings=true');
+        // Upload without blocking on embedding generation for faster response
+        xhr.open('POST', '/api/upload');
         xhr.send(formData);
       });
 
@@ -761,6 +809,8 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                         <p className="text-sm font-medium text-[#E6E8EB]">{message}</p>
                         {hasActiveUploads ? (
                           <p className="text-xs text-[#B3B7BE]">Finishing remaining uploads...</p>
+                        ) : isOnDashboard ? (
+                          <p className="text-xs text-[#B3B7BE]">Your library will refresh automatically.</p>
                         ) : (
                           <p className="text-xs text-[#B3B7BE]">Jump back to browse everything in your collection.</p>
                         )}
@@ -770,13 +820,15 @@ export function UploadZone({ enableBackgroundSync = false }: UploadZoneProps) {
                 </div>
               </div>
 
-              <button
-                onClick={handleViewLibrary}
-                className="inline-flex items-center justify-center rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0] disabled:cursor-not-allowed disabled:bg-[#2A2F37] disabled:text-[#6A6E78]"
-                disabled={hasActiveUploads}
-              >
-                view in library
-              </button>
+              {!isOnDashboard && (
+                <button
+                  onClick={handleViewLibrary}
+                  className="inline-flex items-center justify-center rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0] disabled:cursor-not-allowed disabled:bg-[#2A2F37] disabled:text-[#6A6E78]"
+                  disabled={hasActiveUploads}
+                >
+                  view in library
+                </button>
+              )}
             </div>
           )}
         </div>
