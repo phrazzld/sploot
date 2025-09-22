@@ -88,7 +88,7 @@
   - Log performance metrics: Replicate API response time
   - Add circuit breaker: If 3 consecutive failures, pause for 30s
 
-- [ ] **Add embeddings cleanup endpoint** (`app/api/cron/process-embeddings/route.ts`)
+- [x] **Add embeddings cleanup endpoint** (`app/api/cron/process-embeddings/route.ts`)
   ```typescript
   // Runs every 5 minutes via Vercel Cron or manual trigger
   - Find assets with embeddingStatus = 'failed' AND retryCount < 3
