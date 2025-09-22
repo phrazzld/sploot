@@ -14,6 +14,8 @@ import { processUploadedImage } from '@/lib/image-processing';
  * This is more reliable than client-side uploads for the initial implementation
  */
 export async function POST(req: NextRequest) {
+  const startTime = Date.now();
+
   try {
     // Check if we should generate embeddings synchronously (slower but more reliable)
     const url = new URL(req.url);
@@ -28,6 +30,7 @@ export async function POST(req: NextRequest) {
     const tagsData = formData.get('tags') as string | null;
 
     if (!file) {
+      console.log(`[perf] Upload failed - no file provided (${Date.now() - startTime}ms)`);
       return NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
@@ -50,6 +53,7 @@ export async function POST(req: NextRequest) {
 
     // Validate file type
     if (!isValidFileType(file.type)) {
+      console.log(`[perf] Upload failed - invalid file type (${Date.now() - startTime}ms)`);
       return NextResponse.json(
         {
           error: `Invalid file type: ${file.type}. Only JPEG, PNG, WebP, and GIF images are allowed.`,
@@ -62,6 +66,7 @@ export async function POST(req: NextRequest) {
 
     // Validate file size
     if (!isValidFileSize(file.size)) {
+      console.log(`[perf] Upload failed - file too large (${Date.now() - startTime}ms)`);
       return NextResponse.json(
         {
           error: `File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds the 10MB limit`,
@@ -226,6 +231,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Create asset record in database (required for the asset to be visible)
+      const dbStartTime = Date.now();
       if (!databaseAvailable || !prisma) {
         // Clean up uploaded file if database is not available
         try {
@@ -235,6 +241,7 @@ export async function POST(req: NextRequest) {
           console.error('Failed to cleanup uploaded file:', cleanupError);
         }
 
+        console.log(`[perf] Upload failed - database unavailable (${Date.now() - startTime}ms)`);
         return NextResponse.json(
           {
             error: 'Database unavailable. Cannot complete upload.',
@@ -298,12 +305,15 @@ export async function POST(req: NextRequest) {
           return newAsset;
         });
 
+        console.log(`[perf] Database write: ${Date.now() - dbStartTime}ms`);
+
         // Generate embeddings based on sync preference
         if (syncEmbeddings) {
           // Synchronous: Generate embeddings immediately (slower but reliable)
+          const embeddingStartTime = Date.now();
           try {
             await generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
-            console.log(`[sync] Successfully generated embedding for asset ${asset.id}`);
+            console.log(`[sync] Successfully generated embedding for asset ${asset.id} (${Date.now() - embeddingStartTime}ms)`);
           } catch (embError) {
             console.error(`[sync] Failed to generate embedding for asset ${asset.id}:`, embError);
             // Don't fail the upload if embedding fails
@@ -315,6 +325,8 @@ export async function POST(req: NextRequest) {
           });
         }
 
+        const totalTime = Date.now() - startTime;
+        console.log(`[perf] Upload completed successfully in ${totalTime}ms`);
         return NextResponse.json({
           success: true,
           asset: {
@@ -364,6 +376,7 @@ export async function POST(req: NextRequest) {
               });
             }
 
+            console.log(`[perf] Upload detected duplicate (${Date.now() - startTime}ms)`);
             return NextResponse.json(
               {
                 success: true,
@@ -398,6 +411,7 @@ export async function POST(req: NextRequest) {
           console.error('Failed to cleanup uploaded file:', cleanupError);
         }
 
+        console.log(`[perf] Upload failed - database error (${Date.now() - startTime}ms)`);
         return NextResponse.json(
           {
             error: 'Failed to save image to database. Upload cancelled.',
@@ -423,6 +437,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      console.log(`[perf] Upload failed - blob storage error (${Date.now() - startTime}ms)`);
       return NextResponse.json(
         { error: errorMessage },
         { status: 500 }
@@ -431,6 +446,7 @@ export async function POST(req: NextRequest) {
 
   } catch (error) {
     console.error('Upload endpoint error:', error);
+    console.log(`[perf] Upload failed - unexpected error (${Date.now() - startTime}ms)`);
 
     return NextResponse.json(
       {
