@@ -109,7 +109,7 @@
   - Size: 24x24px icon area
   - Click behavior: If failed, trigger manual retry
 
-- [ ] **Create upload progress header** (`components/upload/upload-progress-header.tsx`)
+- [x] **Create upload progress header** (`components/upload/upload-progress-header.tsx`)
   ```typescript
   interface ProgressStats {
     totalFiles: number
