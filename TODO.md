@@ -125,7 +125,7 @@
   - Time estimate: Based on rolling average of last 5 operations
   - Minimize/expand capability to reduce visual noise
 
-- [ ] **Add inline embedding status to upload zone** (`components/upload/upload-zone.tsx`)
+- [x] **Add inline embedding status to upload zone** (`components/upload/upload-zone.tsx`)
   - After upload completes, show: "✓ Uploaded • Preparing search..."
   - Monitor embedding generation, update to: "✓ Ready to search"
   - If fails: "⚠️ Upload complete • Search prep failed [Retry]"

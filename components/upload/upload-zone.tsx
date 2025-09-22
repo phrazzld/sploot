@@ -10,6 +10,7 @@ import { useBackgroundSync } from '@/hooks/use-background-sync';
 import { TagInput } from '@/components/tags/tag-input';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
+import { useEmbeddingStatus } from '@/hooks/use-embedding-status';
 
 interface UploadFile {
   id: string;
@@ -21,6 +22,121 @@ interface UploadFile {
   assetId?: string;
   blobUrl?: string;
   isDuplicate?: boolean;
+  needsEmbedding?: boolean;
+  embeddingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
+  embeddingError?: string;
+}
+
+// Component to handle inline embedding status display
+function EmbeddingStatusIndicator({
+  file,
+  onStatusChange
+}: {
+  file: UploadFile;
+  onStatusChange: (status: 'pending' | 'processing' | 'ready' | 'failed', error?: string) => void;
+}) {
+  const [showStatus, setShowStatus] = useState(true);
+  const [autoHideTimer, setAutoHideTimer] = useState<NodeJS.Timeout | null>(null);
+
+  // Monitor embedding status if needed
+  const embeddingStatus = useEmbeddingStatus({
+    assetId: file.assetId || '',
+    enabled: !!file.assetId && file.needsEmbedding === true,
+    pollInterval: 1500,
+    maxRetries: 5,
+    onSuccess: () => {
+      onStatusChange('ready');
+      // Auto-dismiss success after 3s
+      const timer = setTimeout(() => setShowStatus(false), 3000);
+      setAutoHideTimer(timer);
+    },
+    onError: (error) => {
+      onStatusChange('failed', error.message);
+      // Keep failures visible
+    },
+  });
+
+  // Update status based on embedding monitor
+  useEffect(() => {
+    if (embeddingStatus.isGenerating) {
+      onStatusChange('processing');
+    }
+  }, [embeddingStatus.isGenerating, onStatusChange]);
+
+  // Clean up timer on unmount
+  useEffect(() => {
+    return () => {
+      if (autoHideTimer) {
+        clearTimeout(autoHideTimer);
+      }
+    };
+  }, [autoHideTimer]);
+
+  // If embedding is not needed or status is hidden, show simple success
+  if (!file.needsEmbedding || !showStatus) {
+    return <span className="text-[#B6FF6E] text-sm">✓</span>;
+  }
+
+  // Retry handler for failed embeddings
+  const handleRetry = async () => {
+    if (embeddingStatus.canRetry) {
+      embeddingStatus.retry();
+    }
+  };
+
+  // Display based on embedding status
+  switch (file.embeddingStatus) {
+    case 'pending':
+      return (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-[#B6FF6E]">✓ Uploaded</span>
+          <span className="text-[#FFB020]">• Preparing search...</span>
+        </div>
+      );
+
+    case 'processing':
+      return (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-[#B6FF6E]">✓ Uploaded</span>
+          <span className="text-[#7C5CFF] flex items-center gap-1">
+            • Indexing
+            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          </span>
+        </div>
+      );
+
+    case 'ready':
+      return (
+        <div className="flex items-center gap-2 text-xs animate-fade-in">
+          <span className="text-[#B6FF6E]">✓ Ready to search</span>
+        </div>
+      );
+
+    case 'failed':
+      return (
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-[#FFB020]">⚠️ Upload complete</span>
+          <span className="text-[#FF4D4D]">• Search prep failed</span>
+          <button
+            onClick={handleRetry}
+            className="text-[#7C5CFF] hover:text-[#9B7FFF] underline font-medium"
+            disabled={!embeddingStatus.canRetry}
+          >
+            Retry
+          </button>
+        </div>
+      );
+
+    default:
+      return <span className="text-[#B6FF6E] text-sm">✓</span>;
+  }
 }
 
 interface UploadZoneProps {
@@ -309,6 +425,7 @@ export function UploadZone({
 
       // Handle duplicate detection as a special success case
       const isDuplicate = result.isDuplicate === true;
+      const needsEmbedding = result.asset?.needsEmbedding === true;
 
       setFiles((prev) =>
         prev.map((f) =>
@@ -320,6 +437,8 @@ export function UploadZone({
                 assetId: result.asset?.id,
                 blobUrl: result.asset?.blobUrl,
                 isDuplicate,
+                needsEmbedding,
+                embeddingStatus: needsEmbedding ? 'pending' : 'ready',
               }
             : f
         )
@@ -730,7 +849,7 @@ export function UploadZone({
                   </div>
 
                   {/* Status */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-shrink-0">
                     {file.status === 'uploading' && (
                       <>
                         <div className="w-24 h-1 bg-[#2A2F37] rounded-full overflow-hidden">
@@ -748,22 +867,35 @@ export function UploadZone({
                     )}
 
                     {file.status === 'success' && (
-                      <span className="text-[#B6FF6E] text-sm">✓</span>
+                      <EmbeddingStatusIndicator
+                        file={file}
+                        onStatusChange={(status, error) => {
+                          setFiles(prev => prev.map(f =>
+                            f.id === file.id
+                              ? { ...f, embeddingStatus: status, embeddingError: error }
+                              : f
+                          ));
+                        }}
+                      />
                     )}
 
                     {file.status === 'duplicate' && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-[#FFB020] text-xs">already exists</span>
-                        <button
-                          onClick={() => {
-                            if (file.assetId) {
-                              router.push(`/app?highlight=${file.assetId}`);
-                            }
-                          }}
-                          className="text-[#7C5CFF] hover:text-[#9B7FFF] text-xs font-medium underline"
-                        >
-                          view
-                        </button>
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-[#FFB020]">already exists</span>
+                        {file.needsEmbedding ? (
+                          <span className="text-[#7C5CFF]">• indexing...</span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (file.assetId) {
+                                router.push(`/app?highlight=${file.assetId}`);
+                              }
+                            }}
+                            className="text-[#7C5CFF] hover:text-[#9B7FFF] font-medium underline"
+                          >
+                            view
+                          </button>
+                        )}
                       </div>
                     )}
 
