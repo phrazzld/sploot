@@ -1,454 +1,245 @@
-# Sploot TODO - Functional Prototype → Polished Product
+# Sploot TODO - Performance Optimization & Reliability
 
-## 🚀 CURRENT STATUS: Working Prototype
+## 🚨 CRITICAL: Batch Upload Performance (Target: <1s per image)
 
-The app is **FUNCTIONAL** with all services configured. Upload works, search works, auth works. Now focusing on UI/UX polish.
+### Phase 1: Remove Synchronous Bottleneck (Immediate Impact)
 
----
+- [x] **Remove sync_embeddings parameter from upload zone** (`components/upload/upload-zone.tsx:270`)
+  - Change: `xhr.open('POST', '/api/upload?sync_embeddings=true');`
+  - To: `xhr.open('POST', '/api/upload');`
+  - Impact: Reduces upload time from ~3-4s to <1s per image
+  - Test: Upload 10 images, should complete in <10s total (not 30-40s)
 
-## ✅ COMPLETED (Services Configured & Working)
+- [x] **Add performance timing to upload endpoint** (`app/api/upload/route.ts`)
+  - Add `const startTime = Date.now();` at request start
+  - Log: `console.log(\`[perf] Upload completed in ${Date.now() - startTime}ms\`);`
+  - Track separately: blob storage time, database write time, embedding queue time
+  - Success metric: Upload endpoint responds in <800ms without embedding generation
 
-- [x] **Clerk Authentication** - Working with Google/Email
-- [x] **Vercel Postgres** - Database connected with pgvector
-- [x] **Vercel Blob Storage** - Image uploads functional
-- [x] **Replicate API** - Embeddings and search operational
-- [x] **User Sync Fix** - Clerk users now properly sync to database
-- [x] **Upload Error Handling** - Proper error reporting and cleanup
+- [x] **Implement parallel upload batching** (`components/upload/upload-zone.tsx`)
+  - Current: Files upload sequentially via `forEach`
+  - Change to: `Promise.all()` with max concurrency of 3
+  - Add: `const MAX_CONCURRENT_UPLOADS = 3;`
+  - Implementation: Use p-limit or manual queue management
+  - Success metric: 10 files start uploading within 100ms of each other
 
----
+### Phase 2: Reliable Background Embedding Generation
 
-## 🎨 UI/UX Improvements (Current Focus)
-
-### Phase 1: Remove Redundancy & Fix Grammar
-- [x] **Remove redundant stat cards** (`app/app/page.tsx` lines 52-100)
-  - Delete the 4 cards (Total, Favorites, Upload, Search)
-  - They duplicate sidebar navigation and waste vertical space
-  - Keep stats but integrate into header as inline text
-
-- [x] **Fix singular/plural grammar** (`app/app/page.tsx` line 42)
-  - Change: `${total} memes in your collection`
-  - To: `${total} ${total === 1 ? 'meme' : 'memes'} in your collection`
-  - Also update empty state text
-
-- [x] **Clean up search bar purple accent** (`components/search/search-bar.tsx` line 60)
-  - Remove the `<div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-[#7C5CFF] rounded-full" />`
-  - Looks disconnected and out of place
-
-- [x] **Remove keyboard hint** (`components/search/search-bar.tsx` lines 175-178)
-  - Delete the "Press Enter to search" hint div
-  - Unnecessary clutter, Enter is standard behavior
-
-### Phase 2: Gallery Display Improvements
-- [x] **Add view mode state** (`app/app/page.tsx`)
-  - Add `const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'compact'>('grid')`
-  - Store preference in localStorage: `localStorage.setItem('viewMode', viewMode)`
-  - Load on mount: `useState(() => localStorage.getItem('viewMode') || 'grid')`
-
-- [x] **Create view mode toggle buttons** (`app/app/page.tsx` header section)
-  - Add button group with 3 icons: Grid, Masonry, List
-  - Position: right side of header, inline with title
-  - Active state: bg-[#7C5CFF]/20 with text-[#7C5CFF]
-
-- [x] **Implement masonry layout** (`components/library/masonry-grid.tsx` - new file)
-  - Use CSS columns for true masonry (no JS library needed)
-  - Preserve original aspect ratios
-  - Column count responsive: 2 → 3 → 4 → 5 → 6
-  - Gap: 16px consistent with current design
-
-- [x] **Update ImageTile for aspect ratio preservation** (`components/library/image-tile.tsx`)
-  - Add prop: `preserveAspectRatio: boolean`
-  - When true, remove `aspect-square` class from container
-  - Use `object-contain` instead of `object-cover` for img
-
-- [x] **Simplify virtual scrolling logic** (`components/library/image-grid.tsx`)
-  - Only enable virtualizer when `assets.length > 100`
-  - Otherwise use SimpleImageGrid component
-  - Reduces complexity for typical collections
-
-### Phase 3: Enhanced Header Design
-- [x] **Redesign header with inline stats** (`app/app/page.tsx` lines 38-44)
-  - Single line format: "247 memes • 12 favorites • 2.3GB"
-  - Use subtle separators (•) not boxes
-  - Text color: text-[#B3B7BE] for stats
-
-- [x] **Add sort/filter dropdown** (`app/app/page.tsx` header)
-  - Position: right side below view toggle
-  - Options: Date (newest/oldest), Favorites, Size, Name
-  - Store preference in localStorage
-
-- [x] **Implement live search** (`components/search/search-bar.tsx`)
-  - ✅ Add debounce hook: 300ms delay
-  - ✅ Trigger search automatically on type
-  - ✅ Remove Search button, just show loading spinner
-  - ✅ Add ESC key handler to clear
-
-### Phase 4: Polish & Animations
-- [x] **Add image fade-in animation** (`components/library/image-tile.tsx`)
-  - Use `opacity-0 animate-fade-in` on img load
-  - CSS animation: 200ms ease-out
-  - Prevent layout shift during load
-
-- [x] **Smooth view mode transitions** (`app/app/page.tsx`)
-  - Add `transition-all duration-300` to grid container
-  - Use transform for smooth repositioning
-  - Maintain scroll position between modes
+- [x] **Create embedding queue manager** (`lib/embedding-queue.ts`)
+  ```typescript
+  interface EmbeddingQueueItem {
+    assetId: string;
+    blobUrl: string;
+    checksum: string;
+    priority: number; // 0 = high, 1 = normal
+    retryCount: number;
+    addedAt: number;
+  }
   ```
-  Work Log:
-  - Shared a transition class between grid + masonry containers with fade/scale animation and preserved scroll offset via ref handoff
-  - `pnpm lint` failed locally: Next.js SWC binary unavailable offline despite retry with elevated permissions
-  ```
+  - Implement FIFO queue with priority support
+  - Max concurrent embedding requests: 2 (Replicate API rate limits)
+  - Retry logic: 3 attempts with exponential backoff (1s, 2s, 4s)
+  - Persist queue to localStorage for recovery after page reload
 
-- [x] **Better empty state illustration** (`components/library/image-grid.tsx` lines 116-126)
-  - Replace emoji with SVG illustration
-  - Add "Drop files here" message
-  - Include upload button directly in empty state
+- [x] **Add embedding status to Asset type** (`types/index.ts` or inline)
+  ```typescript
+  embeddingStatus: 'pending' | 'processing' | 'ready' | 'failed'
+  embeddingError?: string
+  embeddingRetryCount: number
+  embeddingLastAttempt?: Date
   ```
-  Work Log:
-  - Swapped inlined emoji for vector illustration and dashed drop zone with CTA linking to `/app/upload`
-  - `pnpm lint` still fails: Next.js SWC binary unavailable in offline sandbox environment
+  - Update all Asset interfaces across components
+  - Ensure database schema supports these fields
+
+- [x] **Modify upload response to include asset IDs** (`app/api/upload/route.ts:320-340`)
+  - Current response: `{ url, pathname, message }`
+  - Add: `{ assetId, needsEmbedding: true }`
+  - Client uses this to start monitoring immediately
+
+- [ ] **Implement client-side embedding monitor** (`hooks/use-batch-embedding-status.ts`)
+  - Monitor multiple assets simultaneously
+  - Poll `/api/assets/batch/embedding-status` (new endpoint)
+  - Batch status checks: Send array of asset IDs, receive status map
+  - Auto-retry failed embeddings after 5 seconds
+  - Stop monitoring after 10 retries or success
+  - Performance: Single request for N assets, not N requests
+
+### Phase 3: Optimized API Endpoints
+
+- [ ] **Create batch embedding status endpoint** (`app/api/assets/batch/embedding-status/route.ts`)
+  ```typescript
+  POST /api/assets/batch/embedding-status
+  Body: { assetIds: string[] }
+  Response: {
+    statuses: { [assetId: string]: {
+      hasEmbedding: boolean,
+      status: 'pending' | 'processing' | 'ready' | 'failed',
+      error?: string
+    }}
+  }
+  ```
+  - Single database query with `WHERE id IN (...)`
+  - Max 50 assets per request
+  - Response time target: <100ms for 50 assets
+
+- [ ] **Optimize embedding generation endpoint** (`app/api/assets/[id]/generate-embedding/route.ts`)
+  - Add request deduplication (if already processing, return early)
+  - Track in-flight requests in memory: `Map<assetId, Promise>`
+  - Log performance metrics: Replicate API response time
+  - Add circuit breaker: If 3 consecutive failures, pause for 30s
+
+- [ ] **Add embeddings cleanup endpoint** (`app/api/cron/process-embeddings/route.ts`)
+  ```typescript
+  // Runs every 5 minutes via Vercel Cron or manual trigger
+  - Find assets with embeddingStatus = 'failed' AND retryCount < 3
+  - Find assets older than 1 hour with no embeddings
+  - Process in batches of 10
+  - Log: success rate, average processing time
   ```
 
-- [x] **Loading skeleton for images** (`components/library/image-tile.tsx`)
-  - Show animated placeholder while loading
-  - Match final image dimensions to prevent jump
-  - Subtle pulse animation
+### Phase 4: Visual Feedback & UX
+
+- [ ] **Add embedding status badge to ImageTile** (`components/library/image-tile.tsx`)
+  - Display states:
+    - `pending`: Yellow dot with pulse animation
+    - `processing`: Blue spinner (CSS animation, no JS)
+    - `ready`: Green checkmark (fade in on completion)
+    - `failed`: Red X with retry button
+  - Position: Bottom-left corner, 8px padding
+  - Size: 24x24px icon area
+  - Click behavior: If failed, trigger manual retry
+
+- [ ] **Create upload progress header** (`components/upload/upload-progress-header.tsx`)
+  ```typescript
+  interface ProgressStats {
+    totalFiles: number
+    uploaded: number
+    processingEmbeddings: number
+    ready: number
+    failed: number
+    estimatedTimeRemaining: number // ms
+  }
   ```
-  Work Log:
-  - Added interim skeleton layer with pulse animation and CSS aspect-ratio guard to prevent layout shifts before image decode
-  - `pnpm lint` still failing locally because Next.js SWC binaries cannot be fetched in the sandboxed environment
+  - Real-time stats update via React state
+  - Progress bar: Dual-layer (upload progress + embedding progress)
+  - Time estimate: Based on rolling average of last 5 operations
+  - Minimize/expand capability to reduce visual noise
+
+- [ ] **Add inline embedding status to upload zone** (`components/upload/upload-zone.tsx`)
+  - After upload completes, show: "✓ Uploaded • Preparing search..."
+  - Monitor embedding generation, update to: "✓ Ready to search"
+  - If fails: "⚠️ Upload complete • Search prep failed [Retry]"
+  - Auto-dismiss success after 3s, keep failures visible
+
+### Phase 5: Performance Monitoring & Metrics
+
+- [ ] **Add performance tracking utility** (`lib/performance.ts`)
+  ```typescript
+  class PerformanceTracker {
+    private metrics: Map<string, number[]> = new Map();
+
+    track(operation: string, duration: number): void
+    getAverage(operation: string): number
+    getP95(operation: string): number
+    reset(): void
+  }
   ```
+  - Track: upload time, embedding time, total time
+  - Store last 100 samples per metric
+  - Calculate percentiles for monitoring
 
-### Phase 5: Navigation & Library UX
-- [x] **Keep library search inline** (`components/search/SearchBar.tsx` & `app/app/page.tsx`)
-  - Add an `inline` mode that filters client-side without pushing to `/app/search`
-  - Only route to the dedicated search page when invoked from global navigation
-  ```
-  Work Log:
-  - Introduced `inline` mode for `SearchBar` and wired `/app` to stream results using `useSearchAssets` with shared update/delete handlers
-  - Surface inline status + counts on the library page while keeping nav-based search routing intact
-  - `pnpm lint` still blocked: Next.js SWC binary download denied in sandbox
-  ```
-- [x] **Add "View in Library" CTA post-upload** (`components/upload/upload-zone.tsx`)
-  - After a successful upload, surface a primary action that links back to `/app`
-  - Clear uploaded state so the library view reflects the new asset count
-  ```
-  Work Log:
-  - Added success summary + "View in Library" button in `UploadZone`; clears staged files and routes to `/app`
-  - Button disabled while uploads still processing to avoid dropping in-flight items
-  - `pnpm lint` still blocked: Next.js SWC binary download denied in sandbox
-  ```
-- [x] **Improve duplicate success messaging** (`components/upload/upload-zone.tsx`)
-  - When the API reports an existing asset, show thumbnail + "View existing" button
-  - Treat duplicates as a non-error success path in the UI
-  ```
-  Work Log:
-  - Updated `assetExists` in lib/db.ts to return full asset data instead of boolean
-  - Modified upload API to check for duplicates BEFORE uploading to blob storage
-  - Added checksum calculation early in the upload process for efficiency
-  - Implemented special UI state for duplicates with "Already exists" indicator and View button
-  - Normalized Prisma P2002 duplicate violations to return HTTP 409 with existing asset
-  - Success summary now distinguishes between new uploads and duplicates
-  ```
+- [ ] **Log critical performance metrics**
+  - Upload API: Time to blob store, time to database
+  - Embedding: Queue wait time, Replicate API time, total time
+  - Client: Time from file select to "ready to search"
+  - Success criteria:
+    - Single image: <1s upload, <5s to searchable
+    - 10 images: <10s upload, <15s to searchable
+    - 50 images: <30s upload, <60s to searchable
 
----
+- [ ] **Add debug mode for embedding status** (`components/library/image-tile.tsx`)
+  - When `localStorage.debug_embeddings = 'true'`
+  - Show detailed status: Queue position, retry count, error message
+  - Log all embedding state transitions to console
+  - Display Replicate API response time
 
-## 🚨 CRITICAL: Fix Embedding Generation (Search Not Working!)
+### Phase 6: Error Handling & Recovery
 
-### Root Cause: Async Functions Don't Execute After Response
-The `generateEmbeddingAsync()` call in `/app/api/upload/route.ts` line 289 never executes because Next.js terminates the request context immediately after returning the response. Embeddings stay in "Processing..." state forever, breaking search functionality.
+- [ ] **Implement smart retry logic** (`lib/embedding-queue.ts`)
+  - Exponential backoff: 1s, 2s, 4s, 8s, 16s
+  - Different strategies per error type:
+    - Rate limit (429): Wait full duration, don't count as retry
+    - Network error: Immediate retry once, then backoff
+    - Invalid image: Mark as permanently failed, don't retry
+    - Server error (500): Standard backoff
+  - Max retries: 5 for user-triggered, 3 for background
 
-### Immediate Fix - Implement waitUntil Pattern
-- [x] **Install Vercel Functions package** (`package.json`)
-  - Run: `pnpm add @vercel/functions`
-  - Required for `waitUntil` API to ensure background work completes
+- [ ] **Add manual bulk retry action** (`app/app/page.tsx`)
+  - Button: "Retry Failed Searches (N images)"
+  - Only show if failed embeddings exist
+  - Triggers batch processing of all failed assets
+  - Shows progress modal during processing
 
-- [x] **Import and apply waitUntil to upload route** (`app/api/upload/route.ts`)
-  - Add import: `import { waitUntil } from '@vercel/functions';`
-  - Wrap line 289: `waitUntil(generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256));`
-  - Do the same for line 328 (duplicate asset path)
-  - This ensures the Promise executes even after response is sent
+- [ ] **Persist upload queue for recovery** (`lib/upload-queue.ts`)
+  - Save pending uploads to IndexedDB (not localStorage - size limits)
+  - On page load, check for incomplete uploads
+  - Show notification: "Resume N interrupted uploads?"
+  - Auto-resume after 3s if no user action
 
-- [x] **Add console logging to verify execution** (`app/api/upload/route.ts` in `generateEmbeddingAsync`)
-  - Already has logs at lines 445 and 460
-  - Verify "Generating embedding for asset..." appears in server logs
-  - Verify "Embedding generated successfully..." appears after Replicate API call
+### Phase 7: Testing & Validation
 
-- [ ] **Test with real upload**
-  - Upload a new image
-  - Check server logs for embedding generation messages
-  - Verify "Processing..." changes to "Ready for search" in UI
-  - Test search with natural language query
+- [ ] **Create embedding generation test suite** (`__tests__/embeddings/`)
+  - Test: Upload without embedding blocks < 1s
+  - Test: Embedding generates within 10s via background
+  - Test: Failed embedding retries automatically
+  - Test: 10 simultaneous uploads complete successfully
+  - Test: Network interruption recovery
 
-### Fallback Solution - Client-Side Retry
-- [ ] **Create useEmbeddingStatus hook** (`hooks/use-embedding-status.ts`)
-  - Poll `/api/assets/[id]/embedding-status` every 2 seconds
-  - If no embedding after 5 seconds, trigger generation
-  - POST to `/api/assets/[id]/generate-embedding`
-  - Continue polling until embedding exists or max retries (10)
+- [ ] **Add E2E test for batch upload** (`e2e/batch-upload.spec.ts`)
+  - Upload 5 images simultaneously
+  - Verify all show "uploading" state immediately
+  - Verify all complete upload within 5s
+  - Verify all become searchable within 15s
+  - Verify search finds images by content
 
-- [ ] **Integrate retry mechanism in ImageTile** (`components/library/image-tile.tsx`)
-  - Use hook when `asset.embedding` is null
-  - Show retry button if generation fails after max attempts
-  - Log failures to console with asset ID for debugging
+- [ ] **Load test embedding generation** (`scripts/load-test-embeddings.ts`)
+  - Simulate 100 concurrent users uploading 10 images each
+  - Measure: API response times, queue depth, failure rate
+  - Identify bottlenecks: Database, Replicate API, server CPU
+  - Target: System remains responsive under load
 
-### Long-term Solution - Queue-Based Processing
-- [ ] **Research Vercel Cron Jobs for batch processing**
-  - Create `/api/cron/process-embeddings` endpoint
-  - Query assets missing embeddings every 5 minutes
-  - Process in batches of 10 to avoid timeouts
-  - Add to `vercel.json` cron configuration
+## Success Metrics
 
-### Verification Steps
-- [ ] **Confirm REPLICATE_API_TOKEN is valid**
-  - Test with curl: `curl -H "Authorization: Token $REPLICATE_API_TOKEN" https://api.replicate.com/v1/predictions`
-  - Should return JSON, not 401 Unauthorized
-  - Token should not be "your_replicate_token_here" placeholder
+### Performance Targets
+- **Upload Speed**: <1s per image (was 3-4s)
+- **Batch Upload**: Linear scaling (10 images = ~10s, not 40s)
+- **Time to Searchable**: <5s for single image, <15s for batch of 10
+- **UI Responsiveness**: No blocking during upload or embedding generation
 
-- [ ] **Monitor Replicate API usage**
-  - Check dashboard at https://replicate.com/account/usage
-  - Verify predictions are being created
-  - Check for rate limiting or quota issues
+### Reliability Targets
+- **Embedding Success Rate**: >95% on first attempt
+- **Recovery Rate**: 100% within 3 retries
+- **Data Loss**: Zero (all uploads persisted even if embedding fails)
 
----
+### User Experience
+- **Immediate Feedback**: Upload progress visible within 100ms
+- **Clear Status**: User always knows state of their images
+- **Graceful Degradation**: Images viewable even if search fails
+- **One-Click Recovery**: Failed embeddings retryable with single action
 
-## 🔧 Technical Debt & Bug Fixes
+## Implementation Order
 
-### High Priority
-- [x] **Fix TypeScript errors in tests** (`__tests__/api/asset-crud.test.ts`)
-  - ✅ Promise type mismatches fixed
-  - ✅ Updated mock return types to match Next.js 15 API
-  - ✅ Reduced errors from 50+ to 20
-  - ✅ Fixed remaining 29 TypeScript errors across codebase
-  - ✅ All type checking now passes cleanly
+1. **Quick Win** (30 min): Remove sync_embeddings parameter (immediate 3-4x speedup)
+2. **Core Loop** (2 hours): Client-side monitoring + auto-retry
+3. **Robustness** (2 hours): Queue manager + batch endpoints
+4. **Polish** (1 hour): Visual feedback + progress indicators
+5. **Validation** (1 hour): Tests + metrics
 
-- [x] **Add proper error boundaries**
-  - ✅ Wrap ImageGrid in error boundary component
-  - ✅ Show user-friendly error message
-  - ✅ Include "Reload" action button
+**Total Estimated Time**: 6-7 hours for complete implementation
 
-- [x] **Short-circuit duplicate uploads** (`app/api/upload/route.ts`)
-  - Calculate checksum before writing to blob storage
-  - Call `assetExists` to detect duplicates and return 200 with existing asset + "Image already exists in your library"
-  - Skip blob upload entirely when a duplicate is found
-  ```
-  Work Log:
-  - Already implemented in previous commit - checksum calculated early, duplicates detected before blob upload
-  ```
+## Notes
 
-- [x] **Normalize Prisma duplicate violations** (`app/api/upload/route.ts`)
-  - Catch `PrismaClientKnownRequestError` with code `P2002`
-  - Respond with HTTP 409 and actionable copy instead of bubbling a 500
-  - Ensure caller receives structured error payload for UI messaging
-  ```
-  Work Log:
-  - Already implemented in previous commit - P2002 errors caught and handled with HTTP 409 response
-  ```
-
-- [x] **Generate embeddings for uploads** (`app/api/upload/route.ts`)
-  - Invoke the same `generateEmbeddingAsync` flow used in `app/api/assets`
-  - Defer execution asynchronously so request latency stays low
-  ```
-  Work Log:
-  - Created generateEmbeddingAsync function that runs after response is sent
-  - Checks for existing embeddings to avoid duplicates
-  - Handles both new uploads and duplicate assets missing embeddings
-  - Uses fire-and-forget pattern with error logging to keep upload latency low
-  - Fixed TypeScript issues with Prisma vector field using @ts-ignore
-  ```
-  - Confirm all upload paths create vector embeddings for search
-
-### Medium Priority
-- [x] **Implement image resize on upload** (`app/api/upload/route.ts`)
-  - Use Sharp to resize images > 2048px
-  - Generate thumbnail (256px) for grid view
-  - Store both versions in Blob storage
-  ```
-  Work Log:
-  - Created image-processing module using Sharp for optimized image handling
-  - Resizes main images if > 2048px on longest edge (preserves aspect ratio)
-  - Generates 256x256 square thumbnails for grid view using smart cropping
-  - Stores both main and thumbnail URLs in database
-  - Updated ImageTile component to use thumbnails when available
-  - Falls back gracefully if image processing fails
-  - Added thumbnailUrl and thumbnailPath fields to Asset model
-  ```
-
-- [x] **Add delete confirmation dialog**
-  - Replace `confirm()` with custom modal
-  - Show image preview in confirmation
-  - Add "Don't ask again" checkbox
-  ```
-  Work Log:
-  - Created DeleteConfirmationModal component with modern design following AESTHETIC.md
-  - Added image preview showing thumbnail or full image in modal
-  - Implemented "Don't ask again" checkbox with localStorage persistence
-  - Created useDeleteConfirmation hook for state management
-  - Modal includes smooth fade-in and scale-in animations
-  - Integrated into ImageTile component, replacing browser confirm()
-  - Modal shows loading state during deletion process
-  ```
-
-- [x] **Harden `assetExists` helper** (`lib/db.ts`)
-  - Return typed asset metadata consumed by the upload API and preflight check
-  - Cover concurrency edge cases with transaction-safe query pattern
-  - Add targeted tests verifying duplicate detection scenarios
-  ```
-  Work Log:
-  - Created ExistingAssetMetadata interface for proper typing
-  - Added transaction support via optional tx parameter for concurrency safety
-  - Optimized query with select fields to return only needed data
-  - Added includeEmbedding option to check if asset has embeddings
-  - Implemented findOrCreateAsset function for atomic operations
-  - Handles race conditions with unique constraint violations gracefully
-  - Added comprehensive test suite covering edge cases and concurrency
-  - Updated upload route to use new typed interface and check embedding status
-  ```
-
-### Low Priority
-- [x] **Add batch upload progress**
-  - Show overall progress bar
-  - Individual file status indicators
-  - Cancel remaining uploads option
-  ```
-  Work Log:
-  - Added comprehensive batch upload progress header with overall progress bar
-  - Shows total progress percentage across all files (0-100%)
-  - Live statistics grid showing completed, uploading, pending, and failed counts
-  - Enhanced individual file status indicators with icons and animations
-  - Added "Cancel Remaining" button to stop pending uploads
-  - Tracks active uploads with ref to prevent race conditions
-  - Progress bar uses gradient and smooth transitions for visual appeal
-  - Pending files show pulsing indicator while waiting
-  - Success/error states have clear icons and colors
-  - Overall progress calculation accounts for all file states
-  ```
-
-- [x] **Implement tag system UI**
-  - Add tag input to upload modal
-  - Show tags in image tiles
-  - Filter by tag in sidebar
-  ```
-  Work Log:
-  - Created TagInput component with auto-complete and tag pills UI
-  - Added tag input to upload zone with max 10 tags limit
-  - Integrated tags into upload API, handling both new uploads and duplicates
-  - Created comprehensive tag CRUD API endpoints for managing tags
-  - Added tag display to ImageTile component (already had support)
-  - Created TagFilter component for sidebar navigation
-  - Added tag page for viewing assets filtered by specific tag
-  - Updated assets API to support filtering by tagId parameter
-  ```
-
-- [x] **Introduce upload preflight check** (`app/api/upload/check/route.ts`)
-  - Accept checksum from client before upload begins
-  - Reuse `assetExists` to short-circuit duplicates and return existing asset metadata
-  - Document endpoint for frontend consumption
-  ```
-  Work Log:
-  - Created POST /api/upload/check endpoint with comprehensive documentation
-  - Validates SHA256 checksum format (64 hex characters)
-  - Returns existing asset metadata if duplicate found
-  - Created client-side checksum calculation utilities using Web Crypto API
-  - Added useUploadPreflight hook for easy integration
-  - Includes batch preflight checking for multiple files
-  - Added comprehensive test suite for the endpoint
-  - Handles authentication, database unavailable, and error cases
-  ```
-
-- [x] **Display embedding readiness state** (`components/library/image-tile.tsx`)
-  - Show "Processing…" badge until vectors are generated
-  - Flip to "Ready for search" once embeddings exist
-  - Ensure badge states integrate with live search UX
-  ```
-  Work Log:
-  - Added embedding field to Asset interface across all components
-  - Created visual indicator badge with orange "Processing..." when no embedding
-  - Shows green "Ready for search" badge on hover when embedding exists
-  - Badge positioned in bottom-left corner with backdrop blur for visibility
-  - Updated ImageTile, ImageGrid, MasonryGrid, and tag page components
-  - Uses pulsing animation for processing state to indicate active work
-  - Integrated seamlessly with existing hover interactions
-  ```
-
-- [x] **Tighten upload error messaging** (`components/upload/upload-zone.tsx`)
-  - Distinguish duplicate, storage, and database failures with specific copy
-  - Provide user actions for recovery (retry, view existing asset, contact support)
-  - Align API error payload schema with UI expectations
-  ```
-  Work Log:
-  - Created UploadErrorDetails type with specific error categories
-  - Built getUploadErrorDetails function to map errors to user-friendly messages
-  - Created UploadErrorDisplay component with contextual icons and actions
-  - Added recovery actions: retry, view existing, sign in, upgrade, contact support
-  - Updated upload zone to use improved error handling with detailed messaging
-  - Enhanced API responses with errorType and userMessage fields
-  - Error messages now provide clear next steps for users
-  ```
-
----
-
-## 📊 Success Metrics
-
-### Current Sprint (UI Polish)
-- [x] Gallery shows images in their original aspect ratios (masonry mode)
-  - ✅ MasonryGrid component preserves aspect ratios with preserveAspectRatio={true}
-  - ✅ Uses CSS columns for true masonry layout
-  - ✅ Object-contain instead of object-cover for images
-- [x] Can switch between view modes with one click
-  - ✅ Three view modes: grid, masonry, compact
-  - ✅ Single click toggles with visual feedback
-  - ✅ Persisted in localStorage
-- [x] Search updates results as you type (live search)
-  - ✅ 300ms debounce implemented
-  - ✅ Automatic search trigger on input change
-  - ✅ Works in both inline mode and dedicated search page
-- [x] No redundant UI elements visible
-  - ✅ Removed redundant stat cards
-  - ✅ Removed search bar purple accent
-  - ✅ Removed "Press Enter to search" hint
-- [x] Smooth animations on all interactions
-  - ✅ Image fade-in with animate-fade-in
-  - ✅ Hover transitions (200-300ms)
-  - ✅ View mode transitions with scale and opacity
-  - ✅ Loading spinners and pulse animations
-
-### Next Sprint (Performance)
-- [x] Images load with fade-in animation
-  - ✅ animate-fade-in class applied to images
-  - ✅ opacity transition from 0 to 100
-  - ✅ 300ms duration for smooth effect
-- [x] Virtual scrolling works for 1000+ images
-  - ✅ @tanstack/react-virtual implemented
-  - ✅ Automatically enables for collections > 100 items
-  - ✅ Efficient rendering with overscan of 2 rows
-- [x] Upload generates thumbnails automatically
-  - ✅ Sharp library processes images on upload
-  - ✅ Creates 256x256 thumbnails for grid view
-  - ✅ Resizes main images if > 2048px
-  - ✅ Graceful fallback if processing fails
-- [ ] Page loads in < 1.5s
-- [ ] Search returns results in < 300ms
-
----
-
-## 🗓️ Timeline
-
-**Week 1** (Current)
-- Complete Phase 1 & 2 UI improvements
-- Fix critical TypeScript errors
-- Deploy and test
-
-**Week 2**
-- Complete Phase 3 & 4 UI improvements
-- Add error boundaries
-- Implement image resize
-
-**Week 3**
-- Polish animations
-- Add duplicate detection
-- Tag system UI
-
----
-
-**Last Updated**: 2025-09-18
-**Current Focus**: UI/UX Polish - Making the gallery beautiful and functional
+- The `after()` function in Next.js 15 is experimental but works in production on Vercel
+- Prioritize upload speed over immediate searchability - users care more about seeing their images
+- Consider webhook from Replicate when embedding completes (future optimization)
+- Monitor Replicate API costs - batch processing might be more economical

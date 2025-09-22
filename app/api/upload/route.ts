@@ -338,6 +338,7 @@ export async function POST(req: NextRequest) {
             size: asset.size,
             checksum: asset.checksumSha256,
             createdAt: asset.createdAt,
+            needsEmbedding: !syncEmbeddings,
           },
           message: 'File uploaded successfully'
         });
@@ -390,6 +391,7 @@ export async function POST(req: NextRequest) {
                   size: existingAsset.size,
                   checksum: existingAsset.checksumSha256,
                   createdAt: existingAsset.createdAt,
+                  needsEmbedding: !existingAsset.hasEmbedding,
                 },
                 message: 'This image already exists in your library'
               },
