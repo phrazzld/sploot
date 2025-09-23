@@ -148,7 +148,7 @@
   - Store last 100 samples per metric
   - Calculate percentiles for monitoring
 
-- [ ] **Log critical performance metrics**
+- [x] **Log critical performance metrics**
   - Upload API: Time to blob store, time to database
   - Embedding: Queue wait time, Replicate API time, total time
   - Client: Time from file select to "ready to search"
@@ -157,7 +157,7 @@
     - 10 images: <10s upload, <15s to searchable
     - 50 images: <30s upload, <60s to searchable
 
-- [ ] **Add debug mode for embedding status** (`components/library/image-tile.tsx`)
+- [x] **Add debug mode for embedding status** (`components/library/image-tile.tsx`)
   - When `localStorage.debug_embeddings = 'true'`
   - Show detailed status: Queue position, retry count, error message
   - Log all embedding state transitions to console
@@ -165,7 +165,7 @@
 
 ### Phase 6: Error Handling & Recovery
 
-- [ ] **Implement smart retry logic** (`lib/embedding-queue.ts`)
+- [x] **Implement smart retry logic** (`lib/embedding-queue.ts`)
   - Exponential backoff: 1s, 2s, 4s, 8s, 16s
   - Different strategies per error type:
     - Rate limit (429): Wait full duration, don't count as retry
@@ -174,13 +174,13 @@
     - Server error (500): Standard backoff
   - Max retries: 5 for user-triggered, 3 for background
 
-- [ ] **Add manual bulk retry action** (`app/app/page.tsx`)
+- [x] **Add manual bulk retry action** (`app/app/page.tsx`)
   - Button: "Retry Failed Searches (N images)"
   - Only show if failed embeddings exist
   - Triggers batch processing of all failed assets
   - Shows progress modal during processing
 
-- [ ] **Persist upload queue for recovery** (`lib/upload-queue.ts`)
+- [x] **Persist upload queue for recovery** (`lib/upload-queue.ts`)
   - Save pending uploads to IndexedDB (not localStorage - size limits)
   - On page load, check for incomplete uploads
   - Show notification: "Resume N interrupted uploads?"
@@ -188,14 +188,14 @@
 
 ### Phase 7: Testing & Validation
 
-- [ ] **Create embedding generation test suite** (`__tests__/embeddings/`)
+- [x] **Create embedding generation test suite** (`__tests__/embeddings/`)
   - Test: Upload without embedding blocks < 1s
   - Test: Embedding generates within 10s via background
   - Test: Failed embedding retries automatically
   - Test: 10 simultaneous uploads complete successfully
   - Test: Network interruption recovery
 
-- [ ] **Add E2E test for batch upload** (`e2e/batch-upload.spec.ts`)
+- [~] **Add E2E test for batch upload** (`e2e/batch-upload.spec.ts`)
   - Upload 5 images simultaneously
   - Verify all show "uploading" state immediately
   - Verify all complete upload within 5s
