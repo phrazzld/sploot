@@ -181,6 +181,9 @@ export function UploadZone({
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(false);
   const [recoveryCount, setRecoveryCount] = useState(0);
   const [uploadStats, setUploadStats] = useState<ProgressStats | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
+  const [preparingFileCount, setPreparingFileCount] = useState(0);
+  const [preparingTotalSize, setPreparingTotalSize] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
@@ -279,6 +282,13 @@ export function UploadZone({
 
   // Process files for upload with background sync support
   const processFilesWithSync = useCallback(async (fileList: FileList | File[]) => {
+    // Show preparing state immediately
+    const filesArray = Array.from(fileList);
+    setIsPreparing(true);
+    setPreparingFileCount(filesArray.length);
+    const totalSize = filesArray.reduce((acc, file) => acc + file.size, 0);
+    setPreparingTotalSize(totalSize);
+
     const newFiles: UploadFile[] = [];
 
     for (const file of Array.from(fileList)) {
@@ -314,6 +324,11 @@ export function UploadZone({
 
     setFiles((prev) => [...prev, ...newFiles]);
 
+    // Clear preparing state before starting uploads
+    setIsPreparing(false);
+    setPreparingFileCount(0);
+    setPreparingTotalSize(0);
+
     // Start uploading valid files if online with parallel batching
     if (!isOffline) {
       const filesToUpload = newFiles.filter((f) => f.status === 'pending');
@@ -325,6 +340,13 @@ export function UploadZone({
 
   // Process files for upload with regular queue
   const processFilesWithQueue = useCallback(async (fileList: FileList | File[]) => {
+    // Show preparing state immediately
+    const filesArray = Array.from(fileList);
+    setIsPreparing(true);
+    setPreparingFileCount(filesArray.length);
+    const totalSize = filesArray.reduce((acc, file) => acc + file.size, 0);
+    setPreparingTotalSize(totalSize);
+
     const tracker = getGlobalPerformanceTracker();
     tracker.start(PERF_OPERATIONS.CLIENT_FILE_SELECT);
     const newFiles: UploadFile[] = [];
@@ -389,6 +411,11 @@ export function UploadZone({
 
     // End file selection tracking and start upload tracking
     tracker.end(PERF_OPERATIONS.CLIENT_FILE_SELECT);
+
+    // Clear preparing state before starting uploads
+    setIsPreparing(false);
+    setPreparingFileCount(0);
+    setPreparingTotalSize(0);
 
     // Start uploading valid files if online with parallel batching
     if (!isOffline) {
@@ -851,6 +878,23 @@ export function UploadZone({
             : 'border-[#2A2F37] bg-[#1B1F24]'
         )}
       >
+        {/* Preparing overlay */}
+        {isPreparing && (
+          <div className="absolute inset-0 z-10 bg-[#1B1F24]/95 rounded-2xl flex flex-col items-center justify-center animate-fade-in">
+            <svg className="h-8 w-8 text-[#7C5CFF] animate-spin mb-3" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <p className="text-[#E6E8EB] font-medium mb-1">
+              Preparing {preparingFileCount} {preparingFileCount === 1 ? 'file' : 'files'}...
+            </p>
+            <p className="text-[#B3B7BE] text-sm">
+              {preparingTotalSize < 1024 * 1024
+                ? `${(preparingTotalSize / 1024).toFixed(0)} KB`
+                : `${(preparingTotalSize / (1024 * 1024)).toFixed(1)} MB`}
+            </p>
+          </div>
+        )}
         <div className="flex flex-col items-center justify-center py-12 px-6">
           <div className={cn(
             'w-16 h-16 mb-4 rounded-full flex items-center justify-center transition-all duration-200',
