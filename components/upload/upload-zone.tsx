@@ -284,6 +284,8 @@ export function UploadZone({
   };
 
   // Process files for upload with background sync support
+  const FILE_PROCESSING_CHUNK_SIZE = 20; // Process files in chunks to prevent UI freezing
+
   const processFilesWithSync = useCallback(async (fileList: FileList | File[]) => {
     // Show preparing state immediately
     const filesArray = Array.from(fileList);
@@ -303,33 +305,34 @@ export function UploadZone({
     // Process each chunk with a small delay to allow UI to breathe
     for (const chunk of chunks) {
       for (const file of chunk) {
-      const error = validateFile(file);
+        const error = validateFile(file);
 
-      if (error) {
-        newFiles.push({
-          id: `${Date.now()}-${Math.random()}`,
-          file,
-          status: 'error',
-          progress: 0,
-          error,
-        });
-      } else if (isOffline && supportsBackgroundSync) {
-        // Use background sync when offline
-        const id = await addToBackgroundSync(file);
-        newFiles.push({
-          id,
-          file,
-          status: 'queued',
-          progress: 0,
-        });
-      } else {
-        // Upload immediately or use fallback
-        newFiles.push({
-          id: `${Date.now()}-${Math.random()}`,
-          file,
-          status: 'pending',
-          progress: 0,
-        });
+        if (error) {
+          newFiles.push({
+            id: `${Date.now()}-${Math.random()}`,
+            file,
+            status: 'error',
+            progress: 0,
+            error,
+          });
+        } else if (isOffline && supportsBackgroundSync) {
+          // Use background sync when offline
+          const id = await addToBackgroundSync(file);
+          newFiles.push({
+            id,
+            file,
+            status: 'queued',
+            progress: 0,
+          });
+        } else {
+          // Upload immediately or use fallback
+          newFiles.push({
+            id: `${Date.now()}-${Math.random()}`,
+            file,
+            status: 'pending',
+            progress: 0,
+          });
+        }
       }
 
       // Allow UI to breathe between chunks
@@ -355,8 +358,6 @@ export function UploadZone({
   }, [isOffline, supportsBackgroundSync, addToBackgroundSync]);
 
   // Process files for upload with regular queue
-  const FILE_PROCESSING_CHUNK_SIZE = 20; // Process files in chunks to prevent UI freezing
-
   const processFilesWithQueue = useCallback(async (fileList: FileList | File[]) => {
     // Show preparing state immediately
     const filesArray = Array.from(fileList);
@@ -378,43 +379,44 @@ export function UploadZone({
     // Process each chunk with a small delay to allow UI to breathe
     for (const chunk of chunks) {
       for (const file of chunk) {
-      const error = validateFile(file);
+        const error = validateFile(file);
 
-      // If offline, queue the file instead of uploading
-      if (isOffline && !error) {
-        const queueItem = addToQueue(file);
-        newFiles.push({
-          id: queueItem.id,
-          file,
-          status: 'queued',
-          progress: 0,
-          error: undefined,
-        });
+        // If offline, queue the file instead of uploading
+        if (isOffline && !error) {
+          const queueItem = addToQueue(file);
+          newFiles.push({
+            id: queueItem.id,
+            file,
+            status: 'queued',
+            progress: 0,
+            error: undefined,
+          });
 
-        // Also persist to IndexedDB for recovery
-        try {
-          await uploadQueueManager.addUpload(file);
-        } catch (err) {
-          console.error('[UploadZone] Failed to persist upload:', err);
-        }
-      } else {
-        const uploadFile: UploadFile = {
-          id: `${Date.now()}-${Math.random()}`,
-          file,
-          status: error ? 'error' : 'pending',
-          progress: 0,
-          error: error || undefined,
-        };
-        newFiles.push(uploadFile);
-
-        // Persist pending uploads to IndexedDB
-        if (!error && uploadFile.status === 'pending') {
+          // Also persist to IndexedDB for recovery
           try {
-            const persistedId = await uploadQueueManager.addUpload(file);
-            // Store the persisted ID for later removal
-            (uploadFile as any).persistedId = persistedId;
+            await uploadQueueManager.addUpload(file);
           } catch (err) {
             console.error('[UploadZone] Failed to persist upload:', err);
+          }
+        } else {
+          const uploadFile: UploadFile = {
+            id: `${Date.now()}-${Math.random()}`,
+            file,
+            status: error ? 'error' : 'pending',
+            progress: 0,
+            error: error || undefined,
+          };
+          newFiles.push(uploadFile);
+
+          // Persist pending uploads to IndexedDB
+          if (!error && uploadFile.status === 'pending') {
+            try {
+              const persistedId = await uploadQueueManager.addUpload(file);
+              // Store the persisted ID for later removal
+              (uploadFile as any).persistedId = persistedId;
+            } catch (err) {
+              console.error('[UploadZone] Failed to persist upload:', err);
+            }
           }
         }
       }
@@ -648,6 +650,14 @@ export function UploadZone({
                 isDuplicate,
                 needsEmbedding,
                 embeddingStatus: (needsEmbedding ? 'pending' : 'ready') as 'pending' | 'ready',
+                // Clear the heavy file reference after successful upload to free memory
+                // We keep the file's metadata for UI display but remove the actual File object
+                file: {
+                  name: f.file.name,
+                  size: f.file.size,
+                  type: f.file.type,
+                  lastModified: f.file.lastModified
+                } as any // Cast to any since we're creating a lightweight version
               }
             : f
         );
@@ -656,6 +666,9 @@ export function UploadZone({
 
       // Track success for adaptive concurrency
       uploadStatsRef.current.successful++;
+
+      // Log memory cleanup for monitoring during development
+      console.log(`[UploadZone] Cleared file blob for ${uploadFile.file.name}, kept metadata only`);
 
       // Remove from persisted queue on success
       if ((uploadFile as any).persistedId) {
@@ -699,6 +712,8 @@ export function UploadZone({
 
       // Track failure for adaptive concurrency
       uploadStatsRef.current.failed++;
+
+      // NOTE: We don't clear file reference on failure as it may be needed for retries
 
       // Update persisted status to failed
       if ((uploadFile as any).persistedId) {
