@@ -188,6 +188,8 @@ export function UploadZone({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
+  const uploadStatsRef = useRef({ successful: 0, failed: 0 });
+  const [currentConcurrency, setCurrentConcurrency] = useState(6);
   const { isOffline, isSlowConnection } = useOffline();
   const router = useRouter();
   const uploadQueueManager = getUploadQueueManager();
@@ -458,21 +460,48 @@ export function UploadZone({
     }
   );
 
-  // Batch upload files with concurrency control
-  const MAX_CONCURRENT_UPLOADS = 3;
+  // Batch upload files with adaptive concurrency control
+  const BASE_CONCURRENT_UPLOADS = 6;
+  const MIN_CONCURRENT_UPLOADS = 2;
+  const MAX_CONCURRENT_UPLOADS = 8;
 
   const uploadBatch = async (uploadFiles: UploadFile[]) => {
+    // Reset stats for this batch
+    uploadStatsRef.current = { successful: 0, failed: 0 };
+
+    console.log(`[Upload] Starting batch upload of ${uploadFiles.length} files with concurrency: ${currentConcurrency}`);
+
     // Create chunks for parallel processing with concurrency limit
     const uploadQueue = [...uploadFiles];
     const activeUploads = new Set<Promise<void>>();
 
     while (uploadQueue.length > 0 || activeUploads.size > 0) {
-      // Start new uploads up to concurrency limit
-      while (uploadQueue.length > 0 && activeUploads.size < MAX_CONCURRENT_UPLOADS) {
+      // Adaptive concurrency: adjust based on failure rate
+      const { successful, failed } = uploadStatsRef.current;
+      const total = successful + failed;
+      if (total > 0 && total % 10 === 0) { // Check every 10 uploads
+        const failureRate = failed / total;
+        if (failureRate > 0.2 && currentConcurrency > MIN_CONCURRENT_UPLOADS) {
+          // Too many failures, reduce concurrency
+          const newConcurrency = Math.max(MIN_CONCURRENT_UPLOADS, currentConcurrency - 1);
+          setCurrentConcurrency(newConcurrency);
+          console.log(`[Upload] High failure rate ${(failureRate * 100).toFixed(0)}%, reducing concurrency to ${newConcurrency}`);
+        } else if (failureRate < 0.05 && currentConcurrency < MAX_CONCURRENT_UPLOADS) {
+          // Very few failures, increase concurrency
+          const newConcurrency = Math.min(MAX_CONCURRENT_UPLOADS, currentConcurrency + 1);
+          setCurrentConcurrency(newConcurrency);
+          console.log(`[Upload] Low failure rate ${(failureRate * 100).toFixed(0)}%, increasing concurrency to ${newConcurrency}`);
+        }
+      }
+
+      // Start new uploads up to current concurrency limit
+      while (uploadQueue.length > 0 && activeUploads.size < currentConcurrency) {
         const file = uploadQueue.shift()!;
         const uploadPromise = uploadFileToServer(file).then(() => {
+          uploadStatsRef.current.successful++;
           activeUploads.delete(uploadPromise);
         }).catch((error) => {
+          uploadStatsRef.current.failed++;
           console.error(`Upload failed for file ${file.file.name}:`, error);
           activeUploads.delete(uploadPromise);
         });
@@ -597,6 +626,9 @@ export function UploadZone({
         return updated;
       });
 
+      // Track success for adaptive concurrency
+      uploadStatsRef.current.successful++;
+
       // Remove from persisted queue on success
       if ((uploadFile as any).persistedId) {
         try {
@@ -636,6 +668,9 @@ export function UploadZone({
         );
         return updated;
       });
+
+      // Track failure for adaptive concurrency
+      uploadStatsRef.current.failed++;
 
       // Update persisted status to failed
       if ((uploadFile as any).persistedId) {
