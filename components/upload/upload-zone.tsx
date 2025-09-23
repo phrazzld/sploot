@@ -14,6 +14,7 @@ import { useEmbeddingStatus } from '@/hooks/use-embedding-status';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
+import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
 
 interface UploadFile {
   id: string;
@@ -179,6 +180,7 @@ export function UploadZone({
   const [tags, setTags] = useState<string[]>([]);
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(false);
   const [recoveryCount, setRecoveryCount] = useState(0);
+  const [uploadStats, setUploadStats] = useState<ProgressStats | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
@@ -220,6 +222,34 @@ export function UploadZone({
       }, 100);
     }
   }, [files, onUploadComplete]);
+
+  // Update upload stats whenever files change
+  useEffect(() => {
+    if (files.length === 0) {
+      setUploadStats(null);
+      return;
+    }
+
+    const uploading = files.filter(f => f.status === 'uploading').length;
+    const successful = files.filter(f => f.status === 'success' || f.status === 'duplicate').length;
+    const failed = files.filter(f => f.status === 'error').length;
+    const pending = files.filter(f => f.status === 'pending' || f.status === 'queued').length;
+    const processingEmbeddings = files.filter(f =>
+      f.embeddingStatus === 'pending' || f.embeddingStatus === 'processing'
+    ).length;
+    const ready = files.filter(f =>
+      f.embeddingStatus === 'ready' || (!f.needsEmbedding && (f.status === 'success' || f.status === 'duplicate'))
+    ).length;
+
+    setUploadStats({
+      totalFiles: files.length,
+      uploaded: successful,
+      processingEmbeddings,
+      ready,
+      failed,
+      estimatedTimeRemaining: pending > 0 || uploading > 0 ? (pending + uploading) * 2000 : 0 // Rough estimate
+    });
+  }, [files]);
 
   // Regular upload queue (localStorage-based)
   const { addToQueue } = useUploadQueue();
@@ -343,6 +373,19 @@ export function UploadZone({
     }
 
     setFiles((prev) => [...prev, ...newFiles]);
+
+    // Initialize upload stats for immediate feedback
+    if (newFiles.length > 0) {
+      const errorCount = newFiles.filter(f => f.status === 'error').length;
+      setUploadStats({
+        totalFiles: newFiles.length,
+        uploaded: 0,
+        processingEmbeddings: 0,
+        ready: 0,
+        failed: errorCount,
+        estimatedTimeRemaining: 0
+      });
+    }
 
     // End file selection tracking and start upload tracking
     tracker.end(PERF_OPERATIONS.CLIENT_FILE_SELECT);
@@ -508,22 +551,23 @@ export function UploadZone({
         tracker.track(PERF_OPERATIONS.CLIENT_TO_SEARCHABLE, Date.now() - uploadStartTime);
       }
 
-      setFiles((prev) =>
-        prev.map((f) =>
+      setFiles((prev) => {
+        const updated = prev.map((f) =>
           f.id === uploadFile.id
             ? {
                 ...f,
-                status: isDuplicate ? 'duplicate' : 'success',
+                status: (isDuplicate ? 'duplicate' : 'success') as 'duplicate' | 'success',
                 progress: 100,
                 assetId: result.asset?.id,
                 blobUrl: result.asset?.blobUrl,
                 isDuplicate,
                 needsEmbedding,
-                embeddingStatus: needsEmbedding ? 'pending' : 'ready',
+                embeddingStatus: (needsEmbedding ? 'pending' : 'ready') as 'pending' | 'ready',
               }
             : f
-        )
-      );
+        );
+        return updated;
+      });
 
       // Remove from persisted queue on success
       if ((uploadFile as any).persistedId) {
@@ -550,19 +594,20 @@ export function UploadZone({
         error instanceof Error && error.message.includes('503') ? 503 : undefined
       );
 
-      setFiles((prev) =>
-        prev.map((f) =>
+      setFiles((prev) => {
+        const updated = prev.map((f) =>
           f.id === uploadFile.id
             ? {
                 ...f,
-                status: 'error',
+                status: 'error' as const,
                 progress: 0,
                 error: error instanceof Error ? error.message : 'Upload failed',
                 errorDetails,
               }
             : f
-        )
-      );
+        );
+        return updated;
+      });
 
       // Update persisted status to failed
       if ((uploadFile as any).persistedId) {
@@ -722,6 +767,7 @@ export function UploadZone({
   const handleViewLibrary = () => {
     setFiles([]);
     setTags([]);
+    setUploadStats(null);
     router.push('/app');
   };
 
@@ -731,6 +777,17 @@ export function UploadZone({
       onPaste={handlePaste}
       tabIndex={0}
     >
+      {/* Upload Progress Header - shows when files are being processed */}
+      {uploadStats && uploadStats.totalFiles > 0 && (
+        <div className="mb-4">
+          <UploadProgressHeader
+            stats={uploadStats}
+            onMinimize={() => {}}
+            className="animate-fade-in"
+          />
+        </div>
+      )}
+
       {/* Background sync status (only when enabled) */}
       {showSyncStatus && (
         <div className="mb-4 bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]">
