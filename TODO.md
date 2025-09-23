@@ -1,5 +1,161 @@
 # Sploot TODO - Performance Optimization & Reliability
 
+## 🔥 URGENT: Fix 68+ Image Batch Upload Failures
+
+### Immediate UI Feedback Issues (User can't see upload starting)
+
+- [ ] **Integrate UploadProgressHeader into upload zone** (`components/upload/upload-zone.tsx:720-730`)
+  - Import: `import { UploadProgressHeader, ProgressStats } from './upload-progress-header';`
+  - Add state: `const [uploadStats, setUploadStats] = useState<ProgressStats | null>(null);`
+  - Update stats in `processFilesWithQueue` after line 344: `setUploadStats({ totalFiles: newFiles.length, uploaded: 0, processingEmbeddings: 0, ready: 0, failed: 0, estimatedTimeRemaining: 0 });`
+  - Render header above drop zone when `uploadStats !== null && uploadStats.totalFiles > 0`
+  - Wire up stats updates in `uploadFileToServer` success/error handlers
+  - Test: Select 68 files, header should appear immediately showing "0 of 68 uploaded"
+
+- [ ] **Show "Preparing files..." state during initial processing** (`components/upload/upload-zone.tsx:298-344`)
+  - Add state: `const [isPreparing, setIsPreparing] = useState(false);`
+  - Set to true at line 298: `setIsPreparing(true);`
+  - Set to false at line 357: `setIsPreparing(false);`
+  - Display overlay with spinner when `isPreparing === true`: "Preparing {fileList.length} files..."
+  - Include total size calculation: `const totalSize = Array.from(fileList).reduce((acc, f) => acc + f.size, 0);`
+  - Test: Drop 68 files, should see "Preparing 68 files (X MB)..." immediately
+
+- [ ] **Add file count preview before processing** (`components/upload/upload-zone.tsx:609-618`)
+  - In `handleDrop`, add immediate feedback before `processFiles` call
+  - Show toast: `showToast(\`Processing ${e.dataTransfer.files.length} files...\`, 'info');`
+  - Add visual pulse to drop zone during processing
+  - Test: Drag 68 files, toast appears before any processing starts
+
+### Memory Management & Performance
+
+- [ ] **Increase concurrent upload limit for better throughput** (`components/upload/upload-zone.tsx:391`)
+  - Change: `const MAX_CONCURRENT_UPLOADS = 3;`
+  - To: `const MAX_CONCURRENT_UPLOADS = 6;`
+  - Add adaptive concurrency based on success rate: if failures > 20%, reduce to 4
+  - Monitor: `const failureRate = failed / (completed + failed);`
+  - Test: Upload 68 files, should see 6 simultaneous XHR requests in Network tab
+
+- [ ] **Process files in chunks to prevent memory overload** (`components/upload/upload-zone.tsx:302-343`)
+  - Add: `const FILE_PROCESSING_CHUNK_SIZE = 20;`
+  - Replace single loop with chunked processing:
+    ```typescript
+    const chunks = [];
+    for (let i = 0; i < fileList.length; i += FILE_PROCESSING_CHUNK_SIZE) {
+      chunks.push(Array.from(fileList).slice(i, i + FILE_PROCESSING_CHUNK_SIZE));
+    }
+    for (const chunk of chunks) {
+      await processChunk(chunk);
+      // Allow UI to breathe between chunks
+      await new Promise(resolve => setTimeout(resolve, 10));
+    }
+    ```
+  - Test: Upload 68 files, browser should remain responsive throughout
+
+- [ ] **Implement file reference cleanup after upload** (`components/upload/upload-zone.tsx:526-536`)
+  - After successful upload at line 526, clear file reference:
+  - Add: `delete (uploadFile as any).file;` to free memory
+  - Keep only essential metadata for display
+  - Monitor memory usage in Chrome DevTools during 68-file upload
+  - Success: Memory should plateau, not continuously increase
+
+### Batch State Updates
+
+- [ ] **Batch React state updates to reduce re-renders** (`components/upload/upload-zone.tsx:423-427`)
+  - Import: `import { unstable_batchedUpdates } from 'react-dom';`
+  - Wrap state updates in `unstable_batchedUpdates(() => { ... })`
+  - Particularly in `uploadFileToServer` progress handler (lines 444-454)
+  - Debounce progress updates: Only update every 10% or 500ms
+  - Test: React DevTools Profiler should show <100 renders for 68-file upload (not 1000+)
+
+- [ ] **Add virtual scrolling for file list display** (`components/upload/upload-zone.tsx:830-900`)
+  - When `files.length > 20`, use virtual scrolling
+  - Import: `import { FixedSizeList } from 'react-window';`
+  - Render only visible items in viewport
+  - Row height: 64px per file item
+  - Test: 68 files in list, smooth scrolling, <50 DOM nodes
+
+### Server-Side Configuration
+
+- [ ] **Configure API route body size limit** (`app/api/upload/route.ts:1-5`)
+  - Add export: `export const maxDuration = 60;` // 60 second timeout
+  - Add export: `export const config = { api: { bodyParser: { sizeLimit: '50mb' } } };`
+  - Note: Next.js 15 App Router uses different config format
+  - May need to configure in `next.config.ts` instead
+  - Test: Upload single 20MB image should succeed
+
+- [ ] **Add request timeout handling** (`components/upload/upload-zone.tsx:484-486`)
+  - Add timeout to XHR: `xhr.timeout = 30000;` // 30 second timeout per file
+  - Add timeout handler:
+    ```typescript
+    xhr.addEventListener('timeout', () => {
+      reject(new Error('Upload timeout - file too large or slow connection'));
+    });
+    ```
+  - Test: Throttle network to 3G, upload should timeout with clear message
+
+### Error Recovery
+
+- [ ] **Implement automatic retry queue for failures** (`components/upload/upload-zone.tsx:390-416`)
+  - Add: `const retryQueue: UploadFile[] = [];`
+  - On failure, add to retry queue with exponential backoff
+  - After main batch completes, process retry queue
+  - Max 3 retries per file with delays: 1s, 3s, 9s
+  - Test: Kill server mid-upload, restart, files should auto-retry
+
+- [ ] **Add "Retry All Failed" button for batch failures** (`components/upload/upload-zone.tsx:860-880`)
+  - Show when `failedFiles.length > 0`
+  - Button: `onClick={() => retryAllFailed()}`
+  - Function should reset status and re-queue all failed files
+  - Display: "{failedFiles.length} failed • [Retry All]"
+  - Test: Fail 30 uploads, click retry, all should re-attempt
+
+- [ ] **Show detailed failure reasons per file** (`components/upload/upload-zone.tsx:850-870`)
+  - Parse error responses for specific failure reasons:
+    - "File too large" (>10MB)
+    - "Invalid file type" (not image)
+    - "Network error" (connection failed)
+    - "Server error" (500)
+    - "Rate limited" (429)
+  - Group failures by reason in UI
+  - Test: Mix of valid/invalid files should show categorized errors
+
+### Progress Optimization
+
+- [ ] **Throttle progress updates to reduce UI thrashing** (`components/upload/upload-zone.tsx:444-454`)
+  - Add: `const progressThrottle = new Map<string, number>();`
+  - Only update if change > 5% or 500ms elapsed:
+    ```typescript
+    const lastProgress = progressThrottle.get(uploadFile.id) || 0;
+    if (percentComplete - lastProgress >= 5 || Date.now() - lastUpdate > 500) {
+      setFiles(...);
+      progressThrottle.set(uploadFile.id, percentComplete);
+    }
+    ```
+  - Test: Network tab should show smooth upload, UI updates ~20 times per file max
+
+- [ ] **Add aggregate progress bar for entire batch** (`components/upload/upload-progress-header.tsx:35-47`)
+  - Calculate: `totalBytesUploaded / totalBytesToUpload`
+  - Show single progress bar for overall batch progress
+  - Below that, show per-file status counts
+  - Update every 100ms max using `requestAnimationFrame`
+  - Test: 68 files should show smooth 0-100% progress
+
+### Testing
+
+- [ ] **Create test harness for large batch uploads** (`__tests__/e2e/large-batch-upload.spec.ts`)
+  - Generate 100 test images programmatically
+  - Test: Can handle 100 simultaneous files
+  - Measure: Time to complete, memory usage, failure rate
+  - Assert: <2min for 100 images, <500MB memory peak
+  - Assert: Failure rate <5%
+
+- [ ] **Add memory leak detection test** (`__tests__/performance/memory-leak.test.ts`)
+  - Upload 50 files, complete, measure heap
+  - Clear file list, force GC
+  - Heap should return to baseline ±10MB
+  - No detached DOM nodes
+  - No lingering file references
+
 ## 🚨 CRITICAL: Batch Upload Performance (Target: <1s per image)
 
 ### Phase 1: Remove Synchronous Bottleneck (Immediate Impact)
