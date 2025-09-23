@@ -202,7 +202,7 @@
   - Verify all become searchable within 15s
   - Verify search finds images by content
 
-- [ ] **Load test embedding generation** (`scripts/load-test-embeddings.ts`)
+- [x] **Load test embedding generation** (`scripts/load-test-embeddings.ts`)
   - Simulate 100 concurrent users uploading 10 images each
   - Measure: API response times, queue depth, failure rate
   - Identify bottlenecks: Database, Replicate API, server CPU
