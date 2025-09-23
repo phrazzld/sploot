@@ -11,6 +11,9 @@ import { TagInput } from '@/components/tags/tag-input';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { useEmbeddingStatus } from '@/hooks/use-embedding-status';
+import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
+import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
+import { showToast } from '@/components/ui/toast';
 
 interface UploadFile {
   id: string;
@@ -174,11 +177,21 @@ export function UploadZone({
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
+  const [showRecoveryNotification, setShowRecoveryNotification] = useState(false);
+  const [recoveryCount, setRecoveryCount] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const { isOffline, isSlowConnection } = useOffline();
   const router = useRouter();
+  const uploadQueueManager = getUploadQueueManager();
+
+  // Initialize IndexedDB on mount
+  useEffect(() => {
+    uploadQueueManager.init().catch((error) => {
+      console.error('[UploadZone] Failed to initialize upload queue manager:', error);
+    });
+  }, []);
 
   // Track when all uploads complete
   useEffect(() => {
@@ -281,10 +294,12 @@ export function UploadZone({
   }, [isOffline, supportsBackgroundSync, addToBackgroundSync]);
 
   // Process files for upload with regular queue
-  const processFilesWithQueue = useCallback((fileList: FileList | File[]) => {
+  const processFilesWithQueue = useCallback(async (fileList: FileList | File[]) => {
+    const tracker = getGlobalPerformanceTracker();
+    tracker.start(PERF_OPERATIONS.CLIENT_FILE_SELECT);
     const newFiles: UploadFile[] = [];
 
-    Array.from(fileList).forEach((file) => {
+    for (const file of Array.from(fileList)) {
       const error = validateFile(file);
 
       // If offline, queue the file instead of uploading
@@ -297,23 +312,46 @@ export function UploadZone({
           progress: 0,
           error: undefined,
         });
+
+        // Also persist to IndexedDB for recovery
+        try {
+          await uploadQueueManager.addUpload(file);
+        } catch (err) {
+          console.error('[UploadZone] Failed to persist upload:', err);
+        }
       } else {
-        newFiles.push({
+        const uploadFile: UploadFile = {
           id: `${Date.now()}-${Math.random()}`,
           file,
           status: error ? 'error' : 'pending',
           progress: 0,
           error: error || undefined,
-        });
+        };
+        newFiles.push(uploadFile);
+
+        // Persist pending uploads to IndexedDB
+        if (!error && uploadFile.status === 'pending') {
+          try {
+            const persistedId = await uploadQueueManager.addUpload(file);
+            // Store the persisted ID for later removal
+            (uploadFile as any).persistedId = persistedId;
+          } catch (err) {
+            console.error('[UploadZone] Failed to persist upload:', err);
+          }
+        }
       }
-    });
+    }
 
     setFiles((prev) => [...prev, ...newFiles]);
+
+    // End file selection tracking and start upload tracking
+    tracker.end(PERF_OPERATIONS.CLIENT_FILE_SELECT);
 
     // Start uploading valid files if online with parallel batching
     if (!isOffline) {
       const filesToUpload = newFiles.filter((f) => f.status === 'pending');
       if (filesToUpload.length > 0) {
+        tracker.start(PERF_OPERATIONS.CLIENT_UPLOAD_START);
         uploadBatch(filesToUpload);
       }
     }
@@ -321,6 +359,33 @@ export function UploadZone({
 
   // Choose the appropriate file processor based on enableBackgroundSync
   const processFiles = enableBackgroundSync ? processFilesWithSync : processFilesWithQueue;
+
+  // Check for interrupted uploads on mount
+  useUploadRecovery(
+    async (recoveredFiles) => {
+      console.log(`[UploadZone] Recovering ${recoveredFiles.length} interrupted uploads`);
+      setRecoveryCount(recoveredFiles.length);
+      setShowRecoveryNotification(true);
+
+      // Process recovered files
+      await processFiles(recoveredFiles);
+
+      // Show success toast
+      showToast(
+        `✓ Resuming ${recoveredFiles.length} interrupted ${recoveredFiles.length === 1 ? 'upload' : 'uploads'}`,
+        'success'
+      );
+
+      // Hide notification after 3 seconds
+      setTimeout(() => {
+        setShowRecoveryNotification(false);
+      }, 3000);
+    },
+    {
+      autoResumeDelay: 3000,
+      maxRetries: 3,
+    }
+  );
 
   // Batch upload files with concurrency control
   const MAX_CONCURRENT_UPLOADS = 3;
@@ -352,6 +417,9 @@ export function UploadZone({
 
   // Upload file to server - simplified direct upload
   const uploadFileToServer = async (uploadFile: UploadFile) => {
+    const tracker = getGlobalPerformanceTracker();
+    const uploadStartTime = Date.now();
+
     setFiles((prev) =>
       prev.map((f) =>
         f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f
@@ -423,9 +491,22 @@ export function UploadZone({
         throw new Error(result.error || 'Upload failed');
       }
 
+      // Track client upload time
+      tracker.track('client:single_upload', Date.now() - uploadStartTime);
+
+      // End the initial upload start timer if this is the first successful upload
+      if (tracker.getSampleCount('client:single_upload') === 1) {
+        tracker.end(PERF_OPERATIONS.CLIENT_UPLOAD_START);
+      }
+
       // Handle duplicate detection as a special success case
       const isDuplicate = result.isDuplicate === true;
       const needsEmbedding = result.asset?.needsEmbedding === true;
+
+      // Track time to searchable if embedding is not needed
+      if (!needsEmbedding && result.asset?.id) {
+        tracker.track(PERF_OPERATIONS.CLIENT_TO_SEARCHABLE, Date.now() - uploadStartTime);
+      }
 
       setFiles((prev) =>
         prev.map((f) =>
@@ -443,6 +524,15 @@ export function UploadZone({
             : f
         )
       );
+
+      // Remove from persisted queue on success
+      if ((uploadFile as any).persistedId) {
+        try {
+          await uploadQueueManager.removeUpload((uploadFile as any).persistedId);
+        } catch (err) {
+          console.error('[UploadZone] Failed to remove persisted upload:', err);
+        }
+      }
 
       // Trigger a refresh of the asset list if there's a callback
       if (window.location.pathname === '/app') {
@@ -473,6 +563,19 @@ export function UploadZone({
             : f
         )
       );
+
+      // Update persisted status to failed
+      if ((uploadFile as any).persistedId) {
+        try {
+          await uploadQueueManager.updateUploadStatus(
+            (uploadFile as any).persistedId,
+            'failed',
+            error instanceof Error ? error.message : 'Upload failed'
+          );
+        } catch (err) {
+          console.error('[UploadZone] Failed to update persisted status:', err);
+        }
+      }
     } finally {
       // Remove from active uploads
       activeUploadsRef.current.delete(uploadFile.id);
@@ -657,6 +760,21 @@ export function UploadZone({
                 Retry All
               </button>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Recovery notification */}
+      {showRecoveryNotification && (
+        <div className="mb-4 rounded-xl border border-[#7C5CFF]/30 bg-[#7C5CFF]/10 p-3 animate-fade-in">
+          <div className="flex items-center gap-2">
+            <svg className="h-4 w-4 text-[#7C5CFF] animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            <span className="text-sm text-[#CBB8FF]">
+              resuming {recoveryCount} interrupted {recoveryCount === 1 ? 'upload' : 'uploads'}...
+            </span>
           </div>
         </div>
       )}
