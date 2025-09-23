@@ -4,7 +4,7 @@
 
 ### Immediate UI Feedback Issues (User can't see upload starting)
 
-- [ ] **Integrate UploadProgressHeader into upload zone** (`components/upload/upload-zone.tsx:720-730`)
+- [x] **Integrate UploadProgressHeader into upload zone** (`components/upload/upload-zone.tsx:720-730`)
   - Import: `import { UploadProgressHeader, ProgressStats } from './upload-progress-header';`
   - Add state: `const [uploadStats, setUploadStats] = useState<ProgressStats | null>(null);`
   - Update stats in `processFilesWithQueue` after line 344: `setUploadStats({ totalFiles: newFiles.length, uploaded: 0, processingEmbeddings: 0, ready: 0, failed: 0, estimatedTimeRemaining: 0 });`
