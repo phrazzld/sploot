@@ -8,6 +8,7 @@ import crypto from 'crypto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { processUploadedImage } from '@/lib/image-processing';
+import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 /**
  * Direct file upload endpoint - handles file upload server-side
@@ -15,6 +16,8 @@ import { processUploadedImage } from '@/lib/image-processing';
  */
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
+  const tracker = getGlobalPerformanceTracker();
+  tracker.start(PERF_OPERATIONS.UPLOAD_SINGLE);
 
   try {
     // Check if we should generate embeddings synchronously (slower but more reliable)
@@ -86,9 +89,12 @@ export async function POST(req: NextRequest) {
 
     // Process image to create optimized versions
     let processedImages;
+    tracker.start('image:processing');
     try {
       processedImages = await processUploadedImage(buffer, file.type);
+      tracker.end('image:processing');
     } catch (error) {
+      tracker.end('image:processing');
       console.error('Image processing failed:', error);
       // Fall back to original image if processing fails
       processedImages = null;
@@ -210,11 +216,13 @@ export async function POST(req: NextRequest) {
     // Upload to Vercel Blob storage
     try {
       // Upload main image (processed or original)
+      tracker.start(PERF_OPERATIONS.UPLOAD_TO_BLOB);
       const mainBuffer = processedImages ? processedImages.main.buffer : buffer;
       const blob = await put(uniqueFilename, mainBuffer, {
         access: 'public',
         addRandomSuffix: false,
       });
+      tracker.end(PERF_OPERATIONS.UPLOAD_TO_BLOB);
 
       // Upload thumbnail if processing succeeded
       let thumbnailBlob = null;
@@ -232,6 +240,7 @@ export async function POST(req: NextRequest) {
 
       // Create asset record in database (required for the asset to be visible)
       const dbStartTime = Date.now();
+      tracker.start(PERF_OPERATIONS.UPLOAD_TO_DB);
       if (!databaseAvailable || !prisma) {
         // Clean up uploaded file if database is not available
         try {
@@ -241,6 +250,8 @@ export async function POST(req: NextRequest) {
           console.error('Failed to cleanup uploaded file:', cleanupError);
         }
 
+        tracker.end(PERF_OPERATIONS.UPLOAD_TO_DB);
+        tracker.end(PERF_OPERATIONS.UPLOAD_SINGLE);
         console.log(`[perf] Upload failed - database unavailable (${Date.now() - startTime}ms)`);
         return NextResponse.json(
           {
@@ -305,16 +316,20 @@ export async function POST(req: NextRequest) {
           return newAsset;
         });
 
+        tracker.end(PERF_OPERATIONS.UPLOAD_TO_DB);
         console.log(`[perf] Database write: ${Date.now() - dbStartTime}ms`);
 
         // Generate embeddings based on sync preference
         if (syncEmbeddings) {
           // Synchronous: Generate embeddings immediately (slower but reliable)
           const embeddingStartTime = Date.now();
+          tracker.start(PERF_OPERATIONS.EMBEDDING_GENERATE);
           try {
             await generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
+            tracker.end(PERF_OPERATIONS.EMBEDDING_GENERATE);
             console.log(`[sync] Successfully generated embedding for asset ${asset.id} (${Date.now() - embeddingStartTime}ms)`);
           } catch (embError) {
+            tracker.end(PERF_OPERATIONS.EMBEDDING_GENERATE);
             console.error(`[sync] Failed to generate embedding for asset ${asset.id}:`, embError);
             // Don't fail the upload if embedding fails
           }
@@ -325,8 +340,16 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        const totalTime = Date.now() - startTime;
+        const totalTime = tracker.end(PERF_OPERATIONS.UPLOAD_SINGLE) || (Date.now() - startTime);
         console.log(`[perf] Upload completed successfully in ${totalTime}ms`);
+
+        // Log performance summary periodically
+        if (tracker.getSampleCount(PERF_OPERATIONS.UPLOAD_SINGLE) % 10 === 0) {
+          const summary = tracker.getSummary(PERF_OPERATIONS.UPLOAD_SINGLE);
+          if (summary) {
+            console.log(`[perf] Upload stats - Avg: ${summary.average.toFixed(0)}ms, P95: ${summary.p95.toFixed(0)}ms, Samples: ${summary.samples}`);
+          }
+        }
         return NextResponse.json({
           success: true,
           asset: {
