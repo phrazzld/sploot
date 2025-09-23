@@ -12,6 +12,8 @@ import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
 import { HeartIcon } from '@/components/icons/heart-icon';
 import { showToast } from '@/components/ui/toast';
+import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
+import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 
 export default function AppPage() {
   const router = useRouter();
@@ -41,6 +43,9 @@ export default function AppPage() {
     return 'desc';
   });
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [failedEmbeddings, setFailedEmbeddings] = useState<EmbeddingQueueItem[]>([]);
+  const [showRetryModal, setShowRetryModal] = useState(false);
+  const [retryProgress, setRetryProgress] = useState({ current: 0, total: 0, processing: false });
   // Use URL params as single source of truth for search query
   const libraryQuery = queryParam;
   const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
@@ -141,6 +146,80 @@ export default function AppPage() {
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
   }, [showSortDropdown]);
+
+  // Monitor failed embeddings
+  useEffect(() => {
+    const checkFailedEmbeddings = () => {
+      const manager = getEmbeddingQueueManager();
+      const failed = manager.getFailedItems();
+      setFailedEmbeddings(failed);
+    };
+
+    // Check immediately
+    checkFailedEmbeddings();
+
+    // Check periodically
+    const interval = setInterval(checkFailedEmbeddings, 5000);
+
+    // Subscribe to queue events
+    const unsubscribe = getEmbeddingQueueManager().subscribe((event) => {
+      if (event.type === 'failed' || event.type === 'completed') {
+        checkFailedEmbeddings();
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      unsubscribe();
+    };
+  }, []);
+
+  // Handle bulk retry
+  const handleBulkRetry = useCallback(() => {
+    const manager = getEmbeddingQueueManager();
+    const failedItems = manager.getFailedItems();
+
+    if (failedItems.length === 0) return;
+
+    setShowRetryModal(true);
+    setRetryProgress({ current: 0, total: failedItems.length, processing: true });
+
+    // Track progress
+    const unsubscribe = manager.subscribe((event) => {
+      if (event.type === 'completed' || event.type === 'failed') {
+        const failed = manager.getFailedItems();
+        const completed = failedItems.length - failed.length;
+        setRetryProgress((prev) => ({ ...prev, current: completed }));
+
+        // Close modal when all done
+        if (completed >= failedItems.length || failed.length === 0) {
+          setTimeout(() => {
+            setShowRetryModal(false);
+            setRetryProgress({ current: 0, total: 0, processing: false });
+            showToast(
+              `✓ Retried ${completed} ${completed === 1 ? 'meme' : 'memes'}`,
+              'success'
+            );
+          }, 1000);
+        }
+      }
+    });
+
+    // Trigger retry
+    manager.retryFailed();
+
+    // Cleanup after 30 seconds (safety timeout)
+    const timeout = setTimeout(() => {
+      unsubscribe();
+      setShowRetryModal(false);
+      setRetryProgress({ current: 0, total: 0, processing: false });
+    }, 30000);
+
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
+  }, []);
 
   // Calculate stats
   const stats = useMemo(() => {
@@ -406,6 +485,18 @@ export default function AppPage() {
                   </svg>
                   {showUploadPanel ? 'close upload tray' : 'upload new meme'}
                 </button>
+                {failedEmbeddings.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleBulkRetry}
+                    className="inline-flex items-center gap-2 rounded-full border border-[#FF4D4D]/40 bg-[#251014] px-4 py-2 text-sm font-medium text-[#FF8C9B] transition-colors hover:border-[#FF4D4D]/60 hover:bg-[#351419] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    retry failed searches ({failedEmbeddings.length} {failedEmbeddings.length === 1 ? 'image' : 'images'})
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={toggleFavoritesOnly}
@@ -767,6 +858,77 @@ export default function AppPage() {
               <p className="text-white/80 text-sm mt-1">
                 {selectedAsset.width}×{selectedAsset.height} • {selectedAsset.mime.split('/')[1].toUpperCase()}
               </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Retry Progress Modal */}
+      {showRetryModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-[#14171A] border border-[#2A2F37] rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-semibold text-[#E6E8EB] mb-4">
+              regenerating embeddings
+            </h3>
+
+            <div className="space-y-4">
+              <div className="flex items-center justify-center">
+                <div className="relative w-24 h-24">
+                  <svg className="w-24 h-24 transform -rotate-90">
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="36"
+                      stroke="#2A2F37"
+                      strokeWidth="8"
+                      fill="none"
+                    />
+                    <circle
+                      cx="48"
+                      cy="48"
+                      r="36"
+                      stroke="#7C5CFF"
+                      strokeWidth="8"
+                      fill="none"
+                      strokeDasharray={226}
+                      strokeDashoffset={226 - (226 * retryProgress.current) / retryProgress.total}
+                      className="transition-all duration-500 ease-out"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-2xl font-bold text-[#E6E8EB]">
+                      {retryProgress.current}/{retryProgress.total}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-[#B3B7BE]">progress</span>
+                  <span className="text-[#E6E8EB] font-medium">
+                    {Math.round((retryProgress.current / retryProgress.total) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-[#1F2328] rounded-full h-2 overflow-hidden">
+                  <div
+                    className="bg-gradient-to-r from-[#7C5CFF] to-[#BAFF39] h-full rounded-full transition-all duration-500 ease-out"
+                    style={{ width: `${(retryProgress.current / retryProgress.total) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {retryProgress.processing && (
+                <p className="text-sm text-[#B3B7BE] text-center animate-pulse">
+                  processing embeddings...
+                </p>
+              )}
+
+              {!retryProgress.processing && retryProgress.current === retryProgress.total && (
+                <p className="text-sm text-[#B6FF6E] text-center font-medium">
+                  ✓ all embeddings regenerated
+                </p>
+              )}
             </div>
           </div>
         </div>
