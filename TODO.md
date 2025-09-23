@@ -12,7 +12,7 @@
   - Wire up stats updates in `uploadFileToServer` success/error handlers
   - Test: Select 68 files, header should appear immediately showing "0 of 68 uploaded"
 
-- [ ] **Show "Preparing files..." state during initial processing** (`components/upload/upload-zone.tsx:298-344`)
+- [x] **Show "Preparing files..." state during initial processing** (`components/upload/upload-zone.tsx:298-344`)
   - Add state: `const [isPreparing, setIsPreparing] = useState(false);`
   - Set to true at line 298: `setIsPreparing(true);`
   - Set to false at line 357: `setIsPreparing(false);`
