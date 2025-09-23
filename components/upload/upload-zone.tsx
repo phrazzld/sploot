@@ -184,6 +184,7 @@ export function UploadZone({
   const [isPreparing, setIsPreparing] = useState(false);
   const [preparingFileCount, setPreparingFileCount] = useState(0);
   const [preparingTotalSize, setPreparingTotalSize] = useState(0);
+  const [isProcessingPulse, setIsProcessingPulse] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
@@ -685,6 +686,10 @@ export function UploadZone({
     dragCounter.current = 0;
 
     if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
+      const fileCount = e.dataTransfer.files.length;
+      showToast(`Processing ${fileCount} ${fileCount === 1 ? 'file' : 'files'}...`, 'info');
+      setIsProcessingPulse(true);
+      setTimeout(() => setIsProcessingPulse(false), 1000);
       processFiles(e.dataTransfer.files);
     }
   };
@@ -703,6 +708,9 @@ export function UploadZone({
     }
 
     if (files.length > 0) {
+      showToast(`Processing ${files.length} ${files.length === 1 ? 'image' : 'images'} from clipboard...`, 'info');
+      setIsProcessingPulse(true);
+      setTimeout(() => setIsProcessingPulse(false), 1000);
       processFiles(files);
     }
   };
@@ -710,6 +718,10 @@ export function UploadZone({
   // File input handler
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
+      const fileCount = e.target.files.length;
+      showToast(`Processing ${fileCount} selected ${fileCount === 1 ? 'file' : 'files'}...`, 'info');
+      setIsProcessingPulse(true);
+      setTimeout(() => setIsProcessingPulse(false), 1000);
       processFiles(e.target.files);
     }
   };
@@ -875,7 +887,8 @@ export function UploadZone({
           'hover:border-[#7C5CFF] hover:bg-[#7C5CFF]/5',
           isDragging
             ? 'border-[#7C5CFF] bg-[#7C5CFF]/10 scale-[1.02]'
-            : 'border-[#2A2F37] bg-[#1B1F24]'
+            : 'border-[#2A2F37] bg-[#1B1F24]',
+          isProcessingPulse && 'animate-pulse'
         )}
       >
         {/* Preparing overlay */}
