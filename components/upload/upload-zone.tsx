@@ -294,7 +294,15 @@ export function UploadZone({
 
     const newFiles: UploadFile[] = [];
 
-    for (const file of Array.from(fileList)) {
+    // Split files into chunks for processing
+    const chunks: File[][] = [];
+    for (let i = 0; i < filesArray.length; i += FILE_PROCESSING_CHUNK_SIZE) {
+      chunks.push(filesArray.slice(i, i + FILE_PROCESSING_CHUNK_SIZE));
+    }
+
+    // Process each chunk with a small delay to allow UI to breathe
+    for (const chunk of chunks) {
+      for (const file of chunk) {
       const error = validateFile(file);
 
       if (error) {
@@ -323,6 +331,11 @@ export function UploadZone({
           progress: 0,
         });
       }
+
+      // Allow UI to breathe between chunks
+      if (chunks.indexOf(chunk) < chunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 10));
+      }
     }
 
     setFiles((prev) => [...prev, ...newFiles]);
@@ -342,6 +355,8 @@ export function UploadZone({
   }, [isOffline, supportsBackgroundSync, addToBackgroundSync]);
 
   // Process files for upload with regular queue
+  const FILE_PROCESSING_CHUNK_SIZE = 20; // Process files in chunks to prevent UI freezing
+
   const processFilesWithQueue = useCallback(async (fileList: FileList | File[]) => {
     // Show preparing state immediately
     const filesArray = Array.from(fileList);
@@ -354,7 +369,15 @@ export function UploadZone({
     tracker.start(PERF_OPERATIONS.CLIENT_FILE_SELECT);
     const newFiles: UploadFile[] = [];
 
-    for (const file of Array.from(fileList)) {
+    // Split files into chunks for processing
+    const chunks: File[][] = [];
+    for (let i = 0; i < filesArray.length; i += FILE_PROCESSING_CHUNK_SIZE) {
+      chunks.push(filesArray.slice(i, i + FILE_PROCESSING_CHUNK_SIZE));
+    }
+
+    // Process each chunk with a small delay to allow UI to breathe
+    for (const chunk of chunks) {
+      for (const file of chunk) {
       const error = validateFile(file);
 
       // If offline, queue the file instead of uploading
@@ -394,6 +417,11 @@ export function UploadZone({
             console.error('[UploadZone] Failed to persist upload:', err);
           }
         }
+      }
+
+      // Allow UI to breathe between chunks
+      if (chunks.indexOf(chunk) < chunks.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
 
