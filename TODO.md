@@ -35,7 +35,7 @@
   - Monitor: `const failureRate = failed / (completed + failed);`
   - Test: Upload 68 files, should see 6 simultaneous XHR requests in Network tab
 
-- [ ] **Process files in chunks to prevent memory overload** (`components/upload/upload-zone.tsx:302-343`)
+- [x] **Process files in chunks to prevent memory overload** (`components/upload/upload-zone.tsx:302-343`)
   - Add: `const FILE_PROCESSING_CHUNK_SIZE = 20;`
   - Replace single loop with chunked processing:
     ```typescript
