@@ -28,7 +28,7 @@
 
 ### Memory Management & Performance
 
-- [ ] **Increase concurrent upload limit for better throughput** (`components/upload/upload-zone.tsx:391`)
+- [x] **Increase concurrent upload limit for better throughput** (`components/upload/upload-zone.tsx:391`)
   - Change: `const MAX_CONCURRENT_UPLOADS = 3;`
   - To: `const MAX_CONCURRENT_UPLOADS = 6;`
   - Add adaptive concurrency based on success rate: if failures > 20%, reduce to 4
