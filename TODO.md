@@ -20,7 +20,7 @@
   - Include total size calculation: `const totalSize = Array.from(fileList).reduce((acc, f) => acc + f.size, 0);`
   - Test: Drop 68 files, should see "Preparing 68 files (X MB)..." immediately
 
-- [ ] **Add file count preview before processing** (`components/upload/upload-zone.tsx:609-618`)
+- [x] **Add file count preview before processing** (`components/upload/upload-zone.tsx:609-618`)
   - In `handleDrop`, add immediate feedback before `processFiles` call
   - Show toast: `showToast(\`Processing ${e.dataTransfer.files.length} files...\`, 'info');`
   - Add visual pulse to drop zone during processing
