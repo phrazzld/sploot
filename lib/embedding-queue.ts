@@ -12,6 +12,9 @@ export interface EmbeddingQueueItem {
   addedAt: number;
   lastAttempt?: number;
   error?: string;
+  errorType?: 'rate_limit' | 'network' | 'invalid_image' | 'server' | 'unknown';
+  isUserTriggered?: boolean; // Track if this was user-triggered vs background
+  permanentlyFailed?: boolean; // For errors that shouldn't be retried
 }
 
 export type QueueEventType = 'added' | 'processing' | 'completed' | 'failed' | 'retry';
@@ -37,8 +40,10 @@ export class EmbeddingQueueManager {
 
   // Configuration
   private readonly MAX_CONCURRENT = 2; // Replicate API rate limits
-  private readonly MAX_RETRIES = 3;
-  private readonly BASE_RETRY_DELAY = 1000; // Start with 1s, then 2s, 4s, 8s
+  private readonly MAX_RETRIES_USER = 5; // More retries for user-triggered
+  private readonly MAX_RETRIES_BACKGROUND = 3; // Fewer retries for background
+  private readonly BASE_RETRY_DELAY = 1000; // Start with 1s, then 2s, 4s, 8s, 16s
+  private readonly MAX_BACKOFF_DELAY = 16000; // Cap at 16s
 
   constructor() {
     this.loadFromStorage();
@@ -51,11 +56,12 @@ export class EmbeddingQueueManager {
   /**
    * Add an item to the embedding queue
    */
-  addToQueue(item: Omit<EmbeddingQueueItem, 'retryCount' | 'addedAt'>): void {
+  addToQueue(item: Omit<EmbeddingQueueItem, 'retryCount' | 'addedAt'> & { isUserTriggered?: boolean }): void {
     const queueItem: EmbeddingQueueItem = {
       ...item,
       retryCount: 0,
       addedAt: Date.now(),
+      isUserTriggered: item.isUserTriggered || false,
     };
 
     // Check if already in queue or processing
@@ -171,9 +177,16 @@ export class EmbeddingQueueManager {
   }
 
   /**
-   * Process a single item with retry logic
+   * Process a single item with smart retry logic
    */
   private async processItem(item: EmbeddingQueueItem): Promise<void> {
+    // Skip if permanently failed
+    if (item.permanentlyFailed) {
+      console.log(`[EmbeddingQueue] Skipping permanently failed item ${item.assetId}`);
+      this.notifyListeners({ type: 'failed', item, timestamp: Date.now() });
+      return;
+    }
+
     item.lastAttempt = Date.now();
     this.notifyListeners({ type: 'processing', item, timestamp: Date.now() });
 
@@ -188,25 +201,35 @@ export class EmbeddingQueueManager {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP ${response.status}`);
+        const errorType = this.classifyError(response.status, errorData);
+        throw {
+          message: errorData.error || `HTTP ${response.status}`,
+          status: response.status,
+          type: errorType,
+          data: errorData
+        };
       }
 
       // Success! Notify listeners
       this.notifyListeners({ type: 'completed', item, timestamp: Date.now() });
       console.log(`[EmbeddingQueue] Successfully generated embedding for ${item.assetId}`);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error(`[EmbeddingQueue] Failed to generate embedding for ${item.assetId}:`, error);
 
-      item.error = error instanceof Error ? error.message : String(error);
-      item.retryCount++;
+      // Classify the error
+      const errorType = error.type || this.classifyErrorFromException(error);
+      item.error = error.message || String(error);
+      item.errorType = errorType;
 
-      // Check if we should retry
-      if (item.retryCount < this.MAX_RETRIES) {
-        // Calculate exponential backoff delay
-        const delay = this.BASE_RETRY_DELAY * Math.pow(2, item.retryCount - 1);
+      // Apply smart retry strategy based on error type
+      const shouldRetry = this.shouldRetryError(item, errorType);
 
-        console.log(`[EmbeddingQueue] Will retry ${item.assetId} in ${delay}ms (attempt ${item.retryCount}/${this.MAX_RETRIES})`);
+      if (shouldRetry) {
+        const delay = this.calculateRetryDelay(item, errorType);
+        const maxRetries = item.isUserTriggered ? this.MAX_RETRIES_USER : this.MAX_RETRIES_BACKGROUND;
+
+        console.log(`[EmbeddingQueue] Will retry ${item.assetId} in ${delay}ms (attempt ${item.retryCount}/${maxRetries}, type: ${errorType})`);
 
         // Re-add to queue after delay
         setTimeout(() => {
@@ -221,14 +244,114 @@ export class EmbeddingQueueManager {
           }
         }, delay);
       } else {
-        // Max retries reached, notify failure
+        // No retry - permanent failure or max retries reached
+        if (errorType === 'invalid_image') {
+          item.permanentlyFailed = true;
+        }
         this.notifyListeners({ type: 'failed', item, timestamp: Date.now() });
-        console.error(`[EmbeddingQueue] Max retries reached for ${item.assetId}`);
+        console.error(`[EmbeddingQueue] ${item.permanentlyFailed ? 'Permanently failed' : 'Max retries reached'} for ${item.assetId}`);
       }
     }
 
     // Persist current state
     this.persistToStorage();
+  }
+
+  /**
+   * Classify error type based on status code and error data
+   */
+  private classifyError(status: number, errorData: any): EmbeddingQueueItem['errorType'] {
+    // Rate limit error
+    if (status === 429) {
+      return 'rate_limit';
+    }
+
+    // Server errors
+    if (status >= 500) {
+      return 'server';
+    }
+
+    // Invalid image errors (400 Bad Request with specific messages)
+    if (status === 400) {
+      const errorMessage = errorData.error?.toLowerCase() || '';
+      if (errorMessage.includes('invalid') || errorMessage.includes('corrupt') ||
+          errorMessage.includes('unsupported') || errorMessage.includes('format')) {
+        return 'invalid_image';
+      }
+    }
+
+    // Network-related errors
+    if (status === 0 || status === 408 || status === 504) {
+      return 'network';
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Classify error type from exception
+   */
+  private classifyErrorFromException(error: any): EmbeddingQueueItem['errorType'] {
+    const message = error.message?.toLowerCase() || '';
+
+    // Network errors
+    if (message.includes('network') || message.includes('fetch') ||
+        message.includes('timeout') || message.includes('connect')) {
+      return 'network';
+    }
+
+    return 'unknown';
+  }
+
+  /**
+   * Determine if we should retry based on error type and retry count
+   */
+  private shouldRetryError(item: EmbeddingQueueItem, errorType: EmbeddingQueueItem['errorType']): boolean {
+    const maxRetries = item.isUserTriggered ? this.MAX_RETRIES_USER : this.MAX_RETRIES_BACKGROUND;
+
+    // Invalid images should never be retried
+    if (errorType === 'invalid_image') {
+      return false;
+    }
+
+    // Rate limits don't count against retry count
+    if (errorType === 'rate_limit') {
+      return true; // Always retry rate limits (they don't increment retry count)
+    }
+
+    // Network errors get one immediate retry, then follow normal backoff
+    if (errorType === 'network' && item.retryCount === 0) {
+      // Don't increment retry count for first network error
+      return true;
+    }
+
+    // Increment retry count for counted retries
+    if (errorType !== 'rate_limit' && !(errorType === 'network' && item.retryCount === 0)) {
+      item.retryCount++;
+    }
+
+    return item.retryCount < maxRetries;
+  }
+
+  /**
+   * Calculate retry delay based on error type and retry count
+   */
+  private calculateRetryDelay(item: EmbeddingQueueItem, errorType: EmbeddingQueueItem['errorType']): number {
+    // Rate limit: Wait longer (30 seconds)
+    if (errorType === 'rate_limit') {
+      return 30000; // 30 seconds for rate limits
+    }
+
+    // Network error: Immediate retry for first attempt
+    if (errorType === 'network' && item.retryCount === 0) {
+      return 100; // Nearly immediate retry for first network error
+    }
+
+    // Standard exponential backoff: 1s, 2s, 4s, 8s, 16s
+    const backoffMultiplier = Math.pow(2, Math.min(item.retryCount, 4));
+    const delay = this.BASE_RETRY_DELAY * backoffMultiplier;
+
+    return Math.min(delay, this.MAX_BACKOFF_DELAY);
   }
 
   /**
@@ -309,17 +432,27 @@ export class EmbeddingQueueManager {
    * Get failed items for manual retry
    */
   getFailedItems(): EmbeddingQueueItem[] {
-    return this.queue.filter(item => item.retryCount >= this.MAX_RETRIES);
+    const maxRetries = this.MAX_RETRIES_BACKGROUND; // Use lower threshold for failed items
+    return this.queue.filter(item =>
+      item.permanentlyFailed ||
+      (item.retryCount >= maxRetries && !item.isUserTriggered) ||
+      (item.retryCount >= this.MAX_RETRIES_USER && item.isUserTriggered)
+    );
   }
 
   /**
-   * Retry all failed items
+   * Retry all failed items (except permanently failed)
    */
   retryFailed(): void {
     const failed = this.getFailedItems();
     failed.forEach(item => {
-      item.retryCount = 0;
-      item.error = undefined;
+      // Skip permanently failed items (invalid images)
+      if (!item.permanentlyFailed) {
+        item.retryCount = 0;
+        item.error = undefined;
+        item.errorType = undefined;
+        item.isUserTriggered = true; // Manual retry is user-triggered
+      }
     });
     this.persistToStorage();
     if (!this.isRunning && failed.length > 0) {
@@ -348,8 +481,9 @@ export function queueEmbeddingGeneration(
   assetId: string,
   blobUrl: string,
   checksum: string,
-  priority: number = 1
+  priority: number = 1,
+  isUserTriggered: boolean = false
 ): void {
   const manager = getEmbeddingQueueManager();
-  manager.addToQueue({ assetId, blobUrl, checksum, priority });
+  manager.addToQueue({ assetId, blobUrl, checksum, priority, isUserTriggered });
 }
