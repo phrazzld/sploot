@@ -195,7 +195,7 @@
   - Test: 10 simultaneous uploads complete successfully
   - Test: Network interruption recovery
 
-- [~] **Add E2E test for batch upload** (`e2e/batch-upload.spec.ts`)
+- [x] **Add E2E test for batch upload** (`e2e/batch-upload.spec.ts`)
   - Upload 5 images simultaneously
   - Verify all show "uploading" state immediately
   - Verify all complete upload within 5s
