@@ -1064,11 +1064,40 @@ export function UploadZone({
 
   // Retry failed upload
   const retryUpload = (uploadFile: UploadFile) => {
-    const freshFile = { ...uploadFile, status: 'pending' as const, progress: 0, error: undefined };
+    const freshFile = { ...uploadFile, status: 'pending' as const, progress: 0, error: undefined, retryCount: 0 };
     setFiles((prev) =>
       prev.map((f) => (f.id === uploadFile.id ? freshFile : f))
     );
     uploadFileToServer(freshFile);
+  };
+
+  // Retry all failed uploads
+  const retryAllFailed = () => {
+    const failedFiles = files.filter(f => f.status === 'error');
+    if (failedFiles.length === 0) return;
+
+    console.log(`[Upload] Retrying all ${failedFiles.length} failed files`);
+
+    // Reset all failed files to pending status
+    const resetFiles = failedFiles.map(file => ({
+      ...file,
+      status: 'pending' as const,
+      progress: 0,
+      error: undefined,
+      errorDetails: undefined,
+      retryCount: 0
+    }));
+
+    // Update state to reset failed files
+    setFiles((prev) =>
+      prev.map((f) => {
+        const resetFile = resetFiles.find(rf => rf.id === f.id);
+        return resetFile || f;
+      })
+    );
+
+    // Re-queue all failed files for upload
+    uploadBatch(resetFiles);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -1330,16 +1359,28 @@ export function UploadZone({
                 </p>
               </div>
 
-              {/* Cancel button */}
-              {hasActiveUploads && (
-                <button
-                  onClick={cancelRemainingUploads}
-                  disabled={isCancelling}
-                  className="text-[#FF4D4D] hover:text-[#FF6B6B] text-sm font-medium transition-colors disabled:opacity-50"
-                >
-                  {isCancelling ? 'cancelling...' : 'cancel remaining'}
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {/* Retry all failed button */}
+                {getUploadStats().failed > 0 && (
+                  <button
+                    onClick={retryAllFailed}
+                    className="text-[#7C5CFF] hover:text-[#9B7FFF] text-sm font-medium transition-colors"
+                  >
+                    retry {getUploadStats().failed} failed
+                  </button>
+                )}
+
+                {/* Cancel button */}
+                {hasActiveUploads && (
+                  <button
+                    onClick={cancelRemainingUploads}
+                    disabled={isCancelling}
+                    className="text-[#FF4D4D] hover:text-[#FF6B6B] text-sm font-medium transition-colors disabled:opacity-50"
+                  >
+                    {isCancelling ? 'cancelling...' : 'cancel remaining'}
+                  </button>
+                )}
+              </div>
             </div>
 
             {/* Overall progress bar */}

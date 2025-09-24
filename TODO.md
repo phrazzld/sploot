@@ -102,7 +102,7 @@
   - Max 3 retries per file with delays: 1s, 3s, 9s
   - Test: Kill server mid-upload, restart, files should auto-retry
 
-- [ ] **Add "Retry All Failed" button for batch failures** (`components/upload/upload-zone.tsx:860-880`)
+- [x] **Add "Retry All Failed" button for batch failures** (`components/upload/upload-zone.tsx:860-880`)
   - Show when `failedFiles.length > 0`
   - Button: `onClick={() => retryAllFailed()}`
   - Function should reset status and re-queue all failed files
