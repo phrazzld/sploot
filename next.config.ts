@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
       exclude: ["error", "warn"],
     } : false,
   },
+  // Configure server actions and API routes
+  experimental: {
+    serverActions: {
+      // Increase body size limit to 50MB for large image uploads
+      // This applies globally to all server actions and API routes
+      // Note: App Router doesn't support per-route body size limits
+      bodySizeLimit: '50mb',
+    },
+  },
 };
 
 export default withPWA({

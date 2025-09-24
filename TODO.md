@@ -76,7 +76,7 @@
 
 ### Server-Side Configuration
 
-- [ ] **Configure API route body size limit** (`app/api/upload/route.ts:1-5`)
+- [x] **Configure API route body size limit** (`app/api/upload/route.ts:1-5`)
   - Add export: `export const maxDuration = 60;` // 60 second timeout
   - Add export: `export const config = { api: { bodyParser: { sizeLimit: '50mb' } } };`
   - Note: Next.js 15 App Router uses different config format

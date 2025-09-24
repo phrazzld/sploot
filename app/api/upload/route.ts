@@ -11,6 +11,13 @@ import { processUploadedImage } from '@/lib/image-processing';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 /**
+ * Configure route segment options
+ * maxDuration: Maximum execution time for the API route (60 seconds)
+ * This prevents timeout errors for large file uploads
+ */
+export const maxDuration = 60; // 60 second timeout for upload operations
+
+/**
  * Direct file upload endpoint - handles file upload server-side
  * This is more reliable than client-side uploads for the initial implementation
  */
