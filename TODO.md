@@ -355,7 +355,14 @@
   - Test: Kill server, restart, verify auto-reconnect within 16s
   - Metric: 1 connection for any number of files
 
-- [ ] **Implement server-side WebSocket handler** (`app/api/ws/upload-status/route.ts`)
+- [x] **Implement server-side WebSocket handler** (`app/api/sse/embedding-updates/route.ts`)
+  ```
+  Work Log:
+  - Vercel doesn't support WebSockets in serverless functions
+  - Implemented SSE (Server-Sent Events) instead - perfect for server-to-client updates
+  - SSE is fully supported by Vercel and provides real-time updates
+  - Created polling fallback for when SSE connection fails
+  ```
   ```typescript
   export async function GET(request: Request) {
     const { socket, response } = Deno.upgradeWebSocket(request); // Or use ws library
