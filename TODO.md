@@ -26,7 +26,7 @@
   - Test: Monitor Network tab, should see max 1 request every 2s regardless of file count
   - Success metric: 100 files = 2 requests total (not 200)
 
-- [~] **Create React Context for embedding status distribution** (`contexts/embedding-status-context.tsx`)
+- [x] **Create React Context for embedding status distribution** (`contexts/embedding-status-context.tsx`)
   ```typescript
   const EmbeddingStatusContext = createContext<{
     subscribe: (assetId: string, callback: StatusCallback) => () => void;
@@ -39,7 +39,7 @@
   - Automatic cleanup on unmount prevents memory leaks
   - Test: React DevTools should show single context provider, not 54 individual hooks
 
-- [ ] **Refactor `EmbeddingStatusIndicator` to use context subscription** (`components/upload/upload-zone.tsx:37-120`)
+- [~] **Refactor `EmbeddingStatusIndicator` to use context subscription** (`components/upload/upload-zone.tsx:37-120`)
   ```typescript
   // REMOVE: const embeddingStatus = useEmbeddingStatus({ assetId, enabled, ... });
   // ADD: const { subscribe, getStatus } = useContext(EmbeddingStatusContext);

@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/client";
 import { ToastContainer } from "@/components/ui/toast";
+import { EmbeddingStatusProvider } from "@/contexts/embedding-status-context";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -103,21 +104,23 @@ export default function RootLayout({
 }>) {
   return (
     <AuthProvider>
-      <html lang="en">
-        <head>
-          <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
-          <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
-          <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
-          <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#7C5CFF" />
-          <meta name="theme-color" content="#7C5CFF" />
-        </head>
-        <body
-          className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        >
-          {children}
-          <ToastContainer />
-        </body>
-      </html>
+      <EmbeddingStatusProvider>
+        <html lang="en">
+          <head>
+            <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+            <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
+            <link rel="icon" type="image/png" sizes="16x16" href="/icons/favicon-16x16.png" />
+            <link rel="mask-icon" href="/icons/safari-pinned-tab.svg" color="#7C5CFF" />
+            <meta name="theme-color" content="#7C5CFF" />
+          </head>
+          <body
+            className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+          >
+            {children}
+            <ToastContainer />
+          </body>
+        </html>
+      </EmbeddingStatusProvider>
     </AuthProvider>
   );
 }

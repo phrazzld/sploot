@@ -11,7 +11,7 @@ import { useBackgroundSync } from '@/hooks/use-background-sync';
 import { TagInput } from '@/components/tags/tag-input';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
-import { useEmbeddingStatus } from '@/hooks/use-embedding-status';
+import { useEmbeddingStatusSubscription } from '@/contexts/embedding-status-context';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
@@ -44,30 +44,34 @@ function EmbeddingStatusIndicator({
   const [showStatus, setShowStatus] = useState(true);
   const [autoHideTimer, setAutoHideTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Monitor embedding status if needed
-  const embeddingStatus = useEmbeddingStatus({
-    assetId: file.assetId || '',
-    enabled: !!file.assetId && file.needsEmbedding === true,
-    pollInterval: 1500,
-    maxRetries: 5,
-    onSuccess: () => {
-      onStatusChange('ready');
-      // Auto-dismiss success after 3s
-      const timer = setTimeout(() => setShowStatus(false), 3000);
-      setAutoHideTimer(timer);
-    },
-    onError: (error) => {
-      onStatusChange('failed', error.message);
-      // Keep failures visible
-    },
-  });
-
-  // Update status based on embedding monitor
-  useEffect(() => {
-    if (embeddingStatus.isGenerating) {
-      onStatusChange('processing');
+  // Use centralized embedding status subscription
+  const embeddingStatus = useEmbeddingStatusSubscription(
+    file.assetId,
+    {
+      enabled: !!file.assetId && file.needsEmbedding === true,
+      onStatusChange: (status) => {
+        // Map status to expected format
+        if (status.status === 'processing') {
+          onStatusChange('processing');
+        } else if (status.status === 'ready' && status.hasEmbedding) {
+          onStatusChange('ready');
+          // Auto-dismiss success after 3s
+          const timer = setTimeout(() => setShowStatus(false), 3000);
+          setAutoHideTimer(timer);
+        } else if (status.status === 'failed') {
+          onStatusChange('failed', status.error);
+        } else if (status.status === 'pending') {
+          onStatusChange('pending');
+        }
+      },
+      onSuccess: () => {
+        // Already handled in onStatusChange
+      },
+      onError: (error) => {
+        // Already handled in onStatusChange
+      },
     }
-  }, [embeddingStatus.isGenerating, onStatusChange]);
+  );
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -85,8 +89,8 @@ function EmbeddingStatusIndicator({
 
   // Retry handler for failed embeddings
   const handleRetry = async () => {
-    if (embeddingStatus.canRetry) {
-      embeddingStatus.retry();
+    if (embeddingStatus.retry) {
+      await embeddingStatus.retry();
     }
   };
 
@@ -133,7 +137,7 @@ function EmbeddingStatusIndicator({
           <button
             onClick={handleRetry}
             className="text-[#7C5CFF] hover:text-[#9B7FFF] underline font-medium"
-            disabled={!embeddingStatus.canRetry}
+            disabled={!embeddingStatus.retry}
           >
             Retry
           </button>
