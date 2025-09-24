@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, DragEvent, ClipboardEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo, DragEvent, ClipboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
@@ -18,11 +18,13 @@ import { showToast } from '@/components/ui/toast';
 import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
 
-interface UploadFile {
+// Lightweight metadata for display - only ~300 bytes per file vs 5MB for File object
+interface FileMetadata {
   id: string;
-  file: File;
-  status: 'pending' | 'uploading' | 'success' | 'error' | 'queued' | 'duplicate';
-  progress: number;
+  name: string; // max 255 bytes
+  size: number; // 8 bytes
+  status: 'pending' | 'uploading' | 'success' | 'error' | 'queued' | 'duplicate'; // 1 byte enum
+  progress: number; // 4 bytes
   error?: string;
   errorDetails?: UploadErrorDetails;
   assetId?: string;
@@ -32,6 +34,12 @@ interface UploadFile {
   embeddingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
   embeddingError?: string;
   retryCount?: number;
+  addedAt: number; // timestamp for sorting
+}
+
+// Legacy interface for backward compatibility during migration
+interface UploadFile extends FileMetadata {
+  file: File;
 }
 
 // Component to handle inline embedding status display
@@ -39,7 +47,7 @@ function EmbeddingStatusIndicator({
   file,
   onStatusChange
 }: {
-  file: UploadFile;
+  file: FileMetadata;
   onStatusChange: (status: 'pending' | 'processing' | 'ready' | 'failed', error?: string) => void;
 }) {
   const [showStatus, setShowStatus] = useState(true);
@@ -152,24 +160,29 @@ function EmbeddingStatusIndicator({
 
 // Virtualized file list component for performance with large batches
 function VirtualizedFileList({
-  files,
-  setFiles,
+  fileMetadata,
+  setFileMetadata,
   formatFileSize,
   router,
   retryUpload,
   removeFile
 }: {
-  files: UploadFile[];
-  setFiles: React.Dispatch<React.SetStateAction<UploadFile[]>>;
+  fileMetadata: Map<string, FileMetadata>;
+  setFileMetadata: React.Dispatch<React.SetStateAction<Map<string, FileMetadata>>>;
   formatFileSize: (bytes: number) => string;
   router: any; // NextJS router instance
-  retryUpload: (file: UploadFile) => void;
+  retryUpload: (metadata: FileMetadata) => void;
   removeFile: (id: string) => void;
 }) {
   const parentRef = useRef<HTMLDivElement>(null);
 
+  // Convert Map values to array for virtualization and maintain order
+  const filesArray = useMemo(() => {
+    return Array.from(fileMetadata.values()).sort((a, b) => a.addedAt - b.addedAt);
+  }, [fileMetadata]);
+
   const virtualizer = useVirtualizer({
-    count: files.length,
+    count: filesArray.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 64, // Fixed height of 64px per file item as specified
     overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
@@ -193,7 +206,7 @@ function VirtualizedFileList({
         }}
       >
         {virtualItems.map((virtualItem) => {
-          const file = files[virtualItem.index];
+          const file = filesArray[virtualItem.index];
           return (
             <div
               key={virtualItem.key}
@@ -213,7 +226,7 @@ function VirtualizedFileList({
                     {file.blobUrl ? (
                       <img
                         src={file.blobUrl}
-                        alt={file.file.name}
+                        alt={file.name}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -224,10 +237,10 @@ function VirtualizedFileList({
                   {/* File info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-[#E6E8EB] text-sm font-medium truncate">
-                      {file.file.name}
+                      {file.name}
                     </p>
                     <p className="text-[#B3B7BE] text-xs">
-                      {formatFileSize(file.file.size)}
+                      {formatFileSize(file.size)}
                     </p>
                   </div>
 
@@ -253,11 +266,18 @@ function VirtualizedFileList({
                       <EmbeddingStatusIndicator
                         file={file}
                         onStatusChange={(status, error) => {
-                          setFiles(prev => prev.map(f =>
-                            f.id === file.id
-                              ? { ...f, embeddingStatus: status, embeddingError: error }
-                              : f
-                          ));
+                          setFileMetadata(prev => {
+                            const updated = new Map(prev);
+                            const metadata = updated.get(file.id);
+                            if (metadata) {
+                              updated.set(file.id, {
+                                ...metadata,
+                                embeddingStatus: status,
+                                embeddingError: error
+                              });
+                            }
+                            return updated;
+                          });
                         }}
                       />
                     )}
@@ -286,7 +306,7 @@ function VirtualizedFileList({
                       <UploadErrorDisplay
                         error={file.errorDetails}
                         fileId={file.id}
-                        fileName={file.file.name}
+                        fileName={file.name}
                         onRetry={() => retryUpload(file)}
                         onDismiss={() => removeFile(file.id)}
                       />
@@ -337,7 +357,10 @@ export function UploadZone({
   onUploadComplete,
   isOnDashboard = false
 }: UploadZoneProps) {
-  const [files, setFiles] = useState<UploadFile[]>([]);
+  // Use Map for O(1) lookups and minimal memory footprint (~300 bytes per file vs 5MB)
+  const [fileMetadata, setFileMetadata] = useState(() => new Map<string, FileMetadata>());
+  // Store File objects temporarily only during active upload
+  const activeFileObjects = useRef(new WeakMap<FileMetadata, File>());
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
@@ -373,16 +396,17 @@ export function UploadZone({
   useEffect(() => {
     if (!onUploadComplete) return;
 
-    const hasActiveUploads = files.some(file =>
+    const filesArray = Array.from(fileMetadata.values());
+    const hasActiveUploads = filesArray.some(file =>
       file.status === 'uploading' || file.status === 'pending' || file.status === 'queued'
     );
 
-    const successfulUploads = files.filter(file => file.status === 'success');
-    const duplicates = files.filter(file => file.status === 'duplicate');
-    const failed = files.filter(file => file.status === 'error');
+    const successfulUploads = filesArray.filter(file => file.status === 'success');
+    const duplicates = filesArray.filter(file => file.status === 'duplicate');
+    const failed = filesArray.filter(file => file.status === 'error');
 
     // Trigger callback when all uploads are done and we have at least one file
-    if (files.length > 0 && !hasActiveUploads && (successfulUploads.length > 0 || duplicates.length > 0)) {
+    if (filesArray.length > 0 && !hasActiveUploads && (successfulUploads.length > 0 || duplicates.length > 0)) {
       // Only trigger once when uploads complete
       const stats = {
         uploaded: successfulUploads.length,
@@ -395,35 +419,36 @@ export function UploadZone({
         onUploadComplete(stats);
       }, 100);
     }
-  }, [files, onUploadComplete]);
+  }, [fileMetadata, onUploadComplete]);
 
   // Update upload stats whenever files change
   useEffect(() => {
-    if (files.length === 0) {
+    const filesArray = Array.from(fileMetadata.values());
+    if (filesArray.length === 0) {
       setUploadStats(null);
       return;
     }
 
-    const uploading = files.filter(f => f.status === 'uploading').length;
-    const successful = files.filter(f => f.status === 'success' || f.status === 'duplicate').length;
-    const failed = files.filter(f => f.status === 'error').length;
-    const pending = files.filter(f => f.status === 'pending' || f.status === 'queued').length;
-    const processingEmbeddings = files.filter(f =>
+    const uploading = filesArray.filter(f => f.status === 'uploading').length;
+    const successful = filesArray.filter(f => f.status === 'success' || f.status === 'duplicate').length;
+    const failed = filesArray.filter(f => f.status === 'error').length;
+    const pending = filesArray.filter(f => f.status === 'pending' || f.status === 'queued').length;
+    const processingEmbeddings = filesArray.filter(f =>
       f.embeddingStatus === 'pending' || f.embeddingStatus === 'processing'
     ).length;
-    const ready = files.filter(f =>
+    const ready = filesArray.filter(f =>
       f.embeddingStatus === 'ready' || (!f.needsEmbedding && (f.status === 'success' || f.status === 'duplicate'))
     ).length;
 
     setUploadStats({
-      totalFiles: files.length,
+      totalFiles: filesArray.length,
       uploaded: successful,
       processingEmbeddings,
       ready,
       failed,
       estimatedTimeRemaining: pending > 0 || uploading > 0 ? (pending + uploading) * 2000 : 0 // Rough estimate
     });
-  }, [files]);
+  }, [fileMetadata]);
 
   // Regular upload queue (localStorage-based)
   const { addToQueue } = useUploadQueue();
@@ -1562,7 +1587,7 @@ export function UploadZone({
                     {file.blobUrl ? (
                       <img
                         src={file.blobUrl}
-                        alt={file.file.name}
+                        alt={file.name}
                         className="w-full h-full object-cover"
                       />
                     ) : (
@@ -1573,10 +1598,10 @@ export function UploadZone({
                   {/* File info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-[#E6E8EB] text-sm font-medium truncate">
-                      {file.file.name}
+                      {file.name}
                     </p>
                     <p className="text-[#B3B7BE] text-xs">
-                      {formatFileSize(file.file.size)}
+                      {formatFileSize(file.size)}
                     </p>
                   </div>
 
@@ -1602,11 +1627,18 @@ export function UploadZone({
                       <EmbeddingStatusIndicator
                         file={file}
                         onStatusChange={(status, error) => {
-                          setFiles(prev => prev.map(f =>
-                            f.id === file.id
-                              ? { ...f, embeddingStatus: status, embeddingError: error }
-                              : f
-                          ));
+                          setFileMetadata(prev => {
+                            const updated = new Map(prev);
+                            const metadata = updated.get(file.id);
+                            if (metadata) {
+                              updated.set(file.id, {
+                                ...metadata,
+                                embeddingStatus: status,
+                                embeddingError: error
+                              });
+                            }
+                            return updated;
+                          });
                         }}
                       />
                     )}

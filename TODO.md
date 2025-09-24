@@ -232,7 +232,7 @@
   - WeakSet prevents memory leaks
   - Test: Scroll through 10,000 items, verify only ~100 components created total
 
-- [ ] **Replace file array with metadata Map** (`components/upload/upload-zone.tsx`)
+- [x] **Replace file array with metadata Map** (`components/upload/upload-zone.tsx`)
   ```typescript
   // CURRENT: const [files, setFiles] = useState<UploadFile[]>([]); // Full objects in memory
   // NEW:
