@@ -401,7 +401,15 @@
   - Tracks subscriptions per connection
   - Test: Open 10 tabs, verify updates propagate to all
 
-- [ ] **Create PostgreSQL trigger for embedding completion** (`prisma/migrations/add_embedding_notify.sql`)
+- [x] **Create PostgreSQL trigger for embedding completion** (`prisma/migrations/20250924_add_embedding_notify/migration.sql`)
+  ```
+  Work Log:
+  - Added status tracking columns (status, error, completedAt) to asset_embeddings
+  - Created trigger to notify on status changes (pending, processing, ready, failed)
+  - Added indexes for efficient status queries
+  - Created PgNotifyListener for persistent connection (for non-serverless deployments)
+  - Included test script to verify trigger functionality
+  ```
   ```sql
   -- Create notification function
   CREATE OR REPLACE FUNCTION notify_embedding_complete()
