@@ -251,7 +251,7 @@
   - 10,000 files × 300 bytes = 3MB (vs 50GB)
   - Test: Check Chrome DevTools Memory profiler, no File objects retained
 
-- [ ] **Integrate react-window with dynamic row heights** (`components/upload/file-list-virtual.tsx`)
+- [x] **Integrate react-window with dynamic row heights** (`components/upload/file-list-virtual.tsx`)
   ```typescript
   import { VariableSizeList } from 'react-window';
 
