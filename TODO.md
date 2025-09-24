@@ -298,7 +298,7 @@
 ### Problem: Polling creates O(n) requests
 ### Solution: Single WebSocket with pub/sub
 
-- [ ] **Create WebSocket manager with auto-reconnect** (`lib/websocket-manager.ts`)
+- [x] **Create WebSocket manager with auto-reconnect** (`lib/websocket-manager.ts`)
   ```typescript
   class WebSocketManager {
     private ws: WebSocket | null = null;
