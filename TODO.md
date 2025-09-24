@@ -103,7 +103,7 @@
 ### Problem: 10,000 files × 5MB = 50GB in browser memory = crash
 ### Solution: Process files as streams, never hold more than 100MB in memory
 
-- [~] **Implement `FileStreamProcessor` for chunked reading** (`lib/file-stream-processor.ts`)
+- [x] **Implement `FileStreamProcessor` for chunked reading** (`lib/file-stream-processor.ts`)
   ```typescript
   class FileStreamProcessor {
     private readonly CHUNK_SIZE = 5 * 1024 * 1024; // 5MB chunks
