@@ -8,7 +8,7 @@
 **Impact**: 54 files = 36 requests/second = browser crash
 **Target**: 10,000 files = 1-2 requests/second total
 
-- [~] **Replace 54 individual `useEmbeddingStatus` hooks with single centralized manager** (`hooks/use-embedding-status-manager.ts`)
+- [x] **Replace 54 individual `useEmbeddingStatus` hooks with single centralized manager** (`hooks/use-embedding-status-manager.ts`)
   ```typescript
   // CURRENT: Each file creates its own hook = O(n) connections
   // NEW: Single manager, event-driven updates = O(1) connections
@@ -26,7 +26,7 @@
   - Test: Monitor Network tab, should see max 1 request every 2s regardless of file count
   - Success metric: 100 files = 2 requests total (not 200)
 
-- [ ] **Create React Context for embedding status distribution** (`contexts/embedding-status-context.tsx`)
+- [~] **Create React Context for embedding status distribution** (`contexts/embedding-status-context.tsx`)
   ```typescript
   const EmbeddingStatusContext = createContext<{
     subscribe: (assetId: string, callback: StatusCallback) => () => void;
