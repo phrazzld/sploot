@@ -6,6 +6,8 @@
  * We use 4, leaving 2 for user-initiated actions
  */
 
+import { getGlobalCircuitBreaker } from './circuit-breaker';
+
 interface QueuedRequest {
   id: string;
   execute: () => Promise<Response>;
@@ -69,10 +71,12 @@ class ConnectionPool {
       priority?: 'high' | 'normal' | 'low';
       timeout?: number;
       signal?: AbortSignal;
+      bypassCircuitBreaker?: boolean;
     }
   ): Promise<T> {
     const requestId = `req-${++this.requestCounter}`;
     const startTime = Date.now();
+    const circuitBreaker = getGlobalCircuitBreaker();
 
     // Check if we're at capacity
     if (this.inFlight.size >= this.MAX_CONCURRENT) {
@@ -124,8 +128,13 @@ class ConnectionPool {
         setTimeout(() => reject(new Error(`Request timeout after ${timeoutMs}ms`)), timeoutMs);
       });
 
+      // Execute with circuit breaker protection
+      const executeWithBreaker = options?.bypassCircuitBreaker
+        ? fn()
+        : circuitBreaker.execute(fn);
+
       // Execute with timeout
-      const responsePromise = fn();
+      const responsePromise = executeWithBreaker;
       this.inFlight.set(requestId, responsePromise as Promise<Response>);
 
       const result = await Promise.race([responsePromise, timeoutPromise]) as T;
@@ -135,6 +144,15 @@ class ConnectionPool {
 
     } catch (error) {
       this.totalErrors++;
+
+      // Check for resource exhaustion errors
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes('ERR_INSUFFICIENT_RESOURCES') ||
+          errorMessage.includes('ERR_NETWORK_CHANGED')) {
+        console.error('[ConnectionPool] Resource exhaustion detected - circuit breaker will open');
+        // Circuit breaker will handle this automatically
+      }
+
       throw error;
 
     } finally {
