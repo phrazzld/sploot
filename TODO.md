@@ -95,7 +95,7 @@
 
 ### Error Recovery
 
-- [ ] **Implement automatic retry queue for failures** (`components/upload/upload-zone.tsx:390-416`)
+- [x] **Implement automatic retry queue for failures** (`components/upload/upload-zone.tsx:390-416`)
   - Add: `const retryQueue: UploadFile[] = [];`
   - On failure, add to retry queue with exponential backoff
   - After main batch completes, process retry queue

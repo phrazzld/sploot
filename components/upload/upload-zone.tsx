@@ -30,6 +30,7 @@ interface UploadFile {
   needsEmbedding?: boolean;
   embeddingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
   embeddingError?: string;
+  retryCount?: number;
 }
 
 // Component to handle inline embedding status display
@@ -666,6 +667,7 @@ export function UploadZone({
     // Create chunks for parallel processing with concurrency limit
     const uploadQueue = [...uploadFiles];
     const activeUploads = new Set<Promise<void>>();
+    const retryQueue: UploadFile[] = [];
 
     while (uploadQueue.length > 0 || activeUploads.size > 0) {
       // Adaptive concurrency: adjust based on failure rate
@@ -693,8 +695,19 @@ export function UploadZone({
           uploadStatsRef.current.successful++;
           activeUploads.delete(uploadPromise);
         }).catch((error) => {
-          uploadStatsRef.current.failed++;
-          console.error(`Upload failed for file ${file.file.name}:`, error);
+          // Track retry count
+          const retryCount = (file.retryCount || 0);
+
+          if (retryCount < 3) {
+            // Add to retry queue if under max retries
+            const fileWithRetryCount = { ...file, retryCount: retryCount + 1 };
+            retryQueue.push(fileWithRetryCount);
+            console.log(`[Upload] File ${file.file.name} added to retry queue (attempt ${retryCount + 1}/3)`);
+          } else {
+            // Max retries reached, mark as permanently failed
+            uploadStatsRef.current.failed++;
+            console.error(`[Upload] File ${file.file.name} failed after 3 retries:`, error);
+          }
           activeUploads.delete(uploadPromise);
         });
         activeUploads.add(uploadPromise);
@@ -703,6 +716,52 @@ export function UploadZone({
       // Wait for at least one upload to complete before continuing
       if (activeUploads.size > 0) {
         await Promise.race(activeUploads);
+      }
+    }
+
+    // Process retry queue with exponential backoff
+    if (retryQueue.length > 0) {
+      console.log(`[Upload] Processing retry queue with ${retryQueue.length} files`);
+      await processRetryQueue(retryQueue);
+    }
+  };
+
+  // Process retry queue with exponential backoff
+  const processRetryQueue = async (retryFiles: UploadFile[]) => {
+    const backoffDelays = [1000, 3000, 9000]; // 1s, 3s, 9s
+
+    for (const file of retryFiles) {
+      const retryCount = file.retryCount || 1;
+      const delay = backoffDelays[retryCount - 1] || 9000;
+
+      console.log(`[Upload] Retrying ${file.file.name} after ${delay}ms delay (attempt ${retryCount}/3)`);
+
+      // Wait for backoff delay
+      await new Promise(resolve => setTimeout(resolve, delay));
+
+      // Update file status to indicate retry
+      setFiles((prev) =>
+        prev.map((f) =>
+          f.id === file.id
+            ? { ...f, status: 'pending' as const, error: `Retrying (attempt ${retryCount}/3)...` }
+            : f
+        )
+      );
+
+      try {
+        await uploadFileToServer(file);
+        uploadStatsRef.current.successful++;
+        console.log(`[Upload] Retry successful for ${file.file.name}`);
+      } catch (error) {
+        if (retryCount < 3) {
+          // Still have retries left, recurse with incremented count
+          const nextRetryFile = { ...file, retryCount: retryCount + 1 };
+          await processRetryQueue([nextRetryFile]);
+        } else {
+          // Max retries reached
+          uploadStatsRef.current.failed++;
+          console.error(`[Upload] File ${file.file.name} failed permanently after 3 retries:`, error);
+        }
       }
     }
   };
