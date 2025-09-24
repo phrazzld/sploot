@@ -67,7 +67,7 @@
   - Debounce progress updates: Only update every 10% or 500ms
   - Test: React DevTools Profiler should show <100 renders for 68-file upload (not 1000+)
 
-- [ ] **Add virtual scrolling for file list display** (`components/upload/upload-zone.tsx:830-900`)
+- [x] **Add virtual scrolling for file list display** (`components/upload/upload-zone.tsx:830-900`)
   - When `files.length > 20`, use virtual scrolling
   - Import: `import { FixedSizeList } from 'react-window';`
   - Render only visible items in viewport

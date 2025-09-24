@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, DragEvent, ClipboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
@@ -141,6 +142,162 @@ function EmbeddingStatusIndicator({
     default:
       return <span className="text-[#B6FF6E] text-sm">✓</span>;
   }
+}
+
+// Virtualized file list component for performance with large batches
+function VirtualizedFileList({
+  files,
+  setFiles,
+  formatFileSize,
+  router,
+  retryUpload,
+  removeFile
+}: {
+  files: UploadFile[];
+  setFiles: React.Dispatch<React.SetStateAction<UploadFile[]>>;
+  formatFileSize: (bytes: number) => string;
+  router: any; // NextJS router instance
+  retryUpload: (file: UploadFile) => void;
+  removeFile: (id: string) => void;
+}) {
+  const parentRef = useRef<HTMLDivElement>(null);
+
+  const virtualizer = useVirtualizer({
+    count: files.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => 64, // Fixed height of 64px per file item as specified
+    overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+
+  return (
+    <div
+      ref={parentRef}
+      className="h-[400px] overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-[#2A2F37] scrollbar-track-[#14171A]"
+      style={{
+        contain: 'strict',
+      }}
+    >
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualItems.map((virtualItem) => {
+          const file = files[virtualItem.index];
+          return (
+            <div
+              key={virtualItem.key}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: `${virtualItem.size}px`,
+                transform: `translateY(${virtualItem.start}px)`,
+              }}
+            >
+              <div className="bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37] h-[60px] flex items-center">
+                <div className="flex items-center gap-3 w-full">
+                  {/* File icon/preview */}
+                  <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
+                    {file.blobUrl ? (
+                      <img
+                        src={file.blobUrl}
+                        alt={file.file.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl">🖼️</span>
+                    )}
+                  </div>
+
+                  {/* File info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[#E6E8EB] text-sm font-medium truncate">
+                      {file.file.name}
+                    </p>
+                    <p className="text-[#B3B7BE] text-xs">
+                      {formatFileSize(file.file.size)}
+                    </p>
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {file.status === 'uploading' && (
+                      <>
+                        <div className="w-24 h-1 bg-[#2A2F37] rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-[#7C5CFF] transition-all duration-300"
+                            style={{ width: `${file.progress}%` }}
+                          />
+                        </div>
+                        <span className="text-[#7C5CFF] text-xs">{file.progress}%</span>
+                      </>
+                    )}
+
+                    {file.status === 'queued' && (
+                      <span className="text-[#B3B7BE] text-xs">Queued</span>
+                    )}
+
+                    {file.status === 'success' && (
+                      <EmbeddingStatusIndicator
+                        file={file}
+                        onStatusChange={(status, error) => {
+                          setFiles(prev => prev.map(f =>
+                            f.id === file.id
+                              ? { ...f, embeddingStatus: status, embeddingError: error }
+                              : f
+                          ));
+                        }}
+                      />
+                    )}
+
+                    {file.status === 'duplicate' && (
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-[#FFB020]">already exists</span>
+                        {file.needsEmbedding ? (
+                          <span className="text-[#7C5CFF]">• indexing...</span>
+                        ) : (
+                          <button
+                            onClick={() => {
+                              if (file.assetId) {
+                                router.push(`/app?highlight=${file.assetId}`);
+                              }
+                            }}
+                            className="text-[#7C5CFF] hover:text-[#9B7FFF] font-medium underline"
+                          >
+                            view
+                          </button>
+                        )}
+                      </div>
+                    )}
+
+                    {file.status === 'error' && file.errorDetails && (
+                      <UploadErrorDisplay
+                        error={file.errorDetails}
+                        fileId={file.id}
+                        fileName={file.file.name}
+                        onRetry={() => retryUpload(file)}
+                        onDismiss={() => removeFile(file.id)}
+                      />
+                    )}
+
+                    {file.status === 'pending' && (
+                      <span className="text-[#B3B7BE] text-xs">Waiting...</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 interface UploadZoneProps {
@@ -1160,8 +1317,19 @@ export function UploadZone({
             </div>
           </div>
 
-          <div className="space-y-2">
-            {files.map((file) => (
+          {/* File list - use virtual scrolling when > 20 files */}
+          {files.length > 20 ? (
+            <VirtualizedFileList
+              files={files}
+              setFiles={setFiles}
+              formatFileSize={formatFileSize}
+              router={router}
+              retryUpload={retryUpload}
+              removeFile={removeFile}
+            />
+          ) : (
+            <div className="space-y-2">
+              {files.map((file) => (
               <div
                 key={file.id}
                 className="bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]"
@@ -1277,8 +1445,9 @@ export function UploadZone({
                   <p className="text-[#FF4D4D] text-xs mt-2">{file.error}</p>
                 )}
               </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
           {hasSuccessfulUploads && (
             <div className="flex flex-col gap-3 rounded-xl border border-[#2A2F37] bg-[#14171A] p-4 sm:flex-row sm:items-center sm:justify-between">
