@@ -9,6 +9,9 @@ export enum UploadErrorType {
   STORAGE_FAILED = 'storage_failed',
   DATABASE_FAILED = 'database_failed',
   NETWORK_ERROR = 'network_error',
+  TIMEOUT = 'timeout',
+  RATE_LIMITED = 'rate_limited',
+  SERVER_ERROR = 'server_error',
   AUTH_REQUIRED = 'auth_required',
   QUOTA_EXCEEDED = 'quota_exceeded',
   PROCESSING_FAILED = 'processing_failed',
@@ -91,6 +94,48 @@ export function getUploadErrorDetails(
       type: UploadErrorType.DATABASE_FAILED,
       message: errorMessage,
       userMessage: 'Failed to save image details. Please try again',
+      action: {
+        label: 'Retry upload',
+        type: 'retry',
+      },
+      retryable: true,
+    };
+  }
+
+  // Check for timeout errors
+  if (lowerMessage.includes('timeout')) {
+    return {
+      type: UploadErrorType.TIMEOUT,
+      message: errorMessage,
+      userMessage: 'Upload timed out - file too large or slow connection',
+      action: {
+        label: 'Retry upload',
+        type: 'retry',
+      },
+      retryable: true,
+    };
+  }
+
+  // Check for rate limiting
+  if (statusCode === 429 || lowerMessage.includes('rate limit') || lowerMessage.includes('too many')) {
+    return {
+      type: UploadErrorType.RATE_LIMITED,
+      message: errorMessage,
+      userMessage: 'Too many uploads. Please wait a moment and try again',
+      action: {
+        label: 'Retry upload',
+        type: 'retry',
+      },
+      retryable: true,
+    };
+  }
+
+  // Check for server errors
+  if ((statusCode && statusCode >= 500) || lowerMessage.includes('server error') || lowerMessage.includes('internal error')) {
+    return {
+      type: UploadErrorType.SERVER_ERROR,
+      message: errorMessage,
+      userMessage: 'Server error occurred. Please try again later',
       action: {
         label: 'Retry upload',
         type: 'retry',

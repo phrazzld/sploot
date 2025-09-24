@@ -109,7 +109,7 @@
   - Display: "{failedFiles.length} failed • [Retry All]"
   - Test: Fail 30 uploads, click retry, all should re-attempt
 
-- [ ] **Show detailed failure reasons per file** (`components/upload/upload-zone.tsx:850-870`)
+- [x] **Show detailed failure reasons per file** (`components/upload/upload-zone.tsx:850-870`)
   - Parse error responses for specific failure reasons:
     - "File too large" (>10MB)
     - "Invalid file type" (not image)

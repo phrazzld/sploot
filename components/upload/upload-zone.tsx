@@ -835,12 +835,19 @@ export function UploadZone({
               reject(new Error('Invalid response from server'));
             }
           } else {
+            // Create error with status code included
+            let errorMessage: string;
             try {
               const error = JSON.parse(xhr.responseText);
-              reject(new Error(error.error || `Upload failed with status ${xhr.status}`));
+              errorMessage = error.error || `Upload failed with status ${xhr.status}`;
             } catch {
-              reject(new Error(`Upload failed with status ${xhr.status}`));
+              errorMessage = `Upload failed with status ${xhr.status}`;
             }
+
+            // Include status code in error for better error handling
+            const uploadError = new Error(errorMessage);
+            (uploadError as any).statusCode = xhr.status;
+            reject(uploadError);
           }
         });
 
@@ -938,11 +945,16 @@ export function UploadZone({
     } catch (error) {
       console.error('Upload error:', error);
 
-      // Parse error for better messaging
+      // Parse error for better messaging with status code
+      const statusCode = (error as any)?.statusCode ||
+        (error instanceof Error && error.message.includes('401') ? 401 :
+         error instanceof Error && error.message.includes('429') ? 429 :
+         error instanceof Error && error.message.includes('500') ? 500 :
+         error instanceof Error && error.message.includes('503') ? 503 : undefined);
+
       const errorDetails = getUploadErrorDetails(
         error instanceof Error ? error : new Error('Upload failed'),
-        error instanceof Error && error.message.includes('401') ? 401 :
-        error instanceof Error && error.message.includes('503') ? 503 : undefined
+        statusCode
       );
 
       setFiles((prev) => {
@@ -1133,6 +1145,31 @@ export function UploadZone({
     const failed = files.filter(f => f.status === 'error').length;
 
     return { completed, uploading, pending, failed, total: files.length };
+  };
+
+  // Get errors grouped by type
+  const getGroupedErrors = () => {
+    const failedFiles = files.filter(f => f.status === 'error' && f.errorDetails);
+    const groups = new Map<string, { type: string; message: string; count: number; files: UploadFile[] }>();
+
+    failedFiles.forEach(file => {
+      if (file.errorDetails) {
+        const key = file.errorDetails.type;
+        if (!groups.has(key)) {
+          groups.set(key, {
+            type: file.errorDetails.type,
+            message: file.errorDetails.userMessage,
+            count: 0,
+            files: []
+          });
+        }
+        const group = groups.get(key)!;
+        group.count++;
+        group.files.push(file);
+      }
+    });
+
+    return Array.from(groups.values()).sort((a, b) => b.count - a.count);
   };
 
   // Cancel remaining uploads
@@ -1420,6 +1457,22 @@ export function UploadZone({
                 <p className="text-[#B3B7BE] text-xs">failed</p>
               </div>
             </div>
+
+            {/* Error summary by type - show when errors exist */}
+            {getUploadStats().failed > 0 && (
+              <div className="mt-3 pt-3 border-t border-[#2A2F37]">
+                <p className="text-[#B3B7BE] text-xs font-medium mb-2">Error Details:</p>
+                <div className="space-y-1">
+                  {getGroupedErrors().map((group) => (
+                    <div key={group.type} className="flex items-center justify-between text-xs">
+                      <span className="text-[#FF4D4D]">
+                        {group.count} {group.count === 1 ? 'file' : 'files'}: {group.message}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* File list - use virtual scrolling when > 20 files */}
