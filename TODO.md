@@ -75,7 +75,7 @@
   - Test: Open Network tab, filter by domain, never see >4 concurrent
   - Metric: Zero ERR_INSUFFICIENT_RESOURCES with 1000 files
 
-- [~] **Add circuit breaker for connection errors** (`lib/circuit-breaker.ts`)
+- [x] **Add circuit breaker for connection errors** (`lib/circuit-breaker.ts`)
   ```typescript
   class CircuitBreaker {
     private failures = 0;
