@@ -1,5 +1,7 @@
 'use client';
 
+import { pooledFetch } from '@/lib/connection-pool';
+
 /**
  * Centralized manager for embedding status checks.
  * Replaces individual polling with batched requests to prevent connection exhaustion.
@@ -122,12 +124,13 @@ class EmbeddingStatusManager {
     });
 
     try {
-      const response = await fetch(`/api/assets/${assetId}/generate-embedding`, {
+      const response = await pooledFetch(`/api/assets/${assetId}/generate-embedding`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-      });
+        priority: 'high',
+      } as RequestInit & { priority: 'high' });
 
       if (!response.ok) {
         throw new Error(`Failed to generate embedding: ${response.status}`);
@@ -202,13 +205,14 @@ class EmbeddingStatusManager {
       const results = await Promise.all(
         chunks.map(async (chunk) => {
           try {
-            const response = await fetch('/api/assets/batch/embedding-status', {
+            const response = await pooledFetch('/api/assets/batch/embedding-status', {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({ assetIds: chunk }),
-            });
+              priority: 'normal',
+            } as RequestInit & { priority: 'normal' });
 
             if (!response.ok) {
               console.error(`Batch status check failed: ${response.status}`);
@@ -308,12 +312,13 @@ class EmbeddingStatusManager {
       this.retryCounts.set(assetId, retryCount + 1);
 
       try {
-        const response = await fetch(`/api/assets/${assetId}/generate-embedding`, {
+        const response = await pooledFetch(`/api/assets/${assetId}/generate-embedding`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-        });
+          priority: 'low',
+        } as RequestInit & { priority: 'low' });
 
         if (!response.ok) {
           throw new Error(`Failed to generate embedding: ${response.status}`);

@@ -4,6 +4,7 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth/client";
 import { ToastContainer } from "@/components/ui/toast";
 import { EmbeddingStatusProvider } from "@/contexts/embedding-status-context";
+import { ConnectionPoolMonitor } from "@/components/debug/connection-pool-monitor";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -118,6 +119,7 @@ export default function RootLayout({
           >
             {children}
             <ToastContainer />
+            <ConnectionPoolMonitor />
           </body>
         </html>
       </EmbeddingStatusProvider>
