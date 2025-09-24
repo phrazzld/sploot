@@ -39,7 +39,7 @@
   - Automatic cleanup on unmount prevents memory leaks
   - Test: React DevTools should show single context provider, not 54 individual hooks
 
-- [~] **Refactor `EmbeddingStatusIndicator` to use context subscription** (`components/upload/upload-zone.tsx:37-120`)
+- [x] **Refactor `EmbeddingStatusIndicator` to use context subscription** (`components/upload/upload-zone.tsx:37-120`)
   ```typescript
   // REMOVE: const embeddingStatus = useEmbeddingStatus({ assetId, enabled, ... });
   // ADD: const { subscribe, getStatus } = useContext(EmbeddingStatusContext);
