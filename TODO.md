@@ -196,7 +196,7 @@
 ### Problem: 10,000 DOM nodes = 2GB memory + 10s render time
 ### Solution: Virtual window with component pooling
 
-- [ ] **Implement component pool for reuse** (`components/upload/virtual-file-list.tsx`)
+- [~] **Implement component pool for reuse** (`components/upload/virtual-file-list.tsx`)
   ```typescript
   class ComponentPool<T> {
     private pool: T[] = [];
