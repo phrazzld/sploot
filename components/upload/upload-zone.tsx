@@ -793,8 +793,13 @@ export function UploadZone({
           reject(new Error('Upload cancelled'));
         });
 
+        xhr.addEventListener('timeout', () => {
+          reject(new Error('Upload timeout - file too large or slow connection'));
+        });
+
         // Upload without blocking on embedding generation for faster response
         xhr.open('POST', '/api/upload');
+        xhr.timeout = 30000; // 30 second timeout per file
         xhr.send(formData);
       });
 

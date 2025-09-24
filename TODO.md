@@ -83,7 +83,7 @@
   - May need to configure in `next.config.ts` instead
   - Test: Upload single 20MB image should succeed
 
-- [ ] **Add request timeout handling** (`components/upload/upload-zone.tsx:484-486`)
+- [x] **Add request timeout handling** (`components/upload/upload-zone.tsx:484-486`)
   - Add timeout to XHR: `xhr.timeout = 30000;` // 30 second timeout per file
   - Add timeout handler:
     ```typescript
