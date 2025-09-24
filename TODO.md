@@ -151,7 +151,7 @@
   - Assert: <2min for 100 images, <500MB memory peak
   - Assert: Failure rate <5%
 
-- [ ] **Add memory leak detection test** (`__tests__/performance/memory-leak.test.ts`)
+- [x] **Add memory leak detection test** (`__tests__/performance/memory-leak.test.ts`)
   - Upload 50 files, complete, measure heap
   - Clear file list, force GC
   - Heap should return to baseline ±10MB
