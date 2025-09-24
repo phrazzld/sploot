@@ -148,7 +148,7 @@
   - Test: Upload 1000 × 10MB files, monitor Chrome Task Manager, memory should stay <500MB
   - Metric: O(1) memory usage regardless of total file size
 
-- [~] **Replace array-based file handling with generator pattern** (`components/upload/upload-zone.tsx:524-627`)
+- [x] **Replace array-based file handling with generator pattern** (`components/upload/upload-zone.tsx:524-627`)
   ```typescript
   // CURRENT: const filesArray = Array.from(fileList); // Holds all files in memory
   // NEW:
