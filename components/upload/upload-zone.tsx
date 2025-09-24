@@ -16,6 +16,7 @@ import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance'
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
 import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
+import { FileStreamProcessor } from '@/lib/file-stream-processor';
 
 interface UploadFile {
   id: string;
@@ -524,80 +525,130 @@ export function UploadZone({
     }
   }, [isOffline, supportsBackgroundSync, addToBackgroundSync]);
 
-  // Process files for upload with regular queue
+  // Process files for upload with streaming generator pattern
   const processFilesWithQueue = useCallback(async (fileList: FileList | File[]) => {
     // Show preparing state immediately
-    const filesArray = Array.from(fileList);
+    const fileCount = fileList instanceof FileList ? fileList.length : fileList.length;
     setIsPreparing(true);
-    setPreparingFileCount(filesArray.length);
-    const totalSize = filesArray.reduce((acc, file) => acc + file.size, 0);
+    setPreparingFileCount(fileCount);
+
+    // Estimate total size without converting to array
+    let totalSize = 0;
+    for (let i = 0; i < fileCount; i++) {
+      const file = fileList instanceof FileList ? fileList[i] : fileList[i];
+      totalSize += file.size;
+    }
     setPreparingTotalSize(totalSize);
 
     const tracker = getGlobalPerformanceTracker();
     tracker.start(PERF_OPERATIONS.CLIENT_FILE_SELECT);
     const newFiles: UploadFile[] = [];
+    const uploadQueueManager = getUploadQueueManager();
 
-    // Split files into chunks for processing
-    const chunks: File[][] = [];
-    for (let i = 0; i < filesArray.length; i += FILE_PROCESSING_CHUNK_SIZE) {
-      chunks.push(filesArray.slice(i, i + FILE_PROCESSING_CHUNK_SIZE));
+    // Create FileStreamProcessor for memory-efficient processing
+    const processor = new FileStreamProcessor({
+      chunkSize: 5 * 1024 * 1024, // 5MB chunks
+      maxMemory: 100 * 1024 * 1024, // 100MB max
+      computeChecksum: false, // Skip checksum for now, just process metadata
+      onProgress: (fileName, progress) => {
+        // Update progress for individual file if needed
+        console.log(`Processing ${fileName}: ${Math.round(progress)}%`);
+      },
+      onError: (fileName, error) => {
+        console.error(`Error processing ${fileName}:`, error);
+      }
+    });
+
+    // Convert File[] to FileList-like structure if needed
+    let fileListToProcess: FileList;
+    if (fileList instanceof FileList) {
+      fileListToProcess = fileList;
+    } else {
+      // Create a FileList-like object from array
+      const dataTransfer = new DataTransfer();
+      for (const file of fileList) {
+        dataTransfer.items.add(file);
+      }
+      fileListToProcess = dataTransfer.files;
     }
 
-    // Process each chunk with a small delay to allow UI to breathe
-    for (const chunk of chunks) {
-      for (const file of chunk) {
-        const error = validateFile(file);
+    // Process files one at a time using async generator
+    let processedCount = 0;
+    for await (const processed of processor.processFiles(fileListToProcess)) {
+      processedCount++;
 
-        // If offline, queue the file instead of uploading
-        if (isOffline && !error) {
-          const queueItem = addToQueue(file);
-          newFiles.push({
-            id: queueItem.id,
-            file,
-            status: 'queued',
-            progress: 0,
-            error: undefined,
-          });
+      // Recreate file from processed chunks if needed
+      const file = FileStreamProcessor.createBlobFromChunks(
+        processed.chunks,
+        'application/octet-stream'
+      ) as File;
 
-          // Also persist to IndexedDB for recovery
+      // Get the original file for metadata
+      const originalFile = fileListToProcess[processedCount - 1];
+      const error = validateFile(originalFile);
+
+      // If offline, queue the file instead of uploading
+      if (isOffline && !error) {
+        const queueItem = addToQueue(originalFile);
+        newFiles.push({
+          id: queueItem.id,
+          file: originalFile,
+          status: 'queued',
+          progress: 0,
+          error: undefined,
+        });
+
+        // Also persist to IndexedDB for recovery
+        try {
+          await uploadQueueManager.addUpload(originalFile);
+        } catch (err) {
+          console.error('[UploadZone] Failed to persist upload:', err);
+        }
+      } else {
+        const uploadFile: UploadFile = {
+          id: `${Date.now()}-${Math.random()}`,
+          file: originalFile,
+          status: error ? 'error' : 'pending',
+          progress: 0,
+          error: error || undefined,
+        };
+        newFiles.push(uploadFile);
+
+        // Persist pending uploads to IndexedDB
+        if (!error && uploadFile.status === 'pending') {
           try {
-            await uploadQueueManager.addUpload(file);
+            const persistedId = await uploadQueueManager.addUpload(originalFile);
+            // Store the persisted ID for later removal
+            (uploadFile as any).persistedId = persistedId;
           } catch (err) {
             console.error('[UploadZone] Failed to persist upload:', err);
-          }
-        } else {
-          const uploadFile: UploadFile = {
-            id: `${Date.now()}-${Math.random()}`,
-            file,
-            status: error ? 'error' : 'pending',
-            progress: 0,
-            error: error || undefined,
-          };
-          newFiles.push(uploadFile);
-
-          // Persist pending uploads to IndexedDB
-          if (!error && uploadFile.status === 'pending') {
-            try {
-              const persistedId = await uploadQueueManager.addUpload(file);
-              // Store the persisted ID for later removal
-              (uploadFile as any).persistedId = persistedId;
-            } catch (err) {
-              console.error('[UploadZone] Failed to persist upload:', err);
-            }
           }
         }
       }
 
-      // Allow UI to breathe between chunks
-      if (chunks.indexOf(chunk) < chunks.length - 1) {
+      // Release memory for processed chunks
+      processor.releaseMemory(processed.size);
+
+      // Update files state in batches to avoid too many re-renders
+      if (processedCount % 10 === 0 || processedCount === fileCount) {
+        setFiles((prev) => [...prev, ...newFiles.slice(prev.length)]);
+
+        // Allow UI to breathe
         await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
 
-    setFiles((prev) => [...prev, ...newFiles]);
-
-    // Initialize upload stats for immediate feedback
+    // Final update with any remaining files
     if (newFiles.length > 0) {
+      setFiles((prev) => {
+        const existingCount = prev.length;
+        if (existingCount < newFiles.length) {
+          return [...prev, ...newFiles.slice(existingCount)];
+        }
+        return prev;
+      });
+
+      // Initialize upload stats for immediate feedback
       const errorCount = newFiles.filter(f => f.status === 'error').length;
       setUploadStats({
         totalFiles: newFiles.length,
@@ -616,6 +667,15 @@ export function UploadZone({
     setIsPreparing(false);
     setPreparingFileCount(0);
     setPreparingTotalSize(0);
+
+    // Get final processor stats for debugging
+    const stats = processor.getStats();
+    console.log('[FileStreamProcessor] Stats:', {
+      filesProcessed: stats.filesProcessed,
+      bytesProcessed: stats.bytesProcessed,
+      peakMemoryUsage: Math.round(stats.peakMemoryUsage / 1024 / 1024) + 'MB',
+      errors: stats.errors
+    });
 
     // Start uploading valid files if online with parallel batching
     if (!isOffline) {
