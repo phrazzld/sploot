@@ -60,7 +60,7 @@
 
 ### Batch State Updates
 
-- [ ] **Batch React state updates to reduce re-renders** (`components/upload/upload-zone.tsx:423-427`)
+- [x] **Batch React state updates to reduce re-renders** (`components/upload/upload-zone.tsx:423-427`)
   - Import: `import { unstable_batchedUpdates } from 'react-dom';`
   - Wrap state updates in `unstable_batchedUpdates(() => { ... })`
   - Particularly in `uploadFileToServer` progress handler (lines 444-454)

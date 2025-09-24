@@ -194,6 +194,11 @@ export function UploadZone({
   const router = useRouter();
   const uploadQueueManager = getUploadQueueManager();
 
+  // Progress throttling to reduce re-renders
+  const progressThrottleMap = useRef<Map<string, { lastUpdate: number; lastPercent: number }>>(new Map());
+  const PROGRESS_UPDATE_THRESHOLD = 10; // Only update if progress changed by 10%
+  const PROGRESS_UPDATE_INTERVAL = 500; // Or if 500ms have passed
+
   // Initialize IndexedDB on mount
   useEffect(() => {
     uploadQueueManager.init().catch((error) => {
@@ -574,13 +579,34 @@ export function UploadZone({
         xhr.upload.addEventListener('progress', (event) => {
           if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
-            setFiles((prev) =>
-              prev.map((f) =>
-                f.id === uploadFile.id
-                  ? { ...f, progress: Math.min(90, percentComplete) }
-                  : f
-              )
-            );
+
+            // Throttle progress updates to reduce re-renders
+            const throttleInfo = progressThrottleMap.current.get(uploadFile.id) || {
+              lastUpdate: 0,
+              lastPercent: 0
+            };
+            const now = Date.now();
+            const percentDiff = Math.abs(percentComplete - throttleInfo.lastPercent);
+            const timeDiff = now - throttleInfo.lastUpdate;
+
+            // Only update if: progress changed significantly OR enough time passed OR it's complete
+            if (percentDiff >= PROGRESS_UPDATE_THRESHOLD ||
+                timeDiff >= PROGRESS_UPDATE_INTERVAL ||
+                percentComplete >= 90) {
+              setFiles((prev) =>
+                prev.map((f) =>
+                  f.id === uploadFile.id
+                    ? { ...f, progress: Math.min(90, percentComplete) }
+                    : f
+                )
+              );
+
+              // Update throttle map
+              progressThrottleMap.current.set(uploadFile.id, {
+                lastUpdate: now,
+                lastPercent: percentComplete
+              });
+            }
           }
         });
 
@@ -667,6 +693,9 @@ export function UploadZone({
       // Track success for adaptive concurrency
       uploadStatsRef.current.successful++;
 
+      // Clean up progress throttle map entry
+      progressThrottleMap.current.delete(uploadFile.id);
+
       // Log memory cleanup for monitoring during development
       console.log(`[UploadZone] Cleared file blob for ${uploadFile.file.name}, kept metadata only`);
 
@@ -712,6 +741,9 @@ export function UploadZone({
 
       // Track failure for adaptive concurrency
       uploadStatsRef.current.failed++;
+
+      // Clean up progress throttle map entry on error
+      progressThrottleMap.current.delete(uploadFile.id);
 
       // NOTE: We don't clear file reference on failure as it may be needed for retries
 
