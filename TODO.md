@@ -163,7 +163,7 @@
   - Process files lazily as generator yields them
   - Test: Add console.log for memory usage, verify it stays constant
 
-- [~] **Implement streaming upload with TransformStream** (`lib/upload-stream.ts`)
+- [x] **Implement streaming upload with TransformStream** (`lib/upload-stream.ts`)
   ```typescript
   class UploadStream {
     createUploadStream(file: File): ReadableStream {
