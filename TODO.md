@@ -55,7 +55,7 @@
   - Pure presentation layer
   - Test: Component should never make direct API calls
 
-- [~] **Implement connection pooling with hard limit** (`lib/connection-pool.ts`)
+- [x] **Implement connection pooling with hard limit** (`lib/connection-pool.ts`)
   ```typescript
   class ConnectionPool {
     private readonly MAX_CONCURRENT = 4; // Chrome limit is 6, leave 2 for user actions
