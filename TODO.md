@@ -121,7 +121,7 @@
 
 ### Progress Optimization
 
-- [ ] **Throttle progress updates to reduce UI thrashing** (`components/upload/upload-zone.tsx:444-454`)
+- [x] **Throttle progress updates to reduce UI thrashing** (`components/upload/upload-zone.tsx:444-454`)
   - Add: `const progressThrottle = new Map<string, number>();`
   - Only update if change > 5% or 500ms elapsed:
     ```typescript
@@ -132,17 +132,19 @@
     }
     ```
   - Test: Network tab should show smooth upload, UI updates ~20 times per file max
+  - Note: Implemented with 10% threshold in earlier commit
 
-- [ ] **Add aggregate progress bar for entire batch** (`components/upload/upload-progress-header.tsx:35-47`)
+- [x] **Add aggregate progress bar for entire batch** (`components/upload/upload-progress-header.tsx:35-47`)
   - Calculate: `totalBytesUploaded / totalBytesToUpload`
   - Show single progress bar for overall batch progress
   - Below that, show per-file status counts
   - Update every 100ms max using `requestAnimationFrame`
   - Test: 68 files should show smooth 0-100% progress
+  - Note: Implemented using file-based progress calculation instead of bytes
 
 ### Testing
 
-- [ ] **Create test harness for large batch uploads** (`__tests__/e2e/large-batch-upload.spec.ts`)
+- [x] **Create test harness for large batch uploads** (`__tests__/e2e/large-batch-upload.spec.ts`)
   - Generate 100 test images programmatically
   - Test: Can handle 100 simultaneous files
   - Measure: Time to complete, memory usage, failure rate
