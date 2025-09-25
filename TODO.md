@@ -811,7 +811,7 @@
   - Test: Upload 100 files, check report shows accurate metrics
   - Use for debugging: "Why is upload slow?" → Check p95 latency
 
-- [ ] **Create debug overlay for development** (`components/debug/metrics-overlay.tsx`)
+- [~] **Create debug overlay for development** (`components/debug/metrics-overlay.tsx`)
   ```typescript
   const MetricsOverlay = () => {
     const [metrics, setMetrics] = useState<MetricsReport | null>(null);

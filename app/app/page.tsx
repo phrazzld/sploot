@@ -23,25 +23,11 @@ export default function AppPage() {
   const tagIdParam = searchParams.get('tagId');
   const favoritesOnly = searchParams.get('favorite') === 'true';
 
+  const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('viewMode') as 'grid' | 'masonry' | 'list') || 'grid';
-    }
-    return 'grid';
-  });
-  const [sortBy, setSortBy] = useState<'createdAt' | 'favorite' | 'size' | 'filename'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('sortBy') as 'createdAt' | 'favorite' | 'size' | 'filename') || 'createdAt';
-    }
-    return 'createdAt';
-  });
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('sortOrder') as 'asc' | 'desc') || 'desc';
-    }
-    return 'desc';
-  });
+  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid');
+  const [sortBy, setSortBy] = useState<'createdAt' | 'favorite' | 'size' | 'filename'>('createdAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [failedEmbeddings, setFailedEmbeddings] = useState<EmbeddingQueueItem[]>([]);
   const [showRetryModal, setShowRetryModal] = useState(false);
@@ -117,6 +103,24 @@ export default function AppPage() {
     search: runInlineSearch,
     metadata: searchMetadata,
   } = useSearchAssets(libraryQuery, { limit: 50, threshold: 0.2 });
+
+  // Set isClient flag once mounted
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedViewMode = localStorage.getItem('viewMode') as 'grid' | 'masonry' | 'list';
+      const savedSortBy = localStorage.getItem('sortBy') as 'createdAt' | 'favorite' | 'size' | 'filename';
+      const savedSortOrder = localStorage.getItem('sortOrder') as 'asc' | 'desc';
+
+      if (savedViewMode) setViewMode(savedViewMode);
+      if (savedSortBy) setSortBy(savedSortBy);
+      if (savedSortOrder) setSortOrder(savedSortOrder);
+    }
+  }, []); // Only run once on mount
 
   // Save preferences to localStorage
   useEffect(() => {
