@@ -4,6 +4,7 @@ import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { getAuth } from '@/lib/auth/server';
 import { isMockMode } from '@/lib/env';
 import { mockGenerateEmbedding } from '@/lib/mock-store';
+import { broadcastEmbeddingUpdate } from '@/app/api/sse/embedding-updates/route';
 
 // Request deduplication: Track in-flight requests
 const inFlightRequests = new Map<string, Promise<any>>();
@@ -177,6 +178,23 @@ export async function POST(
 
         const avgProcessingTime = Math.round(performanceMetrics.totalProcessingTime / performanceMetrics.successCount);
         console.log(`[perf] Embedding generated successfully for asset ${id} (total: ${Date.now() - startTime}ms, avg: ${avgProcessingTime}ms)`);
+
+        // Broadcast SSE update that embedding is ready
+        try {
+          await broadcastEmbeddingUpdate(
+            userId,
+            asset.id,
+            {
+              status: 'ready',
+              modelName: embedding.modelName,
+              hasEmbedding: true
+            }
+          );
+          console.log(`[SSE] Broadcasted embedding ready for asset ${id}`);
+        } catch (sseError) {
+          // Don't fail the request if SSE broadcast fails
+          console.error('[SSE] Failed to broadcast embedding update:', sseError);
+        }
 
         return {
           success: true,

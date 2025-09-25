@@ -82,8 +82,8 @@ export class FileStreamProcessor {
         this.filesProcessed++;
         this.bytesProcessed += file.size;
 
-        // Explicitly null the reference to help GC
-        (fileList as any)[i] = null;
+        // Note: FileList is immutable and read-only, cannot null references
+        // Browser handles FileList garbage collection automatically
 
       } catch (error) {
         this.errors++;
@@ -92,8 +92,8 @@ export class FileStreamProcessor {
         console.error(`Failed to process file ${file.name}:`, errorObj);
         this.onError?.(file.name, errorObj);
 
-        // Still null the reference even on error
-        (fileList as any)[i] = null;
+        // Note: FileList is immutable and read-only, cannot null references
+        // Browser handles FileList garbage collection automatically
       }
     }
   }

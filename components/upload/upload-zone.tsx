@@ -12,6 +12,8 @@ import { TagInput } from '@/components/tags/tag-input';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { useEmbeddingStatusSubscription } from '@/contexts/embedding-status-context';
+import { useSSEEmbeddingUpdates } from '@/hooks/use-sse-updates';
+import { getSSEClient } from '@/lib/sse-client';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
@@ -54,7 +56,7 @@ function EmbeddingStatusIndicator({
   const [showStatus, setShowStatus] = useState(true);
   const [autoHideTimer, setAutoHideTimer] = useState<NodeJS.Timeout | null>(null);
 
-  // Use centralized embedding status subscription
+  // Use centralized embedding status subscription (polling fallback)
   const embeddingStatus = useEmbeddingStatusSubscription(
     file.assetId,
     {
@@ -82,6 +84,46 @@ function EmbeddingStatusIndicator({
       },
     }
   );
+
+  // Use SSE for real-time updates
+  useSSEEmbeddingUpdates(
+    file.assetId ? [file.assetId] : [],
+    {
+      enabled: !!file.assetId && file.needsEmbedding === true,
+      onUpdate: (update) => {
+        if (update.assetId === file.assetId) {
+          console.log(`[SSE] Received update for asset ${file.assetId}:`, update.status);
+
+          // Map SSE status to component status
+          if (update.status === 'processing') {
+            onStatusChange('processing');
+          } else if (update.status === 'ready' && update.hasEmbedding) {
+            onStatusChange('ready');
+            // Auto-dismiss success after 3s
+            if (autoHideTimer) clearTimeout(autoHideTimer);
+            const timer = setTimeout(() => setShowStatus(false), 3000);
+            setAutoHideTimer(timer);
+          } else if (update.status === 'failed') {
+            onStatusChange('failed', update.error);
+          } else if (update.status === 'pending') {
+            onStatusChange('pending');
+          }
+        }
+      }
+    }
+  );
+
+  // Connect to SSE on mount if needed
+  useEffect(() => {
+    if (file.assetId && file.needsEmbedding) {
+      const client = getSSEClient();
+      // Ensure SSE client is connected for this asset
+      if (client.getState() === 'disconnected') {
+        console.log(`[SSE] Connecting for asset ${file.assetId}`);
+        client.connect([file.assetId]);
+      }
+    }
+  }, [file.assetId, file.needsEmbedding]);
 
   // Clean up timer on unmount
   useEffect(() => {
@@ -430,7 +472,7 @@ export function UploadZone({
     }
   }, [fileMetadata, onUploadComplete]);
 
-  // Update upload stats whenever files change
+  // Update upload stats whenever files change - single source of truth
   useEffect(() => {
     const filesArray = Array.from(fileMetadata.values());
     if (filesArray.length === 0) {
@@ -442,12 +484,23 @@ export function UploadZone({
     const successful = filesArray.filter(f => f.status === 'success' || f.status === 'duplicate').length;
     const failed = filesArray.filter(f => f.status === 'error').length;
     const pending = filesArray.filter(f => f.status === 'pending' || f.status === 'queued').length;
+
+    // Files that are uploaded but still processing embeddings
     const processingEmbeddings = filesArray.filter(f =>
-      f.embeddingStatus === 'pending' || f.embeddingStatus === 'processing'
+      (f.status === 'success' || f.status === 'duplicate') &&
+      f.needsEmbedding &&
+      (f.embeddingStatus === 'pending' || f.embeddingStatus === 'processing')
     ).length;
+
+    // Files that are completely ready (uploaded + embeddings done or not needed)
     const ready = filesArray.filter(f =>
-      f.embeddingStatus === 'ready' || (!f.needsEmbedding && (f.status === 'success' || f.status === 'duplicate'))
+      (f.status === 'success' || f.status === 'duplicate') &&
+      (!f.needsEmbedding || f.embeddingStatus === 'ready')
     ).length;
+
+    // Check if all processing is complete
+    const allComplete = successful + failed === filesArray.length;
+    const allReady = ready + failed === filesArray.length;
 
     setUploadStats({
       totalFiles: filesArray.length,
@@ -457,6 +510,39 @@ export function UploadZone({
       failed,
       estimatedTimeRemaining: pending > 0 || uploading > 0 ? (pending + uploading) * 2000 : 0 // Rough estimate
     });
+
+    // Auto-clear stats and file list 3 seconds after everything is complete
+    if (allReady && filesArray.length > 0) {
+      const clearTimer = setTimeout(() => {
+        // Only clear if still all complete (no new files added)
+        const currentFiles = Array.from(fileMetadata.values());
+        const stillAllReady = currentFiles.every(f =>
+          f.status === 'error' ||
+          ((f.status === 'success' || f.status === 'duplicate') &&
+           (!f.needsEmbedding || f.embeddingStatus === 'ready'))
+        );
+
+        if (stillAllReady && currentFiles.length === filesArray.length) {
+          // Clear the upload stats
+          setUploadStats(null);
+
+          // Show success notification
+          const successCount = currentFiles.filter(f => f.status === 'success' || f.status === 'duplicate').length;
+          if (successCount > 0) {
+            showToast({
+              message: `✓ ${successCount} ${successCount === 1 ? 'file' : 'files'} uploaded successfully`,
+              type: 'success'
+            });
+          }
+
+          // Clear the file list to reset upload zone
+          setFileMetadata(new Map());
+          setFiles([]);
+        }
+      }, 3000); // Clear after 3 seconds
+
+      return () => clearTimeout(clearTimer);
+    }
   }, [fileMetadata]);
 
   // Regular upload queue (localStorage-based)
@@ -608,18 +694,19 @@ export function UploadZone({
 
     // Process files one at a time using async generator
     let processedCount = 0;
-    for await (const processed of processor.processFiles(fileListToProcess)) {
-      processedCount++;
+    try {
+      for await (const processed of processor.processFiles(fileListToProcess)) {
+        processedCount++;
 
-      // Recreate file from processed chunks if needed
-      const file = FileStreamProcessor.createBlobFromChunks(
-        processed.chunks,
-        'application/octet-stream'
-      ) as File;
+        // Recreate file from processed chunks if needed
+        const file = FileStreamProcessor.createBlobFromChunks(
+          processed.chunks,
+          'application/octet-stream'
+        ) as File;
 
-      // Get the original file for metadata
-      const originalFile = fileListToProcess[processedCount - 1];
-      const error = validateFile(originalFile);
+        // Get the original file for metadata
+        const originalFile = fileListToProcess[processedCount - 1];
+        const error = validateFile(originalFile);
 
       // If offline, queue the file instead of uploading
       if (isOffline && !error) {
@@ -671,6 +758,27 @@ export function UploadZone({
         await new Promise(resolve => setTimeout(resolve, 10));
       }
     }
+    } catch (error) {
+      console.error('[UploadZone] Error processing files:', error);
+
+      // Show error to user
+      showToast({
+        message: 'Failed to process files. Please try again.',
+        type: 'error'
+      });
+
+      // Ensure we clear the preparing state on error
+      setIsPreparing(false);
+      setPreparingFileCount(0);
+      setPreparingTotalSize(0);
+
+      // Still try to process any files we did manage to handle
+      if (newFiles.length > 0) {
+        setFiles((prev) => [...prev, ...newFiles]);
+      }
+
+      return; // Exit early on error
+    }
 
     // Final update with any remaining files
     if (newFiles.length > 0) {
@@ -682,16 +790,7 @@ export function UploadZone({
         return prev;
       });
 
-      // Initialize upload stats for immediate feedback
-      const errorCount = newFiles.filter(f => f.status === 'error').length;
-      setUploadStats({
-        totalFiles: newFiles.length,
-        uploaded: 0,
-        processingEmbeddings: 0,
-        ready: 0,
-        failed: errorCount,
-        estimatedTimeRemaining: 0
-      });
+      // Stats will be automatically updated by the effect that watches fileMetadata changes
     }
 
     // End file selection tracking and start upload tracking
@@ -1050,6 +1149,9 @@ export function UploadZone({
         }
       }
 
+      // Stats will be automatically updated by the effect that watches fileMetadata changes
+      // No need to manually update uploadStats here
+
       // Trigger a refresh of the asset list if there's a callback
       if (window.location.pathname === '/app') {
         // Dispatch a custom event that the library page can listen to
@@ -1100,6 +1202,8 @@ export function UploadZone({
 
       // Clean up progress throttle map entry on error
       progressThrottleMap.current.delete(uploadFile.id);
+
+      // Stats will be automatically updated by the effect that watches fileMetadata changes
 
       // NOTE: We don't clear file reference on failure as it may be needed for retries
 

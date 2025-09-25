@@ -86,13 +86,35 @@ export default function AppPage() {
     deleteAsset,
     refresh,
   } = useAssets({
-    initialLimit: 50,
+    initialLimit: 100,
     sortBy: actualSortBy,
     sortOrder,
     autoLoad: true,
     filterFavorites: favoritesOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,
   });
+
+  // Listen for asset upload events and refresh the library
+  useEffect(() => {
+    const handleAssetUploaded = (event: CustomEvent) => {
+      console.log('[Library] Asset uploaded, refreshing...', event.detail);
+
+      // Refresh the asset list
+      refresh();
+
+      // Show a subtle notification that library was refreshed
+      if (event.detail?.filename) {
+        showToast(`${event.detail.filename} added to library`, 'success');
+      }
+    };
+
+    // Listen for the custom event from upload zone
+    window.addEventListener('assetUploaded', handleAssetUploaded as EventListener);
+
+    return () => {
+      window.removeEventListener('assetUploaded', handleAssetUploaded as EventListener);
+    };
+  }, [refresh]);
 
   const {
     assets: searchAssets,
@@ -383,12 +405,11 @@ export default function AppPage() {
   }, [isSearching, filteredSearchAssets, sortedAssets]);
 
   const activeLoading = isSearching ? searchLoading : loading;
-  const activeHasMore = isSearching ? false : hasMore;
+  const activeHasMore = hasMore;
 
   const handleLoadMore = useCallback(() => {
-    if (isSearching) return;
     loadAssets();
-  }, [isSearching, loadAssets]);
+  }, [loadAssets]);
 
   const handleAssetUpdate = useCallback(
     (id: string, updates: Partial<(typeof assets)[number]>) => {
@@ -748,7 +769,7 @@ export default function AppPage() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       />
                     </svg>
-                    summoning results for "{trimmedLibraryQuery}"…
+                    {`summoning results for "${trimmedLibraryQuery}"…`}
                   </div>
                 )}
 
@@ -757,17 +778,17 @@ export default function AppPage() {
                     {searchHitCount > 0 ? (
                       <span className="flex flex-col gap-1">
                         <span>
-                          showing <span className="font-semibold text-[#B6FF6E]">{searchHitCount}</span> matches for “<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>”.
+                          showing <span className="font-semibold text-[#B6FF6E]">{searchHitCount}</span> matches for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
                         </span>
                         {searchMetadata?.thresholdFallback && (
                           <span className="text-xs text-[#FFAA5C]">
-                            pulled a few low-sim homies so your vibes aren't empty.
+                            pulled a few low-sim homies so your vibes aren&apos;t empty.
                           </span>
                         )}
                       </span>
                     ) : (
                       <span>
-                        no matches yet for "<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>". remix the prompt and try again.
+                        no matches yet for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;. remix the prompt and try again.
                       </span>
                     )}
                   </div>
@@ -791,7 +812,7 @@ export default function AppPage() {
                   assets={activeAssets}
                   loading={activeLoading}
                   hasMore={activeHasMore}
-                  onLoadMore={!isSearching ? handleLoadMore : undefined}
+                  onLoadMore={handleLoadMore}
                   onAssetUpdate={handleAssetUpdate}
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
@@ -804,7 +825,7 @@ export default function AppPage() {
                 assets={activeAssets}
                 loading={activeLoading}
                 hasMore={activeHasMore}
-                onLoadMore={!isSearching ? handleLoadMore : undefined}
+                onLoadMore={handleLoadMore}
                 onAssetUpdate={handleAssetUpdate}
                 onAssetDelete={handleAssetDelete}
                 onAssetSelect={setSelectedAsset}
@@ -820,7 +841,7 @@ export default function AppPage() {
                   assets={activeAssets}
                   loading={activeLoading}
                   hasMore={activeHasMore}
-                  onLoadMore={!isSearching ? handleLoadMore : undefined}
+                  onLoadMore={handleLoadMore}
                   onAssetUpdate={handleAssetUpdate}
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}

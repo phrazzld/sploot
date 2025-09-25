@@ -43,10 +43,7 @@ export default function TagPage({
   const router = useRouter();
 
   useEffect(() => {
-    fetchTagAndAssets();
-  }, [params.tagId]);
-
-  const fetchTagAndAssets = async () => {
+    const fetchTagAndAssets = async () => {
     try {
       // Fetch tag details
       const tagResponse = await fetch('/api/tags');
@@ -78,6 +75,9 @@ export default function TagPage({
       setLoading(false);
     }
   };
+
+    fetchTagAndAssets();
+  }, [params.tagId, router]);
 
   const handleDelete = async (assetId: string) => {
     try {

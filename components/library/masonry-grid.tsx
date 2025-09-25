@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import { ImageTile } from './image-tile';
 import { cn } from '@/lib/utils';
 
@@ -28,6 +29,38 @@ export function MasonryGrid({
   className,
   onUploadClick,
 }: MasonryGridProps) {
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  // Infinite scroll using IntersectionObserver
+  useEffect(() => {
+    if (!onLoadMore || !hasMore || loading) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting) {
+          onLoadMore();
+        }
+      },
+      {
+        root: null,
+        rootMargin: '200px',
+        threshold: 0.1,
+      }
+    );
+
+    if (sentinelRef.current) {
+      observer.observe(sentinelRef.current);
+    }
+
+    return () => {
+      if (sentinelRef.current) {
+        observer.unobserve(sentinelRef.current);
+      }
+      observer.disconnect();
+    };
+  }, [hasMore, loading, onLoadMore]);
+
   // Empty state
   if (assets.length === 0 && !loading) {
     return (
@@ -107,7 +140,12 @@ export function MasonryGrid({
         </div>
       )}
 
-      {/* Load more button */}
+      {/* Sentinel element for infinite scroll */}
+      {hasMore && !loading && onLoadMore && (
+        <div ref={sentinelRef} className="h-4" />
+      )}
+
+      {/* Load more button (fallback) */}
       {hasMore && !loading && onLoadMore && (
         <div className="flex justify-center py-8">
           <button

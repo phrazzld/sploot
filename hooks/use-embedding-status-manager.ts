@@ -35,9 +35,9 @@ class EmbeddingStatusManager {
 
   // Configuration
   private readonly BATCH_SIZE = 50; // Max items per request
-  private readonly BATCH_INTERVAL = 2000; // 2 seconds between batches
+  private readonly BATCH_INTERVAL = 5000; // 5 seconds between batches (SSE handles real-time)
   private readonly MAX_RETRIES = 10;
-  private readonly RETRY_DELAY = 5000; // 5 seconds before retry
+  private readonly RETRY_DELAY = 10000; // 10 seconds before retry (less aggressive with SSE)
 
   // Retry tracking
   private retryTimers = new Map<string, NodeJS.Timeout>();
