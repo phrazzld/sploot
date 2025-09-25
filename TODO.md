@@ -16,9 +16,9 @@
 - [x] **Update SearchBar initialQuery prop** - Already passing `libraryQuery` (which equals `localSearchQuery`) to SearchBar component to maintain consistency.
 - [x] **Add URL update on explicit search submission** - In handleInlineSearch, URL update only occurs when `options?.updateUrl === true` (Enter key press).
 
-### Phase 3: Search Preview Dropdown (Option 5 Enhancement)
-- [ ] **Create SearchPreview component** - Build `components/search/search-preview.tsx` that renders a dropdown with top 5 results using absolute positioning, appearing below search bar during typing, similar to Google Instant.
-- [ ] **Add preview state management** - In SearchBar, add `const [showPreview, setShowPreview] = useState(false)` and `const [previewResults, setPreviewResults] = useState<Asset[]>([])` to manage dropdown visibility and content.
+### Phase 3: Search Preview Dropdown (Option 5 Enhancement) 🚧 IN PROGRESS
+- [x] **Create SearchPreview component** - Built `components/search/search-preview.tsx` that renders a dropdown with top 5 results using absolute positioning, appearing below search bar during typing, similar to Google Instant.
+- [x] **Add preview state management** - In SearchBar, added `showPreview`, `previewResults`, `selectedPreviewIndex`, and `previewTotalCount` state variables to manage dropdown visibility and content.
 - [ ] **Implement preview data fetching** - Create `useSearchPreview` hook that calls search API with `limit: 5` parameter, debounced to 300ms (faster than main search) for responsive previews during typing.
 - [ ] **Add click-outside handler** - Implement `useClickOutside` hook that closes preview when user clicks anywhere outside search bar or preview dropdown, maintaining standard UX patterns.
 - [ ] **Style preview dropdown with result tiles** - Create mini version of ImageTile component (40x40px thumbnails) with match percentage, hover states, and keyboard navigation support (arrow keys + Enter).
