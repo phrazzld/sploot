@@ -180,6 +180,9 @@ export async function POST(req: NextRequest) {
           favorite: result.favorite,
           size: result.size,
           createdAt: result.created_at,
+          // Indicate embeddings exist (search results always have embeddings)
+          embedding: { assetId: result.id },
+          embeddingStatus: 'ready' as const,
           similarity: result.distance, // 0-1 score, higher is better
           relevance: Math.round(result.distance * 100), // Percentage for UI
           belowThreshold: appliedThreshold > 0 && result.distance < appliedThreshold,

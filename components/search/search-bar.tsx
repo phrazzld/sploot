@@ -34,7 +34,7 @@ export function SearchBar({
     if (query !== initialQuery) {
       setQuery(initialQuery);
     }
-  }, [initialQuery]); // Intentionally exclude query to prevent loops
+  }, [initialQuery, query]); // Include both to satisfy linter, but guard prevents loops
 
   // Handle search when debounced query changes
   useEffect(() => {
