@@ -102,7 +102,9 @@ export function SearchPreview({
               {results.map((asset, index) => (
                 <div
                   key={asset.id}
-                  ref={(el) => (itemRefs.current[index] = el)}
+                  ref={(el) => {
+                    itemRefs.current[index] = el;
+                  }}
                   className={`
                     flex items-center gap-3 p-3 cursor-pointer
                     transition-all duration-150
@@ -130,11 +132,13 @@ export function SearchPreview({
                     <div className="text-sm text-[#E6E8EB] truncate">
                       {asset.filename}
                     </div>
+                    {/* TODO: Add match percentage when available in API response
                     {asset.matchPercentage && (
                       <div className="text-xs text-[#6A6E78]">
                         {Math.round(asset.matchPercentage * 100)}% match
                       </div>
                     )}
+                    */}
                   </div>
 
                   {/* Arrow indicator for selected */}
