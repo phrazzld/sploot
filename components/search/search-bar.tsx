@@ -8,7 +8,7 @@ interface SearchBarProps {
   placeholder?: string;
   autoFocus?: boolean;
   className?: string;
-  onSearch?: (query: string) => void;
+  onSearch?: (query: string, options?: { updateUrl?: boolean }) => void;
   inline?: boolean;
   initialQuery?: string;
 }
@@ -25,22 +25,26 @@ export function SearchBar({
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
-  // Debounce the search query with 300ms delay
-  const debouncedQuery = useDebounce(query, 300);
+  // Debounce the search query with 600ms delay for stability
+  const debouncedQuery = useDebounce(query, 600);
 
   // Keep local state in sync with parent-controlled initial query
   useEffect(() => {
-    setQuery(initialQuery);
-  }, [initialQuery]);
+    // Only update if actually different to prevent loops
+    if (query !== initialQuery) {
+      setQuery(initialQuery);
+    }
+  }, [initialQuery]); // Intentionally exclude query to prevent loops
 
   // Handle search when debounced query changes
   useEffect(() => {
     const trimmedQuery = debouncedQuery.trim();
 
-    // Always call onSearch if provided, even with empty string
+    // Always call onSearch if provided, but without updating URL during typing
     if (onSearch) {
       setLoading(trimmedQuery.length > 0);
-      onSearch(trimmedQuery);
+      // Call with updateUrl: false to prevent URL changes during typing
+      onSearch(trimmedQuery, { updateUrl: false });
       // Loading state will be cleared when results arrive
       if (trimmedQuery) {
         setTimeout(() => setLoading(false), 500);
@@ -58,7 +62,7 @@ export function SearchBar({
     if (e.key === 'Escape') {
       setQuery('');
       if (onSearch) {
-        onSearch('');
+        onSearch('', { updateUrl: false });
       }
       // Blur the input to remove focus
       e.currentTarget.blur();
@@ -69,7 +73,8 @@ export function SearchBar({
       setLoading(true);
 
       if (onSearch) {
-        onSearch(trimmedQuery);
+        // Pass updateUrl: true on Enter to explicitly trigger URL update
+        onSearch(trimmedQuery, { updateUrl: true });
       } else if (!inline) {
         router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
       }
@@ -81,14 +86,24 @@ export function SearchBar({
   const handleClear = () => {
     setQuery('');
     if (onSearch) {
-      onSearch('');
+      onSearch('', { updateUrl: false });
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedQuery = query.trim();
+    if (trimmedQuery && onSearch && !loading) {
+      setLoading(true);
+      // Pass updateUrl: true on form submission
+      onSearch(trimmedQuery, { updateUrl: true });
     }
   };
 
   return (
     <div className={`relative ${className}`}>
       {/* Search bar container with pill shape */}
-      <div className="relative">
+      <form onSubmit={handleSubmit} className="relative">
         <div className="relative flex items-center">
           {/* Search icon */}
           <div className="absolute left-6 pointer-events-none text-[#B3B7BE]">
@@ -111,7 +126,12 @@ export function SearchBar({
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => {
+              // Prevent changes during active search to avoid race conditions
+              if (!loading) {
+                setQuery(e.target.value);
+              }
+            }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
             autoFocus={autoFocus}
@@ -181,7 +201,7 @@ export function SearchBar({
             )}
           </div>
         </div>
-      </div>
+      </form>
 
       {/* Hint text for keyboard shortcuts */}
       <div className="absolute -bottom-6 left-0 text-xs text-[#6A6E78] opacity-0 group-hover:opacity-100 transition-opacity">

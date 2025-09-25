@@ -32,8 +32,13 @@ export default function AppPage() {
   const [failedEmbeddings, setFailedEmbeddings] = useState<EmbeddingQueueItem[]>([]);
   const [showRetryModal, setShowRetryModal] = useState(false);
   const [retryProgress, setRetryProgress] = useState({ current: 0, total: 0, processing: false });
-  // Use URL params as single source of truth for search query
-  const libraryQuery = queryParam;
+
+  // Local state for search query (separate from URL to prevent remounts)
+  const [localSearchQuery, setLocalSearchQuery] = useState<string>(queryParam);
+  const isTypingRef = useRef<boolean>(false);
+
+  // Use local state for search, URL for persistence/sharing
+  const libraryQuery = localSearchQuery;
   const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
@@ -49,6 +54,14 @@ export default function AppPage() {
   // Convert filename to createdAt for the actual sorting
   const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
 
+  // Sync URL parameter to local state (for browser navigation)
+  // but NOT during typing to prevent sync loops
+  useEffect(() => {
+    if (!isTypingRef.current) {
+      setLocalSearchQuery(queryParam);
+    }
+  }, [queryParam]);
+
   // Removed useEffect that was causing circular updates - URL params are now the single source of truth
   const updateUrlParams = useCallback(
     (updates: Record<string, string | null>) => {
@@ -62,7 +75,7 @@ export default function AppPage() {
       });
 
       const target = `${pathname}${params.toString() ? `?${params.toString()}` : ''}`;
-      router.replace(target);
+      router.replace(target, { scroll: false });
     },
     [pathname, router, searchParams]
   );
@@ -289,9 +302,20 @@ export default function AppPage() {
     return fromAssets?.tags?.find((tag) => tag.id === tagIdParam)?.name ?? null;
   }, [assets, searchAssets, tagIdParam]);
 
-  const handleInlineSearch = useCallback((query: string) => {
-    // Only update URL params - libraryQuery will follow automatically
-    updateUrlParams({ q: query ? query : null });
+  const handleInlineSearch = useCallback((query: string, options?: { updateUrl?: boolean }) => {
+    // Always update local state immediately for instant search
+    setLocalSearchQuery(query);
+
+    // Set typing flag and clear it after delay
+    isTypingRef.current = true;
+    setTimeout(() => {
+      isTypingRef.current = false;
+    }, 1000);
+
+    // Only update URL params when explicitly requested (e.g., on Enter key)
+    if (options?.updateUrl === true) {
+      updateUrlParams({ q: query ? query : null });
+    }
   }, [updateUrlParams]);
 
   const toggleFavoritesOnly = useCallback(() => {
