@@ -3,6 +3,7 @@
 import { useState, useCallback, KeyboardEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/use-debounce';
+import { useSearchPreview } from '@/hooks/use-search-preview';
 import { SearchPreview } from './search-preview';
 import type { Asset } from '@/lib/types';
 
@@ -32,6 +33,73 @@ export function SearchBar({
   const [previewResults, setPreviewResults] = useState<Asset[]>([]);
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(-1);
   const [previewTotalCount, setPreviewTotalCount] = useState(0);
+
+  // Use search preview hook with 300ms debounce for faster feedback
+  const {
+    results: previewData,
+    loading: previewLoading,
+    error: previewError,
+    totalCount: previewTotal
+  } = useSearchPreview(query, showPreview, { limit: 5, debounceMs: 300 });
+
+  // Update preview results when data changes
+  useEffect(() => {
+    setPreviewResults(previewData);
+    setPreviewTotalCount(previewTotal);
+  }, [previewData, previewTotal]);
+
+  // Show preview when typing and hide when query is empty
+  useEffect(() => {
+    if (query.trim()) {
+      setShowPreview(true);
+    } else {
+      setShowPreview(false);
+      setSelectedPreviewIndex(-1);
+    }
+  }, [query]);
+
+  // Handle preview result selection
+  const handleSelectPreviewResult = useCallback(
+    (asset: Asset) => {
+      // Navigate to the asset directly or trigger parent search with the query
+      setShowPreview(false);
+      setSelectedPreviewIndex(-1);
+
+      // Keep the current search query and trigger search
+      if (onSearch) {
+        onSearch(query, { updateUrl: true });
+      }
+
+      // TODO: Add logic to highlight or scroll to selected asset in results
+    },
+    [query, onSearch]
+  );
+
+  // Handle "see all results" action
+  const handleSeeAllResults = useCallback(() => {
+    setShowPreview(false);
+    setSelectedPreviewIndex(-1);
+
+    if (query.trim() && onSearch) {
+      onSearch(query.trim(), { updateUrl: true });
+    }
+  }, [query, onSearch]);
+
+  // Handle preview navigation
+  const handlePreviewNavigate = useCallback(
+    (direction: 'up' | 'down') => {
+      if (direction === 'down') {
+        setSelectedPreviewIndex((prev) =>
+          prev < previewResults.length - 1 ? prev + 1 : 0
+        );
+      } else {
+        setSelectedPreviewIndex((prev) =>
+          prev > 0 ? prev - 1 : previewResults.length - 1
+        );
+      }
+    },
+    [previewResults.length]
+  );
 
   // Debounce the search query with 600ms delay for stability
   const debouncedQuery = useDebounce(query, 600);
@@ -68,26 +136,54 @@ export function SearchBar({
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     // Add ESC key handler to clear search
     if (e.key === 'Escape') {
-      setQuery('');
-      if (onSearch) {
-        onSearch('', { updateUrl: false });
+      if (showPreview) {
+        // Close preview if open
+        setShowPreview(false);
+        setSelectedPreviewIndex(-1);
+      } else {
+        // Otherwise clear search
+        setQuery('');
+        if (onSearch) {
+          onSearch('', { updateUrl: false });
+        }
+        // Blur the input to remove focus
+        e.currentTarget.blur();
       }
-      // Blur the input to remove focus
-      e.currentTarget.blur();
+    }
+    // Arrow navigation for preview
+    else if (e.key === 'ArrowDown' && showPreview && previewResults.length > 0) {
+      e.preventDefault();
+      setSelectedPreviewIndex((prev) =>
+        prev < previewResults.length - 1 ? prev + 1 : 0
+      );
+    } else if (e.key === 'ArrowUp' && showPreview && previewResults.length > 0) {
+      e.preventDefault();
+      setSelectedPreviewIndex((prev) =>
+        prev > 0 ? prev - 1 : previewResults.length - 1
+      );
     }
     // Keep Enter key for immediate search (skips debounce)
-    else if (e.key === 'Enter' && !loading && query.trim()) {
-      const trimmedQuery = query.trim();
-      setLoading(true);
-
-      if (onSearch) {
-        // Pass updateUrl: true on Enter to explicitly trigger URL update
-        onSearch(trimmedQuery, { updateUrl: true });
-      } else if (!inline) {
-        router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
+    else if (e.key === 'Enter' && !loading) {
+      // If preview is showing and an item is selected, select it
+      if (showPreview && selectedPreviewIndex >= 0 && previewResults[selectedPreviewIndex]) {
+        e.preventDefault();
+        handleSelectPreviewResult(previewResults[selectedPreviewIndex]);
       }
+      // Otherwise perform normal search
+      else if (query.trim()) {
+        const trimmedQuery = query.trim();
+        setLoading(true);
 
-      // Loading will be set to false by the useEffect
+        if (onSearch) {
+          // Pass updateUrl: true on Enter to explicitly trigger URL update
+          onSearch(trimmedQuery, { updateUrl: true });
+        } else if (!inline) {
+          router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
+        }
+
+        // Close preview on search
+        setShowPreview(false);
+      }
     }
   };
 
@@ -109,7 +205,7 @@ export function SearchBar({
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} data-search-bar>
       {/* Search bar container with pill shape */}
       <form onSubmit={handleSubmit} className="relative">
         <div className="relative flex items-center">
@@ -210,6 +306,24 @@ export function SearchBar({
           </div>
         </div>
       </form>
+
+      {/* Search preview dropdown */}
+      {showPreview && (
+        <SearchPreview
+          query={query}
+          results={previewResults}
+          loading={previewLoading}
+          selectedIndex={selectedPreviewIndex}
+          onSelectResult={handleSelectPreviewResult}
+          onSeeAll={handleSeeAllResults}
+          onClose={() => {
+            setShowPreview(false);
+            setSelectedPreviewIndex(-1);
+          }}
+          onNavigate={handlePreviewNavigate}
+          totalCount={previewTotalCount}
+        />
+      )}
 
       {/* Hint text for keyboard shortcuts */}
       <div className="absolute -bottom-6 left-0 text-xs text-[#6A6E78] opacity-0 group-hover:opacity-100 transition-opacity">
