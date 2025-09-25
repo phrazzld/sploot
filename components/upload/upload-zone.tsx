@@ -362,6 +362,8 @@ export function UploadZone({
   const [fileMetadata, setFileMetadata] = useState(() => new Map<string, FileMetadata>());
   // Store File objects temporarily only during active upload
   const activeFileObjects = useRef(new WeakMap<FileMetadata, File>());
+  // Temporary files state to fix incomplete refactoring - TODO: Complete migration to Map
+  const [files, setFiles] = useState<UploadFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
@@ -385,6 +387,12 @@ export function UploadZone({
   const progressThrottleMap = useRef<Map<string, { lastUpdate: number; lastPercent: number }>>(new Map());
   const PROGRESS_UPDATE_THRESHOLD = 10; // Only update if progress changed by 10%
   const PROGRESS_UPDATE_INTERVAL = 500; // Or if 500ms have passed
+
+  // Convert fileMetadata Map to array for easier iteration
+  const filesArray = useMemo(() =>
+    Array.from(fileMetadata.values()).sort((a, b) => a.addedAt - b.addedAt),
+    [fileMetadata]
+  );
 
   // Initialize IndexedDB on mount
   useEffect(() => {
@@ -1187,6 +1195,11 @@ export function UploadZone({
   // Remove file from list
   const removeFile = (id: string) => {
     setFiles((prev) => prev.filter((f) => f.id !== id));
+    setFileMetadata((prev) => {
+      const newMap = new Map(prev);
+      newMap.delete(id);
+      return newMap;
+    });
   };
 
   // Retry failed upload
@@ -1200,7 +1213,7 @@ export function UploadZone({
 
   // Retry all failed uploads
   const retryAllFailed = () => {
-    const failedFiles = files.filter(f => f.status === 'error');
+    const failedFiles = filesArray.filter(f => f.status === 'error');
     if (failedFiles.length === 0) return;
 
     console.log(`[Upload] Retrying all ${failedFiles.length} failed files`);
@@ -1235,9 +1248,9 @@ export function UploadZone({
 
   // Calculate overall progress
   const calculateOverallProgress = () => {
-    if (files.length === 0) return 0;
+    if (filesArray.length === 0) return 0;
 
-    const totalProgress = files.reduce((acc, file) => {
+    const totalProgress = filesArray.reduce((acc, file) => {
       if (file.status === 'success' || file.status === 'duplicate') {
         return acc + 100;
       } else if (file.status === 'uploading') {
@@ -1249,22 +1262,22 @@ export function UploadZone({
       }
     }, 0);
 
-    return Math.round(totalProgress / files.length);
+    return Math.round(totalProgress / filesArray.length);
   };
 
   // Get upload statistics
   const getUploadStats = () => {
-    const completed = files.filter(f => f.status === 'success' || f.status === 'duplicate').length;
-    const uploading = files.filter(f => f.status === 'uploading').length;
-    const pending = files.filter(f => f.status === 'pending' || f.status === 'queued').length;
-    const failed = files.filter(f => f.status === 'error').length;
+    const completed = filesArray.filter(f => f.status === 'success' || f.status === 'duplicate').length;
+    const uploading = filesArray.filter(f => f.status === 'uploading').length;
+    const pending = filesArray.filter(f => f.status === 'pending' || f.status === 'queued').length;
+    const failed = filesArray.filter(f => f.status === 'error').length;
 
-    return { completed, uploading, pending, failed, total: files.length };
+    return { completed, uploading, pending, failed, total: filesArray.length };
   };
 
   // Get errors grouped by type
   const getGroupedErrors = () => {
-    const failedFiles = files.filter(f => f.status === 'error' && f.errorDetails);
+    const failedFiles = filesArray.filter(f => f.status === 'error' && f.errorDetails);
     const groups = new Map<string, { type: string; message: string; count: number; files: UploadFile[] }>();
 
     failedFiles.forEach(file => {
@@ -1309,13 +1322,14 @@ export function UploadZone({
 
   // Show background sync status if enabled
   const showSyncStatus = enableBackgroundSync && (pendingCount > 0 || uploadingCount > 0 || errorCount > 0);
-  const successfulUploads = files.filter((file) => file.status === 'success' || file.status === 'duplicate');
+  const successfulUploads = filesArray.filter((file) => file.status === 'success' || file.status === 'duplicate');
   const hasSuccessfulUploads = successfulUploads.length > 0;
-  const hasActiveUploads = files.some((file) =>
+  const hasActiveUploads = filesArray.some((file) =>
     file.status === 'uploading' || file.status === 'pending' || file.status === 'queued'
   );
 
   const handleViewLibrary = () => {
+    setFileMetadata(new Map());
     setFiles([]);
     setTags([]);
     setUploadStats(null);
@@ -1476,7 +1490,7 @@ export function UploadZone({
       />
 
       {/* Tag Input - Only show when files are selected */}
-      {files.length > 0 && (
+      {filesArray.length > 0 && (
         <div className="mt-6">
           <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4 mb-4">
             <h3 className="text-[#E6E8EB] font-medium text-sm mb-3">Add Tags</h3>
@@ -1491,7 +1505,7 @@ export function UploadZone({
       )}
 
       {/* File list */}
-      {files.length > 0 && (
+      {filesArray.length > 0 && (
         <div className="mt-6 space-y-4">
           {/* Batch Upload Progress Header */}
           <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4">
@@ -1545,7 +1559,7 @@ export function UploadZone({
               </div>
               <div className="flex justify-between mt-2">
                 <span className="text-[#B3B7BE] text-xs">
-                  {getUploadStats().completed} of {files.length} files
+                  {getUploadStats().completed} of {filesArray.length} files
                 </span>
                 <span className="text-[#7C5CFF] text-xs font-medium">
                   {calculateOverallProgress()}%
@@ -1591,10 +1605,10 @@ export function UploadZone({
           </div>
 
           {/* File list - use virtual scrolling when > 20 files */}
-          {files.length > 20 ? (
+          {filesArray.length > 20 ? (
             <VirtualizedFileList
-              files={files}
-              setFiles={setFiles}
+              fileMetadata={fileMetadata}
+              setFileMetadata={setFileMetadata}
               formatFileSize={formatFileSize}
               router={router}
               retryUpload={retryUpload}
@@ -1602,7 +1616,7 @@ export function UploadZone({
             />
           ) : (
             <div className="space-y-2">
-              {files.map((file) => (
+              {filesArray.map((file) => (
               <div
                 key={file.id}
                 className="bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]"
