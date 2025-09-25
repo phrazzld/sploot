@@ -17,6 +17,7 @@ import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
 import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
+import { getGlobalMetricsCollector } from '@/lib/metrics-collector';
 
 // Lightweight metadata for display - only ~300 bytes per file vs 5MB for File object
 interface FileMetadata {
@@ -858,13 +859,19 @@ export function UploadZone({
   // Upload file to server - simplified direct upload
   const uploadFileToServer = async (uploadFile: UploadFile) => {
     const tracker = getGlobalPerformanceTracker();
+    const metricsCollector = getGlobalMetricsCollector();
     const uploadStartTime = Date.now();
+
+    // Record upload start in metrics
+    metricsCollector.recordUploadStart(uploadFile.id);
 
     setFiles((prev) =>
       prev.map((f) =>
         f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f
       )
     );
+
+    const apiStartTime = performance.now(); // Define here so it's accessible in catch block
 
     try {
       // Create FormData for file upload
@@ -884,6 +891,9 @@ export function UploadZone({
         xhr.upload.addEventListener('progress', (event) => {
           if (event.lengthComputable) {
             const percentComplete = Math.round((event.loaded / event.total) * 100);
+
+            // Record upload progress in metrics
+            metricsCollector.recordUploadProgress(uploadFile.id, event.loaded);
 
             // Throttle progress updates to reduce re-renders
             const throttleInfo = progressThrottleMap.current.get(uploadFile.id) || {
@@ -959,6 +969,10 @@ export function UploadZone({
       });
 
       const result = await uploadPromise;
+      const apiDuration = performance.now() - apiStartTime;
+
+      // Record API call metrics
+      metricsCollector.recordApiCall('/api/upload', apiDuration, result.statusCode || 200);
 
       if (!result.success) {
         throw new Error(result.error || 'Upload failed');
@@ -966,6 +980,9 @@ export function UploadZone({
 
       // Track client upload time
       tracker.track('client:single_upload', Date.now() - uploadStartTime);
+
+      // Record successful upload completion in metrics
+      metricsCollector.recordUploadComplete(uploadFile.id);
 
       // End the initial upload start timer if this is the first successful upload
       if (tracker.getSampleCount('client:single_upload') === 1) {
@@ -1034,12 +1051,21 @@ export function UploadZone({
     } catch (error) {
       console.error('Upload error:', error);
 
+      // Record upload failure in metrics
+      metricsCollector.recordUploadFailure(uploadFile.id, error instanceof Error ? error.message : 'Unknown error');
+
       // Parse error for better messaging with status code
       const statusCode = (error as any)?.statusCode ||
         (error instanceof Error && error.message.includes('401') ? 401 :
          error instanceof Error && error.message.includes('429') ? 429 :
          error instanceof Error && error.message.includes('500') ? 500 :
          error instanceof Error && error.message.includes('503') ? 503 : undefined);
+
+      // Record API error if we have a status code
+      if (statusCode) {
+        const apiDuration = performance.now() - apiStartTime;
+        metricsCollector.recordApiCall('/api/upload', apiDuration, statusCode);
+      }
 
       const errorDetails = getUploadErrorDetails(
         error instanceof Error ? error : new Error('Upload failed'),
