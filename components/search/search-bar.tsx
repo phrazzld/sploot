@@ -3,6 +3,8 @@
 import { useState, useCallback, KeyboardEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/use-debounce';
+import { SearchPreview } from './search-preview';
+import type { Asset } from '@/lib/types';
 
 interface SearchBarProps {
   placeholder?: string;
@@ -24,6 +26,12 @@ export function SearchBar({
   const [query, setQuery] = useState(initialQuery);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // Preview state management
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewResults, setPreviewResults] = useState<Asset[]>([]);
+  const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(-1);
+  const [previewTotalCount, setPreviewTotalCount] = useState(0);
 
   // Debounce the search query with 600ms delay for stability
   const debouncedQuery = useDebounce(query, 600);

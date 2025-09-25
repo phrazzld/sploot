@@ -1,3 +1,4 @@
 export { SearchBar } from './search-bar';
 export { SearchBarWithResults } from './search-bar-with-results';
 export { SearchBarCompact } from './search-bar-compact';
+export { SearchPreview } from './search-preview';
