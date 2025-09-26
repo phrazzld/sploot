@@ -37,8 +37,8 @@ export function SearchBarWithResults({
     }
   }, [assets, onResultsChange]);
 
-  const handleSearch = useCallback((query: string) => {
-    setSearchQuery(query);
+  const handleSearch = useCallback((searchCommand: { query: string; timestamp: number; updateUrl?: boolean }) => {
+    setSearchQuery(searchCommand.query);
   }, []);
 
   return (

@@ -170,10 +170,10 @@ export function SearchBar({
                 setShowHistory(true);
               }
             }}
-            placeholder={placeholder || 'search your memes... (press enter)'}
+            placeholder={placeholder || 'search your memes...'}
             autoFocus={autoFocus}
             className={`
-              w-full h-[52px] pl-6 pr-36
+              w-full h-[52px] pl-6 pr-12
               bg-[#14171A] text-[#E6E8EB] placeholder-[#6A6E78]
               rounded-full border
               focus:outline-none focus:ring-2
@@ -216,37 +216,6 @@ export function SearchBar({
                 </svg>
               </button>
             )}
-
-            {/* Submit button with text */}
-            <button
-              type="submit"
-              className="
-                inline-flex items-center gap-1.5
-                px-2 py-1.5 sm:px-3 sm:py-1.5
-                bg-[#7C5CFF] hover:bg-[#8F72FF]
-                text-white font-medium text-sm
-                rounded-full
-                transition-all duration-200
-                focus:outline-none focus:ring-2 focus:ring-[#7C5CFF]/30
-              "
-              aria-label="search"
-              title="search (enter)"
-            >
-              <span className="hidden sm:inline">Search</span>
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </button>
           </div>
         </div>
       </form>
