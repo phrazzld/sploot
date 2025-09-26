@@ -117,13 +117,10 @@ export function SearchBar({
     }
   }, [query, loading]);
 
-  // Keep local state in sync with parent-controlled initial query
+  // Sync with initialQuery only when it changes externally (e.g., from URL navigation)
   useEffect(() => {
-    // Only update if actually different to prevent loops
-    if (query !== initialQuery) {
-      setQuery(initialQuery);
-    }
-  }, [initialQuery, query]); // Include both to satisfy linter, but guard prevents loops
+    setQuery(initialQuery);
+  }, [initialQuery]); // Only depend on initialQuery, not query
 
   // Handle search when debounced query changes
   useEffect(() => {
@@ -131,19 +128,15 @@ export function SearchBar({
 
     // Always call onSearch if provided, but without updating URL during typing
     if (onSearch) {
-      setLoading(trimmedQuery.length > 0);
       // Call with updateUrl: false to prevent URL changes during typing
       onSearch(trimmedQuery, { updateUrl: false });
-      // Loading state will be cleared when results arrive
-      if (trimmedQuery) {
-        setTimeout(() => setLoading(false), 500);
-      } else {
-        setLoading(false);
-      }
     } else if (trimmedQuery && !inline) {
       // Default behavior: navigate to search page
       router.push(`/app/search?q=${encodeURIComponent(trimmedQuery)}`);
     }
+
+    // Clear loading state when search completes
+    setLoading(false);
   }, [debouncedQuery, onSearch, router, inline]);
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -244,10 +237,7 @@ export function SearchBar({
             type="text"
             value={query}
             onChange={(e) => {
-              // Prevent changes during active search to avoid race conditions
-              if (!loading) {
-                setQuery(e.target.value);
-              }
+              setQuery(e.target.value);
             }}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
