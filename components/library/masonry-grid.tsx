@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { ImageTile } from './image-tile';
+import { ImageGridSkeleton } from './image-skeleton';
 import { cn } from '@/lib/utils';
 
 import type { Asset } from '@/lib/types';
@@ -61,6 +62,15 @@ export function MasonryGrid({
     };
   }, [hasMore, loading, onLoadMore]);
 
+  // Show skeleton loaders during initial load
+  if (assets.length === 0 && loading) {
+    return (
+      <div className={cn("w-full", className)}>
+        <ImageGridSkeleton count={15} variant="masonry" className="animate-fade-in" />
+      </div>
+    );
+  }
+
   // Empty state
   if (assets.length === 0 && !loading) {
     return (
@@ -115,8 +125,16 @@ export function MasonryGrid({
           }
         `}</style>
 
-        {assets.map((asset) => (
-          <div key={asset.id} className="masonry-item">
+        {assets.map((asset, index) => (
+          <div
+            key={asset.id}
+            className="masonry-item transition-skeleton"
+            style={{
+              animationDelay: `${index * 30}ms`,
+              animation: 'fadeInScale 300ms ease-out forwards',
+              opacity: 0,
+            }}
+          >
             <ImageTile
               asset={asset}
               onToggleFavorite={

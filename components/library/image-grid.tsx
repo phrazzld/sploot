@@ -3,6 +3,7 @@
 import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageTile } from './image-tile';
+import { ImageGridSkeleton } from './image-skeleton';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 import type { Asset } from '@/lib/types';
@@ -119,6 +120,21 @@ export function ImageGrid({
     [onAssetUpdate]
   );
 
+  // Show skeleton loaders during initial load
+  if (assets.length === 0 && loading) {
+    return (
+      <div className="h-full">
+        <div
+          ref={setContainerRef}
+          className={cn('h-full overflow-auto p-4', containerClassName)}
+          style={{ scrollbarGutter: 'stable' }}
+        >
+          <ImageGridSkeleton count={20} variant="tile" className="animate-fade-in" />
+        </div>
+      </div>
+    );
+  }
+
   // Empty state
   if (assets.length === 0 && !loading) {
     return (
@@ -202,15 +218,24 @@ export function ImageGrid({
           style={{ scrollbarGutter: 'stable' }}
         >
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
-            {assets.map((asset) => (
-              <ImageTile
+            {assets.map((asset, index) => (
+              <div
                 key={asset.id}
-                asset={asset}
-                onFavorite={handleFavoriteToggle}
-                onDelete={onAssetDelete}
-                onSelect={onAssetSelect}
-                onAssetUpdate={onAssetUpdate}
-              />
+                className="transition-skeleton"
+                style={{
+                  animationDelay: `${index * 30}ms`,
+                  animation: 'fadeInScale 300ms ease-out forwards',
+                  opacity: 0,
+                }}
+              >
+                <ImageTile
+                  asset={asset}
+                  onFavorite={handleFavoriteToggle}
+                  onDelete={onAssetDelete}
+                  onSelect={onAssetSelect}
+                  onAssetUpdate={onAssetUpdate}
+                />
+              </div>
             ))}
           </div>
 

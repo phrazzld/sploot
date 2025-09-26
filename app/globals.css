@@ -68,3 +68,33 @@ body {
 .animate-fade-in-scale {
   animation: fadeInScale 300ms ease-out;
 }
+
+/* Skeleton loader shimmer animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #1B1F24 0%,
+    #242931 20%,
+    #1B1F24 40%,
+    #1B1F24 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite ease-in-out;
+  will-change: background-position;
+}
+
+/* Optimized transitions for 60fps */
+.transition-skeleton {
+  transition: opacity 300ms ease-out, transform 300ms ease-out;
+  transform: translateZ(0); /* Force hardware acceleration */
+  backface-visibility: hidden; /* Prevent flickering */
+}

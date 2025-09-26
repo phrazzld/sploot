@@ -5,6 +5,7 @@ import type { KeyboardEvent, MouseEvent } from 'react';
 import { cn } from '@/lib/utils';
 import { HeartIcon } from '@/components/icons/heart-icon';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
+import { ImageGridSkeleton } from './image-skeleton';
 import { error as logError } from '@/lib/logger';
 import type { Asset } from '@/lib/types';
 
@@ -274,11 +275,13 @@ export function ImageList({
       className={cn('h-full overflow-auto transition-all duration-300 ease-out', containerClassName)}
       style={{ scrollbarGutter: 'stable' }}
     >
-      {assets.length === 0 && !loading ? (
+      {assets.length === 0 && loading ? (
+        <ImageGridSkeleton count={12} variant="list" className="animate-fade-in" />
+      ) : assets.length === 0 && !loading ? (
         emptyState
       ) : (
         <div className="space-y-2">
-          {assets.map((asset) => (
+          {assets.map((asset, index) => (
             <ListRow
               key={asset.id}
               asset={asset}
