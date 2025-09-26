@@ -314,7 +314,9 @@ export default function AppPage() {
     return fromAssets?.tags?.find((tag) => tag.id === tagIdParam)?.name ?? null;
   }, [assets, searchAssets, tagIdParam]);
 
-  const handleInlineSearch = useCallback((query: string, options?: { updateUrl?: boolean }) => {
+  const handleInlineSearch = useCallback((searchCommand: { query: string; timestamp: number; updateUrl?: boolean }) => {
+    const query = searchCommand.query;
+
     // Always update local state immediately for instant search
     setLocalSearchQuery(query);
 
@@ -324,8 +326,8 @@ export default function AppPage() {
       isTypingRef.current = false;
     }, 1000);
 
-    // Only update URL params when explicitly requested (e.g., on Enter key)
-    if (options?.updateUrl === true) {
+    // Update URL only when explicitly requested (on Enter key)
+    if (searchCommand.updateUrl === true) {
       updateUrlParams({ q: query ? query : null });
     }
   }, [updateUrlParams]);
@@ -748,25 +750,14 @@ export default function AppPage() {
                 initialQuery={queryParam}
                 searchState={
                   searchLoading ? 'loading' :
-                  isTypingRef.current ? 'typing' :
-                  libraryQuery && searchAssets.length > 0 ? 'success' :
-                  libraryQuery && searchAssets.length === 0 ? 'no-results' :
-                  searchError ? 'error' :
-                  'idle'
+                    isTypingRef.current ? 'typing' :
+                      libraryQuery && searchAssets.length > 0 ? 'success' :
+                        libraryQuery && searchAssets.length === 0 ? 'no-results' :
+                          searchError ? 'error' :
+                            'idle'
                 }
                 resultCount={searchAssets.length}
               />
-
-              {/* Search hints */}
-              <div className="text-center text-xs text-[#6A6E78] transition-opacity duration-200">
-                {!libraryQuery ? (
-                  <span>Type to search your meme collection</span>
-                ) : isTypingRef.current ? (
-                  <span>Press Enter to save search to URL • Press Escape to clear</span>
-                ) : (
-                  <span>Press Escape to clear search</span>
-                )}
-              </div>
             </div>
 
             {showUploadPanel && (
@@ -841,15 +832,28 @@ export default function AppPage() {
         <SearchLoadingScreen query={libraryQuery} />
       ) : (
         <div className="flex-1 overflow-hidden px-6 pb-8 pt-6 md:px-10">
-        <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-[#1F2328] bg-[#101319]">
-          <div className="h-full flex-1 overflow-hidden">
-            {viewMode === 'masonry' ? (
-              <div
-                ref={handleScrollContainerReady}
-                className={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
-                style={{ scrollbarGutter: 'stable' }}
-              >
-                <MasonryGrid
+          <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-[#1F2328] bg-[#101319]">
+            <div className="h-full flex-1 overflow-hidden">
+              {viewMode === 'masonry' ? (
+                <div
+                  ref={handleScrollContainerReady}
+                  className={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                  style={{ scrollbarGutter: 'stable' }}
+                >
+                  <MasonryGrid
+                    assets={activeAssets}
+                    loading={activeLoading}
+                    hasMore={activeHasMore}
+                    onLoadMore={handleLoadMore}
+                    onAssetUpdate={handleAssetUpdate}
+                    onAssetDelete={handleAssetDelete}
+                    onAssetSelect={setSelectedAsset}
+                    onUploadClick={() => setShowUploadPanel(true)}
+                    className="mx-auto w-full max-w-6xl"
+                  />
+                </div>
+              ) : viewMode === 'list' ? (
+                <ImageList
                   assets={activeAssets}
                   loading={activeLoading}
                   hasMore={activeHasMore}
@@ -857,44 +861,31 @@ export default function AppPage() {
                   onAssetUpdate={handleAssetUpdate}
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
-                  onUploadClick={() => setShowUploadPanel(true)}
-                  className="mx-auto w-full max-w-6xl"
-                />
-              </div>
-            ) : viewMode === 'list' ? (
-              <ImageList
-                assets={activeAssets}
-                loading={activeLoading}
-                hasMore={activeHasMore}
-                onLoadMore={handleLoadMore}
-                onAssetUpdate={handleAssetUpdate}
-                onAssetDelete={handleAssetDelete}
-                onAssetSelect={setSelectedAsset}
-                onScrollContainerReady={handleScrollContainerReady}
-                containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
-                onUploadClick={() => setShowUploadPanel(true)}
-              />
-            ) : (
-              <ImageGridErrorBoundary
-                onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
-              >
-                <ImageGrid
-                  assets={activeAssets}
-                  loading={activeLoading}
-                  hasMore={activeHasMore}
-                  onLoadMore={handleLoadMore}
-                  onAssetUpdate={handleAssetUpdate}
-                  onAssetDelete={handleAssetDelete}
-                  onAssetSelect={setSelectedAsset}
-                  containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
                   onScrollContainerReady={handleScrollContainerReady}
+                  containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
                   onUploadClick={() => setShowUploadPanel(true)}
                 />
-              </ImageGridErrorBoundary>
-            )}
+              ) : (
+                <ImageGridErrorBoundary
+                  onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
+                >
+                  <ImageGrid
+                    assets={activeAssets}
+                    loading={activeLoading}
+                    hasMore={activeHasMore}
+                    onLoadMore={handleLoadMore}
+                    onAssetUpdate={handleAssetUpdate}
+                    onAssetDelete={handleAssetDelete}
+                    onAssetSelect={setSelectedAsset}
+                    containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                    onScrollContainerReady={handleScrollContainerReady}
+                    onUploadClick={() => setShowUploadPanel(true)}
+                  />
+                </ImageGridErrorBoundary>
+              )}
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       {/* Image Preview Modal */}

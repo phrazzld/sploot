@@ -8,7 +8,7 @@ interface SearchBarProps {
   placeholder?: string;
   autoFocus?: boolean;
   className?: string;
-  onSearch?: (searchCommand: { query: string; timestamp: number }) => void;
+  onSearch?: (searchCommand: { query: string; timestamp: number; updateUrl?: boolean }) => void;
   inline?: boolean;
   initialQuery?: string;
   searchState?: 'idle' | 'typing' | 'loading' | 'success' | 'no-results' | 'error';
@@ -72,7 +72,7 @@ export function SearchBar({
         setQuery(selected.query);
         setShowHistory(false);
         setSelectedIndex(-1);
-        handleSubmit(selected.query);
+        handleSubmit(selected.query, true);
         return;
       }
     }
@@ -98,9 +98,17 @@ export function SearchBar({
 
   const handleClear = () => {
     setQuery('');
+    // Clear search results
+    if (onSearch) {
+      onSearch({
+        query: '',
+        timestamp: Date.now(),
+        updateUrl: false
+      });
+    }
   };
 
-  const handleSubmit = useCallback((overrideQuery?: string) => {
+  const handleSubmit = useCallback((overrideQuery?: string, updateUrl = true) => {
     const searchQuery = overrideQuery || query;
     const trimmedQuery = searchQuery.trim();
     if (trimmedQuery) {
@@ -110,10 +118,11 @@ export function SearchBar({
       setSelectedIndex(-1);
 
       if (onSearch) {
-        // Send search command with timestamp
+        // Send search command with timestamp and updateUrl flag
         onSearch({
           query: trimmedQuery,
-          timestamp: Date.now()
+          timestamp: Date.now(),
+          updateUrl
         });
       } else if (!inline) {
         // Default behavior: navigate to search page
@@ -126,7 +135,7 @@ export function SearchBar({
     setQuery(historyQuery);
     setShowHistory(false);
     setSelectedIndex(-1);
-    handleSubmit(historyQuery);
+    handleSubmit(historyQuery, true);
   };
 
   const handleHistoryRemove = (e: React.MouseEvent, historyQuery: string) => {
@@ -163,6 +172,14 @@ export function SearchBar({
             value={query}
             onChange={(e) => {
               setQuery(e.target.value);
+              // Trigger search while typing without updating URL
+              if (onSearch) {
+                onSearch({
+                  query: e.target.value.trim(),
+                  timestamp: Date.now(),
+                  updateUrl: false
+                });
+              }
             }}
             onKeyDown={handleKeyDown}
             onFocus={() => {
