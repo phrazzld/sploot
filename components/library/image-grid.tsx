@@ -223,8 +223,7 @@ export function ImageGrid({
                 key={asset.id}
                 className="transition-skeleton"
                 style={{
-                  animationDelay: `${index * 30}ms`,
-                  animation: 'fadeInScale 300ms ease-out forwards',
+                  animation: `fadeInScale 300ms ease-out ${index * 30}ms forwards`,
                   opacity: 0,
                 }}
               >

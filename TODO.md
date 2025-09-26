@@ -16,21 +16,17 @@
 - [x] **Update SearchBar initialQuery prop** - Already passing `libraryQuery` (which equals `localSearchQuery`) to SearchBar component to maintain consistency.
 - [x] **Add URL update on explicit search submission** - In handleInlineSearch, URL update only occurs when `options?.updateUrl === true` (Enter key press).
 
-### Phase 3: Search Preview Dropdown (Option 5 Enhancement) ✅ COMPLETED
-- [x] **Create SearchPreview component** - Built `components/search/search-preview.tsx` that renders a dropdown with top 5 results using absolute positioning, appearing below search bar during typing, similar to Google Instant.
-- [x] **Add preview state management** - In SearchBar, added `showPreview`, `previewResults`, `selectedPreviewIndex`, and `previewTotalCount` state variables to manage dropdown visibility and content.
-- [x] **Implement preview data fetching** - Created `useSearchPreview` hook that calls search API with `limit: 5` parameter, debounced to 300ms (faster than main search) with AbortController for request cancellation.
-- [x] **Add click-outside handler** - Implemented click-outside detection in SearchPreview component that closes preview when user clicks anywhere outside search bar or preview dropdown.
-- [x] **Style preview dropdown with result tiles** - Created mini version with 40x40px thumbnails, match percentage display, hover states, and selection highlighting.
-- [x] **Add keyboard navigation to preview** - Implemented ArrowUp/ArrowDown navigation, Enter to select, Escape to close, with selectedPreviewIndex state tracking.
-- [x] **Implement result selection handler** - Added `handleSelectPreviewResult` and `handleSeeAllResults` that trigger search with URL update and close preview.
-- [x] **Add "See all X results" footer** - Implemented footer showing total count with "See all X results" link that triggers same behavior as Enter key.
+### Phase 3: Search Preview Dropdown (Option 5 Enhancement) ❌ REMOVED
+**Decision**: Removed search preview dropdown feature for simplicity. The dropdown was adding unnecessary complexity without significant user value.
+- **Rationale**: Regular search with debouncing provides sufficient feedback
+- **Removed files**: `components/search/search-preview.tsx`, `hooks/use-search-preview.ts`
+- **Benefits**: Cleaner codebase, single API call instead of duplicates, better performance
 
 ### Phase 4: Performance Optimizations
 - [x] **Add request cancellation to search** - Implemented AbortController in useSearchAssets to cancel in-flight requests when new search starts, preventing race conditions and wasted bandwidth.
 - [x] **Implement search result caching** - Created SearchCache class with 5-minute TTL, LRU eviction, and automatic cleanup. Integrated into useSearchAssets and useSearchPreview hooks for instant cached results.
 - [x] **Add optimistic UI updates** - Show skeleton loaders immediately on search start, replacing with actual results when ready, maintaining 60fps during transitions using CSS transforms instead of layout shifts.
-- [x] **Debounce preview separately from main search** - Use 200ms debounce for preview (faster feedback) and keep 600ms for main search (fewer requests), balancing responsiveness with server load.
+- [x] **Optimized debouncing** - Single 600ms debounce for main search, reducing server load while maintaining responsiveness.
 
 ### Phase 5: User Education & Polish
 - [x] **Add search hints below input** - Display context-sensitive hints: "Type to search" when empty, "Press Enter to save search" while typing, "Press Escape to clear" when filled.

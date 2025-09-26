@@ -122,8 +122,8 @@ interface SearchMetadata {
   thresholdFallback: boolean;
 }
 
-export function useSearchAssets(query: string, options: { limit?: number; threshold?: number } = {}) {
-  const { limit = 50, threshold = 0.2 } = options;
+export function useSearchAssets(query: string, options: { limit?: number; threshold?: number; enabled?: boolean } = {}) {
+  const { limit = 50, threshold = 0.2, enabled = true } = options;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
@@ -257,9 +257,9 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
 
   // Auto-search when query changes - no debouncing here as SearchBar handles it
   useEffect(() => {
-    if (query) {
+    if (enabled && query) {
       search();
-    } else {
+    } else if (!enabled || !query) {
       setAssets([]);
       setTotal(0);
       setError(null);
@@ -271,7 +271,7 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
         abortControllerRef.current.abort();
       }
     };
-  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [query, enabled, search]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
     assets,

@@ -7,13 +7,14 @@ import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { MasonryGrid } from '@/components/library/masonry-grid';
 import { ImageList } from '@/components/library/image-list';
-import { SearchBar } from '@/components/search';
+import { SearchBar, SearchLoadingScreen } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
 import { HeartIcon } from '@/components/icons/heart-icon';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
+import { useSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 
 export default function AppPage() {
   const router = useRouter();
@@ -36,6 +37,7 @@ export default function AppPage() {
   // Local state for search query (separate from URL to prevent remounts)
   const [localSearchQuery, setLocalSearchQuery] = useState<string>(queryParam);
   const isTypingRef = useRef<boolean>(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   // Use local state for search, URL for persistence/sharing
   const libraryQuery = localSearchQuery;
@@ -143,6 +145,16 @@ export default function AppPage() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Global keyboard shortcut to focus search (Cmd+K / Ctrl+K)
+  useSearchShortcut(() => {
+    // Focus the search input using a query selector since we can't easily pass refs through all components
+    const searchInput = document.querySelector('[data-search-bar] input') as HTMLInputElement;
+    if (searchInput) {
+      searchInput.focus();
+      searchInput.select(); // Select all text for quick replacement
+    }
+  });
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -729,7 +741,33 @@ export default function AppPage() {
               </div>
             )}
 
-            <SearchBar onSearch={handleInlineSearch} inline initialQuery={libraryQuery} />
+            <div className="space-y-2">
+              <SearchBar
+                onSearch={handleInlineSearch}
+                inline
+                initialQuery={queryParam}
+                searchState={
+                  searchLoading ? 'loading' :
+                  isTypingRef.current ? 'typing' :
+                  libraryQuery && searchAssets.length > 0 ? 'success' :
+                  libraryQuery && searchAssets.length === 0 ? 'no-results' :
+                  searchError ? 'error' :
+                  'idle'
+                }
+                resultCount={searchAssets.length}
+              />
+
+              {/* Search hints */}
+              <div className="text-center text-xs text-[#6A6E78] transition-opacity duration-200">
+                {!libraryQuery ? (
+                  <span>Type to search your meme collection</span>
+                ) : isTypingRef.current ? (
+                  <span>Press Enter to save search to URL • Press Escape to clear</span>
+                ) : (
+                  <span>Press Escape to clear search</span>
+                )}
+              </div>
+            </div>
 
             {showUploadPanel && (
               <div className="rounded-3xl border border-dashed border-[#2A2F37] bg-[#111419] p-5">
@@ -798,7 +836,11 @@ export default function AppPage() {
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden px-6 pb-8 pt-6 md:px-10">
+      {/* Show loading screen when search is executing */}
+      {searchLoading && libraryQuery ? (
+        <SearchLoadingScreen query={libraryQuery} />
+      ) : (
+        <div className="flex-1 overflow-hidden px-6 pb-8 pt-6 md:px-10">
         <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-[#1F2328] bg-[#101319]">
           <div className="h-full flex-1 overflow-hidden">
             {viewMode === 'masonry' ? (
@@ -853,6 +895,7 @@ export default function AppPage() {
           </div>
         </div>
       </div>
+      )}
 
       {/* Image Preview Modal */}
       {selectedAsset && (
