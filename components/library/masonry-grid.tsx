@@ -31,8 +31,9 @@ export function MasonryGrid({
   onUploadClick,
 }: MasonryGridProps) {
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
-  // Infinite scroll using IntersectionObserver
+  // Infinite scroll using IntersectionObserver with debounce
   useEffect(() => {
     if (!onLoadMore || !hasMore || loading) return;
 
@@ -40,7 +41,11 @@ export function MasonryGrid({
       (entries) => {
         const [entry] = entries;
         if (entry.isIntersecting) {
-          onLoadMore();
+          // Debounce the load more call to prevent rapid firing
+          clearTimeout(timeoutRef.current);
+          timeoutRef.current = setTimeout(() => {
+            onLoadMore();
+          }, 100);
         }
       },
       {
@@ -55,6 +60,7 @@ export function MasonryGrid({
     }
 
     return () => {
+      clearTimeout(timeoutRef.current);
       if (sentinelRef.current) {
         observer.unobserve(sentinelRef.current);
       }

@@ -22,12 +22,33 @@ export function useAssets(options: UseAssetsOptions = {}) {
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
 
+  // Use refs to avoid stale closures
+  const loadingRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Keep hasMore ref in sync with state
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
   const loadAssets = useCallback(
     async (reset = false) => {
-      if (loading || (!hasMore && !reset)) return;
+      // Use refs to check current state without causing recreations
+      if (loadingRef.current || (!hasMoreRef.current && !reset)) return;
 
+      // Cancel any in-flight request
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+
+      loadingRef.current = true;
       setLoading(true);
       setError(null);
+
+      // Create new AbortController for this request
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
 
       try {
         const currentOffset = reset ? 0 : offset;
@@ -46,13 +67,18 @@ export function useAssets(options: UseAssetsOptions = {}) {
           params.set('tagId', tagId);
         }
 
-        const response = await fetch(`/api/assets?${params}`);
+        const response = await fetch(`/api/assets?${params}`, {
+          signal: controller.signal,
+        });
 
         if (!response.ok) {
           throw new Error('Failed to fetch assets');
         }
 
         const data = await response.json();
+
+        // Only update state if this request wasn't aborted
+        if (controller.signal.aborted) return;
 
         if (reset) {
           setAssets(data.assets || []);
@@ -65,13 +91,24 @@ export function useAssets(options: UseAssetsOptions = {}) {
         setTotal(data.pagination?.total || 0);
         setHasMore(data.pagination?.hasMore || false);
       } catch (err) {
+        // Ignore abort errors
+        if (err instanceof Error && err.name === 'AbortError') {
+          return;
+        }
         logError('Error loading assets:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load assets');
+        // Only update error state if this request wasn't aborted
+        if (!controller.signal.aborted) {
+          setError(err instanceof Error ? err.message : 'Failed to load assets');
+        }
       } finally {
-        setLoading(false);
+        // Only update loading state if this request wasn't aborted
+        if (!controller.signal.aborted) {
+          loadingRef.current = false;
+          setLoading(false);
+        }
       }
     },
-    [loading, hasMore, offset, initialLimit, sortBy, sortOrder, filterFavorites, tagId]
+    [offset, initialLimit, sortBy, sortOrder, filterFavorites, tagId] // Removed loading and hasMore from dependencies
   );
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
@@ -95,10 +132,19 @@ export function useAssets(options: UseAssetsOptions = {}) {
 
   // Auto-load on mount if enabled
   useEffect(() => {
-    if (autoLoad && assets.length === 0 && !loading) {
+    if (autoLoad && assets.length === 0 && !loadingRef.current) {
       loadAssets(true);
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [autoLoad, loadAssets]); // Safe to depend on loadAssets now
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, []);
 
   return {
     assets,
