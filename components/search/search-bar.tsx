@@ -148,23 +148,6 @@ export function SearchBar({
       {/* Search bar container with pill shape */}
       <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
         <div className="relative flex items-center">
-          {/* Search icon */}
-          <div className="absolute left-6 pointer-events-none text-[#B3B7BE]">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-
           {/* Input field */}
           <input
             ref={inputRef}
@@ -190,7 +173,7 @@ export function SearchBar({
             placeholder={placeholder || 'search your memes... (press enter)'}
             autoFocus={autoFocus}
             className={`
-              w-full h-[52px] pl-14 pr-24
+              w-full h-[52px] pl-6 pr-36
               bg-[#14171A] text-[#E6E8EB] placeholder-[#6A6E78]
               rounded-full border
               focus:outline-none focus:ring-2
@@ -234,20 +217,24 @@ export function SearchBar({
               </button>
             )}
 
-            {/* Submit button - always visible */}
+            {/* Submit button with text */}
             <button
               type="submit"
               className="
-                p-2 text-[#7C5CFF] hover:text-[#8F72FF]
-                hover:bg-[#7C5CFF]/10 rounded-full
+                inline-flex items-center gap-1.5
+                px-2 py-1.5 sm:px-3 sm:py-1.5
+                bg-[#7C5CFF] hover:bg-[#8F72FF]
+                text-white font-medium text-sm
+                rounded-full
                 transition-all duration-200
                 focus:outline-none focus:ring-2 focus:ring-[#7C5CFF]/30
               "
               aria-label="search"
               title="search (enter)"
             >
+              <span className="hidden sm:inline">Search</span>
               <svg
-                className="w-5 h-5"
+                className="w-4 h-4"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
