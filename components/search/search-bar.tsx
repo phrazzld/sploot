@@ -34,13 +34,13 @@ export function SearchBar({
   const [selectedPreviewIndex, setSelectedPreviewIndex] = useState(-1);
   const [previewTotalCount, setPreviewTotalCount] = useState(0);
 
-  // Use search preview hook with 300ms debounce for faster feedback
+  // Use search preview hook with 200ms debounce for faster feedback
   const {
     results: previewData,
     loading: previewLoading,
     error: previewError,
     totalCount: previewTotal
-  } = useSearchPreview(query, showPreview, { limit: 5, debounceMs: 300 });
+  } = useSearchPreview(query, showPreview, { limit: 5, debounceMs: 200 });
 
   // Update preview results when data changes
   useEffect(() => {

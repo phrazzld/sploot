@@ -27,7 +27,7 @@ export function useSearchPreview(
   const {
     limit = 5,
     threshold = 0.2,
-    debounceMs = 300  // Faster than main search for quick feedback
+    debounceMs = 200  // Faster than main search (200ms vs 600ms) for quick feedback
   } = options;
 
   const [results, setResults] = useState<Asset[]>([]);
