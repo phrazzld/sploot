@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, KeyboardEvent, useEffect } from 'react';
+import { useState, useCallback, KeyboardEvent, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useDebounce } from '@/hooks/use-debounce';
 import { useSearchPreview } from '@/hooks/use-search-preview';
@@ -103,6 +103,19 @@ export function SearchBar({
 
   // Debounce the search query with 600ms delay for stability
   const debouncedQuery = useDebounce(query, 600);
+
+  // Context-sensitive hint text
+  const hintText = useMemo(() => {
+    if (!query.trim()) {
+      return 'Type to search';
+    } else if (query.trim() && !loading) {
+      return 'Press Enter to save search';
+    } else if (query.trim() && loading) {
+      return 'Searching...';
+    } else {
+      return 'Press Escape to clear';
+    }
+  }, [query, loading]);
 
   // Keep local state in sync with parent-controlled initial query
   useEffect(() => {
@@ -325,9 +338,16 @@ export function SearchBar({
         />
       )}
 
-      {/* Hint text for keyboard shortcuts */}
-      <div className="absolute -bottom-6 left-0 text-xs text-[#6A6E78] opacity-0 group-hover:opacity-100 transition-opacity">
-        <span className="hidden sm:inline">esc to clear • enter for instant search</span>
+      {/* Context-sensitive hint text */}
+      <div className="absolute -bottom-6 left-0 flex items-center gap-2 text-xs animate-fade-in">
+        <span className="text-[#B3B7BE] transition-colors duration-200">
+          {hintText}
+        </span>
+        {query.trim() && !loading && (
+          <span className="text-[#6A6E78] animate-fade-in">
+            • <kbd className="px-1.5 py-0.5 rounded bg-[#1B1F24] border border-[#2A2F37] text-[#B3B7BE] text-[10px] font-mono">ESC</kbd> to clear
+          </span>
+        )}
       </div>
     </div>
   );

@@ -33,7 +33,7 @@
 - [x] **Debounce preview separately from main search** - Use 200ms debounce for preview (faster feedback) and keep 600ms for main search (fewer requests), balancing responsiveness with server load.
 
 ### Phase 5: User Education & Polish
-- [ ] **Add search hints below input** - Display context-sensitive hints: "Type to search" when empty, "Press Enter to save search" while typing, "Press Escape to clear" when filled.
+- [~] **Add search hints below input** - Display context-sensitive hints: "Type to search" when empty, "Press Enter to save search" while typing, "Press Escape to clear" when filled.
 - [ ] **Implement search history** - Store last 10 searches in localStorage, show in dropdown when search bar focused but empty, with "Clear history" option for privacy.
 - [ ] **Add visual feedback for search state** - Change border color: purple while typing, green when results found, yellow when no results, red on error, with smooth transitions.
 - [ ] **Create keyboard shortcut (Cmd+K)** - Add global keyboard listener that focuses search bar when Cmd+K (Mac) or Ctrl+K (Windows/Linux) pressed, following industry standard.
