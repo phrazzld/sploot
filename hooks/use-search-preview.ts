@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useDebounce } from '@/hooks/use-debounce';
+import { getSearchCache } from '@/lib/search-cache';
 import { error as logError } from '@/lib/logger';
 import type { Asset } from '@/lib/types';
 
@@ -53,6 +54,19 @@ export function useSearchPreview(
       return;
     }
 
+    // Check cache first
+    const cache = getSearchCache();
+    const cachedResult = cache.get(searchQuery, limit, threshold);
+
+    if (cachedResult) {
+      // Use cached results immediately
+      setResults(cachedResult.results.slice(0, limit)); // Ensure we only show requested limit
+      setTotalCount(cachedResult.total);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     // Create new AbortController for this request
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -82,9 +96,15 @@ export function useSearchPreview(
 
       // Only update state if this request wasn't aborted
       if (!controller.signal.aborted) {
-        setResults(data.results || []);
-        setTotalCount(data.total || data.results?.length || 0);
+        const results = data.results || [];
+        const total = data.total || data.results?.length || 0;
+
+        setResults(results);
+        setTotalCount(total);
         setError(null);
+
+        // Store in cache for future use
+        cache.set(searchQuery, results, total, null, limit, threshold);
       }
     } catch (err: any) {
       // Ignore abort errors

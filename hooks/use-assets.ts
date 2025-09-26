@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { error as logError } from '@/lib/logger';
+import { getSearchCache } from '@/lib/search-cache';
 import type { Asset, UseAssetsOptions } from '@/lib/types';
 
 export function useAssets(options: UseAssetsOptions = {}) {
@@ -145,6 +146,20 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
       return;
     }
 
+    // Check cache first
+    const cache = getSearchCache();
+    const cachedResult = cache.get(query, limit, threshold);
+
+    if (cachedResult) {
+      // Use cached results immediately
+      setAssets(cachedResult.results);
+      setTotal(cachedResult.total);
+      setMetadata(cachedResult.metadata);
+      setError(null);
+      setLoading(false);
+      return;
+    }
+
     // Create new AbortController for this request
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -186,15 +201,22 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
       // Only update state if this request wasn't aborted
       if (!controller.signal.aborted) {
         // Handle successful response
-        setAssets(data.results || []);
-        setTotal(data.total || 0);
-        setMetadata({
+        const results = data.results || [];
+        const total = data.total || 0;
+        const searchMetadata = {
           limit: data.limit ?? limit,
           requestedLimit: data.requestedLimit ?? limit,
           threshold: data.threshold ?? threshold,
           requestedThreshold: data.requestedThreshold ?? threshold,
           thresholdFallback: Boolean(data.thresholdFallback),
-        });
+        };
+
+        setAssets(results);
+        setTotal(total);
+        setMetadata(searchMetadata);
+
+        // Store in cache for future use
+        cache.set(query, results, total, searchMetadata, limit, threshold);
 
         // Clear any previous errors on success
         setError(null);
