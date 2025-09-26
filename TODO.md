@@ -30,7 +30,7 @@
 - [x] **Add request cancellation to search** - Implemented AbortController in useSearchAssets to cancel in-flight requests when new search starts, preventing race conditions and wasted bandwidth.
 - [x] **Implement search result caching** - Created SearchCache class with 5-minute TTL, LRU eviction, and automatic cleanup. Integrated into useSearchAssets and useSearchPreview hooks for instant cached results.
 - [x] **Add optimistic UI updates** - Show skeleton loaders immediately on search start, replacing with actual results when ready, maintaining 60fps during transitions using CSS transforms instead of layout shifts.
-- [~] **Debounce preview separately from main search** - Use 200ms debounce for preview (faster feedback) and keep 600ms for main search (fewer requests), balancing responsiveness with server load.
+- [x] **Debounce preview separately from main search** - Use 200ms debounce for preview (faster feedback) and keep 600ms for main search (fewer requests), balancing responsiveness with server load.
 
 ### Phase 5: User Education & Polish
 - [ ] **Add search hints below input** - Display context-sensitive hints: "Type to search" when empty, "Press Enter to save search" while typing, "Press Escape to clear" when filled.
