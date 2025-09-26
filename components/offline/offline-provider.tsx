@@ -1,7 +1,6 @@
 'use client';
 
 import { ReactNode } from 'react';
-import { OfflineStatusBar } from './offline-status-bar';
 import { UploadQueueDisplay } from './upload-queue-display';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 
@@ -18,7 +17,6 @@ export function OfflineProvider({ children }: OfflineProviderProps) {
 
   return (
     <>
-      <OfflineStatusBar />
       {children}
       <UploadQueueDisplay
         queue={queue}

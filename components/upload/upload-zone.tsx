@@ -421,7 +421,7 @@ export function UploadZone({
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const uploadStatsRef = useRef({ successful: 0, failed: 0 });
   const [currentConcurrency, setCurrentConcurrency] = useState(6);
-  const { isOffline, isSlowConnection } = useOffline();
+  const { isOffline } = useOffline();
   const router = useRouter();
   const uploadQueueManager = getUploadQueueManager();
 
