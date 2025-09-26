@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { error as logError } from '@/lib/logger';
 import type { Asset, UseAssetsOptions } from '@/lib/types';
 
@@ -130,13 +130,24 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
   const [total, setTotal] = useState(0);
   const [metadata, setMetadata] = useState<SearchMetadata | null>(null);
 
+  // Use AbortController for cancelling in-flight requests
+  const abortControllerRef = useRef<AbortController | null>(null);
+
   const search = useCallback(async () => {
+    // Cancel any in-flight request
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
     if (!query.trim()) {
       setAssets([]);
       setTotal(0);
       setMetadata(null);
       return;
     }
+
+    // Create new AbortController for this request
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     setLoading(true);
     setError(null);
@@ -150,45 +161,62 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
           limit,
           threshold,
         }),
+        signal: controller.signal,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        // Check if the error is related to embeddings/search service
-        const errorMessage = data.error || 'Search failed';
-        if (errorMessage.includes('embedding') || errorMessage.includes('Replicate')) {
-          setError('Search is temporarily unavailable. Images may still be processing.');
-        } else {
-          setError(errorMessage);
+        // Only update state if this request wasn't aborted
+        if (!controller.signal.aborted) {
+          // Check if the error is related to embeddings/search service
+          const errorMessage = data.error || 'Search failed';
+          if (errorMessage.includes('embedding') || errorMessage.includes('Replicate')) {
+            setError('Search is temporarily unavailable. Images may still be processing.');
+          } else {
+            setError(errorMessage);
+          }
+          setAssets([]);
+          setTotal(0);
+          setMetadata(null);
         }
-        setAssets([]);
-        setTotal(0);
-        setMetadata(null);
         return;
       }
 
-      // Handle successful response
-      setAssets(data.results || []);
-      setTotal(data.total || 0);
-      setMetadata({
-        limit: data.limit ?? limit,
-        requestedLimit: data.requestedLimit ?? limit,
-        threshold: data.threshold ?? threshold,
-        requestedThreshold: data.requestedThreshold ?? threshold,
-        thresholdFallback: Boolean(data.thresholdFallback),
-      });
+      // Only update state if this request wasn't aborted
+      if (!controller.signal.aborted) {
+        // Handle successful response
+        setAssets(data.results || []);
+        setTotal(data.total || 0);
+        setMetadata({
+          limit: data.limit ?? limit,
+          requestedLimit: data.requestedLimit ?? limit,
+          threshold: data.threshold ?? threshold,
+          requestedThreshold: data.requestedThreshold ?? threshold,
+          thresholdFallback: Boolean(data.thresholdFallback),
+        });
 
-      // Clear any previous errors on success
-      setError(null);
-    } catch (err) {
-      logError('Search error:', err);
-      setError('Unable to search. Please try again.');
-      setAssets([]);
-      setTotal(0);
-      setMetadata(null);
+        // Clear any previous errors on success
+        setError(null);
+      }
+    } catch (err: any) {
+      // Ignore abort errors
+      if (err.name === 'AbortError') {
+        return;
+      }
+
+      // Only update state if this request wasn't aborted
+      if (!controller.signal.aborted) {
+        logError('Search error:', err);
+        setError('Unable to search. Please try again.');
+        setAssets([]);
+        setTotal(0);
+        setMetadata(null);
+      }
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted) {
+        setLoading(false);
+      }
     }
   }, [query, limit, threshold]);
 
@@ -214,6 +242,13 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
       setTotal(0);
       setError(null);
     }
+
+    // Cleanup function to cancel request on unmount or query change
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return {
