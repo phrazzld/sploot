@@ -5,6 +5,7 @@ import { Navbar, NavbarSpacer } from './navbar';
 import { Footer, FooterSpacer } from './footer';
 import { ViewMode } from './view-mode-toggle';
 import { FilterType } from './filter-chips';
+import { SortOption, SortDirection } from './sort-dropdown';
 import { cn } from '@/lib/utils';
 
 /**
@@ -16,6 +17,8 @@ export function ChromeTest() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [isUploadActive, setIsUploadActive] = useState(false);
   const [activeFilter, setActiveFilter] = useState<FilterType>('all');
+  const [sortValue, setSortValue] = useState<SortOption>('recent');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
 
   return (
     <div className="min-h-screen bg-[#0B0C0E]">
@@ -73,6 +76,7 @@ export function ChromeTest() {
                     <p>✓ Upload button: {isUploadActive ? 'Active' : 'Ready'}</p>
                     <p>✓ Stats display: 134 memes • 2 bangers • 9.9 MB</p>
                     <p>✓ Filter chips: {activeFilter} filter active</p>
+                    <p>✓ Sort dropdown: {sortValue} {sortDirection === 'desc' ? '↓' : '↑'}</p>
                   </div>
                 </div>
 
@@ -101,6 +105,13 @@ export function ChromeTest() {
             activeFilter={activeFilter}
             onFilterChange={setActiveFilter}
             showFilters={true}
+            sortValue={sortValue}
+            sortDirection={sortDirection}
+            onSortChange={(option, direction) => {
+              setSortValue(option);
+              setSortDirection(direction);
+            }}
+            showSort={true}
           />
         </>
       )}

@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { StatsDisplay } from './stats-display';
 import { FilterChips, type FilterType } from './filter-chips';
+import { SortDropdown, type SortOption, type SortDirection } from './sort-dropdown';
 import { cn } from '@/lib/utils';
 
 interface FooterProps {
@@ -15,6 +16,10 @@ interface FooterProps {
   activeFilter?: FilterType;
   onFilterChange?: (filter: FilterType) => void;
   showFilters?: boolean;
+  sortValue?: SortOption;
+  sortDirection?: SortDirection;
+  onSortChange?: (option: SortOption, direction: SortDirection) => void;
+  showSort?: boolean;
 }
 
 /**
@@ -33,6 +38,10 @@ export function Footer({
   activeFilter = 'all',
   onFilterChange,
   showFilters = true,
+  sortValue = 'recent',
+  sortDirection = 'desc',
+  onSortChange,
+  showSort = true,
 }: FooterProps) {
   return (
     <footer
@@ -79,7 +88,14 @@ export function Footer({
 
         {/* Right section: Sort and settings */}
         <div className="flex items-center gap-3">
-          {/* Sort dropdown will go here */}
+          {/* Sort dropdown - right-aligned before settings */}
+          {showSort && (
+            <SortDropdown
+              value={sortValue}
+              direction={sortDirection}
+              onChange={onSortChange}
+            />
+          )}
 
           {/* Settings gear will go here */}
         </div>
