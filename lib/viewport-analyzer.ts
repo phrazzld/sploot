@@ -138,10 +138,8 @@ export class ViewportAnalyzer {
       contentPaddingY = (parseFloat(styles.paddingTop) || 0) +
                         (parseFloat(styles.paddingBottom) || 0);
 
-      // Account for ml-64 class on desktop
-      if (!isMobile && mainContent.classList.contains('ml-64')) {
-        contentMarginLeft = 256; // ml-64 = 256px
-      }
+      // Account for navbar/footer spacing
+      // Using pt-14 (56px) and pb-11 (44px) for new chrome architecture
     }
 
     const totalWastedHorizontal = contentMarginLeft + contentMarginRight + contentPaddingX;

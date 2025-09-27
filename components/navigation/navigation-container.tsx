@@ -22,7 +22,7 @@ export function NavigationContainer({ children }: NavigationContainerProps) {
         <DesktopSidebar />
 
         {/* Main Content */}
-        <main className="flex-1 ml-64">
+        <main className="flex-1 pt-14 pb-11">
           <div className="min-h-screen">
             {children}
           </div>
@@ -35,7 +35,7 @@ export function NavigationContainer({ children }: NavigationContainerProps) {
         <MobileHeader />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto pb-20">
+        <main className="flex-1 overflow-y-auto pt-14 pb-11">
           {children}
         </main>
 
