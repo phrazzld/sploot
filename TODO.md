@@ -193,7 +193,7 @@
   - Default values match spec (134 memes, 2 bangers, 9.9 MB)
   - Footer accepts totalAssets, favoriteCount, totalSizeBytes props
   ```
-- [ ] Implement filter chips: favorites (star icon), recent (clock icon), 32px height, toggle states with accent bg
+- [~] Implement filter chips: favorites (star icon), recent (clock icon), 32px height, toggle states with accent bg
 - [ ] Add sort dropdown: "recent ↓" default, options for date/size/name, right-aligned before settings
 - [ ] Position settings gear: 32px square touch target, 16px from right edge, rotate 90deg on hover (200ms)
 

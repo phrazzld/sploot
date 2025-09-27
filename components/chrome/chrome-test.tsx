@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Navbar, NavbarSpacer } from './navbar';
 import { Footer, FooterSpacer } from './footer';
 import { ViewMode } from './view-mode-toggle';
+import { FilterType } from './filter-chips';
 import { cn } from '@/lib/utils';
 
 /**
@@ -14,6 +15,7 @@ export function ChromeTest() {
   const [showChrome, setShowChrome] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [isUploadActive, setIsUploadActive] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<FilterType>('all');
 
   return (
     <div className="min-h-screen bg-[#0B0C0E]">
@@ -70,6 +72,7 @@ export function ChromeTest() {
                     <p>✓ View mode toggles: {viewMode} view active</p>
                     <p>✓ Upload button: {isUploadActive ? 'Active' : 'Ready'}</p>
                     <p>✓ Stats display: 134 memes • 2 bangers • 9.9 MB</p>
+                    <p>✓ Filter chips: {activeFilter} filter active</p>
                   </div>
                 </div>
 
@@ -95,6 +98,9 @@ export function ChromeTest() {
             favoriteCount={2}
             totalSizeBytes={10380902} // ~9.9 MB
             showStats={true}
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            showFilters={true}
           />
         </>
       )}

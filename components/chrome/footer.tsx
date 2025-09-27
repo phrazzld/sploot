@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { StatsDisplay } from './stats-display';
+import { FilterChips, type FilterType } from './filter-chips';
 import { cn } from '@/lib/utils';
 
 interface FooterProps {
@@ -11,6 +12,9 @@ interface FooterProps {
   favoriteCount?: number;
   totalSizeBytes?: number;
   showStats?: boolean;
+  activeFilter?: FilterType;
+  onFilterChange?: (filter: FilterType) => void;
+  showFilters?: boolean;
 }
 
 /**
@@ -26,6 +30,9 @@ export function Footer({
   favoriteCount = 2,
   totalSizeBytes = 10380902, // ~9.9 MB
   showStats = true,
+  activeFilter = 'all',
+  onFilterChange,
+  showFilters = true,
 }: FooterProps) {
   return (
     <footer
@@ -61,9 +68,14 @@ export function Footer({
         )}
 
         {/* Center section: Filters */}
-        <div className="flex items-center gap-2">
-          {/* Filter chips will go here */}
-        </div>
+        {showFilters && (
+          <FilterChips
+            activeFilter={activeFilter}
+            onFilterChange={onFilterChange}
+            size="md" // 32px height as specified
+            showLabels={true}
+          />
+        )}
 
         {/* Right section: Sort and settings */}
         <div className="flex items-center gap-3">
