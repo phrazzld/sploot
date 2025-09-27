@@ -3,11 +3,15 @@
 import { ReactNode } from 'react';
 import { LogoWordmark } from './logo-wordmark';
 import { SearchBarElastic } from './search-bar-elastic';
+import { ViewModeToggle, type ViewMode } from './view-mode-toggle';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
   children?: ReactNode;
   className?: string;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
+  showViewToggle?: boolean;
 }
 
 /**
@@ -16,7 +20,13 @@ interface NavbarProps {
  * Position: Fixed top
  * Z-index: 50 (stays above main content)
  */
-export function Navbar({ children, className }: NavbarProps) {
+export function Navbar({
+  children,
+  className,
+  viewMode = 'grid',
+  onViewModeChange,
+  showViewToggle = true,
+}: NavbarProps) {
   return (
     <nav
       className={cn(
@@ -61,7 +71,14 @@ export function Navbar({ children, className }: NavbarProps) {
 
         {/* Right section: Actions and user menu */}
         <div className="flex items-center gap-3">
-          {/* View mode toggles will go here */}
+          {/* View mode toggles */}
+          {showViewToggle && onViewModeChange && (
+            <ViewModeToggle
+              value={viewMode}
+              onChange={onViewModeChange}
+              size="md"
+            />
+          )}
 
           {/* Upload button will go here */}
 

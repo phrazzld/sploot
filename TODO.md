@@ -135,7 +135,7 @@
   - Created SearchTrigger component for mobile layouts
   - Integrated into navbar center section with max-width constraint
   ```
-- [ ] Add view mode toggle group: 3 icons (grid/masonry/list), 40x40px touch targets, active state with accent color
+- [~] Add view mode toggle group: 3 icons (grid/masonry/list), 40x40px touch targets, active state with accent color
 - [ ] Position upload button: 100px width, primary accent bg, fixed right-side position at navbar-end minus 60px
 - [ ] Integrate user avatar: 32px circle, 8px margin from right edge, dropdown on click with 4px gap
 

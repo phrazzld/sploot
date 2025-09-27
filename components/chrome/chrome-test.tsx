@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Navbar, NavbarSpacer } from './navbar';
 import { Footer, FooterSpacer } from './footer';
+import { ViewMode } from './view-mode-toggle';
 import { cn } from '@/lib/utils';
 
 /**
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils';
  */
 export function ChromeTest() {
   const [showChrome, setShowChrome] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   return (
     <div className="min-h-screen bg-[#0B0C0E]">
@@ -32,7 +34,11 @@ export function ChromeTest() {
       {showChrome && (
         <>
           {/* Navbar */}
-          <Navbar />
+          <Navbar
+            viewMode={viewMode}
+            onViewModeChange={setViewMode}
+            showViewToggle={true}
+          />
           <NavbarSpacer />
 
           {/* Main content area */}
@@ -55,6 +61,7 @@ export function ChromeTest() {
                     <p>✓ Footer: Fixed bottom, 44px height, z-50</p>
                     <p>✓ Content area: Full width, proper spacing</p>
                     <p>✓ Total chrome: 100px (vs 256px sidebar)</p>
+                    <p>✓ View mode toggles: {viewMode} view active</p>
                   </div>
                 </div>
 
