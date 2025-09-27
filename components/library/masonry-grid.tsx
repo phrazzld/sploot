@@ -50,7 +50,7 @@ export function MasonryGrid({
       },
       {
         root: null,
-        rootMargin: '200px',
+        rootMargin: '100px', // Adjusted for new navbar (56px) + footer (44px) chrome
         threshold: 0.1,
       }
     );
