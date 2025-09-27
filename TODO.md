@@ -282,7 +282,16 @@
   ```
 
 ### Phase 6: State Management Migration
-- [ ] Move view mode state to URL params (preserve on navigation, shareable URLs)
+- [x] Move view mode state to URL params (preserve on navigation, shareable URLs)
+  ```
+  Work Log:
+  - Extracted viewMode from URL search params (?view=grid|masonry|list)
+  - Removed React useState for viewMode, now derived from URL
+  - Updated handleViewModeChange to push new params to router
+  - Removed localStorage persistence (URL params handle persistence)
+  - Default to 'grid' view when param not specified
+  - View mode now shareable via URL and preserved across navigation
+  ```
 - [ ] Migrate sort preferences to localStorage with 100ms debounced writes
 - [ ] Consolidate filter state into single context/hook accessible by both navbar and footer
 - [ ] Update all grid re-render triggers to work with new component hierarchy
