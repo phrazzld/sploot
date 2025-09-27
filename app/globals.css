@@ -166,3 +166,65 @@ select:focus-visible {
 .no-focus-ring:focus-visible {
   outline: none;
 }
+
+/* Dropdown menu animations */
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropdownFadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.dropdown-animate-in {
+  animation: dropdownFadeIn 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-animate-out {
+  animation: dropdownFadeOut 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* For dropdowns that open upward (like footer dropdowns) */
+@keyframes dropdownFadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dropdownFadeOutUp {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+.dropdown-animate-in-up {
+  animation: dropdownFadeInUp 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.dropdown-animate-out-up {
+  animation: dropdownFadeOutUp 140ms cubic-bezier(0.16, 1, 0.3, 1);
+}

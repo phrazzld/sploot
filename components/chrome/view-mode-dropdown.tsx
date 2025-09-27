@@ -110,7 +110,8 @@ export function ViewModeDropdown({
           'rounded-lg shadow-lg',
           'py-1',
           'z-50',
-          'min-w-[150px]'
+          'min-w-[150px]',
+          'dropdown-animate-in'
         )}>
           {viewModes.map((mode) => {
             const isActive = value === mode.value;

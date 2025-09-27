@@ -127,8 +127,7 @@ export function SortDropdown({
             'rounded-lg shadow-xl',
             'min-w-[140px]',
             // Animation
-            'animate-in fade-in-0 slide-in-from-bottom-2',
-            'duration-100',
+            'dropdown-animate-in-up',
             // Z-index
             'z-50'
           )}

@@ -108,8 +108,7 @@ export function UserAvatar({
             'bg-[#14171A] border border-[#2A2F37]',
             'rounded-lg shadow-xl',
             'min-w-[200px]',
-            'animate-in fade-in-0 zoom-in-95',
-            'duration-100'
+            'dropdown-animate-in'
           )}
         >
           {/* User info header */}

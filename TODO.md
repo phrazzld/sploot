@@ -453,7 +453,17 @@
   - Created test page at /test-view-transition for demonstration
   - Maintains scroll position during transitions
   ```
-- [ ] Dropdown menus: 140ms fade-in with 4px translateY, reverse on close
+- [x] Dropdown menus: 140ms fade-in with 4px translateY, reverse on close
+  ```
+  Work Log:
+  - Added dropdown animations to globals.css with @keyframes
+  - Created dropdown-animate-in and dropdown-animate-in-up classes
+  - Applied to UserAvatar, SortDropdown, and ViewModeDropdown
+  - Downward dropdowns use translateY(-4px) → 0
+  - Upward dropdowns (footer) use translateY(4px) → 0
+  - 140ms duration with cubic-bezier(0.16, 1, 0.3, 1) easing
+  - Created test page at /test-dropdown-animation for demonstration
+  ```
 - [ ] Footer stats update: 300ms number morphing animation when count changes
 - [ ] Upload button: 1.05 scale on hover, 0.95 scale on click, with spring physics
 
