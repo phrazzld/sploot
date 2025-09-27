@@ -72,22 +72,26 @@ export function Footer({
       {/* Container for footer content */}
       <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto">
         {/* Left section: Stats display - left-aligned with 16px padding */}
+        {/* Hide on portrait tablets (640-1024px portrait), show on landscape and desktop */}
         {showStats && (
-          <StatsDisplay
-            totalAssets={totalAssets}
-            favoriteCount={favoriteCount}
-            totalSizeBytes={totalSizeBytes}
-            className="pl-4" // 16px left padding
-          />
+          <div className="hidden sm:block md:portrait:hidden lg:block">
+            <StatsDisplay
+              totalAssets={totalAssets}
+              favoriteCount={favoriteCount}
+              totalSizeBytes={totalSizeBytes}
+              className="pl-4" // 16px left padding
+            />
+          </div>
         )}
 
-        {/* Center section: Filters */}
+        {/* Center section: Filters - moves to left on portrait tablets when stats hidden */}
         {showFilters && (
           <FilterChips
             activeFilter={activeFilter}
             onFilterChange={onFilterChange}
             size="md" // 32px height as specified
             showLabels={true}
+            className="sm:portrait:mr-auto md:portrait:mr-auto lg:mr-0"
           />
         )}
 

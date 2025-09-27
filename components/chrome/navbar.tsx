@@ -87,13 +87,13 @@ export function Navbar({
           </div>
         </div>
 
-        {/* Center section: Search bar - hidden on mobile, visible on sm+ */}
+        {/* Center section: Search bar - hidden on mobile, visible on tablets+ */}
         <div className="hidden sm:flex flex-1 items-center justify-center px-4">
           <SearchBarElastic
             collapsedWidth={200}
             expandedWidth={400}
             placeholder="Search your memes..."
-            className="max-w-xl"
+            className="max-w-xl md:max-w-2xl" // Slightly larger max-width on tablets
           />
         </div>
 
