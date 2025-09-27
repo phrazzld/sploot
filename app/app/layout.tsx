@@ -7,6 +7,7 @@ import { OfflineProvider } from '@/components/offline/offline-provider';
 import { getAuthWithUser } from '@/lib/auth/server';
 import { PerformanceProfilerUI } from '@/components/debug/performance-profiler-ui';
 import { ViewportAnalyzerUI } from '@/components/debug/viewport-analyzer-ui';
+import { NavigationAuditUI } from '@/components/debug/navigation-audit-ui';
 
 export default async function AppLayout({
   children,
@@ -77,6 +78,7 @@ export default async function AppLayout({
 
       <PerformanceProfilerUI />
       <ViewportAnalyzerUI />
+      <NavigationAuditUI />
     </div>
     </OfflineProvider>
   );
