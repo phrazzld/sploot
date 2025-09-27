@@ -3,10 +3,10 @@
  * This extracts all sidebar logic from the layout to prepare for navbar/footer migration
  */
 
-import Link from 'next/link';
 import { AppNav } from './app-nav';
 import { TagFilter } from './tag-filter';
 import { UserMenu } from './user-menu';
+import { LogoWordmark } from '../chrome/logo-wordmark';
 
 export function DesktopSidebar() {
   return (
@@ -14,12 +14,11 @@ export function DesktopSidebar() {
       <div className="flex flex-col h-full">
         {/* Logo */}
         <div className="p-6 border-b border-[#2A2F37]">
-          <Link href="/app" className="block">
-            <h1 className="text-2xl font-bold text-[#E6E8EB] tracking-wider lowercase hover:text-[#7C5CFF] transition-colors">
-              sploot
-            </h1>
-            <p className="text-xs text-[#B3B7BE] mt-1">Your meme library</p>
-          </Link>
+          <LogoWordmark
+            variant="default"
+            size="md"
+            showTagline={true}
+          />
         </div>
 
         {/* Navigation */}

@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import Link from 'next/link';
+import { LogoWordmark } from './logo-wordmark';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
@@ -41,14 +41,11 @@ export function Navbar({ children, className }: NavbarProps) {
       <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto">
         {/* Left section: Logo/Wordmark */}
         <div className="flex items-center gap-4">
-          <Link
-            href="/app"
-            className="flex items-center gap-2 group"
-          >
-            <div className="text-2xl font-bold text-[#E6E8EB] tracking-wider lowercase hover:text-[#7C5CFF] transition-colors">
-              sploot
-            </div>
-          </Link>
+          <LogoWordmark
+            variant="default"
+            size="md"
+            showTagline={false}
+          />
         </div>
 
         {/* Center section: Placeholder for search and navigation */}

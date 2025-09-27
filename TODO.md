@@ -110,7 +110,7 @@
   - Structured footer with left (stats), center (filters), right (settings) sections
   - Total chrome reduction: 100px (navbar+footer) vs 256px (sidebar) = 60% less
   ```
-- [ ] Implement logo/wordmark component (32px height, link to '/app', preserve lowercase "sploot" typography)
+- [~] Implement logo/wordmark component (32px height, link to '/app', preserve lowercase "sploot" typography)
 - [ ] Build elastic search bar: 200px collapsed → 400px expanded, with 180ms ease-out transition on focus
 - [ ] Add view mode toggle group: 3 icons (grid/masonry/list), 40x40px touch targets, active state with accent color
 - [ ] Position upload button: 100px width, primary accent bg, fixed right-side position at navbar-end minus 60px
