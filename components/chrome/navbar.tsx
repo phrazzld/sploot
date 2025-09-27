@@ -1,9 +1,11 @@
 'use client';
 
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { LogoWordmark } from './logo-wordmark';
-import { SearchBarElastic } from './search-bar-elastic';
+import { SearchBarElastic, SearchTrigger } from './search-bar-elastic';
 import { ViewModeToggle, type ViewMode } from './view-mode-toggle';
+import { ViewModeDropdown } from './view-mode-dropdown';
+import { SearchOverlay } from './search-overlay';
 import { UploadButton } from './upload-button';
 import { UserAvatar } from './user-avatar';
 import { cn } from '@/lib/utils';
@@ -39,8 +41,11 @@ export function Navbar({
   showUserAvatar = true,
   onSignOut,
 }: NavbarProps) {
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+
   return (
-    <nav
+    <>
+      <nav
       className={cn(
         // Fixed positioning
         'fixed top-0 left-0 right-0',
@@ -64,15 +69,26 @@ export function Navbar({
       <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto">
         {/* Left section: Logo/Wordmark */}
         <div className="flex items-center gap-4">
-          <LogoWordmark
-            variant="default"
-            size="md"
-            showTagline={false}
-          />
+          {/* Mobile: Compact logo */}
+          <div className="block sm:hidden">
+            <LogoWordmark
+              variant="compact"
+              size="sm"
+              showTagline={false}
+            />
+          </div>
+          {/* Desktop: Full logo */}
+          <div className="hidden sm:block">
+            <LogoWordmark
+              variant="default"
+              size="md"
+              showTagline={false}
+            />
+          </div>
         </div>
 
-        {/* Center section: Search bar */}
-        <div className="flex-1 flex items-center justify-center px-4">
+        {/* Center section: Search bar - hidden on mobile, visible on sm+ */}
+        <div className="hidden sm:flex flex-1 items-center justify-center px-4">
           <SearchBarElastic
             collapsedWidth={200}
             expandedWidth={400}
@@ -81,25 +97,59 @@ export function Navbar({
           />
         </div>
 
+        {/* Mobile: Search trigger icon */}
+        <div className="flex sm:hidden flex-1 items-center justify-center">
+          <SearchTrigger
+            onClick={() => setIsSearchOpen(true)}
+          />
+        </div>
+
         {/* Right section: Actions and user menu */}
         <div className="flex items-center gap-3">
-          {/* View mode toggles */}
+          {/* Desktop: View mode toggles */}
           {showViewToggle && onViewModeChange && (
-            <ViewModeToggle
-              value={viewMode}
-              onChange={onViewModeChange}
-              size="md"
-            />
+            <>
+              {/* Desktop view toggles - hidden on mobile */}
+              <div className="hidden sm:block">
+                <ViewModeToggle
+                  value={viewMode}
+                  onChange={onViewModeChange}
+                  size="md"
+                />
+              </div>
+
+              {/* Mobile view dropdown - visible only on mobile */}
+              <div className="block sm:hidden">
+                <ViewModeDropdown
+                  value={viewMode}
+                  onChange={onViewModeChange}
+                />
+              </div>
+            </>
           )}
 
           {/* Upload button */}
           {showUploadButton && (
-            <UploadButton
-              onClick={onUploadClick}
-              isActive={isUploadActive}
-              size="md"
-              showLabel={true}
-            />
+            <>
+              {/* Mobile: Icon only */}
+              <div className="block sm:hidden">
+                <UploadButton
+                  onClick={onUploadClick}
+                  isActive={isUploadActive}
+                  size="md"
+                  showLabel={false}
+                />
+              </div>
+              {/* Desktop: With label */}
+              <div className="hidden sm:block">
+                <UploadButton
+                  onClick={onUploadClick}
+                  isActive={isUploadActive}
+                  size="md"
+                  showLabel={true}
+                />
+              </div>
+            </>
           )}
 
           {/* User avatar - 32px circle with 8px margin from right edge */}
@@ -117,6 +167,13 @@ export function Navbar({
         {children}
       </div>
     </nav>
+
+      {/* Search overlay for mobile */}
+      <SearchOverlay
+        isOpen={isSearchOpen}
+        onClose={() => setIsSearchOpen(false)}
+      />
+    </>
   );
 }
 
