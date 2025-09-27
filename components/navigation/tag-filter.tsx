@@ -1,141 +1,18 @@
-'use client';
+/**
+ * Backward-compatible wrapper for TagFilter
+ * Uses the flexible TagFilter internally with sidebar defaults
+ * This ensures existing usages continue to work unchanged
+ */
 
-import { useState, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { cn } from '@/lib/utils';
-
-interface Tag {
-  id: string;
-  name: string;
-  color: string | null;
-  assetCount: number;
-}
+import { TagFilterFlexible } from './tag-filter-flexible';
 
 export function TagFilter() {
-  const [tags, setTags] = useState<Tag[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isExpanded, setIsExpanded] = useState(true);
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const activeTagId = searchParams.get('tagId');
-
-  useEffect(() => {
-    fetchTags();
-  }, []);
-
-  const fetchTags = async () => {
-    try {
-      const response = await fetch('/api/tags');
-      if (response.ok) {
-        const data = await response.json();
-        setTags(data.tags || []);
-      }
-    } catch (error) {
-      console.error('Failed to fetch tags:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="px-3 py-2">
-        <div className="h-6 bg-[#1B1F24] rounded animate-pulse" />
-      </div>
-    );
-  }
-
-  if (tags.length === 0) {
-    return null;
-  }
-
   return (
-    <div className="mt-6">
-      <button
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full px-3 py-2 flex items-center justify-between text-[#B3B7BE] hover:text-[#E6E8EB] transition-colors"
-      >
-        <span className="text-xs font-semibold uppercase tracking-wider">Tags</span>
-        <svg
-          className={cn(
-            'w-4 h-4 transition-transform',
-            isExpanded ? 'rotate-180' : ''
-          )}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {isExpanded && tags.length > 0 && (
-        <div className="mt-1 space-y-0.5">
-          <button
-            onClick={() => {
-              const params = new URLSearchParams(searchParams.toString());
-              params.delete('tagId');
-              router.push(`/app${params.toString() ? `?${params}` : ''}`);
-            }}
-            className={cn(
-              'flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200',
-              'hover:bg-[#1B1F24] group',
-              !activeTagId ? 'bg-[#7C5CFF]/10 text-[#7C5CFF]' : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
-            )}
-          >
-            <span className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-[#B6FF6E]" />
-              All memes
-            </span>
-            {!activeTagId && (
-              <span className="text-xs text-[#7C5CFF]">∞</span>
-            )}
-          </button>
-
-          {tags.map(tag => {
-            const isActive = activeTagId === tag.id;
-
-            return (
-              <button
-                key={tag.id}
-                onClick={() => {
-                  const params = new URLSearchParams(searchParams.toString());
-                  if (isActive) {
-                    params.delete('tagId');
-                  } else {
-                    params.set('tagId', tag.id);
-                  }
-                  router.push(`/app${params.toString() ? `?${params}` : ''}`);
-                }}
-                className={cn(
-                  'w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 text-left',
-                  'hover:bg-[#1B1F24] group',
-                  isActive ?
-                    'bg-[#7C5CFF]/10 text-[#7C5CFF]' :
-                    'text-[#B3B7BE] hover:text-[#E6E8EB]'
-                )}
-              >
-                <div className="flex items-center gap-2 flex-1 min-w-0">
-                  <span
-                    className={cn(
-                      'w-2 h-2 rounded-full flex-shrink-0',
-                      tag.color ? '' : 'bg-[#B3B7BE]'
-                    )}
-                    style={tag.color ? { backgroundColor: tag.color } : undefined}
-                  />
-                  <span className="truncate">{tag.name}</span>
-                </div>
-                <span className={cn(
-                  'text-xs',
-                  isActive ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]/60'
-                )}>
-                  {tag.assetCount}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-    </div>
+    <TagFilterFlexible
+      position="sidebar"
+      displayMode="full"
+      showHeader={true}
+      expandable={true}
+    />
   );
 }

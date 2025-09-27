@@ -71,7 +71,7 @@
   - Button styling adapts to container (full-width in sidebar, compact in navbar)
   - All existing usages continue to work unchanged
   ```
-- [ ] Decouple TagFilter component from vertical layout assumptions - needs to work horizontally in footer
+- [~] Decouple TagFilter component from vertical layout assumptions - needs to work horizontally in footer
 - [ ] Remove AppNav's vertical spacing/padding classes - prepare for horizontal inline-flex layout
 
 ### Phase 3: Navbar Implementation (56px fixed height)
