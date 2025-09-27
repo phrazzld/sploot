@@ -23,7 +23,7 @@ export function NavigationContainer({ children }: NavigationContainerProps) {
 
         {/* Main Content */}
         <main className="flex-1 pt-14 pb-11">
-          <div className="min-h-screen">
+          <div className="min-h-[calc(100vh-100px)]">
             {children}
           </div>
         </main>
@@ -36,7 +36,9 @@ export function NavigationContainer({ children }: NavigationContainerProps) {
 
         {/* Main Content */}
         <main className="flex-1 overflow-y-auto pt-14 pb-11">
-          {children}
+          <div className="min-h-[calc(100vh-100px)]">
+            {children}
+          </div>
         </main>
 
         {/* Mobile Bottom Navigation */}

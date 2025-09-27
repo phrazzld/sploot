@@ -508,7 +508,7 @@ export default function AppPage() {
   }, [trimmedLibraryQuery]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-[calc(100vh-100px)] flex-col">
       <div className="px-6 pb-0 pt-6 md:px-10">
         <div className="mx-auto w-full max-w-7xl">
           <header className="flex flex-col gap-6">
@@ -831,7 +831,7 @@ export default function AppPage() {
       {searchLoading && libraryQuery ? (
         <SearchLoadingScreen query={libraryQuery} />
       ) : (
-        <div className="flex-1 overflow-hidden pb-8 pt-6">
+        <div className="flex-1 overflow-hidden">
           <div className="mx-auto flex h-full w-full flex-col overflow-hidden bg-[#101319]">
             <div className="h-full flex-1 overflow-hidden">
               {viewMode === 'masonry' ? (
