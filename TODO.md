@@ -382,7 +382,16 @@
   - Escape key clears search and removes focus as expected
   - All search components now support full keyboard navigation
   ```
-- [~] Add `1`, `2`, `3` keys for view mode switching (with 100ms debounce)
+- [x] Add `1`, `2`, `3` keys for view mode switching (with 100ms debounce)
+  ```
+  Work Log:
+  - Found implementation already completed in app/app/page.tsx (lines 398-431)
+  - Uses existing useKeyboardShortcut hook from hooks/use-keyboard-shortcut.ts
+  - Implements 100ms debounce via handleViewModeShortcut with viewModeSwitchRef
+  - Key 1 switches to grid view, Key 2 to masonry, Key 3 to list
+  - Properly cleans up timeout on unmount
+  - Tested working in development environment
+  ```
 - [ ] Create `⌘K` command palette for all hidden actions (upload, settings, sign out)
 - [ ] Ensure Tab order: logo → search → view → upload → avatar → grid → footer controls
 - [ ] Add focus-visible rings: 2px offset, accent color, visible only on keyboard navigation
