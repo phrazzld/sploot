@@ -292,7 +292,7 @@
   - Default to 'grid' view when param not specified
   - View mode now shareable via URL and preserved across navigation
   ```
-- [ ] Migrate sort preferences to localStorage with 100ms debounced writes
+- [~] Migrate sort preferences to localStorage with 100ms debounced writes
 - [ ] Consolidate filter state into single context/hook accessible by both navbar and footer
 - [ ] Update all grid re-render triggers to work with new component hierarchy
 

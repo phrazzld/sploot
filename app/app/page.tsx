@@ -15,6 +15,7 @@ import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { useSearchShortcut } from '@/hooks/use-keyboard-shortcut';
+import { useSortPreferences } from '@/hooks/use-sort-preferences';
 
 export default function AppPage() {
   const router = useRouter();
@@ -28,9 +29,10 @@ export default function AppPage() {
 
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  const [sortBy, setSortBy] = useState<'createdAt' | 'favorite' | 'size' | 'filename'>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+  // Use sort preferences hook with localStorage persistence and debouncing
+  const { sortBy, direction: sortOrder, handleSortChange, getSortColumn } = useSortPreferences();
   const [failedEmbeddings, setFailedEmbeddings] = useState<EmbeddingQueueItem[]>([]);
   const [showRetryModal, setShowRetryModal] = useState(false);
   const [retryProgress, setRetryProgress] = useState({ current: 0, total: 0, processing: false });
@@ -54,8 +56,8 @@ export default function AppPage() {
   } | undefined>(undefined);
   const pendingRefreshRef = useRef<boolean>(false);
 
-  // Convert filename to createdAt for the actual sorting
-  const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
+  // Get the actual database column for sorting
+  const actualSortBy = getSortColumn(sortBy);
 
   // Sync URL parameter to local state (for browser navigation)
   // but NOT during typing to prevent sync loops
@@ -104,7 +106,7 @@ export default function AppPage() {
   } = useAssets({
     initialLimit: 100,
     sortBy: actualSortBy,
-    sortOrder,
+    sortOrder: sortOrder as 'asc' | 'desc',
     autoLoad: true,
     filterFavorites: favoritesOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,
@@ -157,24 +159,10 @@ export default function AppPage() {
     }
   });
 
-  // Load preferences from localStorage on mount
+  // Mark as client-side mounted
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Only load sort preferences from localStorage (viewMode is now in URL)
-      const savedSortBy = localStorage.getItem('sortBy') as 'createdAt' | 'favorite' | 'size' | 'filename';
-      const savedSortOrder = localStorage.getItem('sortOrder') as 'asc' | 'desc';
-
-      if (savedSortBy) setSortBy(savedSortBy);
-      if (savedSortOrder) setSortOrder(savedSortOrder);
-    }
-  }, []); // Only run once on mount
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sortBy', sortBy);
-      localStorage.setItem('sortOrder', sortOrder);
-    }
-  }, [sortBy, sortOrder]);
+    setIsClient(true);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -413,7 +401,8 @@ export default function AppPage() {
 
   // Sort assets by filename if needed (since API doesn't support it)
   const sortedAssets = useMemo(() => {
-    if (sortBy !== 'filename') return assets;
+    // Only apply client-side sorting for filename since DB doesn't sort by it
+    if (sortBy !== 'name') return assets;
 
     const sorted = [...assets].sort((a, b) => {
       const nameA = a.filename.toLowerCase();
@@ -468,7 +457,7 @@ export default function AppPage() {
       tagId: tagIdParam ?? null,
       favorites: favoritesOnly,
       sortBy: actualSortBy,
-      sortOrder,
+      sortOrder: sortOrder as 'asc' | 'desc',
     };
 
     if (!prev) {
@@ -645,7 +634,7 @@ export default function AppPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
                   </svg>
                   <span>
-                    {sortBy === 'createdAt' ? 'date' : sortBy === 'favorite' ? 'bangers' : sortBy === 'size' ? 'size' : 'name'}
+                    {sortBy === 'recent' || sortBy === 'date' ? 'date' : sortBy === 'size' ? 'size' : sortBy === 'name' ? 'name' : 'date'}
                     {sortOrder === 'desc' ? ' ↓' : ' ↑'}
                   </span>
                 </button>
@@ -655,34 +644,33 @@ export default function AppPage() {
                     <div className="py-1">
                       <button
                         onClick={() => {
-                          setSortBy('createdAt');
-                          setSortOrder(sortBy === 'createdAt' && sortOrder === 'desc' ? 'asc' : 'desc');
+                          handleSortChange('date', sortBy === 'date' && sortOrder === 'desc' ? 'asc' : 'desc');
                           setShowSortDropdown(false);
                         }}
                         className={cn(
                           'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'createdAt' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          sortBy === 'date' || sortBy === 'recent' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
                         )}
                       >
-                        date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
+                        date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
                       </button>
                       <button
                         onClick={() => {
-                          setSortBy('favorite');
-                          setSortOrder('desc');
+                          // Note: 'favorite' is not a valid SortOption in the new system
+                          // This needs to be handled differently (perhaps as a filter)
                           setShowSortDropdown(false);
                         }}
                         className={cn(
                           'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'favorite' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          'text-[#B3B7BE]' // Always inactive as favorite sorting not supported
                         )}
+                        disabled
                       >
-                        bangers first
+                        bangers first (disabled)
                       </button>
                       <button
                         onClick={() => {
-                          setSortBy('size');
-                          setSortOrder(sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
+                          handleSortChange('size', sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
                           setShowSortDropdown(false);
                         }}
                         className={cn(
@@ -694,16 +682,15 @@ export default function AppPage() {
                       </button>
                       <button
                         onClick={() => {
-                          setSortBy('filename');
-                          setSortOrder(sortBy === 'filename' && sortOrder === 'asc' ? 'desc' : 'asc');
+                          handleSortChange('name', sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
                           setShowSortDropdown(false);
                         }}
                         className={cn(
                           'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'filename' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          sortBy === 'name' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
                         )}
                       >
-                        name {sortBy === 'filename' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
+                        name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
                       </button>
                     </div>
                   </div>
