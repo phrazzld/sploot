@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 export function ChromeTest() {
   const [showChrome, setShowChrome] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [isUploadActive, setIsUploadActive] = useState(false);
 
   return (
     <div className="min-h-screen bg-[#0B0C0E]">
@@ -38,6 +39,9 @@ export function ChromeTest() {
             viewMode={viewMode}
             onViewModeChange={setViewMode}
             showViewToggle={true}
+            onUploadClick={() => setIsUploadActive(!isUploadActive)}
+            isUploadActive={isUploadActive}
+            showUploadButton={true}
           />
           <NavbarSpacer />
 
@@ -62,6 +66,7 @@ export function ChromeTest() {
                     <p>✓ Content area: Full width, proper spacing</p>
                     <p>✓ Total chrome: 100px (vs 256px sidebar)</p>
                     <p>✓ View mode toggles: {viewMode} view active</p>
+                    <p>✓ Upload button: {isUploadActive ? 'Active' : 'Ready'}</p>
                   </div>
                 </div>
 

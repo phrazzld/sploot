@@ -149,7 +149,7 @@
   - Added ARIA labels and roles for accessibility
   - Navbar accepts viewMode and onViewModeChange props for state management
   ```
-- [ ] Position upload button: 100px width, primary accent bg, fixed right-side position at navbar-end minus 60px
+- [~] Position upload button: 100px width, primary accent bg, fixed right-side position at navbar-end minus 60px
 - [ ] Integrate user avatar: 32px circle, 8px margin from right edge, dropdown on click with 4px gap
 
 ### Phase 4: Footer Implementation (44px fixed height)

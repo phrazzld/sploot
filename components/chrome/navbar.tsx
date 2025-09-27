@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { LogoWordmark } from './logo-wordmark';
 import { SearchBarElastic } from './search-bar-elastic';
 import { ViewModeToggle, type ViewMode } from './view-mode-toggle';
+import { UploadButton } from './upload-button';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
@@ -12,6 +13,9 @@ interface NavbarProps {
   viewMode?: ViewMode;
   onViewModeChange?: (mode: ViewMode) => void;
   showViewToggle?: boolean;
+  onUploadClick?: () => void;
+  isUploadActive?: boolean;
+  showUploadButton?: boolean;
 }
 
 /**
@@ -26,6 +30,9 @@ export function Navbar({
   viewMode = 'grid',
   onViewModeChange,
   showViewToggle = true,
+  onUploadClick,
+  isUploadActive = false,
+  showUploadButton = true,
 }: NavbarProps) {
   return (
     <nav
@@ -80,7 +87,15 @@ export function Navbar({
             />
           )}
 
-          {/* Upload button will go here */}
+          {/* Upload button */}
+          {showUploadButton && (
+            <UploadButton
+              onClick={onUploadClick}
+              isActive={isUploadActive}
+              size="md"
+              showLabel={true}
+            />
+          )}
 
           {/* User avatar/menu will go here */}
         </div>
