@@ -14,7 +14,7 @@ import { HeartIcon } from '@/components/icons/heart-icon';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
-import { useSearchShortcut } from '@/hooks/use-keyboard-shortcut';
+import { useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 
@@ -163,14 +163,19 @@ export default function AppPage() {
   }, []);
 
   // Global keyboard shortcut to focus search (Cmd+K / Ctrl+K)
-  useSearchShortcut(() => {
+  const focusSearchBar = useCallback(() => {
     // Focus the search input using a query selector since we can't easily pass refs through all components
     const searchInput = document.querySelector('[data-search-bar] input') as HTMLInputElement;
     if (searchInput) {
       searchInput.focus();
       searchInput.select(); // Select all text for quick replacement
     }
-  });
+  }, []);
+
+  useSearchShortcut(focusSearchBar);
+
+  // Also add "/" key shortcut to focus search
+  useSlashSearchShortcut(focusSearchBar);
 
   // Mark as client-side mounted
   useEffect(() => {

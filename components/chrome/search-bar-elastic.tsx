@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 
 interface SearchBarElasticProps {
   collapsedWidth?: number;
@@ -42,6 +43,12 @@ export function SearchBarElastic({
       setIsExpanded(true);
     }
   }, [searchParams]);
+
+  // Add "/" keyboard shortcut to focus search
+  useSlashSearchShortcut(() => {
+    inputRef.current?.focus();
+    inputRef.current?.select();
+  });
 
   // Handle click outside to collapse
   useEffect(() => {
