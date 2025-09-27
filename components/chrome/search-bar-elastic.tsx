@@ -132,12 +132,12 @@ export function SearchBarElastic({
       ref={containerRef}
       className={cn(
         'relative flex items-center',
-        'transition-[width] duration-[180ms] ease-out will-change-[width]', // Only transition width, use will-change for optimization
+        'transition-[width] duration-[180ms] will-change-[width]', // Only transition width, use will-change for optimization
         className
       )}
       style={{
         width: isExpanded ? expandedWidth : collapsedWidth,
-      }}
+        transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)', // Custom easing for smooth expansion</      }}
     >
       {/* Search Icon */}
       <div className="absolute left-3 pointer-events-none">
