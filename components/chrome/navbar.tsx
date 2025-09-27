@@ -2,6 +2,7 @@
 
 import { ReactNode } from 'react';
 import { LogoWordmark } from './logo-wordmark';
+import { SearchBarElastic } from './search-bar-elastic';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
@@ -48,12 +49,14 @@ export function Navbar({ children, className }: NavbarProps) {
           />
         </div>
 
-        {/* Center section: Placeholder for search and navigation */}
+        {/* Center section: Search bar */}
         <div className="flex-1 flex items-center justify-center px-4">
-          {/* Search bar will go here */}
-          <div className="w-full max-w-xl">
-            {/* Placeholder for elastic search bar */}
-          </div>
+          <SearchBarElastic
+            collapsedWidth={200}
+            expandedWidth={400}
+            placeholder="Search your memes..."
+            className="max-w-xl"
+          />
         </div>
 
         {/* Right section: Actions and user menu */}
