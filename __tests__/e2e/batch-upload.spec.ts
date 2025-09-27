@@ -5,7 +5,9 @@
  */
 
 import { jest } from '@jest/globals';
-import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
+import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService } from '../utils/test-helpers';
+import type { JwtPayload, SessionStatusClaim } from '@clerk/types';
+import type { auth as clerkAuth, currentUser as clerkCurrentUser } from '@clerk/nextjs/server';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
@@ -16,13 +18,83 @@ jest.mock('@/lib/db', () => ({
 
 jest.mock('@vercel/blob', () => mockBlobStorage());
 
+type ClerkAuth = typeof clerkAuth;
+type ClerkAuthResult = Awaited<ReturnType<ClerkAuth>>;
+type ClerkCurrentUser = typeof clerkCurrentUser;
+type ClerkCurrentUserResult = Awaited<ReturnType<ClerkCurrentUser>>;
+
+const createRedirectStub = (): ClerkAuthResult['redirectToSignIn'] =>
+  ((() => {
+    throw new Error('redirect not supported in tests');
+  }) as ClerkAuthResult['redirectToSignIn']);
+
+const createAuthState = (userId: string | null): ClerkAuthResult => {
+  if (!userId) {
+    return {
+      sessionClaims: null,
+      sessionId: null,
+      sessionStatus: null,
+      actor: null,
+      userId: null,
+      orgId: null,
+      orgRole: null,
+      orgSlug: null,
+      orgPermissions: null,
+      factorVerificationAge: null,
+      tokenType: 'session_token',
+      getToken: jest.fn().mockResolvedValue(null),
+      has: jest.fn().mockReturnValue(false),
+      debug: jest.fn().mockReturnValue({}),
+      isAuthenticated: false,
+      redirectToSignIn: createRedirectStub(),
+      redirectToSignUp: createRedirectStub(),
+    } satisfies ClerkAuthResult;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const claims: JwtPayload = {
+    __raw: '',
+    iss: 'https://sploot.test',
+    sub: userId,
+    sid: `sess_${userId}`,
+    nbf: now,
+    exp: now + 3600,
+    iat: now,
+  };
+
+  return {
+    sessionClaims: claims,
+    sessionId: claims.sid,
+    sessionStatus: 'active' as SessionStatusClaim,
+    actor: undefined,
+    userId,
+    orgId: undefined,
+    orgRole: undefined,
+    orgSlug: undefined,
+    orgPermissions: [],
+    factorVerificationAge: null,
+    tokenType: 'session_token',
+    getToken: jest.fn().mockResolvedValue('mock-session-token'),
+    has: jest.fn().mockReturnValue(true),
+    debug: jest.fn().mockReturnValue({}),
+    isAuthenticated: true,
+    redirectToSignIn: createRedirectStub(),
+    redirectToSignUp: createRedirectStub(),
+  } satisfies ClerkAuthResult;
+};
+
+const authMock = jest.fn<ReturnType<ClerkAuth>, Parameters<ClerkAuth>>();
+const currentUserMock = jest.fn<ReturnType<ClerkCurrentUser>, Parameters<ClerkCurrentUser>>();
+
 jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn().mockResolvedValue({ userId: 'test-user' }),
-  currentUser: jest.fn().mockResolvedValue({
-    id: 'test-user',
-    emailAddresses: [{ emailAddress: 'test@example.com' }],
-  }),
+  auth: authMock,
+  currentUser: currentUserMock,
 }));
+
+const setAuthState = (userId: string | null) => {
+  authMock.mockResolvedValue(createAuthState(userId));
+  currentUserMock.mockResolvedValue(null as ClerkCurrentUserResult);
+};
 
 // Mock embedding service
 const mockEmbedding = Array(1152).fill(0.1);
@@ -63,7 +135,7 @@ describe('E2E: Batch Upload', () => {
     performanceTracker.reset();
 
     // Mock auth for all requests
-    mockAuth('test-user');
+    setAuthState('test-user');
   });
 
   afterEach(() => {

@@ -411,7 +411,12 @@
 ## Bug Fixes & Technical Debt
 
 ### TypeScript Errors (Critical)
-- [ ] Fix mock type definitions in `__tests__/e2e/batch-upload.spec.ts` lines 20-21 (auth mocks)
+- [x] Fix mock type definitions in `__tests__/e2e/batch-upload.spec.ts` lines 20-21 (auth mocks)
+  ```
+  Work Log:
+  - swapped clerk auth mocks to typed stubs that satisfy the async SessionAuth shape
+  - left currentUser mocked to null since tests only rely on auth payload
+  ```
 - [ ] Resolve embedding service mock types in test files (13 errors across e2e and embedding tests)
 - [ ] Update test file imports to use correct type exports from production code
 
