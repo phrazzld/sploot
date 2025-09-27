@@ -63,12 +63,14 @@ export default function AppPage() {
     tagId: string | null;
     favorites: boolean;
     sortBy: string;
-    sortOrder: string;
+    sortDirection: string;
   } | undefined>(undefined);
   const pendingRefreshRef = useRef<boolean>(false);
 
   // Get the actual database column for sorting
-  const actualSortBy = getSortColumn(sortBy);
+  // When recent filter is active, always sort by createdAt desc
+  const actualSortBy = isRecentFilter ? 'createdAt' : getSortColumn(sortBy);
+  const actualSortOrder = isRecentFilter ? 'desc' : sortOrder;
 
   // Sync URL parameter to local state (for browser navigation)
   // but NOT during typing to prevent sync loops
@@ -116,8 +118,8 @@ export default function AppPage() {
     refresh,
   } = useAssets({
     initialLimit: 100,
-    sortBy: actualSortBy,
-    sortOrder: sortOrder as 'asc' | 'desc',
+    sortBy: actualSortBy as 'createdAt' | 'size' | 'favorite' | undefined,
+    sortOrder: actualSortOrder as 'asc' | 'desc',
     autoLoad: true,
     filterFavorites: favoritesOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,
@@ -420,7 +422,7 @@ export default function AppPage() {
       const nameA = a.filename.toLowerCase();
       const nameB = b.filename.toLowerCase();
 
-      if (sortOrder === 'asc') {
+      if (actualSortOrder === 'asc') {
         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
       } else {
         return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
@@ -428,7 +430,7 @@ export default function AppPage() {
     });
 
     return sorted;
-  }, [assets, sortBy, sortOrder]);
+  }, [assets, sortBy, actualSortOrder]);
 
   const trimmedLibraryQuery = libraryQuery.trim();
   const isSearching = trimmedLibraryQuery.length > 0;
@@ -463,13 +465,14 @@ export default function AppPage() {
     [deleteAsset, deleteSearchAsset]
   );
 
+  // Trigger refresh when filters or sort preferences change
   useEffect(() => {
     const prev = filtersRef.current;
     const current = {
       tagId: tagIdParam ?? null,
       favorites: favoritesOnly,
       sortBy: actualSortBy,
-      sortOrder: sortOrder as 'asc' | 'desc',
+      sortDirection: actualSortOrder as 'asc' | 'desc',
     };
 
     if (!prev) {
@@ -481,7 +484,7 @@ export default function AppPage() {
       prev.tagId !== current.tagId ||
       prev.favorites !== current.favorites ||
       prev.sortBy !== current.sortBy ||
-      prev.sortOrder !== current.sortOrder;
+      prev.sortDirection !== current.sortDirection;
 
     if (filtersChanged) {
       if (isSearching) {
@@ -496,7 +499,7 @@ export default function AppPage() {
     }
 
     filtersRef.current = current;
-  }, [tagIdParam, favoritesOnly, actualSortBy, sortOrder, isSearching, refresh]);
+  }, [tagIdParam, favoritesOnly, actualSortBy, actualSortOrder, isSearching, refresh]);
 
   useEffect(() => {
     if (!trimmedLibraryQuery) {
