@@ -69,8 +69,8 @@ export function Footer({
         className
       )}
     >
-      {/* Container for footer content */}
-      <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto lg:gap-6">
+      {/* Container for footer content - max-width for ultra-wide screens */}
+      <div className="flex items-center justify-between w-full max-w-screen-2xl 2xl:max-w-[1920px] mx-auto lg:gap-6">
         {/* Left section: Stats display - left-aligned with 16px padding */}
         {/* Hide on portrait tablets (640-1024px portrait), show on landscape and desktop */}
         {showStats && (

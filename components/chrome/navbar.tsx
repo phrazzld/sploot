@@ -65,8 +65,8 @@ export function Navbar({
         className
       )}
     >
-      {/* Container for navbar content */}
-      <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto">
+      {/* Container for navbar content - max-width for ultra-wide screens */}
+      <div className="flex items-center justify-between w-full max-w-screen-2xl 2xl:max-w-[1920px] mx-auto">
         {/* Left section: Logo/Wordmark */}
         <div className="flex items-center gap-4">
           {/* Mobile: Compact logo */}

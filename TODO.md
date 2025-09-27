@@ -349,8 +349,18 @@
   - Full navbar shown from sm: breakpoint (640px+)
   - All controls remain functional across orientations
   ```
-- [~] Desktop (>1024px): All elements visible, search bar expands inline without layout shift
-- [ ] Ultra-wide (>1920px): Max-width container for grid, centered with equal margins
+- [x] Desktop (>1024px): All elements visible, search bar expands inline without layout shift
+  ```
+  Work Log:
+  - Search bar uses will-change optimization to prevent layout shifts
+  - Transition only width property for smooth inline expansion
+  - Progressive max-width: max-w-xl → md:max-w-2xl → lg:max-w-3xl
+  - Desktop elements scaled to 110% for better visibility
+  - Progressive padding: px-4 → md:px-6 → lg:px-8
+  - All footer and navbar elements fully visible at lg: breakpoint
+  - No layout jumps during search bar expansion
+  ```
+- [~] Ultra-wide (>1920px): Max-width container for grid, centered with equal margins
 
 ### Phase 8: Keyboard Shortcuts & Accessibility
 - [ ] Implement `/` key to focus search from anywhere (blur on Escape)

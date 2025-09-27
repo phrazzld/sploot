@@ -510,8 +510,9 @@ export default function AppPage() {
 
   return (
     <div className="flex h-[calc(100vh-100px)] flex-col">
-      <div className="px-6 pb-0 pt-6 md:px-10">
-        <div className="mx-auto w-full max-w-7xl">
+      {/* Container with ultra-wide support - max-width at 1920px+ */}
+      <div className="px-6 pb-0 pt-6 md:px-10 2xl:px-12">
+        <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1920px]">
           <header className="flex flex-col gap-6">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
@@ -831,7 +832,7 @@ export default function AppPage() {
         <SearchLoadingScreen query={libraryQuery} />
       ) : (
         <div className="flex-1 overflow-hidden">
-          <div className="mx-auto flex h-full w-full flex-col overflow-hidden bg-[#101319]">
+          <div className="mx-auto flex h-full w-full flex-col overflow-hidden bg-[#101319] 2xl:max-w-[1920px]">
             <div className="h-full flex-1 overflow-hidden">
               {viewMode === 'masonry' ? (
                 <div
