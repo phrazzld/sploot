@@ -14,7 +14,7 @@ export function MobileHeader() {
           sploot
         </h1>
       </Link>
-      <UserMenu variant="mobile" />
+      <UserMenu variant="mobile" position="header" />
     </header>
   );
 }

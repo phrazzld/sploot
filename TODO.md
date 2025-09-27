@@ -59,7 +59,18 @@
   - All onClick handlers and state preserved in original components
   - Ready for Phase 3 navbar/footer migration
   ```
-- [ ] Isolate UserMenu dropdown logic from sidebar context (currently lines 42-45 in layout) - make position-agnostic
+- [x] Isolate UserMenu dropdown logic from sidebar context (currently lines 42-45 in layout) - make position-agnostic
+  ```
+  Work Log:
+  - Created UserMenuFlexible component with position-agnostic design
+  - Added position prop: sidebar, navbar, header, footer
+  - Added dropdownDirection: up, down, auto (auto-detects based on space)
+  - Added displayMode: full, compact, avatar-only
+  - Refactored original UserMenu as backward-compatible wrapper
+  - Dropdown now adapts position based on context (up in footer, down elsewhere)
+  - Button styling adapts to container (full-width in sidebar, compact in navbar)
+  - All existing usages continue to work unchanged
+  ```
 - [ ] Decouple TagFilter component from vertical layout assumptions - needs to work horizontally in footer
 - [ ] Remove AppNav's vertical spacing/padding classes - prepare for horizontal inline-flex layout
 

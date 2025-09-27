@@ -30,7 +30,7 @@ export function DesktopSidebar() {
 
         {/* User Menu */}
         <div className="p-4 border-t border-[#2A2F37]">
-          <UserMenu />
+          <UserMenu position="sidebar" />
         </div>
       </div>
     </aside>
