@@ -831,13 +831,13 @@ export default function AppPage() {
       {searchLoading && libraryQuery ? (
         <SearchLoadingScreen query={libraryQuery} />
       ) : (
-        <div className="flex-1 overflow-hidden px-6 pb-8 pt-6 md:px-10">
-          <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-[#1F2328] bg-[#101319]">
+        <div className="flex-1 overflow-hidden pb-8 pt-6">
+          <div className="mx-auto flex h-full w-full flex-col overflow-hidden bg-[#101319]">
             <div className="h-full flex-1 overflow-hidden">
               {viewMode === 'masonry' ? (
                 <div
                   ref={handleScrollContainerReady}
-                  className={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                  className={cn(gridContainerClassName, 'w-full')}
                   style={{ scrollbarGutter: 'stable' }}
                 >
                   <MasonryGrid
@@ -849,7 +849,7 @@ export default function AppPage() {
                     onAssetDelete={handleAssetDelete}
                     onAssetSelect={setSelectedAsset}
                     onUploadClick={() => setShowUploadPanel(true)}
-                    className="mx-auto w-full max-w-6xl"
+                    className="mx-auto w-full"
                   />
                 </div>
               ) : viewMode === 'list' ? (
@@ -862,7 +862,7 @@ export default function AppPage() {
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
                   onScrollContainerReady={handleScrollContainerReady}
-                  containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                  containerClassName={cn(gridContainerClassName, 'w-full')}
                   onUploadClick={() => setShowUploadPanel(true)}
                 />
               ) : (
@@ -877,7 +877,7 @@ export default function AppPage() {
                     onAssetUpdate={handleAssetUpdate}
                     onAssetDelete={handleAssetDelete}
                     onAssetSelect={setSelectedAsset}
-                    containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                    containerClassName={cn(gridContainerClassName, 'w-full')}
                     onScrollContainerReady={handleScrollContainerReady}
                     onUploadClick={() => setShowUploadPanel(true)}
                   />

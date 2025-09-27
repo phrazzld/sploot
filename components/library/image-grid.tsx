@@ -52,7 +52,7 @@ export function ImageGrid({
     if (!containerWidth) return 1;
 
     const ITEM_WIDTH = 280;
-    const GAP = 16;
+    const GAP = 8;
     const MIN_COLUMNS = 1;
     const MAX_COLUMNS = 5;
 
@@ -217,7 +217,7 @@ export function ImageGrid({
           className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
             {assets.map((asset, index) => (
               <div
                 key={asset.id}
@@ -308,7 +308,7 @@ export function ImageGrid({
                 }}
               >
                 <div
-                  className="grid gap-4"
+                  className="grid gap-2"
                   style={{
                     gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
                   }}

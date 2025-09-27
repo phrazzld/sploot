@@ -113,7 +113,7 @@ export function MasonryGrid({
       <div className="masonry-grid">
         <style jsx>{`
           .masonry-grid {
-            column-gap: 16px;
+            column-gap: 8px;
             column-width: 260px;
             max-width: 100%;
           }
@@ -126,7 +126,7 @@ export function MasonryGrid({
 
           .masonry-item {
             break-inside: avoid;
-            margin-bottom: 16px;
+            margin-bottom: 8px;
             width: 100%;
           }
         `}</style>
