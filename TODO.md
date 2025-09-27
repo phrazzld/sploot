@@ -193,7 +193,21 @@
   - Default values match spec (134 memes, 2 bangers, 9.9 MB)
   - Footer accepts totalAssets, favoriteCount, totalSizeBytes props
   ```
-- [~] Implement filter chips: favorites (star icon), recent (clock icon), 32px height, toggle states with accent bg
+- [x] Implement filter chips: favorites (star icon), recent (clock icon), 32px height, toggle states with accent bg
+  ```
+  Work Log:
+  - Created FilterChips component with three filter options (All, Favorites, Recent)
+  - Added star icon for favorites (fills when active)
+  - Added clock icon for recent filter
+  - Set 32px height using h-8 class (md size configuration)
+  - Implemented toggle states with #7C5CFF accent background when active
+  - Added hover scale effects (1.05) and active scale (0.95)
+  - Created FilterChip component for individual chip usage
+  - Integrated into footer center section
+  - Added FilterType type for type-safe filter values
+  - Footer accepts activeFilter and onFilterChange props
+  - Tested in ChromeTest with state management
+  ```
 - [ ] Add sort dropdown: "recent ↓" default, options for date/size/name, right-aligned before settings
 - [ ] Position settings gear: 32px square touch target, 16px from right edge, rotate 90deg on hover (200ms)
 
