@@ -262,7 +262,15 @@
   - Main content now properly accounts for navbar (56px) + footer (44px)
   - Scroll containers work correctly within fixed chrome bounds
   ```
-- [ ] Ensure virtual scrolling triggers at correct viewport boundary (not sidebar-relative anymore)
+- [x] Ensure virtual scrolling triggers at correct viewport boundary (not sidebar-relative anymore)
+  ```
+  Work Log:
+  - Verified ImageGrid virtualizer uses container-relative scrolling (getScrollElement)
+  - Confirmed infinite scroll uses percentage thresholds (80% for grid, 92% for list)
+  - MasonryGrid IntersectionObserver correctly uses viewport-relative observation
+  - No hardcoded sidebar widths (256px/ml-64) found in library components
+  - All implementations already viewport-boundary aware, no changes needed
+  ```
 - [ ] Update infinite scroll intersection observer: root margin needs adjustment for new chrome height
 
 ### Phase 6: State Management Migration
