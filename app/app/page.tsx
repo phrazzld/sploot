@@ -23,10 +23,11 @@ export default function AppPage() {
   const queryParam = searchParams.get('q') ?? '';
   const tagIdParam = searchParams.get('tagId');
   const favoritesOnly = searchParams.get('favorite') === 'true';
+  const viewModeParam = searchParams.get('view') as 'grid' | 'masonry' | 'list' | null;
+  const viewMode = viewModeParam || 'grid'; // Default to grid if not specified
 
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid');
   const [sortBy, setSortBy] = useState<'createdAt' | 'favorite' | 'size' | 'filename'>('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
@@ -159,22 +160,14 @@ export default function AppPage() {
   // Load preferences from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedViewMode = localStorage.getItem('viewMode') as 'grid' | 'masonry' | 'list';
+      // Only load sort preferences from localStorage (viewMode is now in URL)
       const savedSortBy = localStorage.getItem('sortBy') as 'createdAt' | 'favorite' | 'size' | 'filename';
       const savedSortOrder = localStorage.getItem('sortOrder') as 'asc' | 'desc';
 
-      if (savedViewMode) setViewMode(savedViewMode);
       if (savedSortBy) setSortBy(savedSortBy);
       if (savedSortOrder) setSortOrder(savedSortOrder);
     }
   }, []); // Only run once on mount
-
-  // Save preferences to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('viewMode', viewMode);
-    }
-  }, [viewMode]);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -386,9 +379,13 @@ export default function AppPage() {
 
       captureScrollPosition();
       setIsViewModeTransitioning(true);
-      setViewMode(mode);
+
+      // Update URL params to include view mode
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('view', mode);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [captureScrollPosition, viewMode]
+    [captureScrollPosition, viewMode, searchParams, pathname, router]
   );
 
   useEffect(() => {
