@@ -208,7 +208,18 @@
   - Footer accepts activeFilter and onFilterChange props
   - Tested in ChromeTest with state management
   ```
-- [ ] Add sort dropdown: "recent ↓" default, options for date/size/name, right-aligned before settings
+- [x] Add sort dropdown: "recent ↓" default, options for date/size/name, right-aligned before settings
+  ```
+  Work Log:
+  - Created SortDropdown component following UserAvatar dropdown pattern
+  - Implemented options for recent/date/size/name sorting
+  - Added click-to-reverse direction toggle functionality
+  - Dropdown opens above footer to prevent viewport cutoff
+  - Integrated into footer right section before settings
+  - Added state management props to Footer component
+  - Updated ChromeTest with sort state and onChange handlers
+  - Default: "recent ↓" with visual direction indicators
+  ```
 - [ ] Position settings gear: 32px square touch target, 16px from right edge, rotate 90deg on hover (200ms)
 
 ### Phase 5: Content Area Optimization
