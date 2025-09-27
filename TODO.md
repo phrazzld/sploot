@@ -271,7 +271,15 @@
   - No hardcoded sidebar widths (256px/ml-64) found in library components
   - All implementations already viewport-boundary aware, no changes needed
   ```
-- [ ] Update infinite scroll intersection observer: root margin needs adjustment for new chrome height
+- [x] Update infinite scroll intersection observer: root margin needs adjustment for new chrome height
+  ```
+  Work Log:
+  - Updated MasonryGrid IntersectionObserver rootMargin from 200px to 100px
+  - New value matches navbar (56px) + footer (44px) = 100px chrome
+  - ImageGrid uses 80% scroll threshold (percentage-based, no change needed)
+  - ImageList uses 92% scroll threshold (percentage-based, no change needed)
+  - Infinite scroll now triggers at optimal distance from viewport edge
+  ```
 
 ### Phase 6: State Management Migration
 - [ ] Move view mode state to URL params (preserve on navigation, shareable URLs)
