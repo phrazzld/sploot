@@ -292,7 +292,17 @@
   - Default to 'grid' view when param not specified
   - View mode now shareable via URL and preserved across navigation
   ```
-- [~] Migrate sort preferences to localStorage with 100ms debounced writes
+- [x] Migrate sort preferences to localStorage with 100ms debounced writes
+  ```
+  Work Log:
+  - Created useSortPreferences hook with localStorage persistence
+  - Used existing useDebounce hook for 100ms debouncing
+  - Replaced inline localStorage handling in app/page.tsx
+  - Mapped old sort values (createdAt/filename) to new SortOption types
+  - Hook loads preferences on mount, saves after debounced changes
+  - Created test page at /test-sort-preferences to verify functionality
+  - Preferences persist across sessions and page refreshes
+  ```
 - [ ] Consolidate filter state into single context/hook accessible by both navbar and footer
 - [ ] Update all grid re-render triggers to work with new component hierarchy
 
