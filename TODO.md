@@ -1,0 +1,125 @@
+# TODO.md
+
+## Interface Redesign: Sidebar → Navbar/Footer Architecture
+
+### Phase 1: Measurement & Benchmarking
+- [x] Profile current render performance: measure initial paint, layout shifts, and interaction delays on sidebar navigation (target baseline: sub-300ms interactions)
+  ```
+  Work Log:
+  - Created PerformanceProfiler class to measure FCP, LCP, CLS, and interaction delays
+  - Added PerformanceProfilerUI debug component for development
+  - Documented baseline: 256px sidebar = 14.4% chrome, 50ms avg interaction delay
+  - All interactions well within 300ms target (max 65ms)
+  ```
+- [ ] Document current viewport utilization: calculate exact pixel usage for chrome vs content (current: 256px sidebar + margins = ~280px wasted horizontal)
+- [ ] Audit all navigation touchpoints: create exhaustive list of every clickable element in sidebar, their usage frequency, and click depth
+- [ ] Measure current mobile performance: document touch target sizes, scroll performance, and gesture conflicts
+
+### Phase 2: Component Extraction & Cleanup
+- [ ] Extract all navigation logic from `/app/app/layout.tsx` into temporary holding components (preserve all onClick handlers and state)
+- [ ] Isolate UserMenu dropdown logic from sidebar context (currently lines 42-45 in layout) - make position-agnostic
+- [ ] Decouple TagFilter component from vertical layout assumptions - needs to work horizontally in footer
+- [ ] Remove AppNav's vertical spacing/padding classes - prepare for horizontal inline-flex layout
+
+### Phase 3: Navbar Implementation (56px fixed height)
+- [ ] Create `/components/chrome/navbar.tsx` with fixed positioning and z-index:50 to stay above content
+- [ ] Implement logo/wordmark component (32px height, link to '/app', preserve lowercase "sploot" typography)
+- [ ] Build elastic search bar: 200px collapsed → 400px expanded, with 180ms ease-out transition on focus
+- [ ] Add view mode toggle group: 3 icons (grid/masonry/list), 40x40px touch targets, active state with accent color
+- [ ] Position upload button: 100px width, primary accent bg, fixed right-side position at navbar-end minus 60px
+- [ ] Integrate user avatar: 32px circle, 8px margin from right edge, dropdown on click with 4px gap
+
+### Phase 4: Footer Implementation (44px fixed height)
+- [ ] Create `/components/chrome/footer.tsx` with fixed bottom positioning, same z-index as navbar
+- [ ] Build stats display: "134 memes • 2 bangers • 9.9 MB" format, muted text, left-aligned with 16px padding
+- [ ] Implement filter chips: favorites (star icon), recent (clock icon), 32px height, toggle states with accent bg
+- [ ] Add sort dropdown: "recent ↓" default, options for date/size/name, right-aligned before settings
+- [ ] Position settings gear: 32px square touch target, 16px from right edge, rotate 90deg on hover (200ms)
+
+### Phase 5: Content Area Optimization
+- [ ] Update main content wrapper: remove ml-64 class, add pt-14 pb-11 for navbar/footer clearance
+- [ ] Adjust grid container: full viewport width, remove horizontal padding, maintain 8px gap between tiles
+- [ ] Fix scroll container height: calc(100vh - 100px) accounting for both fixed bars
+- [ ] Ensure virtual scrolling triggers at correct viewport boundary (not sidebar-relative anymore)
+- [ ] Update infinite scroll intersection observer: root margin needs adjustment for new chrome height
+
+### Phase 6: State Management Migration
+- [ ] Move view mode state to URL params (preserve on navigation, shareable URLs)
+- [ ] Migrate sort preferences to localStorage with 100ms debounced writes
+- [ ] Consolidate filter state into single context/hook accessible by both navbar and footer
+- [ ] Update all grid re-render triggers to work with new component hierarchy
+
+### Phase 7: Responsive Breakpoints
+- [ ] Mobile (<640px): Collapse view toggles into dropdown menu, reduce search bar to icon-trigger overlay
+- [ ] Tablet (640-1024px): Show full navbar, hide footer stats on portrait, maintain all controls
+- [ ] Desktop (>1024px): All elements visible, search bar expands inline without layout shift
+- [ ] Ultra-wide (>1920px): Max-width container for grid, centered with equal margins
+
+### Phase 8: Keyboard Shortcuts & Accessibility
+- [ ] Implement `/` key to focus search from anywhere (blur on Escape)
+- [ ] Add `1`, `2`, `3` keys for view mode switching (with 100ms debounce)
+- [ ] Create `⌘K` command palette for all hidden actions (upload, settings, sign out)
+- [ ] Ensure Tab order: logo → search → view → upload → avatar → grid → footer controls
+- [ ] Add focus-visible rings: 2px offset, accent color, visible only on keyboard navigation
+
+### Phase 9: Animation Polish
+- [ ] Search bar expansion: width transition with cubic-bezier(0.4, 0, 0.2, 1)
+- [ ] View mode switching: 200ms crossfade between grid layouts, no position jumping
+- [ ] Dropdown menus: 140ms fade-in with 4px translateY, reverse on close
+- [ ] Footer stats update: 300ms number morphing animation when count changes
+- [ ] Upload button: 1.05 scale on hover, 0.95 scale on click, with spring physics
+
+### Phase 10: Performance Validation
+- [ ] Measure new FCP/LCP/CLS scores: target <1.5s LCP, <0.1 CLS
+- [ ] Profile memory usage: ensure no leaks from event listeners in removed sidebar
+- [ ] Test interaction latency: all clicks/taps must respond within 100ms
+- [ ] Validate mobile scroll performance: maintain 60fps during fast swipes
+- [ ] Load test with 10,000 images: grid must remain responsive, virtual scrolling must engage
+
+### Phase 11: Cleanup & Documentation
+- [ ] Delete old sidebar components: `/components/navigation/app-nav.tsx`, mobile-nav.tsx
+- [ ] Remove unused CSS classes and Tailwind utilities from compiled bundle
+- [ ] Update all component imports to use new chrome components
+- [ ] Document new navigation architecture in /docs/adr/interface-redesign.md
+- [ ] Create Storybook stories for navbar/footer component variants
+
+## Bug Fixes & Technical Debt
+
+### TypeScript Errors (Critical)
+- [ ] Fix mock type definitions in `__tests__/e2e/batch-upload.spec.ts` lines 20-21 (auth mocks)
+- [ ] Resolve embedding service mock types in test files (13 errors across e2e and embedding tests)
+- [ ] Update test file imports to use correct type exports from production code
+
+### Performance Warnings
+- [ ] Replace `<img>` with Next.js `<Image>` in `/app/app/page.tsx` line 901
+- [ ] Update image tile component to use optimized Image component with blur placeholders
+- [ ] Fix missing dependency in `useEffect` for embeddingStatus in image-tile.tsx line 131
+
+### Upload Component Refactor
+- [ ] Complete migration from array-based `files` state to Map-based `fileMetadata`
+- [ ] Remove temporary `files` state variable and all `setFiles` calls
+- [ ] Implement proper WeakMap usage for `activeFileObjects` to prevent memory leaks
+- [ ] Consolidate all file operations to use single source of truth (Map structure)
+
+### Repository Maintenance
+- [ ] Push 3 local commits to origin/master (commits 625dc90, 0f40ece, 7f6f958)
+- [ ] Run full test suite and fix any failures before push
+- [ ] Update package-lock after Next.js 15.5.3 upgrade is stable
+
+## Performance Optimizations
+
+### Search Performance
+- [ ] Implement search result streaming: show first 20 results immediately, stream rest
+- [ ] Add client-side embedding cache with 5-minute TTL for repeated searches
+- [ ] Optimize debounce timing: test 200ms vs 300ms for perceived responsiveness
+
+### Image Loading
+- [ ] Implement progressive JPEG loading for faster perceived performance
+- [ ] Add WebP variants with fallbacks for 30% smaller file sizes
+- [ ] Create 32px micro-thumbnails for instant grid preview during loading
+
+---
+
+*Generated: 2025-09-26*
+*Methodology: Each task sized for <2 hours completion, ordered by dependency chain*
+*Success Metric: 60% reduction in UI chrome, <500ms interaction response, zero regression in features*

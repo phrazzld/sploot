@@ -5,6 +5,7 @@ import { UserMenu } from '@/components/navigation/user-menu';
 import { TagFilter } from '@/components/navigation/tag-filter';
 import { OfflineProvider } from '@/components/offline/offline-provider';
 import { getAuthWithUser } from '@/lib/auth/server';
+import { PerformanceProfilerUI } from '@/components/debug/performance-profiler-ui';
 
 export default async function AppLayout({
   children,
@@ -73,6 +74,7 @@ export default async function AppLayout({
         <MobileNav />
       </div>
 
+      <PerformanceProfilerUI />
     </div>
     </OfflineProvider>
   );
