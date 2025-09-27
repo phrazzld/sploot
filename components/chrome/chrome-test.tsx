@@ -77,6 +77,7 @@ export function ChromeTest() {
                     <p>✓ Stats display: 134 memes • 2 bangers • 9.9 MB</p>
                     <p>✓ Filter chips: {activeFilter} filter active</p>
                     <p>✓ Sort dropdown: {sortValue} {sortDirection === 'desc' ? '↓' : '↑'}</p>
+                    <p>✓ Settings gear: 32px target, 90° rotation on hover</p>
                   </div>
                 </div>
 
@@ -112,6 +113,8 @@ export function ChromeTest() {
               setSortDirection(direction);
             }}
             showSort={true}
+            showSettings={true}
+            onSettingsClick={() => console.log('Settings clicked')}
           />
         </>
       )}

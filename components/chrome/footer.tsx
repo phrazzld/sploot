@@ -4,6 +4,7 @@ import { ReactNode } from 'react';
 import { StatsDisplay } from './stats-display';
 import { FilterChips, type FilterType } from './filter-chips';
 import { SortDropdown, type SortOption, type SortDirection } from './sort-dropdown';
+import { SettingsGear } from './settings-gear';
 import { cn } from '@/lib/utils';
 
 interface FooterProps {
@@ -20,6 +21,8 @@ interface FooterProps {
   sortDirection?: SortDirection;
   onSortChange?: (option: SortOption, direction: SortDirection) => void;
   showSort?: boolean;
+  showSettings?: boolean;
+  onSettingsClick?: () => void;
 }
 
 /**
@@ -42,6 +45,8 @@ export function Footer({
   sortDirection = 'desc',
   onSortChange,
   showSort = true,
+  showSettings = true,
+  onSettingsClick,
 }: FooterProps) {
   return (
     <footer
@@ -97,7 +102,13 @@ export function Footer({
             />
           )}
 
-          {/* Settings gear will go here */}
+          {/* Settings gear - 32px square touch target, 16px from right edge */}
+          {showSettings && (
+            <SettingsGear
+              onClick={onSettingsClick}
+              size="md" // 32px as specified
+            />
+          )}
         </div>
 
         {/* Allow children to be passed for flexibility during development */}
