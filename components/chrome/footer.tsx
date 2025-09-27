@@ -63,14 +63,14 @@ export function Footer({
         'backdrop-blur-sm',
         // Layout
         'flex items-center',
-        // Padding
-        'px-4 md:px-6',
+        // Padding - progressive increase for larger screens
+        'px-4 md:px-6 lg:px-8',
         // Custom classes
         className
       )}
     >
       {/* Container for footer content */}
-      <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto">
+      <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto lg:gap-6">
         {/* Left section: Stats display - left-aligned with 16px padding */}
         {/* Hide on portrait tablets (640-1024px portrait), show on landscape and desktop */}
         {showStats && (

@@ -125,7 +125,7 @@ export function SearchBarElastic({
       ref={containerRef}
       className={cn(
         'relative flex items-center',
-        'transition-all duration-[180ms] ease-out',
+        'transition-[width] duration-[180ms] ease-out will-change-[width]', // Only transition width, use will-change for optimization
         className
       )}
       style={{

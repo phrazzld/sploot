@@ -339,8 +339,17 @@
   - Upload button shows icon-only on mobile, with label on desktop
   - All transitions at 640px breakpoint using Tailwind responsive classes
   ```
-- [~] Tablet (640-1024px): Show full navbar, hide footer stats on portrait, maintain all controls
-- [ ] Desktop (>1024px): All elements visible, search bar expands inline without layout shift
+- [x] Tablet (640-1024px): Show full navbar, hide footer stats on portrait, maintain all controls
+  ```
+  Work Log:
+  - Added portrait orientation detection for tablets using portrait: modifier
+  - Footer stats hidden on portrait tablets, visible on landscape
+  - Filter chips reposition to left when stats are hidden (mr-auto)
+  - Search bar max-width increased on tablets (md:max-w-2xl)
+  - Full navbar shown from sm: breakpoint (640px+)
+  - All controls remain functional across orientations
+  ```
+- [~] Desktop (>1024px): All elements visible, search bar expands inline without layout shift
 - [ ] Ultra-wide (>1920px): Max-width container for grid, centered with equal margins
 
 ### Phase 8: Keyboard Shortcuts & Accessibility

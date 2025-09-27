@@ -59,8 +59,8 @@ export function Navbar({
         'backdrop-blur-sm',
         // Layout
         'flex items-center',
-        // Padding
-        'px-4 md:px-6',
+        // Padding - progressive increase for larger screens
+        'px-4 md:px-6 lg:px-8',
         // Custom classes
         className
       )}
@@ -83,6 +83,7 @@ export function Navbar({
               variant="default"
               size="md"
               showTagline={false}
+              className="lg:scale-110" // Slightly larger on desktop
             />
           </div>
         </div>
@@ -93,7 +94,7 @@ export function Navbar({
             collapsedWidth={200}
             expandedWidth={400}
             placeholder="Search your memes..."
-            className="max-w-xl md:max-w-2xl" // Slightly larger max-width on tablets
+            className="max-w-xl md:max-w-2xl lg:max-w-3xl" // Progressive max-width increase
           />
         </div>
 
@@ -115,6 +116,7 @@ export function Navbar({
                   value={viewMode}
                   onChange={onViewModeChange}
                   size="md"
+                  className="lg:scale-110" // Slightly larger on desktop for better visibility
                 />
               </div>
 
