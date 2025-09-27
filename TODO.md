@@ -243,7 +243,16 @@
   - Updated viewport-analyzer.ts to remove ml-64 specific logic
   - Content area now ready for new chrome architecture
   ```
-- [ ] Adjust grid container: full viewport width, remove horizontal padding, maintain 8px gap between tiles
+- [x] Adjust grid container: full viewport width, remove horizontal padding, maintain 8px gap between tiles
+  ```
+  Work Log:
+  - Removed horizontal padding from main content container (px-6 md:px-10)
+  - Removed max-width constraints (max-w-7xl, max-w-6xl) for full width
+  - Removed extra padding (px-2) from grid containers
+  - Changed gap from 16px to 8px in ImageGrid, MasonryGrid
+  - Updated GAP constant from 16 to 8 for column calculations
+  - Grid now spans full viewport width with consistent 8px tile gaps
+  ```
 - [ ] Fix scroll container height: calc(100vh - 100px) accounting for both fixed bars
 - [ ] Ensure virtual scrolling triggers at correct viewport boundary (not sidebar-relative anymore)
 - [ ] Update infinite scroll intersection observer: root margin needs adjustment for new chrome height
