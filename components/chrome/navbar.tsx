@@ -5,6 +5,7 @@ import { LogoWordmark } from './logo-wordmark';
 import { SearchBarElastic } from './search-bar-elastic';
 import { ViewModeToggle, type ViewMode } from './view-mode-toggle';
 import { UploadButton } from './upload-button';
+import { UserAvatar } from './user-avatar';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
@@ -16,6 +17,8 @@ interface NavbarProps {
   onUploadClick?: () => void;
   isUploadActive?: boolean;
   showUploadButton?: boolean;
+  showUserAvatar?: boolean;
+  onSignOut?: () => void;
 }
 
 /**
@@ -33,6 +36,8 @@ export function Navbar({
   onUploadClick,
   isUploadActive = false,
   showUploadButton = true,
+  showUserAvatar = true,
+  onSignOut,
 }: NavbarProps) {
   return (
     <nav
@@ -97,7 +102,15 @@ export function Navbar({
             />
           )}
 
-          {/* User avatar/menu will go here */}
+          {/* User avatar - 32px circle with 8px margin from right edge */}
+          {showUserAvatar && (
+            <UserAvatar
+              className="mr-2"  // 8px margin from right edge
+              avatarSize="md"   // 32px size
+              showDropdown={true}
+              onSignOut={onSignOut}
+            />
+          )}
         </div>
 
         {/* Allow children to be passed for flexibility during development */}

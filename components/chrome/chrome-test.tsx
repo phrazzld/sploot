@@ -42,6 +42,8 @@ export function ChromeTest() {
             onUploadClick={() => setIsUploadActive(!isUploadActive)}
             isUploadActive={isUploadActive}
             showUploadButton={true}
+            showUserAvatar={true}
+            onSignOut={() => console.log('Sign out clicked')}
           />
           <NavbarSpacer />
 

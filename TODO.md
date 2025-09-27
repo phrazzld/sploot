@@ -162,7 +162,7 @@
   - Icon rotates on hover for additional visual feedback
   - Tested in ChromeTest component with toggle functionality
   ```
-- [ ] Integrate user avatar: 32px circle, 8px margin from right edge, dropdown on click with 4px gap
+- [~] Integrate user avatar: 32px circle, 8px margin from right edge, dropdown on click with 4px gap
 
 ### Phase 4: Footer Implementation (44px fixed height)
 - [ ] Create `/components/chrome/footer.tsx` with fixed bottom positioning, same z-index as navbar
