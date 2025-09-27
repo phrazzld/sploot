@@ -11,7 +11,17 @@
   - Documented baseline: 256px sidebar = 14.4% chrome, 50ms avg interaction delay
   - All interactions well within 300ms target (max 65ms)
   ```
-- [ ] Document current viewport utilization: calculate exact pixel usage for chrome vs content (current: 256px sidebar + margins = ~280px wasted horizontal)
+- [x] Document current viewport utilization: calculate exact pixel usage for chrome vs content (current: 256px sidebar + margins = ~280px wasted horizontal)
+  ```
+  Work Log:
+  - Created ViewportAnalyzer class for precise pixel measurement
+  - Added ViewportAnalyzerUI debug component with real-time metrics
+  - Discovered: 512px total horizontal waste (sidebar 256px + ml-64 margin 256px)
+  - Desktop: 73.3% actual content usage (26.7% lost to chrome+margins)
+  - Mobile: 83.8% content (132px lost to header+nav)
+  - Tablet: Worst case at 66.7% content (sidebar takes 33.3%)
+  - Target improvement: 73.3% → 94.8% content (+445,440 pixels)
+  ```
 - [ ] Audit all navigation touchpoints: create exhaustive list of every clickable element in sidebar, their usage frequency, and click depth
 - [ ] Measure current mobile performance: document touch target sizes, scroll performance, and gesture conflicts
 

@@ -6,6 +6,7 @@ import { TagFilter } from '@/components/navigation/tag-filter';
 import { OfflineProvider } from '@/components/offline/offline-provider';
 import { getAuthWithUser } from '@/lib/auth/server';
 import { PerformanceProfilerUI } from '@/components/debug/performance-profiler-ui';
+import { ViewportAnalyzerUI } from '@/components/debug/viewport-analyzer-ui';
 
 export default async function AppLayout({
   children,
@@ -75,6 +76,7 @@ export default async function AppLayout({
       </div>
 
       <PerformanceProfilerUI />
+      <ViewportAnalyzerUI />
     </div>
     </OfflineProvider>
   );
