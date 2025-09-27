@@ -253,7 +253,15 @@
   - Updated GAP constant from 16 to 8 for column calculations
   - Grid now spans full viewport width with consistent 8px tile gaps
   ```
-- [ ] Fix scroll container height: calc(100vh - 100px) accounting for both fixed bars
+- [x] Fix scroll container height: calc(100vh - 100px) accounting for both fixed bars
+  ```
+  Work Log:
+  - Set main page container height to calc(100vh - 100px)
+  - Updated NavigationContainer min-height to match chrome height
+  - Removed unnecessary padding from content wrapper
+  - Main content now properly accounts for navbar (56px) + footer (44px)
+  - Scroll containers work correctly within fixed chrome bounds
+  ```
 - [ ] Ensure virtual scrolling triggers at correct viewport boundary (not sidebar-relative anymore)
 - [ ] Update infinite scroll intersection observer: root margin needs adjustment for new chrome height
 
