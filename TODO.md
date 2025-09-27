@@ -417,7 +417,18 @@
   - No explicit tabindex needed - natural DOM order is correct (best practice)
   - All elements are keyboard accessible with proper focus indicators
   ```
-- [ ] Add focus-visible rings: 2px offset, accent color, visible only on keyboard navigation
+- [x] Add focus-visible rings: 2px offset, accent color, visible only on keyboard navigation
+  ```
+  Work Log:
+  - Added global CSS styles using :focus-visible pseudo-class
+  - Focus rings only appear for keyboard navigation, not mouse clicks
+  - Implemented 2px solid #7C5CFF outline with 2px offset
+  - Covered all interactive elements (buttons, links, inputs, etc)
+  - Special handling for form fields (no offset to prevent layout shift)
+  - Focus rings respect element border radius (rounded-lg, rounded-full, etc)
+  - Added utility classes for customization (dark-focus, focus-ring-custom, no-focus-ring)
+  - Created test page at /test-focus-visible for comprehensive testing
+  ```
 
 ### Phase 9: Animation Polish
 - [ ] Search bar expansion: width transition with cubic-bezier(0.4, 0, 0.2, 1)

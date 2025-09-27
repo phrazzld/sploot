@@ -98,3 +98,71 @@ body {
   transform: translateZ(0); /* Force hardware acceleration */
   backface-visibility: hidden; /* Prevent flickering */
 }
+
+/* Focus-visible styles for keyboard navigation */
+/* Remove default outline for mouse clicks/taps */
+*:focus {
+  outline: none;
+}
+
+/* Add focus ring only for keyboard navigation */
+/* 2px offset, accent color (#7C5CFF), visible only on keyboard */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible,
+details:focus-visible,
+[tabindex]:focus-visible,
+[role="button"]:focus-visible,
+[role="link"]:focus-visible,
+[role="checkbox"]:focus-visible,
+[role="radio"]:focus-visible,
+[role="switch"]:focus-visible,
+[role="tab"]:focus-visible,
+[role="menuitem"]:focus-visible,
+[role="option"]:focus-visible,
+[contenteditable]:focus-visible {
+  outline: 2px solid #7C5CFF;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Special handling for inputs and textareas to prevent double borders */
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline: 2px solid #7C5CFF;
+  outline-offset: 0; /* No offset for form fields to avoid layout shift */
+}
+
+/* For components with dark backgrounds, add a subtle glow */
+.dark-focus:focus-visible {
+  outline: 2px solid #7C5CFF;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.1);
+}
+
+/* Ensure focus rings respect component border radius */
+.rounded-lg:focus-visible {
+  border-radius: 0.5rem;
+}
+
+.rounded-xl:focus-visible {
+  border-radius: 0.75rem;
+}
+
+.rounded-full:focus-visible {
+  border-radius: 9999px;
+}
+
+/* Custom focus styles for specific components that need different treatment */
+.focus-ring-custom:focus-visible {
+  outline: 2px solid #B6FF6E; /* Alternative accent color */
+  outline-offset: 2px;
+}
+
+/* Disable focus rings for elements that shouldn't show them */
+.no-focus-ring:focus-visible {
+  outline: none;
+}
