@@ -15,6 +15,7 @@ import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
+import { CommandPalette, useCommandPalette } from '@/components/chrome/command-palette';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 
@@ -41,6 +42,9 @@ export default function AppPage() {
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+  // Command palette state
+  const { isOpen: isCommandPaletteOpen, openPalette, closePalette } = useCommandPalette();
 
   // Use sort preferences hook with localStorage persistence and debouncing
   const { sortBy, direction: sortOrder, handleSortChange, getSortColumn } = useSortPreferences();
@@ -172,7 +176,8 @@ export default function AppPage() {
     }
   }, []);
 
-  useSearchShortcut(focusSearchBar);
+  // Replace search shortcut with command palette
+  useSearchShortcut(openPalette);
 
   // Also add "/" key shortcut to focus search
   useSlashSearchShortcut(focusSearchBar);
@@ -1040,6 +1045,14 @@ export default function AppPage() {
           </div>
         </div>
       )}
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={closePalette}
+        onUpload={() => router.push('/app/upload')}
+        onSignOut={() => window.location.href = '/api/auth/signout'}
+      />
     </div>
   );
 }

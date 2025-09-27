@@ -392,7 +392,18 @@
   - Properly cleans up timeout on unmount
   - Tested working in development environment
   ```
-- [ ] Create `⌘K` command palette for all hidden actions (upload, settings, sign out)
+- [x] Create `⌘K` command palette for all hidden actions (upload, settings, sign out)
+  ```
+  Work Log:
+  - Created CommandPalette component in components/chrome/command-palette.tsx
+  - Implements modal overlay with search and command list
+  - Supports keyboard navigation (arrow keys, Enter, Escape)
+  - Includes 5 commands: Upload, Settings, Search, Home, Sign Out
+  - Added single-letter shortcuts (U, S, /) for quick access
+  - Integrated with main app page using useSearchShortcut hook
+  - Opens with ⌘K on Mac or Ctrl+K on Windows/Linux
+  - Created test page at /test-command-palette for demonstration
+  ```
 - [ ] Ensure Tab order: logo → search → view → upload → avatar → grid → footer controls
 - [ ] Add focus-visible rings: 2px offset, accent color, visible only on keyboard navigation
 
