@@ -110,7 +110,18 @@
   - Structured footer with left (stats), center (filters), right (settings) sections
   - Total chrome reduction: 100px (navbar+footer) vs 256px (sidebar) = 60% less
   ```
-- [~] Implement logo/wordmark component (32px height, link to '/app', preserve lowercase "sploot" typography)
+- [x] Implement logo/wordmark component (32px height, link to '/app', preserve lowercase "sploot" typography)
+  ```
+  Work Log:
+  - Created LogoWordmark component with flexible variants (default, compact, icon-only)
+  - Added size configurations (sm: 24px, md: 32px, lg: 40px)
+  - Implemented gradient logo icon using brand colors (#7C5CFF to #B6FF6E)
+  - Added optional tagline display for sidebar context
+  - Integrated into navbar with 32px height as specified
+  - Updated desktop sidebar to use same component for consistency
+  - Maintained lowercase "sploot" typography throughout
+  - Preserved link to '/app' with proper accessibility label
+  ```
 - [ ] Build elastic search bar: 200px collapsed → 400px expanded, with 180ms ease-out transition on focus
 - [ ] Add view mode toggle group: 3 icons (grid/masonry/list), 40x40px touch targets, active state with accent color
 - [ ] Position upload button: 100px width, primary accent bg, fixed right-side position at navbar-end minus 60px
