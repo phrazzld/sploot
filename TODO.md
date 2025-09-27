@@ -98,7 +98,7 @@
   ```
 
 ### Phase 3: Navbar Implementation (56px fixed height)
-- [ ] Create `/components/chrome/navbar.tsx` with fixed positioning and z-index:50 to stay above content
+- [~] Create `/components/chrome/navbar.tsx` with fixed positioning and z-index:50 to stay above content
 - [ ] Implement logo/wordmark component (32px height, link to '/app', preserve lowercase "sploot" typography)
 - [ ] Build elastic search bar: 200px collapsed → 400px expanded, with 180ms ease-out transition on focus
 - [ ] Add view mode toggle group: 3 icons (grid/masonry/list), 40x40px touch targets, active state with accent color
