@@ -16,14 +16,25 @@ import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { useSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
+import { useFilter } from '@/contexts/filter-context';
 
 export default function AppPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryParam = searchParams.get('q') ?? '';
-  const tagIdParam = searchParams.get('tagId');
-  const favoritesOnly = searchParams.get('favorite') === 'true';
+
+  // Use filter context for centralized filter state
+  const {
+    filterType,
+    tagId: tagIdParam,
+    tagName: contextTagName,
+    isFavoritesOnly: favoritesOnly,
+    isRecentFilter,
+    toggleFavorites,
+    clearTagFilter,
+    setTagFilter,
+  } = useFilter();
   const viewModeParam = searchParams.get('view') as 'grid' | 'masonry' | 'list' | null;
   const viewMode = viewModeParam || 'grid'; // Default to grid if not specified
 
@@ -287,13 +298,19 @@ export default function AppPage() {
 
   const searchHitCount = filteredSearchAssets.length;
 
-  const activeTagName = useMemo(() => {
-    if (!tagIdParam) return null;
+  // Update tag name when we have the asset data
+  useEffect(() => {
+    if (!tagIdParam || contextTagName) return;
     const fromAssets = [...assets, ...searchAssets].find((asset) =>
       asset.tags?.some((tag) => tag.id === tagIdParam)
     );
-    return fromAssets?.tags?.find((tag) => tag.id === tagIdParam)?.name ?? null;
-  }, [assets, searchAssets, tagIdParam]);
+    const tagName = fromAssets?.tags?.find((tag) => tag.id === tagIdParam)?.name ?? null;
+    if (tagName && tagName !== contextTagName) {
+      setTagFilter(tagIdParam, tagName);
+    }
+  }, [assets, searchAssets, tagIdParam, contextTagName, setTagFilter]);
+
+  const activeTagName = contextTagName;
 
   const handleInlineSearch = useCallback((searchCommand: { query: string; timestamp: number; updateUrl?: boolean }) => {
     const query = searchCommand.query;
@@ -313,13 +330,8 @@ export default function AppPage() {
     }
   }, [updateUrlParams]);
 
-  const toggleFavoritesOnly = useCallback(() => {
-    updateUrlParams({ favorite: favoritesOnly ? null : 'true' });
-  }, [favoritesOnly, updateUrlParams]);
-
-  const clearTagFilter = useCallback(() => {
-    updateUrlParams({ tagId: null });
-  }, [updateUrlParams]);
+  // Use filter actions from context (they handle URL updates internally)
+  const toggleFavoritesOnly = toggleFavorites;
 
   const handleScrollContainerReady = useCallback((node: HTMLDivElement | null) => {
     gridScrollRef.current = node;

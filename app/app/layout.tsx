@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { NavigationContainer } from '@/components/navigation/navigation-container';
 import { OfflineProvider } from '@/components/offline/offline-provider';
+import { FilterProvider } from '@/contexts/filter-context';
 import { getAuthWithUser } from '@/lib/auth/server';
 import { PerformanceProfilerUI } from '@/components/debug/performance-profiler-ui';
 import { ViewportAnalyzerUI } from '@/components/debug/viewport-analyzer-ui';
@@ -20,16 +21,18 @@ export default async function AppLayout({
 
   return (
     <OfflineProvider>
-      <div className="min-h-screen bg-[#0B0C0E]">
-        <NavigationContainer>
-          {children}
-        </NavigationContainer>
+      <FilterProvider>
+        <div className="min-h-screen bg-[#0B0C0E]">
+          <NavigationContainer>
+            {children}
+          </NavigationContainer>
 
-        <PerformanceProfilerUI />
-        <ViewportAnalyzerUI />
-        <NavigationAuditUI />
-        <MobilePerformanceUI />
-      </div>
+          <PerformanceProfilerUI />
+          <ViewportAnalyzerUI />
+          <NavigationAuditUI />
+          <MobilePerformanceUI />
+        </div>
+      </FilterProvider>
     </OfflineProvider>
   );
 }
