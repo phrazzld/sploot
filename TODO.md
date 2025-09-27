@@ -315,7 +315,17 @@
   - Created test page at /test-filter-context for verification
   - State now synchronized across navbar, footer, and content areas
   ```
-- [~] Update all grid re-render triggers to work with new component hierarchy
+- [x] Update all grid re-render triggers to work with new component hierarchy
+  ```
+  Work Log:
+  - Analyzed grid re-render triggers and dependencies in useEffect
+  - Updated filtersRef to use sortDirection instead of sortOrder
+  - Added support for isRecentFilter to force createdAt desc sorting
+  - Fixed actualSortOrder to consider recent filter override
+  - Updated all useMemo dependencies to use correct sort values
+  - Fixed TypeScript types for proper type safety
+  - Grid now responds correctly to filter context and sort preference changes
+  ```
 
 ### Phase 7: Responsive Breakpoints
 - [ ] Mobile (<640px): Collapse view toggles into dropdown menu, reduce search bar to icon-trigger overlay
