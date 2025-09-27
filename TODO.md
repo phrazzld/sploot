@@ -372,8 +372,17 @@
   ```
 
 ### Phase 8: Keyboard Shortcuts & Accessibility
-- [~] Implement `/` key to focus search from anywhere (blur on Escape)
-- [ ] Add `1`, `2`, `3` keys for view mode switching (with 100ms debounce)
+- [x] Implement `/` key to focus search from anywhere (blur on Escape)
+  ```
+  Work Log:
+  - Created useSlashSearchShortcut hook in use-keyboard-shortcut.ts
+  - SearchBarElastic integrates slash shortcut to focus input
+  - Both SearchBar and SearchBarElastic handle Escape to blur
+  - Main app page uses both "/" and Cmd+K/Ctrl+K shortcuts
+  - Escape key clears search and removes focus as expected
+  - All search components now support full keyboard navigation
+  ```
+- [~] Add `1`, `2`, `3` keys for view mode switching (with 100ms debounce)
 - [ ] Create `⌘K` command palette for all hidden actions (upload, settings, sign out)
 - [ ] Ensure Tab order: logo → search → view → upload → avatar → grid → footer controls
 - [ ] Add focus-visible rings: 2px offset, accent color, visible only on keyboard navigation

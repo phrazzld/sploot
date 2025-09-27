@@ -14,7 +14,7 @@ import { HeartIcon } from '@/components/icons/heart-icon';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
-import { useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
+import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 
@@ -394,6 +394,50 @@ export default function AppPage() {
     },
     [captureScrollPosition, viewMode, searchParams, pathname, router]
   );
+
+  // Number key shortcuts for view mode switching with debouncing
+  const viewModeSwitchRef = useRef<NodeJS.Timeout>();
+  const handleViewModeShortcut = useCallback((mode: 'grid' | 'masonry' | 'list') => {
+    // Clear any existing timeout
+    if (viewModeSwitchRef.current) {
+      clearTimeout(viewModeSwitchRef.current);
+    }
+
+    // Debounce for 100ms to prevent rapid switching
+    viewModeSwitchRef.current = setTimeout(() => {
+      handleViewModeChange(mode);
+    }, 100);
+  }, [handleViewModeChange]);
+
+  // Key 1 for grid view
+  useKeyboardShortcut({
+    key: '1',
+    callback: () => handleViewModeShortcut('grid'),
+    enabled: true,
+  });
+
+  // Key 2 for masonry view
+  useKeyboardShortcut({
+    key: '2',
+    callback: () => handleViewModeShortcut('masonry'),
+    enabled: true,
+  });
+
+  // Key 3 for list view
+  useKeyboardShortcut({
+    key: '3',
+    callback: () => handleViewModeShortcut('list'),
+    enabled: true,
+  });
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (viewModeSwitchRef.current) {
+        clearTimeout(viewModeSwitchRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     restoreScrollPosition();
