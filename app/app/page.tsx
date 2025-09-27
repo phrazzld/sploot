@@ -461,8 +461,8 @@ export default function AppPage() {
   const gridContainerClassName = useMemo(
     () =>
       cn(
-        'h-full overflow-y-auto overflow-x-hidden transition-all duration-300 ease-out transform-gpu',
-        isViewModeTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+        'h-full overflow-y-auto overflow-x-hidden transition-opacity duration-200 ease-in-out',
+        isViewModeTransitioning ? 'opacity-0' : 'opacity-100'
       ),
     [isViewModeTransitioning]
   );

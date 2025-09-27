@@ -442,7 +442,17 @@
   - Cubic-bezier provides smooth acceleration/deceleration curve
   - Matches Material Design motion standards
   ```
-- [ ] View mode switching: 200ms crossfade between grid layouts, no position jumping
+- [x] View mode switching: 200ms crossfade between grid layouts, no position jumping
+  ```
+  Work Log:
+  - Updated gridContainerClassName transition in app/page.tsx
+  - Changed from opacity + scale to opacity-only transition
+  - Removed scale transform that was causing position jumping
+  - Reduced duration from 300ms to 200ms for snappier feel
+  - Used ease-in-out for smooth acceleration/deceleration
+  - Created test page at /test-view-transition for demonstration
+  - Maintains scroll position during transitions
+  ```
 - [ ] Dropdown menus: 140ms fade-in with 4px translateY, reverse on close
 - [ ] Footer stats update: 300ms number morphing animation when count changes
 - [ ] Upload button: 1.05 scale on hover, 0.95 scale on click, with spring physics
