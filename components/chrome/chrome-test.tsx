@@ -69,6 +69,7 @@ export function ChromeTest() {
                     <p>✓ Total chrome: 100px (vs 256px sidebar)</p>
                     <p>✓ View mode toggles: {viewMode} view active</p>
                     <p>✓ Upload button: {isUploadActive ? 'Active' : 'Ready'}</p>
+                    <p>✓ Stats display: 134 memes • 2 bangers • 9.9 MB</p>
                   </div>
                 </div>
 
@@ -89,7 +90,12 @@ export function ChromeTest() {
 
           {/* Footer */}
           <FooterSpacer />
-          <Footer />
+          <Footer
+            totalAssets={134}
+            favoriteCount={2}
+            totalSizeBytes={10380902} // ~9.9 MB
+            showStats={true}
+          />
         </>
       )}
 

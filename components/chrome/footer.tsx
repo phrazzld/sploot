@@ -1,11 +1,16 @@
 'use client';
 
 import { ReactNode } from 'react';
+import { StatsDisplay } from './stats-display';
 import { cn } from '@/lib/utils';
 
 interface FooterProps {
   children?: ReactNode;
   className?: string;
+  totalAssets?: number;
+  favoriteCount?: number;
+  totalSizeBytes?: number;
+  showStats?: boolean;
 }
 
 /**
@@ -14,7 +19,14 @@ interface FooterProps {
  * Position: Fixed bottom
  * Z-index: 50 (same as navbar)
  */
-export function Footer({ children, className }: FooterProps) {
+export function Footer({
+  children,
+  className,
+  totalAssets = 134,
+  favoriteCount = 2,
+  totalSizeBytes = 10380902, // ~9.9 MB
+  showStats = true,
+}: FooterProps) {
   return (
     <footer
       className={cn(
@@ -38,10 +50,15 @@ export function Footer({ children, className }: FooterProps) {
     >
       {/* Container for footer content */}
       <div className="flex items-center justify-between w-full max-w-screen-2xl mx-auto">
-        {/* Left section: Stats display */}
-        <div className="flex items-center gap-4 text-sm text-[#B3B7BE]">
-          {/* Stats will go here: "134 memes • 2 bangers • 9.9 MB" */}
-        </div>
+        {/* Left section: Stats display - left-aligned with 16px padding */}
+        {showStats && (
+          <StatsDisplay
+            totalAssets={totalAssets}
+            favoriteCount={favoriteCount}
+            totalSizeBytes={totalSizeBytes}
+            className="pl-4" // 16px left padding
+          />
+        )}
 
         {/* Center section: Filters */}
         <div className="flex items-center gap-2">
