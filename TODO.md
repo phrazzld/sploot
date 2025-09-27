@@ -83,7 +83,7 @@
   - Made expandable behavior optional (disabled in footer by default)
   - All existing usages continue to work unchanged
   ```
-- [ ] Remove AppNav's vertical spacing/padding classes - prepare for horizontal inline-flex layout
+- [~] Remove AppNav's vertical spacing/padding classes - prepare for horizontal inline-flex layout
 
 ### Phase 3: Navbar Implementation (56px fixed height)
 - [ ] Create `/components/chrome/navbar.tsx` with fixed positioning and z-index:50 to stay above content
