@@ -12,7 +12,7 @@ The navbar/footer architecture redesign is **DONE**. We achieved:
 ## 🚨 Critical Fixes (Actually Important)
 
 ### Must Fix
-- [ ] Fix missing dependency in `useEffect` for embeddingStatus in image-tile.tsx line 131
+- [x] Fix missing dependency in `useEffect` for embeddingStatus in image-tile.tsx line 131
 - [ ] Delete old sidebar components: `/components/navigation/app-nav.tsx`, mobile-nav.tsx
 - [ ] Clean up test file TypeScript errors if running tests
 

@@ -128,7 +128,7 @@ export function ImageTile({
         console.log(`[debug_embeddings] Asset ${asset.id}: Last attempt - ${asset.embeddingLastAttempt}`);
       }
     }
-  }, [isDebugMode, asset.id, asset.embeddingError, asset.embeddingRetryCount, asset.embeddingLastAttempt]);
+  }, [isDebugMode, asset.id, embeddingStatus, asset.embeddingError, asset.embeddingRetryCount, asset.embeddingLastAttempt]);
 
   // Log status changes in debug mode
   useEffect(() => {
