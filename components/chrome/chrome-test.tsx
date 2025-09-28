@@ -54,7 +54,7 @@ export function ChromeTest() {
           {/* Main content area */}
           <main
             className={cn(
-              'min-h-[calc(100vh-100px)]', // 56px navbar + 44px footer = 100px
+              'min-h-[calc(100vh-56px)]', // 56px navbar only (footer removed)
               'bg-[#0B0C0E]',
               'px-4 py-8'
             )}

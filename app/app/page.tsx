@@ -564,7 +564,7 @@ export default function AppPage() {
   }, [trimmedLibraryQuery]);
 
   return (
-    <div className="flex h-[calc(100vh-100px)] flex-col">
+    <div className="flex h-[calc(100vh-56px)] flex-col">
       {/* Container with ultra-wide support - max-width at 1920px+ */}
       <div className="px-6 pb-0 pt-6 md:px-10 2xl:px-12">
         <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1920px]">
