@@ -1,9 +1,7 @@
 'use client';
 
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 import { LogoWordmark } from './logo-wordmark';
-import { SearchBarElastic, SearchTrigger } from './search-bar-elastic';
-import { SearchOverlay } from './search-overlay';
 import { UserAvatar } from './user-avatar';
 import { cn } from '@/lib/utils';
 
@@ -26,7 +24,6 @@ export function Navbar({
   showUserAvatar = true,
   onSignOut,
 }: NavbarProps) {
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
     <>
@@ -73,22 +70,8 @@ export function Navbar({
           </div>
         </div>
 
-        {/* Center section: Search bar - hidden on mobile, visible on tablets+ */}
-        <div className="hidden sm:flex flex-1 items-center justify-center px-2">
-          <SearchBarElastic
-            collapsedWidth={350}
-            expandedWidth={650}
-            placeholder="Search your memes..."
-            className="w-full" // Use full available width
-          />
-        </div>
-
-        {/* Mobile: Search trigger icon */}
-        <div className="flex sm:hidden flex-1 items-center justify-center">
-          <SearchTrigger
-            onClick={() => setIsSearchOpen(true)}
-          />
-        </div>
+        {/* Spacer to push user menu to the right */}
+        <div className="flex-1" />
 
         {/* Right section: User menu */}
         <div className="flex items-center gap-3">
@@ -107,12 +90,6 @@ export function Navbar({
         {children}
       </div>
     </nav>
-
-      {/* Search overlay for mobile */}
-      <SearchOverlay
-        isOpen={isSearchOpen}
-        onClose={() => setIsSearchOpen(false)}
-      />
     </>
   );
 }

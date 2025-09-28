@@ -570,7 +570,7 @@ export default function AppPage() {
       <div className="px-6 pb-0 pt-6 md:px-10 2xl:px-12">
         <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1920px]">
           <header className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex flex-col gap-4">
               <div>
                 <h1 className="text-3xl font-semibold text-[#E6E8EB]">your library</h1>
                 <p className="mt-2 text-sm text-[#B3B7BE]">
@@ -590,6 +590,28 @@ export default function AppPage() {
                   )}
                 </p>
               </div>
+
+              {/* Search bar - prominent position */}
+              <SearchBar
+                onSearch={handleInlineSearch}
+                inline
+                initialQuery={queryParam}
+                searchState={
+                  searchLoading ? 'loading' :
+                    isTypingRef.current ? 'typing' :
+                      libraryQuery && searchAssets.length > 0 ? 'success' :
+                        libraryQuery && searchAssets.length === 0 ? 'no-results' :
+                          searchError ? 'error' :
+                            'idle'
+                }
+                resultCount={searchAssets.length}
+                className="w-full max-w-3xl"
+                placeholder="search your memes..."
+                autoFocus={false}
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
@@ -744,23 +766,6 @@ export default function AppPage() {
                 )}
               </div>
             )}
-
-            <div className="space-y-2">
-              <SearchBar
-                onSearch={handleInlineSearch}
-                inline
-                initialQuery={queryParam}
-                searchState={
-                  searchLoading ? 'loading' :
-                    isTypingRef.current ? 'typing' :
-                      libraryQuery && searchAssets.length > 0 ? 'success' :
-                        libraryQuery && searchAssets.length === 0 ? 'no-results' :
-                          searchError ? 'error' :
-                            'idle'
-                }
-                resultCount={searchAssets.length}
-              />
-            </div>
 
             {showUploadPanel && (
               <div className="rounded-3xl border border-dashed border-[#2A2F37] bg-[#111419] p-5">

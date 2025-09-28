@@ -173,9 +173,9 @@ export function SearchBar({
             placeholder={placeholder || 'search your memes...'}
             autoFocus={autoFocus}
             className={`
-              w-full h-[52px] pl-6 pr-12
-              bg-[#14171A] text-[#E6E8EB] placeholder-[#6A6E78]
-              rounded-full border
+              w-full h-[56px] pl-6 pr-12 text-base
+              bg-[#0F1216] text-[#E6E8EB] placeholder-[#6A6E78]
+              rounded-2xl border-2
               focus:outline-none focus:ring-2
               transition-all duration-300
               ${searchState === 'typing' ? 'border-[#7C5CFF] ring-2 ring-[#7C5CFF]/20' : ''}
@@ -183,8 +183,8 @@ export function SearchBar({
               ${searchState === 'success' ? 'border-[#22C55E]' : ''}
               ${searchState === 'no-results' ? 'border-[#FFC107]' : ''}
               ${searchState === 'error' ? 'border-[#EF4444]' : ''}
-              ${searchState === 'idle' ? 'border-[#2A2F37] focus:border-[#7C5CFF] focus:ring-[#7C5CFF]/20' : ''}
-              focus:shadow-[inset_0_0_12px_rgba(124,92,255,0.1)]
+              ${searchState === 'idle' ? 'border-[#1F2328] focus:border-[#7C5CFF] focus:ring-[#7C5CFF]/20' : ''}
+              focus:shadow-[0_0_20px_rgba(124,92,255,0.15)]
             `}
           />
 
