@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback, useEffect, useMemo, DragEvent, ClipboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
@@ -267,10 +268,13 @@ function VirtualizedFileList({
                   {/* File icon/preview */}
                   <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
                     {file.blobUrl ? (
-                      <img
+                      <Image
                         src={file.blobUrl}
                         alt={file.name}
+                        width={48}
+                        height={48}
                         className="w-full h-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <span className="text-2xl">🖼️</span>
@@ -1736,10 +1740,13 @@ export function UploadZone({
                   {/* File icon/preview */}
                   <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden">
                     {file.blobUrl ? (
-                      <img
+                      <Image
                         src={file.blobUrl}
                         alt={file.name}
+                        width={48}
+                        height={48}
                         className="w-full h-full object-cover"
+                        unoptimized
                       />
                     ) : (
                       <span className="text-2xl">🖼️</span>

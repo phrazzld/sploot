@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
@@ -952,11 +953,16 @@ export default function AppPage() {
             className="max-w-4xl max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={selectedAsset.blobUrl}
-              alt={selectedAsset.filename}
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={selectedAsset.blobUrl}
+                alt={selectedAsset.filename}
+                width={1920}
+                height={1080}
+                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                unoptimized
+              />
+            </div>
             <button
               onClick={() => setSelectedAsset(null)}
               className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"

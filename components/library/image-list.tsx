@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { HeartIcon } from '@/components/icons/heart-icon';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
@@ -121,10 +122,13 @@ function ListRow({
         className="group flex w-full items-center gap-4 rounded-2xl border border-transparent bg-[#14171A] px-4 py-3 text-left transition-colors hover:border-[#2A2F37] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
       >
         <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-[#0F1216]">
-          <img
+          <Image
             src={asset.thumbnailUrl || asset.blobUrl}
             alt={asset.filename}
+            width={64}
+            height={64}
             className="h-full w-full object-cover"
+            unoptimized
           />
           {asset.favorite && (
             <span className="absolute -top-2 -right-2 inline-flex items-center justify-center rounded-full bg-[#FF64C5] px-1.5 py-0.5 text-[10px] font-semibold text-black">

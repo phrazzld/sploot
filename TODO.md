@@ -36,7 +36,15 @@ The navbar/footer architecture redesign is **DONE**. We achieved:
 ## 🎯 Real Improvements (If Time Permits)
 
 ### Performance
-- [ ] Replace `<img>` with Next.js `<Image>` for lazy loading
+- [x] Replace `<img>` with Next.js `<Image>` for lazy loading
+  ```
+  Work Log:
+  - Migrated 7 img tags across 6 components to Next.js Image
+  - Added appropriate width/height/fill props for optimization
+  - Used unoptimized prop for external/dynamic images from blob storage
+  - Preserved lazy loading behavior with loading="lazy"
+  - Maintained all existing styling and functionality
+  ```
 - [ ] Add WebP image variants for 30% size reduction
 - [ ] Implement search result caching (5-min TTL)
 

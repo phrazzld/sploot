@@ -6,6 +6,7 @@ import { FileMetadata } from '@/lib/file-metadata-manager';
 import { EmbeddingStatusIndicator } from './embedding-status-indicator';
 import { UploadErrorDisplay } from './upload-error-display';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface FileListVirtualProps {
@@ -63,11 +64,13 @@ function FileRow({
           {/* File icon/preview */}
           <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
             {file.blobUrl ? (
-              <img
+              <Image
                 src={file.blobUrl}
                 alt={file.name}
+                width={48}
+                height={48}
                 className="w-full h-full object-cover"
-                loading="lazy"
+                unoptimized
               />
             ) : (
               <span className="text-2xl">🖼️</span>

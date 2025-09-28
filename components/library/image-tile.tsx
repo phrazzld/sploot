@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useEffect } from 'react';
 import type { CSSProperties } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
@@ -294,9 +295,11 @@ export function ImageTile({
                 <div className="h-full w-full bg-[#1B1F24] animate-pulse" />
               </div>
             )}
-            <img
+            <Image
               src={asset.thumbnailUrl || asset.blobUrl}
               alt={asset.filename}
+              fill
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               className={cn(
                 'h-full w-full',
                 preserveAspectRatio ? 'object-contain' : 'object-cover',
@@ -309,6 +312,7 @@ export function ImageTile({
                 setImageError(true);
                 setImageLoaded(true);
               }}
+              unoptimized
             />
           </>
         )}

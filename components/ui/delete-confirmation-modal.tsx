@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface DeleteConfirmationModalProps {
@@ -90,10 +91,13 @@ export function DeleteConfirmationModal({
           {imageUrl && (
             <div className="px-6 py-4">
               <div className="relative bg-[#1B1F24] rounded-lg overflow-hidden border border-[#2A2F37]">
-                <img
+                <Image
                   src={imageUrl}
                   alt={imageName || 'Image to delete'}
+                  width={400}
+                  height={128}
                   className="w-full h-32 object-contain"
+                  unoptimized
                 />
                 {imageName && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
