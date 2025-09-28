@@ -474,7 +474,16 @@
   - Used ease-in-out quadratic easing for natural motion
   - Created test page at /test-stats-animation to demonstrate functionality
   ```
-- [ ] Upload button: 1.05 scale on hover, 0.95 scale on click, with spring physics
+- [x] Upload button: 1.05 scale on hover, 0.95 scale on click, with spring physics
+  ```
+  Work Log:
+  - Created useSpringAnimation hook implementing real spring physics (F = -kx - cv)
+  - Added useSpringScale helper for button-specific scale animations
+  - Updated UploadButton and UploadButtonFloating to use spring physics
+  - Replaced CSS scale transitions with JS-based spring calculations
+  - Used requestAnimationFrame for smooth 60fps animation
+  - Created test page at /test-spring-upload with configurable spring parameters
+  ```
 
 ### Phase 10: Performance Validation
 - [ ] Measure new FCP/LCP/CLS scores: target <1.5s LCP, <0.1 CLS

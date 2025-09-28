@@ -1,6 +1,8 @@
 'use client';
 
+import { useState } from 'react';
 import { cn } from '@/lib/utils';
+import { useSpringScale } from '@/hooks/use-spring-animation';
 
 interface UploadButtonProps {
   onClick?: () => void;
@@ -21,6 +23,12 @@ export function UploadButton({
   showLabel = true,
   size = 'md',
 }: UploadButtonProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+
+  // Spring physics for scale animation
+  const scale = useSpringScale(isHovered, isPressed);
+
   const sizeConfig = {
     sm: {
       height: 'h-8',
@@ -50,10 +58,22 @@ export function UploadButton({
   return (
     <button
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsPressed(false);
+      }}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onTouchStart={() => setIsPressed(true)}
+      onTouchEnd={() => setIsPressed(false)}
+      style={{
+        transform: `scale(${scale})`,
+      }}
       className={cn(
         // Base styles
         'group relative flex items-center justify-center',
-        'rounded-lg font-medium transition-all duration-200',
+        'rounded-lg font-medium transition-colors duration-200',
 
         // Fixed width as specified
         showLabel && 'w-[100px]',
@@ -67,8 +87,7 @@ export function UploadButton({
           ? 'bg-[#B6FF6E]/20 text-[#B6FF6E] ring-1 ring-[#B6FF6E]/40'
           : 'bg-[#B6FF6E] text-[#0B0C0E] hover:bg-[#C5FF85] active:bg-[#A8F060]',
 
-        // Hover and active effects
-        'hover:scale-105 active:scale-95',
+        // Shadow effects (keep transition for shadow)
         'hover:shadow-lg hover:shadow-[#B6FF6E]/20',
 
         // Focus states
@@ -129,17 +148,38 @@ export function UploadButtonFloating({
   onClick?: () => void;
   className?: string;
 }) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [isPressed, setIsPressed] = useState(false);
+
+  // Spring physics with slightly bouncier config for floating button
+  const scale = useSpringScale(isHovered, isPressed, {
+    stiffness: 350,
+    damping: 20,
+    mass: 0.8,
+  });
+
   return (
     <button
       onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setIsPressed(false);
+      }}
+      onMouseDown={() => setIsPressed(true)}
+      onMouseUp={() => setIsPressed(false)}
+      onTouchStart={() => setIsPressed(true)}
+      onTouchEnd={() => setIsPressed(false)}
+      style={{
+        transform: `scale(${scale})`,
+      }}
       className={cn(
         'flex items-center justify-center',
         'w-14 h-14 rounded-full',
         'bg-[#B6FF6E] text-[#0B0C0E]',
         'hover:bg-[#C5FF85] active:bg-[#A8F060]',
         'shadow-lg hover:shadow-xl',
-        'transition-all duration-200',
-        'hover:scale-110 active:scale-95',
+        'transition-colors transition-shadow duration-200',
         'group',
         className
       )}
