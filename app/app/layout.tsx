@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { NavigationContainer } from '@/components/navigation/navigation-container';
+import { AppChrome } from '@/components/chrome/app-chrome';
 import { OfflineProvider } from '@/components/offline/offline-provider';
 import { FilterProvider } from '@/contexts/filter-context';
 import { getAuthWithUser } from '@/lib/auth/server';
@@ -23,9 +23,9 @@ export default async function AppLayout({
     <OfflineProvider>
       <FilterProvider>
         <div className="min-h-screen bg-[#0B0C0E]">
-          <NavigationContainer>
+          <AppChrome>
             {children}
-          </NavigationContainer>
+          </AppChrome>
 
           <PerformanceProfilerUI />
           <ViewportAnalyzerUI />

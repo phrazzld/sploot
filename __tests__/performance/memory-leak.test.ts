@@ -23,23 +23,23 @@ jest.mock('@/lib/db', () => ({
     },
   },
   databaseAvailable: true,
-  assetExists: jest.fn().mockResolvedValue(false),
-  findOrCreateAsset: jest.fn().mockResolvedValue({
+  assetExists: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
+  findOrCreateAsset: jest.fn<() => Promise<{ asset: any; isDuplicate: boolean }>>().mockResolvedValue({
     asset: { id: 'asset-id', blobUrl: 'blob://test', needsEmbedding: false },
     isDuplicate: false,
   }),
 }));
 
 jest.mock('@vercel/blob', () => ({
-  put: jest.fn().mockResolvedValue({
+  put: jest.fn<() => Promise<{ url: string; pathname: string }>>().mockResolvedValue({
     url: 'blob://test-url',
     pathname: '/test-path',
   }),
 }));
 
 jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn().mockResolvedValue({ userId: 'test-user' }),
-  currentUser: jest.fn().mockResolvedValue({
+  auth: jest.fn<() => Promise<{ userId: string | null }>>().mockResolvedValue({ userId: 'test-user' }),
+  currentUser: jest.fn<() => Promise<any>>().mockResolvedValue({
     id: 'test-user',
     emailAddresses: [{ emailAddress: 'test@example.com' }],
   }),

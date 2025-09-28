@@ -13,7 +13,15 @@ The navbar/footer architecture redesign is **DONE**. We achieved:
 
 ### Must Fix
 - [x] Fix missing dependency in `useEffect` for embeddingStatus in image-tile.tsx line 131
-- [ ] Delete old sidebar components: `/components/navigation/app-nav.tsx`, mobile-nav.tsx
+- [x] Integrate navbar/footer and delete ALL old navigation components
+  ```
+  Work Log:
+  - Created AppChrome wrapper component to replace NavigationContainer
+  - Connected navbar/footer to existing state (filters, sort, auth)
+  - Updated app layout to use new AppChrome
+  - Deleted entire /components/navigation/ directory
+  - Old sidebar is completely gone, new navbar/footer is live!
+  ```
 - [ ] Clean up test file TypeScript errors if running tests
 
 ## 🎯 Real Improvements (If Time Permits)

@@ -137,7 +137,8 @@ export function SearchBarElastic({
       )}
       style={{
         width: isExpanded ? expandedWidth : collapsedWidth,
-        transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)', // Custom easing for smooth expansion</      }}
+        transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)', // Custom easing for smooth expansion
+      }}
     >
       {/* Search Icon */}
       <div className="absolute left-3 pointer-events-none">

@@ -13,19 +13,19 @@ import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance'
 jest.mock('@/lib/db', () => ({
   prisma: mockPrisma(),
   databaseAvailable: true,
-  assetExists: jest.fn().mockResolvedValue(false),
-  findOrCreateAsset: jest.fn().mockResolvedValue({
+  assetExists: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
+  findOrCreateAsset: jest.fn<() => Promise<{ asset: any; isDuplicate: boolean }>>().mockResolvedValue({
     asset: { id: 'asset-id', blobUrl: 'blob://test', needsEmbedding: true },
     isDuplicate: false,
   }),
-  upsertAssetEmbedding: jest.fn().mockResolvedValue(true),
+  upsertAssetEmbedding: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
 }));
 
 jest.mock('@vercel/blob', () => mockBlobStorage());
 
 jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn().mockResolvedValue({ userId: 'test-user' }),
-  currentUser: jest.fn().mockResolvedValue({
+  auth: jest.fn<() => Promise<{ userId: string | null }>>().mockResolvedValue({ userId: 'test-user' }),
+  currentUser: jest.fn<() => Promise<any>>().mockResolvedValue({
     id: 'test-user',
     emailAddresses: [{ emailAddress: 'test@example.com' }],
   }),
@@ -35,18 +35,18 @@ jest.mock('@clerk/nextjs/server', () => ({
 const mockEmbedding = Array(1152).fill(0.1);
 jest.mock('@/lib/embeddings', () => ({
   createEmbeddingService: jest.fn(() => ({
-    generateImageEmbedding: jest.fn().mockResolvedValue({
+    generateImageEmbedding: jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
       embedding: mockEmbedding,
       modelName: 'siglip-large',
       dimension: 1152,
     }),
   })),
-  generateImageEmbedding: jest.fn().mockResolvedValue({
+  generateImageEmbedding: jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
     embedding: mockEmbedding,
     modelName: 'siglip-large',
     dimension: 1152,
   }),
-  generateTextEmbedding: jest.fn().mockResolvedValue({
+  generateTextEmbedding: jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
     embedding: mockEmbedding,
     modelName: 'siglip-large',
     dimension: 1152,

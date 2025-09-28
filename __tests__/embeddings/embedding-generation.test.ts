@@ -144,7 +144,7 @@ describe('Embedding Generation Test Suite', () => {
   describe('Background Embedding Generation', () => {
     it('should generate embeddings in background within 10 seconds', async () => {
       const mockEmbedding = Array(1152).fill(0.1);
-      const mockGenerateEmbedding = jest.fn().mockResolvedValue({
+      const mockGenerateEmbedding = jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
         embedding: mockEmbedding,
         modelName: 'siglip-large',
         dimension: 1152,
