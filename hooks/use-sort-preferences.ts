@@ -103,7 +103,7 @@ export function useSortPreferences() {
       case 'size':
         return 'size';
       case 'name':
-        return 'filename';
+        return 'pathname';
       default:
         return 'createdAt';
     }

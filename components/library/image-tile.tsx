@@ -263,15 +263,14 @@ export function ImageTile({
       <div
       onClick={onClick || (() => onSelect?.(asset))}
       className={cn(
-        'group bg-[#14171A] border border-[#2A2F37] rounded-2xl overflow-hidden w-full',
-        'hover:border-[#7C5CFF] hover:shadow-xs transition-all duration-200 cursor-pointer',
-        'flex flex-col'
+        'group relative bg-[#0F1012] rounded-md overflow-hidden w-full',
+        'hover:ring-2 hover:ring-[#7C5CFF] hover:shadow-lg transition-all duration-200 cursor-pointer'
       )}
     >
       {/* Image container */}
       <div
         className={cn(
-          'relative bg-[#1B1F24] overflow-hidden',
+          'relative bg-[#0F1012] overflow-hidden',
           !preserveAspectRatio && 'aspect-square'
         )}
         style={aspectRatioStyle}
@@ -341,9 +340,9 @@ export function ImageTile({
             disabled={isLoading}
             className={cn(
               'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm bg-black/60 text-white',
-              'opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 focus-visible:opacity-100 focus-visible:translate-x-0',
+              'opacity-0 group-hover:opacity-100',
               'hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]',
-              isLoading && 'pointer-events-none cursor-wait group-hover:opacity-60'
+              isLoading && 'pointer-events-none cursor-wait'
             )}
             title="rage delete"
           >
@@ -359,42 +358,40 @@ export function ImageTile({
         </div>
 
         {/* Hover overlay with metadata */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
           {/* Bottom info on hover */}
-          <div className="absolute bottom-0 left-0 right-0 p-3">
-            <p className="text-white text-sm font-medium truncate">{asset.filename}</p>
-            <div className="flex items-center justify-between text-white/80 text-xs">
-              <span>
+          <div className="absolute bottom-0 left-0 right-0 p-2">
+            <div className="flex items-center justify-between text-white/90 text-xs">
+              <span className="truncate max-w-[60%]">
                 {asset.width}×{asset.height} • {formatFileSize(asset.size || 0)}
               </span>
               {typeof asset.relevance === 'number' && (
                 <span
                   className={cn(
-                    'ml-2 font-semibold',
+                    'font-semibold',
                     asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
                   )}
                 >
-                  {Math.round(asset.relevance)}% match
+                  {Math.round(asset.relevance)}%
                 </span>
               )}
             </div>
           </div>
         </div>
 
-        {/* Embedding status badge */}
+        {/* Embedding status indicator - only show when NOT ready */}
         {embeddingStatus !== 'ready' && (
-          <div className="absolute bottom-2 left-2 z-10">
+          <div className="absolute bottom-1 left-1 z-10">
             <button
               onClick={embeddingStatus === 'failed' ? handleGenerateEmbedding : undefined}
               disabled={embeddingStatus === 'processing'}
               className={cn(
                 'flex items-center justify-center',
-                isDebugMode ? 'min-w-[24px] h-6 px-1 rounded-md' : 'w-6 h-6 rounded-full',
+                isDebugMode ? 'min-w-[20px] h-5 px-1 rounded' : 'w-5 h-5 rounded-full',
                 'backdrop-blur-sm transition-all duration-200',
-                embeddingStatus === 'pending' && 'bg-yellow-500/80 hover:bg-yellow-500 cursor-default',
-                embeddingStatus === 'processing' && 'bg-blue-500/80 cursor-wait',
-                embeddingStatus === 'failed' && 'bg-red-500/80 hover:bg-red-500 cursor-pointer',
-                'shadow-sm'
+                embeddingStatus === 'pending' && 'bg-yellow-500/70 cursor-default',
+                embeddingStatus === 'processing' && 'bg-blue-500/70 cursor-wait',
+                embeddingStatus === 'failed' && 'bg-red-500/70 hover:bg-red-500/90 cursor-pointer'
               )}
               title={
                 isDebugMode ? (
@@ -452,12 +449,12 @@ export function ImageTile({
                 <>
                   {embeddingStatus === 'pending' && (
                     <div className="relative">
-                      <div className="w-2 h-2 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
-                      <div className="w-2 h-2 bg-yellow-300 rounded-full relative" />
+                      <div className="w-1.5 h-1.5 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
+                      <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full relative" />
                     </div>
                   )}
                   {embeddingStatus === 'processing' && (
-                    <svg className="w-3.5 h-3.5 text-white animate-spin" fill="none" viewBox="0 0 24 24">
+                    <svg className="w-3 h-3 text-white animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path
                         className="opacity-75"
@@ -467,8 +464,8 @@ export function ImageTile({
                     </svg>
                   )}
                   {embeddingStatus === 'failed' && (
-                    <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   )}
                 </>
@@ -477,89 +474,24 @@ export function ImageTile({
           </div>
         )}
 
-        {/* Success checkmark - only show briefly when ready */}
-        {embeddingStatus === 'ready' && hasEmbedding && (
-          <div className="absolute bottom-2 left-2 z-10 pointer-events-none">
-            <div className={cn(
-              'flex items-center justify-center rounded-full bg-green-500/80 backdrop-blur-sm animate-fade-in-scale',
-              isDebugMode ? 'min-w-[24px] h-6 px-1 rounded-md gap-1' : 'w-6 h-6'
-            )}>
-              <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-              </svg>
-              {isDebugMode && debugInfo.apiResponseTime && (
-                <span className="text-[10px] font-mono text-white">{debugInfo.apiResponseTime}ms</span>
-              )}
-            </div>
-          </div>
-        )}
+        {/* No success checkmark - we don't show anything when ready (the default state) */}
       </div>
 
-      {/* Metadata */}
-      <div className="p-3">
-        <p className="text-[#E6E8EB] text-sm truncate">{asset.filename}</p>
-        <p className="text-[#B3B7BE] text-xs mt-1">
-          {asset.mime.split('/')[1].toUpperCase()}
-        </p>
-
-        {typeof asset.relevance === 'number' && (
-          <div className="mt-2 flex items-center gap-2 text-xs">
-            <span
-              className={cn(
-                'font-semibold',
-                asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
-              )}
-            >
-              {Math.round(asset.relevance)}% match
-            </span>
-            {asset.belowThreshold && (
-              <span className="text-[10px] uppercase tracking-wide text-[#FFAA5C]/80">
-                Below threshold
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Debug info when in debug mode */}
-        {isDebugMode && (embeddingStatus !== 'ready' || debugInfo.apiResponseTime) && (
-          <div className="mt-2 p-2 bg-[#0F1012] rounded border border-[#2A2F37] text-[10px] font-mono text-[#B3B7BE]">
-            <div className="font-semibold text-[#7C5CFF] mb-1">🐛 Embedding Debug</div>
-            <div>Status: {embeddingStatus}</div>
+      {/* Debug info overlay when in debug mode */}
+      {isDebugMode && (embeddingStatus !== 'ready' || debugInfo.apiResponseTime) && (
+        <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/80 text-[9px] font-mono text-[#B3B7BE]">
+          <div className="flex items-center gap-2">
+            <span className="text-[#7C5CFF]">Debug:</span>
+            <span>{embeddingStatus}</span>
             {asset.embeddingRetryCount !== undefined && (
-              <div>Retries: {asset.embeddingRetryCount}</div>
+              <span>R{asset.embeddingRetryCount}</span>
             )}
             {debugInfo.apiResponseTime && (
-              <div>API Time: {debugInfo.apiResponseTime}ms</div>
-            )}
-            {debugInfo.lastTransition && (
-              <div>Transition: {debugInfo.lastTransition}</div>
-            )}
-            {asset.embeddingError && (
-              <div className="text-red-400 mt-1">Error: {asset.embeddingError}</div>
-            )}
-            {asset.embeddingLastAttempt && (
-              <div>Last Try: {new Date(asset.embeddingLastAttempt).toLocaleTimeString()}</div>
+              <span>{debugInfo.apiResponseTime}ms</span>
             )}
           </div>
-        )}
-
-        {/* Tags */}
-        {asset.tags && asset.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {asset.tags.slice(0, 3).map((tag) => (
-              <span
-                key={tag.id}
-                className="text-xs bg-[#1B1F24] text-[#B3B7BE] px-2 py-0.5 rounded"
-              >
-                {tag.name}
-              </span>
-            ))}
-            {asset.tags.length > 3 && (
-              <span className="text-xs text-[#B3B7BE]/60">+{asset.tags.length - 3}</span>
-            )}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
 
       {/* Delete Confirmation Modal */}

@@ -119,14 +119,14 @@ function ListRow({
         tabIndex={0}
         onClick={handleRowClick}
         onKeyDown={handleRowKeyDown}
-        className="group flex w-full items-center gap-4 rounded-2xl border border-transparent bg-[#14171A] px-4 py-3 text-left transition-colors hover:border-[#2A2F37] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+        className="group flex w-full items-center gap-3 rounded-lg bg-[#0F1012] px-3 py-2 text-left transition-all hover:ring-1 hover:ring-[#7C5CFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
       >
-        <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-[#0F1216]">
+        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-[#0F1012]">
           <Image
             src={asset.thumbnailUrl || asset.blobUrl}
             alt={asset.filename}
-            width={64}
-            height={64}
+            width={56}
+            height={56}
             className="h-full w-full object-cover"
           />
           {asset.favorite && (
@@ -283,7 +283,7 @@ export function ImageList({
       ) : assets.length === 0 && !loading ? (
         emptyState
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {assets.map((asset, index) => (
             <ListRow
               key={asset.id}
