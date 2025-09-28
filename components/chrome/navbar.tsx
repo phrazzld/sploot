@@ -68,18 +68,18 @@ export function Navbar({
               variant="default"
               size="md"
               showTagline={false}
-              className="lg:scale-110" // Slightly larger on desktop
+              // Normal size on all screens for more search space
             />
           </div>
         </div>
 
         {/* Center section: Search bar - hidden on mobile, visible on tablets+ */}
-        <div className="hidden sm:flex flex-1 items-center justify-center px-4">
+        <div className="hidden sm:flex flex-1 items-center justify-center px-2">
           <SearchBarElastic
-            collapsedWidth={200}
-            expandedWidth={400}
+            collapsedWidth={350}
+            expandedWidth={650}
             placeholder="Search your memes..."
-            className="max-w-xl md:max-w-2xl lg:max-w-3xl" // Progressive max-width increase
+            className="w-full" // Use full available width
           />
         </div>
 
