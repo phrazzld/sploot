@@ -19,6 +19,7 @@ import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '
 import { CommandPalette, useCommandPalette } from '@/components/chrome/command-palette';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
+import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
 
 export default function AppPage() {
   const router = useRouter();
@@ -37,7 +38,7 @@ export default function AppPage() {
     clearTagFilter,
     setTagFilter,
   } = useFilter();
-  const viewModeParam = searchParams.get('view') as 'grid' | 'masonry' | 'list' | null;
+  const viewModeParam = searchParams.get('view') as ViewMode | null;
   const viewMode = viewModeParam || 'grid'; // Default to grid if not specified
 
   const [isClient, setIsClient] = useState(false);
@@ -387,7 +388,7 @@ export default function AppPage() {
   }, []);
 
   const handleViewModeChange = useCallback(
-    (mode: 'grid' | 'masonry' | 'list') => {
+    (mode: ViewMode) => {
       if (mode === viewMode) return;
 
       captureScrollPosition();
@@ -403,7 +404,7 @@ export default function AppPage() {
 
   // Number key shortcuts for view mode switching with debouncing
   const viewModeSwitchRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const handleViewModeShortcut = useCallback((mode: 'grid' | 'masonry' | 'list') => {
+  const handleViewModeShortcut = useCallback((mode: ViewMode) => {
     // Clear any existing timeout
     if (viewModeSwitchRef.current) {
       clearTimeout(viewModeSwitchRef.current);
@@ -634,66 +635,12 @@ export default function AppPage() {
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-full bg-[#14171A] p-1 ring-1 ring-[#1F2328]">
-                {(
-                  [
-                    {
-                      value: 'grid' as const,
-                      label: 'grid',
-                      icon: (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <rect x="4" y="4" width="6" height="6" />
-                          <rect x="14" y="4" width="6" height="6" />
-                          <rect x="4" y="14" width="6" height="6" />
-                          <rect x="14" y="14" width="6" height="6" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      value: 'masonry' as const,
-                      label: 'masonry',
-                      icon: (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <rect x="4" y="4" width="7" height="10" />
-                          <rect x="15" y="4" width="5" height="6" />
-                          <rect x="4" y="16" width="5" height="4" />
-                          <rect x="11" y="12" width="9" height="8" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      value: 'list' as const,
-                      label: 'list',
-                      icon: (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <line x1="4" x2="20" y1="7" y2="7" strokeLinecap="round" />
-                          <line x1="4" x2="20" y1="12" y2="12" strokeLinecap="round" />
-                          <line x1="4" x2="20" y1="17" y2="17" strokeLinecap="round" />
-                        </svg>
-                      ),
-                    },
-                  ]
-                ).map((option) => {
-                  const isActive = viewMode === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleViewModeChange(option.value)}
-                      aria-pressed={isActive}
-                      className={cn(
-                        'flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
-                        isActive
-                          ? 'bg-[#7C5CFF] text-white shadow-[0_12px_20px_-14px_rgba(124,92,255,0.95)]'
-                          : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
-                      )}
-                    >
-                      {option.icon}
-                      <span className="hidden text-xs font-medium capitalize sm:inline">{option.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              <ViewModeToggle
+                value={viewMode}
+                onChange={handleViewModeChange}
+                size="md"
+                showLabels={false}
+              />
 
               <div className="relative sort-dropdown-container">
                 <button

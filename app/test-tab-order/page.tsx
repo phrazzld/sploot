@@ -55,12 +55,7 @@ export default function TestTabOrderPage() {
     <>
       {/* Navbar with all interactive elements */}
       <Navbar
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        showViewToggle={true}
-        showUploadButton={true}
         showUserAvatar={true}
-        onUploadClick={() => console.log('Upload clicked')}
         onSignOut={() => console.log('Sign out clicked')}
       />
 

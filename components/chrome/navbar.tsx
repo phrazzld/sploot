@@ -3,22 +3,13 @@
 import { ReactNode, useState } from 'react';
 import { LogoWordmark } from './logo-wordmark';
 import { SearchBarElastic, SearchTrigger } from './search-bar-elastic';
-import { ViewModeToggle, type ViewMode } from './view-mode-toggle';
-import { ViewModeDropdown } from './view-mode-dropdown';
 import { SearchOverlay } from './search-overlay';
-import { UploadButton } from './upload-button';
 import { UserAvatar } from './user-avatar';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
   children?: ReactNode;
   className?: string;
-  viewMode?: ViewMode;
-  onViewModeChange?: (mode: ViewMode) => void;
-  showViewToggle?: boolean;
-  onUploadClick?: () => void;
-  isUploadActive?: boolean;
-  showUploadButton?: boolean;
   showUserAvatar?: boolean;
   onSignOut?: () => void;
 }
@@ -32,12 +23,6 @@ interface NavbarProps {
 export function Navbar({
   children,
   className,
-  viewMode = 'grid',
-  onViewModeChange,
-  showViewToggle = true,
-  onUploadClick,
-  isUploadActive = false,
-  showUploadButton = true,
   showUserAvatar = true,
   onSignOut,
 }: NavbarProps) {
@@ -105,55 +90,8 @@ export function Navbar({
           />
         </div>
 
-        {/* Right section: Actions and user menu */}
+        {/* Right section: User menu */}
         <div className="flex items-center gap-3">
-          {/* Desktop: View mode toggles */}
-          {showViewToggle && onViewModeChange && (
-            <>
-              {/* Desktop view toggles - hidden on mobile */}
-              <div className="hidden sm:block">
-                <ViewModeToggle
-                  value={viewMode}
-                  onChange={onViewModeChange}
-                  size="md"
-                  className="lg:scale-110" // Slightly larger on desktop for better visibility
-                />
-              </div>
-
-              {/* Mobile view dropdown - visible only on mobile */}
-              <div className="block sm:hidden">
-                <ViewModeDropdown
-                  value={viewMode}
-                  onChange={onViewModeChange}
-                />
-              </div>
-            </>
-          )}
-
-          {/* Upload button */}
-          {showUploadButton && (
-            <>
-              {/* Mobile: Icon only */}
-              <div className="block sm:hidden">
-                <UploadButton
-                  onClick={onUploadClick}
-                  isActive={isUploadActive}
-                  size="md"
-                  showLabel={false}
-                />
-              </div>
-              {/* Desktop: With label */}
-              <div className="hidden sm:block">
-                <UploadButton
-                  onClick={onUploadClick}
-                  isActive={isUploadActive}
-                  size="md"
-                  showLabel={true}
-                />
-              </div>
-            </>
-          )}
-
           {/* User avatar - 32px circle with 8px margin from right edge */}
           {showUserAvatar && (
             <UserAvatar

@@ -40,12 +40,6 @@ export function ChromeTest() {
         <>
           {/* Navbar */}
           <Navbar
-            viewMode={viewMode}
-            onViewModeChange={setViewMode}
-            showViewToggle={true}
-            onUploadClick={() => setIsUploadActive(!isUploadActive)}
-            isUploadActive={isUploadActive}
-            showUploadButton={true}
             showUserAvatar={true}
             onSignOut={() => console.log('Sign out clicked')}
           />
