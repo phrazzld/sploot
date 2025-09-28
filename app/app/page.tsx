@@ -6,7 +6,6 @@ import Image from 'next/image';
 import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
-import { MasonryGrid } from '@/components/library/masonry-grid';
 import { ImageList } from '@/components/library/image-list';
 import { SearchBar, SearchLoadingScreen } from '@/components/search';
 import { cn } from '@/lib/utils';
@@ -423,16 +422,9 @@ export default function AppPage() {
     enabled: true,
   });
 
-  // Key 2 for masonry view
+  // Key 2 for list view
   useKeyboardShortcut({
     key: '2',
-    callback: () => handleViewModeShortcut('masonry'),
-    enabled: true,
-  });
-
-  // Key 3 for list view
-  useKeyboardShortcut({
-    key: '3',
     callback: () => handleViewModeShortcut('list'),
     enabled: true,
   });
@@ -827,25 +819,7 @@ export default function AppPage() {
         <div className="flex-1 overflow-hidden">
           <div className="mx-auto flex h-full w-full flex-col overflow-hidden bg-[#101319] 2xl:max-w-[1920px]">
             <div className="h-full flex-1 overflow-hidden">
-              {viewMode === 'masonry' ? (
-                <div
-                  ref={handleScrollContainerReady}
-                  className={cn(gridContainerClassName, 'w-full')}
-                  style={{ scrollbarGutter: 'stable' }}
-                >
-                  <MasonryGrid
-                    assets={activeAssets}
-                    loading={activeLoading}
-                    hasMore={activeHasMore}
-                    onLoadMore={handleLoadMore}
-                    onAssetUpdate={handleAssetUpdate}
-                    onAssetDelete={handleAssetDelete}
-                    onAssetSelect={setSelectedAsset}
-                    onUploadClick={() => setShowUploadPanel(true)}
-                    className="mx-auto w-full"
-                  />
-                </div>
-              ) : viewMode === 'list' ? (
+              {viewMode === 'list' ? (
                 <ImageList
                   assets={activeAssets}
                   loading={activeLoading}

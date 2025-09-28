@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 
 export default function TestDropdownAnimationPage() {
   const [animationSpeed, setAnimationSpeed] = useState<'normal' | 'slow' | 'very-slow'>('normal');
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [sortValue, setSortValue] = useState<'recent' | 'date' | 'size' | 'name'>('recent');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [dropdownOpenCount, setDropdownOpenCount] = useState(0);

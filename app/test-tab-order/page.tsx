@@ -7,7 +7,7 @@ import { cn } from '@/lib/utils';
 export default function TestTabOrderPage() {
   const [focusedElement, setFocusedElement] = useState<string>('');
   const [tabHistory, setTabHistory] = useState<string[]>([]);
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   useEffect(() => {
     const handleFocus = (e: FocusEvent) => {
@@ -100,7 +100,7 @@ export default function TestTabOrderPage() {
             <ol className="list-decimal list-inside space-y-1 text-[#B3B7BE] text-sm">
               <li>Logo (link to /app)</li>
               <li>Search bar</li>
-              <li>View mode toggles (Grid/Masonry/List)</li>
+              <li>View mode toggles (Grid/List)</li>
               <li>Upload button</li>
               <li>User avatar dropdown</li>
               <li>Main content grid items</li>

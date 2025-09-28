@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 
-type ViewMode = 'grid' | 'masonry' | 'list';
+type ViewMode = 'grid' | 'list';
 
 export default function TestViewTransitionPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
@@ -54,23 +54,6 @@ export default function TestViewTransitionPage() {
           </div>
         );
 
-      case 'masonry':
-        return (
-          <div className="columns-3 gap-4">
-            {mockItems.map((item) => (
-              <div
-                key={item.id}
-                className="bg-[#1B1F24] border border-[#2A2F37] rounded-lg p-4 mb-4 break-inside-avoid"
-                style={{ height: `${item.height}px` }}
-              >
-                <div className="h-full bg-gradient-to-b from-[#B6FF6E]/20 to-transparent rounded flex items-center justify-center">
-                  <span className="text-[#B3B7BE]">{item.title}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        );
-
       case 'list':
         return (
           <div className="space-y-2">
@@ -103,7 +86,7 @@ export default function TestViewTransitionPage() {
           <div>
             <h2 className="text-lg font-semibold mb-3">View Mode</h2>
             <div className="flex gap-2">
-              {(['grid', 'masonry', 'list'] as const).map((mode) => (
+              {(['grid', 'list'] as const).map((mode) => (
                 <button
                   key={mode}
                   onClick={() => handleViewModeChange(mode)}

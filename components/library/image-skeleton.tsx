@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils';
 
 interface ImageSkeletonProps {
   className?: string;
-  variant?: 'tile' | 'list' | 'masonry';
+  variant?: 'tile' | 'list';
 }
 
 export function ImageSkeleton({ className, variant = 'tile' }: ImageSkeletonProps) {
@@ -16,23 +16,6 @@ export function ImageSkeleton({ className, variant = 'tile' }: ImageSkeletonProp
           <div className="h-4 w-3/4 animate-pulse rounded bg-[#1B1F24]" />
           <div className="h-3 w-1/2 animate-pulse rounded bg-[#1B1F24]/70" />
         </div>
-      </div>
-    );
-  }
-
-  if (variant === 'masonry') {
-    const heights = [200, 250, 180, 220, 260, 190, 240, 210];
-    const randomHeight = heights[Math.floor(Math.random() * heights.length)];
-
-    return (
-      <div
-        className={cn(
-          'group relative overflow-hidden rounded-2xl bg-[#1B1F24] animate-pulse',
-          className
-        )}
-        style={{ height: `${randomHeight}px` }}
-      >
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0F1216]/60 to-transparent opacity-0" />
       </div>
     );
   }
@@ -52,7 +35,7 @@ export function ImageSkeleton({ className, variant = 'tile' }: ImageSkeletonProp
 
 interface ImageGridSkeletonProps {
   count?: number;
-  variant?: 'tile' | 'list' | 'masonry';
+  variant?: 'tile' | 'list';
   className?: string;
 }
 
@@ -66,18 +49,6 @@ export function ImageGridSkeleton({
       <div className={cn('space-y-1', className)}>
         {Array.from({ length: count }).map((_, i) => (
           <ImageSkeleton key={i} variant="list" />
-        ))}
-      </div>
-    );
-  }
-
-  if (variant === 'masonry') {
-    return (
-      <div className={cn('columns-2 gap-4 sm:columns-3 md:columns-4 lg:columns-5', className)}>
-        {Array.from({ length: count }).map((_, i) => (
-          <div key={i} className="mb-4 break-inside-avoid">
-            <ImageSkeleton variant="masonry" />
-          </div>
         ))}
       </div>
     );
@@ -119,21 +90,6 @@ export function OptimizedImageSkeleton({
           <div className="h-3 w-1/2 rounded bg-[#1B1F24]/70 skeleton-shimmer" />
         </div>
       </div>
-    );
-  }
-
-  if (variant === 'masonry') {
-    const heights = [200, 250, 180, 220, 260, 190, 240, 210];
-    const randomHeight = heights[Math.floor(Math.random() * heights.length)];
-
-    return (
-      <div
-        className={cn(
-          'group relative overflow-hidden rounded-2xl bg-[#1B1F24] skeleton-shimmer',
-          baseClasses
-        )}
-        style={{ height: `${randomHeight}px` }}
-      />
     );
   }
 
