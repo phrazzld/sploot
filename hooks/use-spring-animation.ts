@@ -30,10 +30,10 @@ export function useSpringAnimation(
   const [currentValue, setCurrentValue] = useState(targetValue);
   const [isAnimating, setIsAnimating] = useState(false);
 
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const velocityRef = useRef(0);
   const positionRef = useRef(targetValue);
-  const lastTimeRef = useRef<number>();
+  const lastTimeRef = useRef<number | undefined>(undefined);
 
   useEffect(() => {
     // Cancel any existing animation
@@ -83,6 +83,7 @@ export function useSpringAnimation(
         setCurrentValue(targetValue);
         setIsAnimating(false);
         lastTimeRef.current = undefined;
+        animationRef.current = undefined;
       }
     };
 

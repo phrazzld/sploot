@@ -401,7 +401,7 @@ export default function AppPage() {
   );
 
   // Number key shortcuts for view mode switching with debouncing
-  const viewModeSwitchRef = useRef<NodeJS.Timeout>();
+  const viewModeSwitchRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const handleViewModeShortcut = useCallback((mode: 'grid' | 'masonry' | 'list') => {
     // Clear any existing timeout
     if (viewModeSwitchRef.current) {

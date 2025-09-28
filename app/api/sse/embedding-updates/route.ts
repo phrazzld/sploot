@@ -71,12 +71,12 @@ export async function GET(request: NextRequest) {
           const assets = await prisma.asset.findMany({
             where: {
               id: { in: assetIds },
-              userId: userId,
+              ownerUserId: userId,
             },
             include: {
-              embeddings: {
+              embedding: {
                 select: {
-                  id: true,
+                  assetId: true,
                   modelName: true,
                   status: true,
                   error: true,
@@ -88,7 +88,7 @@ export async function GET(request: NextRequest) {
           });
 
           for (const asset of assets) {
-            const embedding = asset.embeddings[0];
+            const embedding = asset.embedding;
             const status = embedding ? {
               status: embedding.status || 'pending',
               error: embedding.error,
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
           const updatedEmbeddings = await prisma.assetEmbedding.findMany({
             where: {
               asset: {
-                userId: userId,
+                ownerUserId: userId,
                 id: assetIds.length > 0 ? { in: assetIds } : undefined,
               },
               updatedAt: {
@@ -147,11 +147,11 @@ export async function GET(request: NextRequest) {
             controller.enqueue(
               encoder.encode(`event: embedding-update\ndata: ${JSON.stringify({
                 type: 'embedding-update',
-                assetId: embedding.asset.id,
+                assetId: embedding.assetId,
                 status: embedding.status || 'processing',
                 error: embedding.error,
                 modelName: embedding.modelName,
-                hasEmbedding: !!embedding.embeddingVector,
+                hasEmbedding: !!embedding.completedAt,
                 timestamp: Date.now(),
               })}\n\n`)
             );

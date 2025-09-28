@@ -6,7 +6,17 @@
 
 import { jest } from '@jest/globals';
 import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService } from '../utils/test-helpers';
-import type { JwtPayload, SessionStatusClaim } from '@clerk/types';
+// Types are inferred from Clerk auth objects
+type SessionStatusClaim = 'active' | 'inactive' | 'stale' | 'revoked' | 'tokenExpired' | null;
+interface JwtPayload {
+  __raw: string;
+  iss: string;
+  sub: string;
+  sid: string;
+  nbf: number;
+  exp: number;
+  iat: number;
+}
 import type { auth as clerkAuth, currentUser as clerkCurrentUser } from '@clerk/nextjs/server';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
@@ -42,9 +52,9 @@ const createAuthState = (userId: string | null): ClerkAuthResult => {
       orgPermissions: null,
       factorVerificationAge: null,
       tokenType: 'session_token',
-      getToken: jest.fn().mockResolvedValue(null),
-      has: jest.fn().mockReturnValue(false),
-      debug: jest.fn().mockReturnValue({}),
+      getToken: jest.fn().mockResolvedValue(null) as any,
+      has: jest.fn().mockReturnValue(false) as any,
+      debug: jest.fn().mockReturnValue({}) as any,
       isAuthenticated: false,
       redirectToSignIn: createRedirectStub(),
       redirectToSignUp: createRedirectStub(),
@@ -74,17 +84,17 @@ const createAuthState = (userId: string | null): ClerkAuthResult => {
     orgPermissions: [],
     factorVerificationAge: null,
     tokenType: 'session_token',
-    getToken: jest.fn().mockResolvedValue('mock-session-token'),
-    has: jest.fn().mockReturnValue(true),
-    debug: jest.fn().mockReturnValue({}),
+    getToken: jest.fn().mockResolvedValue('mock-session-token') as any,
+    has: jest.fn().mockReturnValue(true) as any,
+    debug: jest.fn().mockReturnValue({}) as any,
     isAuthenticated: true,
     redirectToSignIn: createRedirectStub(),
     redirectToSignUp: createRedirectStub(),
   } satisfies ClerkAuthResult;
 };
 
-const authMock = jest.fn<ReturnType<ClerkAuth>, Parameters<ClerkAuth>>();
-const currentUserMock = jest.fn<ReturnType<ClerkCurrentUser>, Parameters<ClerkCurrentUser>>();
+const authMock = jest.fn() as any;
+const currentUserMock = jest.fn() as any;
 
 jest.mock('@clerk/nextjs/server', () => ({
   auth: authMock,
@@ -99,16 +109,16 @@ const setAuthState = (userId: string | null) => {
 // Mock embedding service
 const mockEmbedding = Array(1152).fill(0.1);
 jest.mock('@/lib/embeddings', () => ({
-  generateImageEmbedding: jest.fn().mockResolvedValue({
-    embedding: mockEmbedding,
+  generateImageEmbedding: jest.fn(() => Promise.resolve({
+    embedding: Array(1152).fill(0.1),
     modelName: 'siglip-large',
     dimension: 1152,
-  }),
-  generateTextEmbedding: jest.fn().mockResolvedValue({
-    embedding: mockEmbedding,
+  })),
+  generateTextEmbedding: jest.fn(() => Promise.resolve({
+    embedding: Array(1152).fill(0.1),
     modelName: 'siglip-large',
     dimension: 1152,
-  }),
+  })),
 }));
 
 interface UploadResult {
@@ -486,8 +496,7 @@ describe('E2E: Batch Upload', () => {
     ];
 
     // Mock error for empty file
-    const originalUpload = uploadFile;
-    jest.spyOn(global, 'uploadFile' as any).mockImplementation(async (file: File, uploadId: string) => {
+    const uploadWithError = async (file: File, uploadId: string) => {
       if (file.size === 0) {
         const result: UploadResult = {
           assetId: `asset-${uploadId}`,
@@ -499,14 +508,14 @@ describe('E2E: Batch Upload', () => {
         uploadResults.set(uploadId, result);
         return result;
       }
-      return originalUpload(file, uploadId);
-    });
+      return uploadFile(file, uploadId);
+    };
 
     // Upload all files
     const results = await Promise.all([
-      uploadFile(files[0], 'upload-1'),
-      uploadFile(files[1], 'upload-2'),
-      uploadFile(files[2], 'upload-3'),
+      uploadWithError(files[0], 'upload-1'),
+      uploadWithError(files[1], 'upload-2'),
+      uploadWithError(files[2], 'upload-3'),
     ]);
 
     // Check results

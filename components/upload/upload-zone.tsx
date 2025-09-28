@@ -1307,10 +1307,17 @@ export function UploadZone({
   };
 
   // Retry failed upload
-  const retryUpload = (uploadFile: UploadFile) => {
-    const freshFile = { ...uploadFile, status: 'pending' as const, progress: 0, error: undefined, retryCount: 0 };
+  const retryUpload = (metadata: FileMetadata) => {
+    // Find the original File object from the files Map
+    const originalFile = files.get(metadata.id);
+    if (!originalFile) {
+      console.error('Cannot retry upload: original file not found');
+      return;
+    }
+
+    const freshFile = { ...originalFile, status: 'pending' as const, progress: 0, error: undefined, retryCount: 0 };
     setFiles((prev) =>
-      prev.map((f) => (f.id === uploadFile.id ? freshFile : f))
+      prev.map((f) => (f.id === metadata.id ? freshFile : f))
     );
     uploadFileToServer(freshFile);
   };
@@ -1382,7 +1389,7 @@ export function UploadZone({
   // Get errors grouped by type
   const getGroupedErrors = () => {
     const failedFiles = filesArray.filter(f => f.status === 'error' && f.errorDetails);
-    const groups = new Map<string, { type: string; message: string; count: number; files: UploadFile[] }>();
+    const groups = new Map<string, { type: string; message: string; count: number; files: FileMetadata[] }>();
 
     failedFiles.forEach(file => {
       if (file.errorDetails) {
@@ -1833,7 +1840,7 @@ export function UploadZone({
                     <UploadErrorDisplay
                       error={file.errorDetails}
                       fileId={file.id}
-                      fileName={file.file.name}
+                      fileName={file.name}
                       onRetry={() => retryUpload(file)}
                       onDismiss={() => removeFile(file.id)}
                     />

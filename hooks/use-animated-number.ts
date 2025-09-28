@@ -25,9 +25,9 @@ export function useAnimatedNumber(
   } = options;
 
   const [displayValue, setDisplayValue] = useState(formatter(targetValue));
-  const animationRef = useRef<number>();
+  const animationRef = useRef<number | undefined>(undefined);
   const startValueRef = useRef(targetValue);
-  const startTimeRef = useRef<number>();
+  const startTimeRef = useRef<number | undefined>(undefined);
   const previousTargetRef = useRef(targetValue);
 
   useEffect(() => {
@@ -64,6 +64,7 @@ export function useAnimatedNumber(
         setDisplayValue(formatter(targetValue));
         startValueRef.current = targetValue;
         startTimeRef.current = undefined;
+        animationRef.current = undefined;
       }
     };
 

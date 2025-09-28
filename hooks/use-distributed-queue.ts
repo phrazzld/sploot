@@ -114,7 +114,7 @@ export function useDistributedQueue<T>(
   } = options;
 
   // Create queue instance
-  const queueRef = useRef<DistributedQueue<T>>();
+  const queueRef = useRef<DistributedQueue<T> | undefined>(undefined);
   const [isProcessing, setIsProcessing] = useState(false);
   const [metrics, setMetrics] = useState<QueueMetrics>({
     urgent: 0,

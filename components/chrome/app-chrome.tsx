@@ -44,7 +44,7 @@ export function AppChrome({ children }: AppChromeProps) {
   // Get assets data for stats
   const { assets } = useAssets();
   const totalAssets = assets?.length || 0;
-  const favoriteCount = assets?.filter(a => a.isFavorite).length || 0;
+  const favoriteCount = assets?.filter(a => a.favorite).length || 0;
   const totalSizeBytes = assets?.reduce((sum, a) => sum + (a.size || 0), 0) || 0;
 
   // Handle view mode change
