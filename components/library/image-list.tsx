@@ -128,7 +128,6 @@ function ListRow({
             width={64}
             height={64}
             className="h-full w-full object-cover"
-            unoptimized
           />
           {asset.favorite && (
             <span className="absolute -top-2 -right-2 inline-flex items-center justify-center rounded-full bg-[#FF64C5] px-1.5 py-0.5 text-[10px] font-semibold text-black">

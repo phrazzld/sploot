@@ -97,7 +97,6 @@ export function DeleteConfirmationModal({
                   width={400}
                   height={128}
                   className="w-full h-32 object-contain"
-                  unoptimized
                 />
                 {imageName && (
                   <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">

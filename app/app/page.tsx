@@ -960,7 +960,7 @@ export default function AppPage() {
                 width={1920}
                 height={1080}
                 className="max-w-full max-h-[90vh] object-contain rounded-lg"
-                unoptimized
+                priority
               />
             </div>
             <button

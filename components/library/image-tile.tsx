@@ -312,7 +312,6 @@ export function ImageTile({
                 setImageError(true);
                 setImageLoaded(true);
               }}
-              unoptimized
             />
           </>
         )}
