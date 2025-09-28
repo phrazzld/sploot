@@ -1,99 +1,34 @@
 # TODO.md
 
-## ✅ Interface Redesign: Complete!
+## Footer Elimination - Reclaim 44px of Vertical Space [COMPLETED]
 
-The navbar/footer architecture redesign is **DONE**. We achieved:
-- 60% reduction in UI chrome (256px sidebar → 100px navbar+footer)
-- Beautiful animations (dropdown, stats morphing, spring physics)
-- Full responsive design with mobile/tablet/desktop breakpoints
-- Keyboard shortcuts (/, 1-2-3, ⌘K)
-- Better viewport utilization (73% → 94% content)
+### Phase 1: Remove Footer Component Dependencies ✓
+- [x] Remove Footer import from `/components/chrome/app-chrome.tsx` line 6 (`import { Footer } from './footer';`)
+- [x] Remove FooterSpacer import from `/components/chrome/app-chrome.tsx` line 7 (`import { NavbarSpacer, FooterSpacer } from './chrome-spacers';`) - keep NavbarSpacer import intact
 
-## 🚨 Critical Fixes (Actually Important)
+### Phase 2: Remove Footer Component Instance ✓
+- [x] Delete Footer component JSX block from `/components/chrome/app-chrome.tsx` lines 104-116 (starts with `<Footer` ends with `/>`), preserving surrounding code structure
+- [x] Delete FooterSpacer component call from `/components/chrome/app-chrome.tsx` line 119 (`<FooterSpacer />`)
 
-### Must Fix
-- [x] Fix missing dependency in `useEffect` for embeddingStatus in image-tile.tsx line 131
-- [x] Integrate navbar/footer and delete ALL old navigation components
-  ```
-  Work Log:
-  - Created AppChrome wrapper component to replace NavigationContainer
-  - Connected navbar/footer to existing state (filters, sort, auth)
-  - Updated app layout to use new AppChrome
-  - Deleted entire /components/navigation/ directory
-  - Old sidebar is completely gone, new navbar/footer is live!
-  ```
-- [x] Clean up test file TypeScript errors if running tests
-  ```
-  Work Log:
-  - Fixed Clerk type imports in batch-upload.spec.ts
-  - Fixed Asset model property (isFavorite → favorite)
-  - Fixed useRef initialization issues in hooks
-  - Fixed SSE route database queries (userId → ownerUserId)
-  - Fixed upload zone type mismatches (FileMetadata vs UploadFile)
-  - Reduced TypeScript errors from 100+ to 42
-  ```
+### Phase 3: Adjust Main Content Height Calculation ✓
+- [x] Update main element className in `/components/chrome/app-chrome.tsx` line 100 from `min-h-[calc(100vh-100px)]` to `min-h-[calc(100vh-56px)]` to account for navbar-only chrome (56px navbar, no 44px footer)
 
-## 🎯 Real Improvements (If Time Permits)
+### Phase 4: Clean Up Spacer Components ✓
+- [x] Remove FooterSpacer export from `/components/chrome/chrome-spacers.tsx` lines 12-17 (complete function definition including JSDoc comment)
+- [x] Update file-level comment in `/components/chrome/chrome-spacers.tsx` line 2 from "Spacer components to account for fixed navbar/footer height" to "Spacer component to account for fixed navbar height"
 
-### Performance
-- [x] Replace `<img>` with Next.js `<Image>` for lazy loading
-  ```
-  Work Log:
-  - Migrated 7 img tags across 6 components to Next.js Image
-  - Added appropriate width/height/fill props for optimization
-  - Used unoptimized prop for external/dynamic images from blob storage
-  - Preserved lazy loading behavior with loading="lazy"
-  - Maintained all existing styling and functionality
-  ```
-- [x] Add WebP image variants for 30% size reduction
-  ```
-  Work Log:
-  - Configured Next.js image optimization for Vercel Blob storage
-  - Added remotePatterns for blob.vercel-storage.com domains
-  - Enabled WebP and AVIF formats for automatic conversion
-  - Removed unoptimized prop from all 7 Image components
-  - Next.js now automatically serves WebP to supported browsers
-  - Achieves ~30% file size reduction with zero runtime overhead
-  ```
-- [x] Implement search result caching (5-min TTL)
-  ```
-  Work Log:
-  - Discovered caching already fully implemented
-  - Server-side: multi-layer-cache.ts with 5-min TTL for search results
-  - Client-side: search-cache.ts with 5-min TTL default
-  - API properly checks cache before DB queries
-  - Client hook uses cache before API calls
-  - No changes needed - feature already complete
-  ```
+### Phase 5: Delete Obsolete Files ✓
+- [x] Delete entire file `/components/chrome/footer.tsx` (131 lines of code removed)
+- [x] Verify no broken imports after deletion by checking TypeScript compilation
+- [x] Fixed test files that referenced the footer component
 
-### Code Quality
-- [x] Complete upload component Map migration (works fine as-is though)
-  ```
-  Work Log:
-  - Removed duplicate files state array (UploadFile[])
-  - Migrated to Map-based fileMetadata for O(1) lookups
-  - Separated File objects into fileObjects Map for memory efficiency
-  - Updated all functions to use file IDs instead of full objects
-  - Fixed all TypeScript errors related to migration
-  - Memory optimization: File objects cleared after upload success
-  ```
-- [x] Remove unused CSS from bundle
-  ```
-  Work Log:
-  - Analyzed all custom CSS classes for actual usage in components
-  - Removed unused classes: dark-focus, focus-ring-custom, no-focus-ring
-  - Removed unused animations: dropdown-animate-out, dropdown-animate-out-up
-  - Reduced globals.css from 231 lines to 183 lines (~21% reduction)
-  - Tailwind v4 already handles utility class tree-shaking automatically
-  ```
+### Phase 6: Verification ✓
+- [x] Confirm main content area now extends to bottom of viewport minus navbar height only
+- [x] Verify filter/sort state management still functions via context hooks without footer UI
+- [x] Test responsive behavior on mobile/tablet/desktop breakpoints without footer chrome
 
-## 📝 Notes
-
-**Deleted Tasks**: Removed all the measurement/documentation/benchmarking tasks that don't actually improve the product. The app works great as-is.
-
-**Philosophy**: Ship working software. Measure in production. Optimize based on real usage, not hypothetical edge cases.
-
----
-
-*Last Updated: 2025-09-28*
-*Principle: Perfect is the enemy of done*
+## Impact Metrics
+- **Chrome Reduction**: 100px → 56px (44% reduction)
+- **Viewport Gain**: +44px vertical content space
+- **Code Removal**: ~150 lines eliminated
+- **Component Simplification**: 2 fewer components to maintain

@@ -3,8 +3,7 @@
 import { ReactNode, useState, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import { Navbar } from './navbar';
-import { Footer } from './footer';
-import { NavbarSpacer, FooterSpacer } from './chrome-spacers';
+import { NavbarSpacer } from './chrome-spacers';
 import { useFilter } from '@/contexts/filter-context';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useAssets } from '@/hooks/use-assets';
@@ -97,26 +96,9 @@ export function AppChrome({ children }: AppChromeProps) {
       <NavbarSpacer />
 
       {/* Main content */}
-      <main className="min-h-[calc(100vh-100px)]">
+      <main className="min-h-[calc(100vh-56px)]">
         {children}
       </main>
-
-      {/* Fixed Footer */}
-      <Footer
-        totalAssets={totalAssets}
-        favoriteCount={favoriteCount}
-        totalSizeBytes={totalSizeBytes}
-        activeFilter={filterType as FilterType}
-        onFilterChange={handleFilterChange}
-        sortValue={sortBy as SortOption}
-        sortDirection={sortDirection as SortDirection}
-        onSortChange={handleSortChangeWrapper}
-        showSettings={true}
-        onSettingsClick={handleSettingsClick}
-      />
-
-      {/* Spacer for footer height */}
-      <FooterSpacer />
     </>
   );
 }

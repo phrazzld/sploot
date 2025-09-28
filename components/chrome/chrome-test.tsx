@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { Navbar, NavbarSpacer } from './navbar';
-import { Footer, FooterSpacer } from './footer';
 import { ViewMode } from './view-mode-toggle';
 import { FilterType } from './filter-chips';
 import { SortOption, SortDirection } from './sort-dropdown';
@@ -69,7 +68,7 @@ export function ChromeTest() {
                   </h2>
                   <div className="space-y-2 text-sm text-[#B3B7BE]">
                     <p>✓ Navbar: Fixed top, 56px height, z-50</p>
-                    <p>✓ Footer: Fixed bottom, 44px height, z-50</p>
+                    <p>✓ Footer: Removed to reclaim vertical space</p>
                     <p>✓ Content area: Full width, proper spacing</p>
                     <p>✓ Total chrome: 100px (vs 256px sidebar)</p>
                     <p>✓ View mode toggles: {viewMode} view active</p>
@@ -96,26 +95,7 @@ export function ChromeTest() {
             </div>
           </main>
 
-          {/* Footer */}
-          <FooterSpacer />
-          <Footer
-            totalAssets={134}
-            favoriteCount={2}
-            totalSizeBytes={10380902} // ~9.9 MB
-            showStats={true}
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-            showFilters={true}
-            sortValue={sortValue}
-            sortDirection={sortDirection}
-            onSortChange={(option, direction) => {
-              setSortValue(option);
-              setSortDirection(direction);
-            }}
-            showSort={true}
-            showSettings={true}
-            onSettingsClick={() => console.log('Settings clicked')}
-          />
+          {/* Footer removed - no longer part of the app chrome */}
         </>
       )}
 

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { Navbar } from '@/components/chrome/navbar';
-import { Footer } from '@/components/chrome/footer';
 import { cn } from '@/lib/utils';
 
 export default function TestTabOrderPage() {
@@ -144,22 +143,7 @@ export default function TestTabOrderPage() {
         </div>
       </main>
 
-      {/* Footer with all interactive elements */}
-      <Footer
-        totalAssets={134}
-        favoriteCount={2}
-        totalSizeBytes={10380902}
-        showStats={true}
-        showFilters={true}
-        showSort={true}
-        showSettings={true}
-        activeFilter="all"
-        sortValue="recent"
-        sortDirection="desc"
-        onFilterChange={(filter) => console.log('Filter:', filter)}
-        onSortChange={(sort, dir) => console.log('Sort:', sort, dir)}
-        onSettingsClick={() => console.log('Settings clicked')}
-      />
+      {/* Footer removed - no longer part of the app chrome */}
     </>
   );
 }
