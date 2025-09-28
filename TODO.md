@@ -77,7 +77,15 @@ The navbar/footer architecture redesign is **DONE**. We achieved:
   - Fixed all TypeScript errors related to migration
   - Memory optimization: File objects cleared after upload success
   ```
-- [ ] Remove unused CSS from bundle
+- [x] Remove unused CSS from bundle
+  ```
+  Work Log:
+  - Analyzed all custom CSS classes for actual usage in components
+  - Removed unused classes: dark-focus, focus-ring-custom, no-focus-ring
+  - Removed unused animations: dropdown-animate-out, dropdown-animate-out-up
+  - Reduced globals.css from 231 lines to 183 lines (~21% reduction)
+  - Tailwind v4 already handles utility class tree-shaking automatically
+  ```
 
 ## 📝 Notes
 

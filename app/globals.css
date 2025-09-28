@@ -136,13 +136,6 @@ select:focus-visible {
   outline-offset: 0; /* No offset for form fields to avoid layout shift */
 }
 
-/* For components with dark backgrounds, add a subtle glow */
-.dark-focus:focus-visible {
-  outline: 2px solid #7C5CFF;
-  outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.1);
-}
-
 /* Ensure focus rings respect component border radius */
 .rounded-lg:focus-visible {
   border-radius: 0.5rem;
@@ -154,17 +147,6 @@ select:focus-visible {
 
 .rounded-full:focus-visible {
   border-radius: 9999px;
-}
-
-/* Custom focus styles for specific components that need different treatment */
-.focus-ring-custom:focus-visible {
-  outline: 2px solid #B6FF6E; /* Alternative accent color */
-  outline-offset: 2px;
-}
-
-/* Disable focus rings for elements that shouldn't show them */
-.no-focus-ring:focus-visible {
-  outline: none;
 }
 
 /* Dropdown menu animations */
@@ -179,23 +161,8 @@ select:focus-visible {
   }
 }
 
-@keyframes dropdownFadeOut {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-}
-
 .dropdown-animate-in {
   animation: dropdownFadeIn 140ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.dropdown-animate-out {
-  animation: dropdownFadeOut 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* For dropdowns that open upward (like footer dropdowns) */
@@ -210,21 +177,6 @@ select:focus-visible {
   }
 }
 
-@keyframes dropdownFadeOutUp {
-  from {
-    opacity: 1;
-    transform: translateY(0);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-}
-
 .dropdown-animate-in-up {
   animation: dropdownFadeInUp 140ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.dropdown-animate-out-up {
-  animation: dropdownFadeOutUp 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
