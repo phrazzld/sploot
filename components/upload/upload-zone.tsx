@@ -406,9 +406,7 @@ export function UploadZone({
   // Use Map for O(1) lookups and minimal memory footprint (~300 bytes per file vs 5MB)
   const [fileMetadata, setFileMetadata] = useState(() => new Map<string, FileMetadata>());
   // Store File objects temporarily only during active upload
-  const activeFileObjects = useRef(new WeakMap<FileMetadata, File>());
-  // Temporary files state to fix incomplete refactoring - TODO: Complete migration to Map
-  const [files, setFiles] = useState<UploadFile[]>([]);
+  const fileObjects = useRef(new Map<string, File>());
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [tags, setTags] = useState<string[]>([]);
@@ -540,7 +538,7 @@ export function UploadZone({
 
           // Clear the file list to reset upload zone
           setFileMetadata(new Map());
-          setFiles([]);
+          fileObjects.current.clear();
         }
       }, 3000); // Clear after 3 seconds
 
@@ -585,7 +583,8 @@ export function UploadZone({
     const totalSize = filesArray.reduce((acc, file) => acc + file.size, 0);
     setPreparingTotalSize(totalSize);
 
-    const newFiles: UploadFile[] = [];
+    const metadataToAdd = new Map<string, FileMetadata>();
+    const filesToUpload: string[] = [];
 
     // Split files into chunks for processing
     const chunks: File[][] = [];
@@ -597,32 +596,46 @@ export function UploadZone({
     for (const chunk of chunks) {
       for (const file of chunk) {
         const error = validateFile(file);
+        const id = `${Date.now()}-${Math.random()}`;
 
         if (error) {
-          newFiles.push({
-            id: `${Date.now()}-${Math.random()}`,
-            file,
+          const metadata: FileMetadata = {
+            id,
+            name: file.name,
+            size: file.size,
             status: 'error',
             progress: 0,
             error,
-          });
+            addedAt: Date.now()
+          };
+          metadataToAdd.set(id, metadata);
+          fileObjects.current.set(id, file);
         } else if (isOffline && supportsBackgroundSync) {
           // Use background sync when offline
-          const id = await addToBackgroundSync(file);
-          newFiles.push({
-            id,
-            file,
+          const syncId = await addToBackgroundSync(file);
+          const metadata: FileMetadata = {
+            id: syncId,
+            name: file.name,
+            size: file.size,
             status: 'queued',
             progress: 0,
-          });
+            addedAt: Date.now()
+          };
+          metadataToAdd.set(syncId, metadata);
+          fileObjects.current.set(syncId, file);
         } else {
           // Upload immediately or use fallback
-          newFiles.push({
-            id: `${Date.now()}-${Math.random()}`,
-            file,
+          const metadata: FileMetadata = {
+            id,
+            name: file.name,
+            size: file.size,
             status: 'pending',
             progress: 0,
-          });
+            addedAt: Date.now()
+          };
+          metadataToAdd.set(id, metadata);
+          fileObjects.current.set(id, file);
+          filesToUpload.push(id);
         }
       }
 
@@ -632,7 +645,14 @@ export function UploadZone({
       }
     }
 
-    setFiles((prev) => [...prev, ...newFiles]);
+    // Update fileMetadata state
+    setFileMetadata((prev) => {
+      const newMap = new Map(prev);
+      metadataToAdd.forEach((value, key) => {
+        newMap.set(key, value);
+      });
+      return newMap;
+    });
 
     // Clear preparing state before starting uploads
     setIsPreparing(false);
@@ -640,11 +660,8 @@ export function UploadZone({
     setPreparingTotalSize(0);
 
     // Start uploading valid files if online with parallel batching
-    if (!isOffline) {
-      const filesToUpload = newFiles.filter((f) => f.status === 'pending');
-      if (filesToUpload.length > 0) {
-        uploadBatch(filesToUpload);
-      }
+    if (!isOffline && filesToUpload.length > 0) {
+      uploadBatch(filesToUpload);
     }
   }, [isOffline, supportsBackgroundSync, addToBackgroundSync]);
 
@@ -665,7 +682,7 @@ export function UploadZone({
 
     const tracker = getGlobalPerformanceTracker();
     tracker.start(PERF_OPERATIONS.CLIENT_FILE_SELECT);
-    const newFiles: UploadFile[] = [];
+    const newFiles: FileMetadata[] = [];
     const uploadQueueManager = getUploadQueueManager();
 
     // Create FileStreamProcessor for memory-efficient processing
@@ -714,13 +731,17 @@ export function UploadZone({
       // If offline, queue the file instead of uploading
       if (isOffline && !error) {
         const queueItem = addToQueue(originalFile);
-        newFiles.push({
+        const metadata: FileMetadata = {
           id: queueItem.id,
-          file: originalFile,
+          name: originalFile.name,
+          size: originalFile.size,
           status: 'queued',
           progress: 0,
           error: undefined,
-        });
+          addedAt: Date.now()
+        };
+        newFiles.push(metadata);
+        fileObjects.current.set(queueItem.id, originalFile);
 
         // Also persist to IndexedDB for recovery
         try {
@@ -729,21 +750,25 @@ export function UploadZone({
           console.error('[UploadZone] Failed to persist upload:', err);
         }
       } else {
-        const uploadFile: UploadFile = {
-          id: `${Date.now()}-${Math.random()}`,
-          file: originalFile,
+        const id = `${Date.now()}-${Math.random()}`;
+        const metadata: FileMetadata = {
+          id,
+          name: originalFile.name,
+          size: originalFile.size,
           status: error ? 'error' : 'pending',
           progress: 0,
           error: error || undefined,
+          addedAt: Date.now()
         };
-        newFiles.push(uploadFile);
+        newFiles.push(metadata);
+        fileObjects.current.set(id, originalFile);
 
         // Persist pending uploads to IndexedDB
-        if (!error && uploadFile.status === 'pending') {
+        if (!error && metadata.status === 'pending') {
           try {
             const persistedId = await uploadQueueManager.addUpload(originalFile);
             // Store the persisted ID for later removal
-            (uploadFile as any).persistedId = persistedId;
+            (metadata as any).persistedId = persistedId;
           } catch (err) {
             console.error('[UploadZone] Failed to persist upload:', err);
           }
@@ -753,9 +778,15 @@ export function UploadZone({
       // Release memory for processed chunks
       processor.releaseMemory(processed.size);
 
-      // Update files state in batches to avoid too many re-renders
+      // Update fileMetadata state in batches to avoid too many re-renders
       if (processedCount % 10 === 0 || processedCount === fileCount) {
-        setFiles((prev) => [...prev, ...newFiles.slice(prev.length)]);
+        setFileMetadata((prev) => {
+          const newMap = new Map(prev);
+          newFiles.slice(prev.size).forEach(metadata => {
+            newMap.set(metadata.id, metadata);
+          });
+          return newMap;
+        });
 
         // Allow UI to breathe
         await new Promise(resolve => setTimeout(resolve, 10));
@@ -777,7 +808,13 @@ export function UploadZone({
 
       // Still try to process any files we did manage to handle
       if (newFiles.length > 0) {
-        setFiles((prev) => [...prev, ...newFiles]);
+        setFileMetadata((prev) => {
+          const newMap = new Map(prev);
+          newFiles.forEach(metadata => {
+            newMap.set(metadata.id, metadata);
+          });
+          return newMap;
+        });
       }
 
       return; // Exit early on error
@@ -785,12 +822,15 @@ export function UploadZone({
 
     // Final update with any remaining files
     if (newFiles.length > 0) {
-      setFiles((prev) => {
-        const existingCount = prev.length;
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const existingCount = prev.size;
         if (existingCount < newFiles.length) {
-          return [...prev, ...newFiles.slice(existingCount)];
+          newFiles.slice(existingCount).forEach(metadata => {
+            newMap.set(metadata.id, metadata);
+          });
         }
-        return prev;
+        return newMap;
       });
 
       // Stats will be automatically updated by the effect that watches fileMetadata changes
@@ -815,7 +855,7 @@ export function UploadZone({
 
     // Start uploading valid files if online with parallel batching
     if (!isOffline) {
-      const filesToUpload = newFiles.filter((f) => f.status === 'pending');
+      const filesToUpload = newFiles.filter((f) => f.status === 'pending').map(f => f.id);
       if (filesToUpload.length > 0) {
         tracker.start(PERF_OPERATIONS.CLIENT_UPLOAD_START);
         uploadBatch(filesToUpload);
@@ -858,16 +898,16 @@ export function UploadZone({
   const MIN_CONCURRENT_UPLOADS = 2;
   const MAX_CONCURRENT_UPLOADS = 8;
 
-  const uploadBatch = async (uploadFiles: UploadFile[]) => {
+  const uploadBatch = async (fileIds: string[]) => {
     // Reset stats for this batch
     uploadStatsRef.current = { successful: 0, failed: 0 };
 
-    console.log(`[Upload] Starting batch upload of ${uploadFiles.length} files with concurrency: ${currentConcurrency}`);
+    console.log(`[Upload] Starting batch upload of ${fileIds.length} files with concurrency: ${currentConcurrency}`);
 
     // Create chunks for parallel processing with concurrency limit
-    const uploadQueue = [...uploadFiles];
+    const uploadQueue = [...fileIds];
     const activeUploads = new Set<Promise<void>>();
-    const retryQueue: UploadFile[] = [];
+    const retryQueue: string[] = [];
 
     while (uploadQueue.length > 0 || activeUploads.size > 0) {
       // Adaptive concurrency: adjust based on failure rate
@@ -890,23 +930,31 @@ export function UploadZone({
 
       // Start new uploads up to current concurrency limit
       while (uploadQueue.length > 0 && activeUploads.size < currentConcurrency) {
-        const file = uploadQueue.shift()!;
-        const uploadPromise = uploadFileToServer(file).then(() => {
+        const fileId = uploadQueue.shift()!;
+        const uploadPromise = uploadFileToServer(fileId).then(() => {
           uploadStatsRef.current.successful++;
           activeUploads.delete(uploadPromise);
         }).catch((error) => {
           // Track retry count
-          const retryCount = (file.retryCount || 0);
+          const metadata = fileMetadata.get(fileId);
+          const retryCount = (metadata?.retryCount || 0);
 
           if (retryCount < 3) {
             // Add to retry queue if under max retries
-            const fileWithRetryCount = { ...file, retryCount: retryCount + 1 };
-            retryQueue.push(fileWithRetryCount);
-            console.log(`[Upload] File ${file.file.name} added to retry queue (attempt ${retryCount + 1}/3)`);
+            setFileMetadata(prev => {
+              const newMap = new Map(prev);
+              const meta = newMap.get(fileId);
+              if (meta) {
+                newMap.set(fileId, { ...meta, retryCount: retryCount + 1 });
+              }
+              return newMap;
+            });
+            retryQueue.push(fileId);
+            console.log(`[Upload] File ${metadata?.name} added to retry queue (attempt ${retryCount + 1}/3)`);
           } else {
             // Max retries reached, mark as permanently failed
             uploadStatsRef.current.failed++;
-            console.error(`[Upload] File ${file.file.name} failed after 3 retries:`, error);
+            console.error(`[Upload] File ${metadata?.name} failed after 3 retries:`, error);
           }
           activeUploads.delete(uploadPromise);
         });
@@ -927,66 +975,86 @@ export function UploadZone({
   };
 
   // Process retry queue with exponential backoff
-  const processRetryQueue = async (retryFiles: UploadFile[]) => {
+  const processRetryQueue = async (retryFileIds: string[]) => {
     const backoffDelays = [1000, 3000, 9000]; // 1s, 3s, 9s
 
-    for (const file of retryFiles) {
-      const retryCount = file.retryCount || 1;
+    for (const fileId of retryFileIds) {
+      const metadata = fileMetadata.get(fileId);
+      const retryCount = metadata?.retryCount || 1;
       const delay = backoffDelays[retryCount - 1] || 9000;
 
-      console.log(`[Upload] Retrying ${file.file.name} after ${delay}ms delay (attempt ${retryCount}/3)`);
+      console.log(`[Upload] Retrying ${metadata?.name} after ${delay}ms delay (attempt ${retryCount}/3)`);
 
       // Wait for backoff delay
       await new Promise(resolve => setTimeout(resolve, delay));
 
       // Update file status to indicate retry
-      setFiles((prev) =>
-        prev.map((f) =>
-          f.id === file.id
-            ? { ...f, status: 'pending' as const, error: `Retrying (attempt ${retryCount}/3)...` }
-            : f
-        )
-      );
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const meta = newMap.get(fileId);
+        if (meta) {
+          newMap.set(fileId, { ...meta, status: 'pending', error: `Retrying (attempt ${retryCount}/3)...` });
+        }
+        return newMap;
+      });
 
       try {
-        await uploadFileToServer(file);
+        await uploadFileToServer(fileId);
         uploadStatsRef.current.successful++;
-        console.log(`[Upload] Retry successful for ${file.file.name}`);
+        console.log(`[Upload] Retry successful for ${metadata?.name}`);
       } catch (error) {
         if (retryCount < 3) {
-          // Still have retries left, recurse with incremented count
-          const nextRetryFile = { ...file, retryCount: retryCount + 1 };
-          await processRetryQueue([nextRetryFile]);
+          // Still have retries left, update retry count and recurse
+          setFileMetadata(prev => {
+            const newMap = new Map(prev);
+            const meta = newMap.get(fileId);
+            if (meta) {
+              newMap.set(fileId, { ...meta, retryCount: retryCount + 1 });
+            }
+            return newMap;
+          });
+          await processRetryQueue([fileId]);
         } else {
           // Max retries reached
           uploadStatsRef.current.failed++;
-          console.error(`[Upload] File ${file.file.name} failed permanently after 3 retries:`, error);
+          console.error(`[Upload] File ${metadata?.name} failed permanently after 3 retries:`, error);
         }
       }
     }
   };
 
   // Upload file to server - simplified direct upload
-  const uploadFileToServer = async (uploadFile: UploadFile) => {
+  const uploadFileToServer = async (fileId: string) => {
     const tracker = getGlobalPerformanceTracker();
     const metricsCollector = getGlobalMetricsCollector();
     const uploadStartTime = Date.now();
 
-    // Record upload start in metrics
-    metricsCollector.recordUploadStart(uploadFile.id);
+    // Get file metadata and File object
+    const metadata = fileMetadata.get(fileId);
+    const file = fileObjects.current.get(fileId);
 
-    setFiles((prev) =>
-      prev.map((f) =>
-        f.id === uploadFile.id ? { ...f, status: 'uploading', progress: 10 } : f
-      )
-    );
+    if (!metadata || !file) {
+      throw new Error(`File ${fileId} not found`);
+    }
+
+    // Record upload start in metrics
+    metricsCollector.recordUploadStart(fileId);
+
+    setFileMetadata((prev) => {
+      const newMap = new Map(prev);
+      const meta = newMap.get(fileId);
+      if (meta) {
+        newMap.set(fileId, { ...meta, status: 'uploading', progress: 10 });
+      }
+      return newMap;
+    });
 
     const apiStartTime = performance.now(); // Define here so it's accessible in catch block
 
     try {
       // Create FormData for file upload
       const formData = new FormData();
-      formData.append('file', uploadFile.file);
+      formData.append('file', file);
 
       // Add tags to the form data
       if (tags.length > 0) {
@@ -1003,10 +1071,10 @@ export function UploadZone({
             const percentComplete = Math.round((event.loaded / event.total) * 100);
 
             // Record upload progress in metrics
-            metricsCollector.recordUploadProgress(uploadFile.id, event.loaded);
+            metricsCollector.recordUploadProgress(fileId, event.loaded);
 
             // Throttle progress updates to reduce re-renders
-            const throttleInfo = progressThrottleMap.current.get(uploadFile.id) || {
+            const throttleInfo = progressThrottleMap.current.get(fileId) || {
               lastUpdate: 0,
               lastPercent: 0
             };
@@ -1018,16 +1086,17 @@ export function UploadZone({
             if (percentDiff >= PROGRESS_UPDATE_THRESHOLD ||
                 timeDiff >= PROGRESS_UPDATE_INTERVAL ||
                 percentComplete >= 90) {
-              setFiles((prev) =>
-                prev.map((f) =>
-                  f.id === uploadFile.id
-                    ? { ...f, progress: Math.min(90, percentComplete) }
-                    : f
-                )
-              );
+              setFileMetadata((prev) => {
+                const newMap = new Map(prev);
+                const meta = newMap.get(fileId);
+                if (meta) {
+                  newMap.set(fileId, { ...meta, progress: Math.min(90, percentComplete) });
+                }
+                return newMap;
+              });
 
               // Update throttle map
-              progressThrottleMap.current.set(uploadFile.id, {
+              progressThrottleMap.current.set(fileId, {
                 lastUpdate: now,
                 lastPercent: percentComplete
               });
@@ -1092,7 +1161,7 @@ export function UploadZone({
       tracker.track('client:single_upload', Date.now() - uploadStartTime);
 
       // Record successful upload completion in metrics
-      metricsCollector.recordUploadComplete(uploadFile.id);
+      metricsCollector.recordUploadComplete(fileId);
 
       // End the initial upload start timer if this is the first successful upload
       if (tracker.getSampleCount('client:single_upload') === 1) {
@@ -1108,45 +1177,40 @@ export function UploadZone({
         tracker.track(PERF_OPERATIONS.CLIENT_TO_SEARCHABLE, Date.now() - uploadStartTime);
       }
 
-      setFiles((prev) => {
-        const updated = prev.map((f) =>
-          f.id === uploadFile.id
-            ? {
-                ...f,
-                status: (isDuplicate ? 'duplicate' : 'success') as 'duplicate' | 'success',
-                progress: 100,
-                assetId: result.asset?.id,
-                blobUrl: result.asset?.blobUrl,
-                isDuplicate,
-                needsEmbedding,
-                embeddingStatus: (needsEmbedding ? 'pending' : 'ready') as 'pending' | 'ready',
-                // Clear the heavy file reference after successful upload to free memory
-                // We keep the file's metadata for UI display but remove the actual File object
-                file: {
-                  name: f.file.name,
-                  size: f.file.size,
-                  type: f.file.type,
-                  lastModified: f.file.lastModified
-                } as any // Cast to any since we're creating a lightweight version
-              }
-            : f
-        );
-        return updated;
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const meta = newMap.get(fileId);
+        if (meta) {
+          newMap.set(fileId, {
+            ...meta,
+            status: (isDuplicate ? 'duplicate' : 'success') as 'duplicate' | 'success',
+            progress: 100,
+            assetId: result.asset?.id,
+            blobUrl: result.asset?.blobUrl,
+            isDuplicate,
+            needsEmbedding,
+            embeddingStatus: (needsEmbedding ? 'pending' : 'ready') as 'pending' | 'ready'
+          });
+        }
+        return newMap;
       });
+
+      // Clear the File object reference to free memory after successful upload
+      fileObjects.current.delete(fileId);
 
       // Track success for adaptive concurrency
       uploadStatsRef.current.successful++;
 
       // Clean up progress throttle map entry
-      progressThrottleMap.current.delete(uploadFile.id);
+      progressThrottleMap.current.delete(fileId);
 
       // Log memory cleanup for monitoring during development
-      console.log(`[UploadZone] Cleared file blob for ${uploadFile.file.name}, kept metadata only`);
+      console.log(`[UploadZone] Cleared file blob for ${metadata.name}, kept metadata only`);
 
       // Remove from persisted queue on success
-      if ((uploadFile as any).persistedId) {
+      if ((metadata as any).persistedId) {
         try {
-          await uploadQueueManager.removeUpload((uploadFile as any).persistedId);
+          await uploadQueueManager.removeUpload((metadata as any).persistedId);
         } catch (err) {
           console.error('[UploadZone] Failed to remove persisted upload:', err);
         }
@@ -1165,7 +1229,7 @@ export function UploadZone({
       console.error('Upload error:', error);
 
       // Record upload failure in metrics
-      metricsCollector.recordUploadFailure(uploadFile.id, error instanceof Error ? error.message : 'Unknown error');
+      metricsCollector.recordUploadFailure(fileId, error instanceof Error ? error.message : 'Unknown error');
 
       // Parse error for better messaging with status code
       const statusCode = (error as any)?.statusCode ||
@@ -1185,36 +1249,36 @@ export function UploadZone({
         statusCode
       );
 
-      setFiles((prev) => {
-        const updated = prev.map((f) =>
-          f.id === uploadFile.id
-            ? {
-                ...f,
-                status: 'error' as const,
-                progress: 0,
-                error: error instanceof Error ? error.message : 'Upload failed',
-                errorDetails,
-              }
-            : f
-        );
-        return updated;
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const meta = newMap.get(fileId);
+        if (meta) {
+          newMap.set(fileId, {
+            ...meta,
+            status: 'error' as const,
+            progress: 0,
+            error: error instanceof Error ? error.message : 'Upload failed',
+            errorDetails,
+          });
+        }
+        return newMap;
       });
 
       // Track failure for adaptive concurrency
       uploadStatsRef.current.failed++;
 
       // Clean up progress throttle map entry on error
-      progressThrottleMap.current.delete(uploadFile.id);
+      progressThrottleMap.current.delete(fileId);
 
       // Stats will be automatically updated by the effect that watches fileMetadata changes
 
       // NOTE: We don't clear file reference on failure as it may be needed for retries
 
       // Update persisted status to failed
-      if ((uploadFile as any).persistedId) {
+      if ((metadata as any).persistedId) {
         try {
           await uploadQueueManager.updateUploadStatus(
-            (uploadFile as any).persistedId,
+            (metadata as any).persistedId,
             'failed',
             error instanceof Error ? error.message : 'Upload failed'
           );
@@ -1224,7 +1288,7 @@ export function UploadZone({
       }
     } finally {
       // Remove from active uploads
-      activeUploadsRef.current.delete(uploadFile.id);
+      activeUploadsRef.current.delete(fileId);
     }
   };
 
@@ -1301,28 +1365,39 @@ export function UploadZone({
 
   // Remove file from list
   const removeFile = (id: string) => {
-    setFiles((prev) => prev.filter((f) => f.id !== id));
     setFileMetadata((prev) => {
       const newMap = new Map(prev);
       newMap.delete(id);
       return newMap;
     });
+    fileObjects.current.delete(id);
   };
 
   // Retry failed upload
   const retryUpload = (metadata: FileMetadata) => {
-    // Find the original File object from the files Map
-    const originalFile = files.get(metadata.id);
+    // Find the original File object from the fileObjects Map
+    const originalFile = fileObjects.current.get(metadata.id);
     if (!originalFile) {
       console.error('Cannot retry upload: original file not found');
       return;
     }
 
-    const freshFile = { ...originalFile, status: 'pending' as const, progress: 0, error: undefined, retryCount: 0 };
-    setFiles((prev) =>
-      prev.map((f) => (f.id === metadata.id ? freshFile : f))
-    );
-    uploadFileToServer(freshFile);
+    setFileMetadata((prev) => {
+      const newMap = new Map(prev);
+      const meta = newMap.get(metadata.id);
+      if (meta) {
+        newMap.set(metadata.id, {
+          ...meta,
+          status: 'pending' as const,
+          progress: 0,
+          error: undefined,
+          errorDetails: undefined,
+          retryCount: 0
+        });
+      }
+      return newMap;
+    });
+    uploadFileToServer(metadata.id);
   };
 
   // Retry all failed uploads
@@ -1333,25 +1408,29 @@ export function UploadZone({
     console.log(`[Upload] Retrying all ${failedFiles.length} failed files`);
 
     // Reset all failed files to pending status
-    const resetFiles = failedFiles.map(file => ({
-      ...file,
-      status: 'pending' as const,
-      progress: 0,
-      error: undefined,
-      errorDetails: undefined,
-      retryCount: 0
-    }));
+    const failedFileIds = failedFiles.map(f => f.id);
 
     // Update state to reset failed files
-    setFiles((prev) =>
-      prev.map((f) => {
-        const resetFile = resetFiles.find(rf => rf.id === f.id);
-        return resetFile || f;
-      })
-    );
+    setFileMetadata((prev) => {
+      const newMap = new Map(prev);
+      failedFileIds.forEach(id => {
+        const meta = newMap.get(id);
+        if (meta) {
+          newMap.set(id, {
+            ...meta,
+            status: 'pending' as const,
+            progress: 0,
+            error: undefined,
+            errorDetails: undefined,
+            retryCount: 0
+          });
+        }
+      });
+      return newMap;
+    });
 
     // Re-queue all failed files for upload
-    uploadBatch(resetFiles);
+    uploadBatch(failedFileIds);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -1419,14 +1498,16 @@ export function UploadZone({
     setIsCancelling(true);
 
     // Remove pending files
-    setFiles((prev) =>
-      prev.filter((f) =>
-        f.status === 'success' ||
-        f.status === 'duplicate' ||
-        f.status === 'error' ||
-        f.status === 'uploading'
-      )
-    );
+    setFileMetadata((prev) => {
+      const newMap = new Map(prev);
+      Array.from(newMap.entries()).forEach(([id, meta]) => {
+        if (meta.status === 'pending' || meta.status === 'queued') {
+          newMap.delete(id);
+          fileObjects.current.delete(id);
+        }
+      });
+      return newMap;
+    });
 
     // Clear active uploads tracking
     activeUploadsRef.current.clear();
@@ -1444,7 +1525,7 @@ export function UploadZone({
 
   const handleViewLibrary = () => {
     setFileMetadata(new Map());
-    setFiles([]);
+    fileObjects.current.clear();
     setTags([]);
     setUploadStats(null);
     router.push('/app');

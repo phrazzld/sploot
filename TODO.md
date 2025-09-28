@@ -67,7 +67,16 @@ The navbar/footer architecture redesign is **DONE**. We achieved:
   ```
 
 ### Code Quality
-- [ ] Complete upload component Map migration (works fine as-is though)
+- [x] Complete upload component Map migration (works fine as-is though)
+  ```
+  Work Log:
+  - Removed duplicate files state array (UploadFile[])
+  - Migrated to Map-based fileMetadata for O(1) lookups
+  - Separated File objects into fileObjects Map for memory efficiency
+  - Updated all functions to use file IDs instead of full objects
+  - Fixed all TypeScript errors related to migration
+  - Memory optimization: File objects cleared after upload success
+  ```
 - [ ] Remove unused CSS from bundle
 
 ## 📝 Notes
