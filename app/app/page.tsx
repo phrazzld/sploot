@@ -569,50 +569,47 @@ export default function AppPage() {
       {/* Container with ultra-wide support - max-width at 1920px+ */}
       <div className="px-6 pb-0 pt-6 md:px-10 2xl:px-12">
         <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1920px]">
-          <header className="flex flex-col gap-6">
-            <div className="flex flex-col gap-4">
-              <div>
-                <h1 className="text-3xl font-semibold text-[#E6E8EB]">your library</h1>
-                <p className="mt-2 text-sm text-[#B3B7BE]">
-                  {stats.total > 0 ? (
+          <header className="flex flex-col gap-4">
+            {/* Title bar with inline stats */}
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h1 className="text-2xl font-semibold text-[#E6E8EB]">your library</h1>
+              {stats.total > 0 && (
+                <span className="text-sm text-[#6A6E78]">
+                  • {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
+                  {stats.favorites > 0 && (
                     <>
-                      {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
-                      {stats.favorites > 0 && (
-                        <>
-                          {' '}• {stats.favorites}{' '}
-                          {stats.favorites === 1 ? 'banger' : 'bangers'}
-                        </>
-                      )}
-                      {' '}• {stats.sizeFormatted}
+                      {' '}• {stats.favorites}{' '}
+                      {stats.favorites === 1 ? 'banger' : 'bangers'}
                     </>
-                  ) : (
-                    'start building your meme collection'
                   )}
-                </p>
-              </div>
-
-              {/* Search bar - prominent position */}
-              <SearchBar
-                onSearch={handleInlineSearch}
-                inline
-                initialQuery={queryParam}
-                searchState={
-                  searchLoading ? 'loading' :
-                    isTypingRef.current ? 'typing' :
-                      libraryQuery && searchAssets.length > 0 ? 'success' :
-                        libraryQuery && searchAssets.length === 0 ? 'no-results' :
-                          searchError ? 'error' :
-                            'idle'
-                }
-                resultCount={searchAssets.length}
-                className="w-full max-w-3xl"
-                placeholder="search your memes..."
-                autoFocus={false}
-              />
+                  {' '}• {stats.sizeFormatted}
+                </span>
+              )}
             </div>
 
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-3">
+            {/* Search bar - hero element */}
+            <SearchBar
+              onSearch={handleInlineSearch}
+              inline
+              initialQuery={queryParam}
+              searchState={
+                searchLoading ? 'loading' :
+                  isTypingRef.current ? 'typing' :
+                    libraryQuery && searchAssets.length > 0 ? 'success' :
+                      libraryQuery && searchAssets.length === 0 ? 'no-results' :
+                        searchError ? 'error' :
+                          'idle'
+              }
+              resultCount={searchAssets.length}
+              className="w-full"
+              placeholder="search your memes..."
+              autoFocus={false}
+            />
+
+            {/* Action toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Left group: Primary actions */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowUploadPanel((prev) => !prev)}
@@ -626,7 +623,7 @@ export default function AppPage() {
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v12M4 10h12" />
                   </svg>
-                  {showUploadPanel ? 'close upload tray' : 'upload new meme'}
+                  {showUploadPanel ? 'close' : 'upload'}
                 </button>
                 {failedEmbeddings.length > 0 && (
                   <button
@@ -651,104 +648,93 @@ export default function AppPage() {
                   )}
                 >
                   <HeartIcon className="h-4 w-4" filled={favoritesOnly} />
-                  {favoritesOnly ? 'show bangers only' : 'show all memes'}
+                  {favoritesOnly ? 'bangers' : 'all'}
                 </button>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <ViewModeToggle
-                value={viewMode}
-                onChange={handleViewModeChange}
-                size="md"
-                showLabels={false}
-              />
+              {/* Right group: View controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                <ViewModeToggle
+                  value={viewMode}
+                  onChange={handleViewModeChange}
+                  size="md"
+                  showLabels={false}
+                />
 
-              <div className="relative sort-dropdown-container">
-                <button
-                  type="button"
-                  onClick={() => setShowSortDropdown((prev) => !prev)}
-                  className="flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
-                  </svg>
-                  <span>
-                    {sortBy === 'recent' || sortBy === 'date' ? 'date' : sortBy === 'size' ? 'size' : sortBy === 'name' ? 'name' : 'date'}
-                    {sortOrder === 'desc' ? ' ↓' : ' ↑'}
-                  </span>
-                </button>
+                <div className="relative sort-dropdown-container">
+                  <button
+                    type="button"
+                    onClick={() => setShowSortDropdown((prev) => !prev)}
+                    className="flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
+                    </svg>
+                    <span className="hidden sm:inline">
+                      {sortBy === 'recent' || sortBy === 'date' ? 'date' : sortBy === 'size' ? 'size' : sortBy === 'name' ? 'name' : 'date'}
+                    </span>
+                    <span>{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                  </button>
 
-                {showSortDropdown && (
-                  <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-[#2A2F37] bg-[#0F1216] shadow-2xl">
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          handleSortChange('date', sortBy === 'date' && sortOrder === 'desc' ? 'asc' : 'desc');
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'date' || sortBy === 'recent' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        )}
-                      >
-                        date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          // Note: 'favorite' is not a valid SortOption in the new system
-                          // This needs to be handled differently (perhaps as a filter)
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          'text-[#B3B7BE]' // Always inactive as favorite sorting not supported
-                        )}
-                        disabled
-                      >
-                        bangers first (disabled)
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleSortChange('size', sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        )}
-                      >
-                        size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleSortChange('name', sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'name' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        )}
-                      >
-                        name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
-                      </button>
+                  {showSortDropdown && (
+                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-[#2A2F37] bg-[#0F1216] shadow-2xl">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            handleSortChange('date', sortBy === 'date' && sortOrder === 'desc' ? 'asc' : 'desc');
+                            setShowSortDropdown(false);
+                          }}
+                          className={cn(
+                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
+                            sortBy === 'date' || sortBy === 'recent' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          )}
+                        >
+                          date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleSortChange('size', sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
+                            setShowSortDropdown(false);
+                          }}
+                          className={cn(
+                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
+                            sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          )}
+                        >
+                          size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleSortChange('name', sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
+                            setShowSortDropdown(false);
+                          }}
+                          className={cn(
+                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
+                            sortBy === 'name' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          )}
+                        >
+                          name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </div>
+
+                {tagIdParam && (
+                  <button
+                    type="button"
+                    onClick={clearTagFilter}
+                    className="inline-flex items-center gap-1 rounded-full border border-[#2A2F37] bg-[#14171A] px-3 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="hidden sm:inline">clear</span>
+                    <span className="text-[#7C5CFF]">#{activeTagName ?? 'tag'}</span>
+                  </button>
                 )}
               </div>
 
-              {tagIdParam && (
-                <button
-                  type="button"
-                  onClick={clearTagFilter}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                  clear tag {activeTagName ? `#${activeTagName}` : ''}
-                </button>
-              )}
             </div>
 
             {(!isSearching && (favoritesOnly || tagIdParam)) && (
