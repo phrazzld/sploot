@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
 import Image from 'next/image';
@@ -20,7 +21,7 @@ import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
 
-export default function AppPage() {
+function AppPageClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -972,5 +973,17 @@ export default function AppPage() {
         onSignOut={() => window.location.href = '/api/auth/signout'}
       />
     </div>
+  );
+}
+
+export default function AppPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-[calc(100vh-56px)] flex-col items-center justify-center">
+        <div className="text-[#B3B7BE]">Loading...</div>
+      </div>
+    }>
+      <AppPageClient />
+    </Suspense>
   );
 }
