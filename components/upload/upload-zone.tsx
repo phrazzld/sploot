@@ -15,12 +15,10 @@ import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { useEmbeddingStatusSubscription } from '@/contexts/embedding-status-context';
 import { useSSEEmbeddingUpdates } from '@/hooks/use-sse-updates';
 import { getSSEClient } from '@/lib/sse-client';
-import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
 import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
-import { getGlobalMetricsCollector } from '@/lib/metrics-collector';
 
 // Lightweight metadata for display - only ~300 bytes per file vs 5MB for File object
 interface FileMetadata {
@@ -680,8 +678,6 @@ export function UploadZone({
     }
     setPreparingTotalSize(totalSize);
 
-    const tracker = getGlobalPerformanceTracker();
-    tracker.start(PERF_OPERATIONS.CLIENT_FILE_SELECT);
     const newFiles: FileMetadata[] = [];
     const uploadQueueManager = getUploadQueueManager();
 
@@ -837,7 +833,6 @@ export function UploadZone({
     }
 
     // End file selection tracking and start upload tracking
-    tracker.end(PERF_OPERATIONS.CLIENT_FILE_SELECT);
 
     // Clear preparing state before starting uploads
     setIsPreparing(false);
@@ -857,7 +852,6 @@ export function UploadZone({
     if (!isOffline) {
       const filesToUpload = newFiles.filter((f) => f.status === 'pending').map(f => f.id);
       if (filesToUpload.length > 0) {
-        tracker.start(PERF_OPERATIONS.CLIENT_UPLOAD_START);
         uploadBatch(filesToUpload);
       }
     }
@@ -1025,8 +1019,6 @@ export function UploadZone({
 
   // Upload file to server - simplified direct upload
   const uploadFileToServer = async (fileId: string) => {
-    const tracker = getGlobalPerformanceTracker();
-    const metricsCollector = getGlobalMetricsCollector();
     const uploadStartTime = Date.now();
 
     // Get file metadata and File object
@@ -1038,7 +1030,6 @@ export function UploadZone({
     }
 
     // Record upload start in metrics
-    metricsCollector.recordUploadStart(fileId);
 
     setFileMetadata((prev) => {
       const newMap = new Map(prev);
@@ -1071,7 +1062,6 @@ export function UploadZone({
             const percentComplete = Math.round((event.loaded / event.total) * 100);
 
             // Record upload progress in metrics
-            metricsCollector.recordUploadProgress(fileId, event.loaded);
 
             // Throttle progress updates to reduce re-renders
             const throttleInfo = progressThrottleMap.current.get(fileId) || {
@@ -1151,22 +1141,16 @@ export function UploadZone({
       const apiDuration = performance.now() - apiStartTime;
 
       // Record API call metrics
-      metricsCollector.recordApiCall('/api/upload', apiDuration, result.statusCode || 200);
 
       if (!result.success) {
         throw new Error(result.error || 'Upload failed');
       }
 
       // Track client upload time
-      tracker.track('client:single_upload', Date.now() - uploadStartTime);
 
       // Record successful upload completion in metrics
-      metricsCollector.recordUploadComplete(fileId);
 
       // End the initial upload start timer if this is the first successful upload
-      if (tracker.getSampleCount('client:single_upload') === 1) {
-        tracker.end(PERF_OPERATIONS.CLIENT_UPLOAD_START);
-      }
 
       // Handle duplicate detection as a special success case
       const isDuplicate = result.isDuplicate === true;
@@ -1174,7 +1158,6 @@ export function UploadZone({
 
       // Track time to searchable if embedding is not needed
       if (!needsEmbedding && result.asset?.id) {
-        tracker.track(PERF_OPERATIONS.CLIENT_TO_SEARCHABLE, Date.now() - uploadStartTime);
       }
 
       setFileMetadata((prev) => {
@@ -1229,7 +1212,6 @@ export function UploadZone({
       console.error('Upload error:', error);
 
       // Record upload failure in metrics
-      metricsCollector.recordUploadFailure(fileId, error instanceof Error ? error.message : 'Unknown error');
 
       // Parse error for better messaging with status code
       const statusCode = (error as any)?.statusCode ||
@@ -1241,7 +1223,6 @@ export function UploadZone({
       // Record API error if we have a status code
       if (statusCode) {
         const apiDuration = performance.now() - apiStartTime;
-        metricsCollector.recordApiCall('/api/upload', apiDuration, statusCode);
       }
 
       const errorDetails = getUploadErrorDetails(
