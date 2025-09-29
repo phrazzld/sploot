@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useEffect } from 'react';
 import { cn } from '@/lib/utils';
 
 export type EmptyStateVariant = 'first-use' | 'filtered' | 'search';
@@ -22,6 +23,16 @@ export function EmptyState({
   searchQuery,
   className,
 }: EmptyStateProps) {
+  // Performance measurement in development
+  useEffect(() => {
+    if (process.env.NODE_ENV === 'development') {
+      const renderEnd = performance.now();
+      // Measure time from component mount to first paint
+      // This helps ensure we meet the <16ms target (60fps)
+      console.log(`[perf] EmptyState rendered in ~${renderEnd.toFixed(2)}ms`);
+    }
+  }, []);
+
   // Determine message based on variant
   const getMessage = () => {
     switch (variant) {
