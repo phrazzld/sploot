@@ -50,12 +50,12 @@ export function EmptyState({
   const showUploadButton = variant === 'first-use';
 
   return (
-    <div className={cn('flex h-full items-center justify-center py-16', className)}>
-      <div className="flex w-full max-w-lg flex-col items-center gap-6 rounded-3xl border border-dashed border-[#2A2F37] bg-[#14171A] p-10 text-center">
-        {/* Icon */}
-        <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-[#1B1F24]">
+    <div className={cn('flex h-full items-center justify-center py-8', className)}>
+      <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
+        {/* Minimal icon - 16x16 size */}
+        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#1B1F24]">
           <svg
-            className="h-14 w-14 text-[#7C5CFF]"
+            className="h-8 w-8 text-[#7C5CFF]/80"
             viewBox="0 0 64 64"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -83,63 +83,72 @@ export function EmptyState({
           </svg>
         </div>
 
-        {/* Message */}
-        <div>
-          <h3 className="text-xl font-semibold text-[#E6E8EB]">{message.title}</h3>
-          <p className="mt-2 text-sm text-[#B3B7BE]">{message.description}</p>
+        {/* Compact message */}
+        <div className="space-y-1">
+          <h3 className="text-base font-medium text-[#E6E8EB]">{message.title}</h3>
+          {message.description && (
+            <p className="text-sm text-[#B3B7BE]/80">{message.description}</p>
+          )}
         </div>
 
-        {/* Upload button (only for first-use variant) */}
+        {/* Keyboard hint for first-use */}
         {showUploadButton && (
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <span className="text-xs uppercase tracking-wide text-[#7C5CFF]">or</span>
-            {onUploadClick ? (
-              <button
-                onClick={onUploadClick}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
-                aria-label="Upload images"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
+          <div className="mt-2 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-2 text-xs text-[#7C5CFF]/70">
+              <kbd className="rounded bg-[#1B1F24] px-1.5 py-0.5 font-mono text-[#7C5CFF]">⌘V</kbd>
+              <span>to paste</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-[#474C58]">or</span>
+              {onUploadClick ? (
+                <button
+                  onClick={onUploadClick}
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
+                  aria-label="Upload images"
                 >
-                  <path
-                    d="M10 4v12M4 10h12"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                upload images
-              </button>
-            ) : (
-              <Link
-                href="/app?upload=1"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
-                aria-label="Upload images"
-              >
-                <svg
-                  className="h-4 w-4"
-                  viewBox="0 0 20 20"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  aria-hidden="true"
+                  <svg
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M10 4v12M4 10h12"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  upload
+                </button>
+              ) : (
+                <Link
+                  href="/app?upload=1"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
+                  aria-label="Upload images"
                 >
-                  <path
-                    d="M10 4v12M4 10h12"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                upload images
-              </Link>
-            )}
+                  <svg
+                    className="h-3.5 w-3.5"
+                    viewBox="0 0 20 20"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M10 4v12M4 10h12"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  upload
+                </Link>
+              )}
+            </div>
           </div>
         )}
       </div>
