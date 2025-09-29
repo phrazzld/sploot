@@ -35,6 +35,7 @@ export function ImageGrid({
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [showingTransition, setShowingTransition] = useState(false);
   const setContainerRef = useCallback(
     (node: HTMLDivElement | null) => {
       containerRef.current = node;
@@ -42,6 +43,18 @@ export function ImageGrid({
     },
     [onScrollContainerReady]
   );
+
+  // Handle transition from skeleton to empty state
+  useEffect(() => {
+    if (!loading && assets.length === 0) {
+      // Start transition: show skeleton fading out
+      setShowingTransition(true);
+      const timer = setTimeout(() => {
+        setShowingTransition(false);
+      }, 300); // Match the fade-out duration
+      return () => clearTimeout(timer);
+    }
+  }, [loading, assets.length]);
 
   // Use virtual scrolling only for large collections
   const USE_VIRTUAL_SCROLLING_THRESHOLD = 100;
@@ -135,10 +148,35 @@ export function ImageGrid({
     );
   }
 
+  // Transitioning from skeleton to empty state
+  // Show skeleton fading out for smooth transition
+  if (assets.length === 0 && !loading && showingTransition) {
+    return (
+      <div className="h-full">
+        <div
+          ref={setContainerRef}
+          className={cn('h-full overflow-auto p-4', containerClassName)}
+          style={{ scrollbarGutter: 'stable' }}
+        >
+          <ImageGridSkeleton
+            count={20}
+            variant="tile"
+            className="animate-fade-out opacity-0 transition-opacity duration-300 ease-out"
+          />
+        </div>
+      </div>
+    );
+  }
+
   // Empty state
   // Hide upload button since the main page toolbar already has a prominent one
+  // Fade in after skeleton transition completes
   if (assets.length === 0 && !loading) {
-    return <EmptyState variant="first-use" onUploadClick={onUploadClick} showUploadButton={false} />;
+    return (
+      <div className="animate-fade-in">
+        <EmptyState variant="first-use" onUploadClick={onUploadClick} showUploadButton={false} />
+      </div>
+    );
   }
 
   // Render simple grid for small collections

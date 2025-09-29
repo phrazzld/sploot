@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -220,10 +220,23 @@ export function ImageList({
   containerClassName,
 }: ImageListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [showingTransition, setShowingTransition] = useState(false);
 
   useEffect(() => {
     onScrollContainerReady?.(containerRef.current);
   }, [onScrollContainerReady]);
+
+  // Handle transition from skeleton to empty state
+  useEffect(() => {
+    if (!loading && assets.length === 0) {
+      // Start transition: show skeleton fading out
+      setShowingTransition(true);
+      const timer = setTimeout(() => {
+        setShowingTransition(false);
+      }, 300); // Match the fade-out duration
+      return () => clearTimeout(timer);
+    }
+  }, [loading, assets.length]);
 
   useEffect(() => {
     const node = containerRef.current;
@@ -244,7 +257,12 @@ export function ImageList({
 
   const emptyState = useMemo(
     // Hide upload button since the main page toolbar already has a prominent one
-    () => <EmptyState variant="first-use" showUploadButton={false} />,
+    // Fade in after skeleton transition completes
+    () => (
+      <div className="animate-fade-in">
+        <EmptyState variant="first-use" showUploadButton={false} />
+      </div>
+    ),
     []
   );
 
@@ -256,6 +274,12 @@ export function ImageList({
     >
       {assets.length === 0 && loading ? (
         <ImageGridSkeleton count={12} variant="list" className="animate-fade-in" />
+      ) : assets.length === 0 && !loading && showingTransition ? (
+        <ImageGridSkeleton
+          count={12}
+          variant="list"
+          className="animate-fade-out opacity-0 transition-opacity duration-300 ease-out"
+        />
       ) : assets.length === 0 && !loading ? (
         emptyState
       ) : (

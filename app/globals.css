@@ -39,6 +39,19 @@ body {
   animation: fadeIn 200ms ease-out;
 }
 
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+.animate-fade-out {
+  animation: fadeOut 300ms ease-out forwards;
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;

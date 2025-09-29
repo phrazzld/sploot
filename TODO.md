@@ -69,7 +69,16 @@
   - Only enabled for 'first-use' variant (not search/filtered states)
   ```
 
-- [ ] **Implement skeleton → empty state transition** - When `loading: true → false` and `assets.length === 0`, fade out skeletons (300ms ease-out) before showing empty state. Prevents jarring pop. (~15 min)
+- [x] **Implement skeleton → empty state transition** - When `loading: true → false` and `assets.length === 0`, fade out skeletons (300ms ease-out) before showing empty state. Prevents jarring pop. (~15 min)
+  ```
+  Work Log:
+  - Added transition state tracking in ImageGrid and ImageList components
+  - Created fadeOut animation (300ms ease-out) in globals.css
+  - Skeleton shows with fade-out animation when loading completes with 0 assets
+  - Empty state fades in after skeleton completes (200ms)
+  - Prevents jarring layout shift by maintaining container dimensions
+  - Total transition time: 300ms skeleton fade-out + 200ms empty state fade-in
+  ```
 
 ### Testing
 - [ ] **Test empty state on slow network** - Throttle to Slow 3G, verify skeleton → empty state transition is smooth. No layout shift (CLS = 0). (~10 min)
