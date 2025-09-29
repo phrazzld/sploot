@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 export type EmptyStateVariant = 'first-use' | 'filtered' | 'search';
@@ -12,6 +12,7 @@ interface EmptyStateProps {
   searchQuery?: string;
   className?: string;
   showUploadButton?: boolean; // Control whether to show the upload button (avoids duplication with navbar)
+  onFilesDropped?: (files: File[]) => void; // Callback when files are dropped on the empty state
 }
 
 /**
@@ -24,7 +25,12 @@ export function EmptyState({
   searchQuery,
   className,
   showUploadButton = true, // Default to true for backwards compatibility
+  onFilesDropped,
 }: EmptyStateProps) {
+  // Drag and drop state
+  const [isDragging, setIsDragging] = useState(false);
+  const dragCounterRef = useRef(0); // Track nested drag events
+
   // Performance measurement in development
   useEffect(() => {
     if (process.env.NODE_ENV === 'development') {
@@ -34,6 +40,49 @@ export function EmptyState({
       console.log(`[perf] EmptyState rendered in ~${renderEnd.toFixed(2)}ms`);
     }
   }, []);
+
+  // Drag and drop handlers
+  const handleDragEnter = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current++;
+    if (e.dataTransfer.items && e.dataTransfer.items.length > 0) {
+      setIsDragging(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    dragCounterRef.current--;
+    if (dragCounterRef.current === 0) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    dragCounterRef.current = 0;
+
+    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      const files = Array.from(e.dataTransfer.files);
+      // Filter for image files only
+      const imageFiles = files.filter(file => file.type.startsWith('image/'));
+
+      if (imageFiles.length > 0 && onFilesDropped) {
+        onFilesDropped(imageFiles);
+      } else if (imageFiles.length === 0 && files.length > 0) {
+        console.warn('[EmptyState] No image files in drop');
+      }
+    }
+  }, [onFilesDropped]);
 
   // Determine message based on variant
   const getMessage = () => {
@@ -62,9 +111,27 @@ export function EmptyState({
   const message = getMessage();
   const shouldShowUploadButton = variant === 'first-use' && showUploadButton;
 
+  // Only enable drag-drop for first-use variant
+  const enableDragDrop = variant === 'first-use';
+
   return (
-    <div className={cn('flex h-full items-center justify-center py-8', className)}>
-      <div className="flex w-full max-w-md flex-col items-center gap-4 text-center">
+    <div
+      className={cn('flex h-full items-center justify-center py-8', className)}
+      onDragEnter={enableDragDrop ? handleDragEnter : undefined}
+      onDragOver={enableDragDrop ? handleDragOver : undefined}
+      onDragLeave={enableDragDrop ? handleDragLeave : undefined}
+      onDrop={enableDragDrop ? handleDrop : undefined}
+    >
+      <div className={cn(
+        'flex w-full max-w-md flex-col items-center gap-4 text-center',
+        'transition-all duration-200 ease-out',
+        // Drag feedback: border + scale
+        isDragging && enableDragDrop && [
+          'scale-[1.02]',
+          'rounded-2xl border-2 border-[#7C5CFF] border-dashed',
+          'bg-[#7C5CFF]/5 p-8'
+        ]
+      )}>
         {/* Minimal icon - 16x16 size */}
         <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#1B1F24]">
           <svg

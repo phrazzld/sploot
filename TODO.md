@@ -58,7 +58,16 @@
   - Users can still use ⌘V keyboard shortcut to paste images
   ```
 
-- [ ] **Add drag-and-drop visual feedback** - On `dragover` event, highlight entire empty state with `border-[#7C5CFF]` and scale(1.02). On `drop`, trigger upload flow. Tactile affordance. (~15 min)
+- [x] **Add drag-and-drop visual feedback** - On `dragover` event, highlight entire empty state with `border-[#7C5CFF]` and scale(1.02). On `drop`, trigger upload flow. Tactile affordance. (~15 min)
+  ```
+  Work Log:
+  - Added drag-and-drop event handlers (dragEnter, dragOver, dragLeave, drop)
+  - Implemented drag state tracking with counter for nested events
+  - Visual feedback: purple dashed border, scale(1.02), subtle bg tint when dragging
+  - Filters dropped files to images only (file.type.startsWith('image/'))
+  - Added onFilesDropped callback prop for parent components to handle uploads
+  - Only enabled for 'first-use' variant (not search/filtered states)
+  ```
 
 - [ ] **Implement skeleton → empty state transition** - When `loading: true → false` and `assets.length === 0`, fade out skeletons (300ms ease-out) before showing empty state. Prevents jarring pop. (~15 min)
 
