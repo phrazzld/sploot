@@ -92,7 +92,17 @@
 ### Component-Level Error Handling
 - [ ] **Add ImageTileErrorBoundary** - Wrap ImageTile in error boundary that catches blob load failures. Render tombstone tile with retry button instead of crashing grid. Use React Error Boundary API. (~25 min)
 
-- [ ] **Implement broken image fallback** - In ImageTile, add `<Image onError={handleError} />` handler. On 404/403, show placeholder icon + "Image unavailable" + delete button. Graceful degradation. (~20 min)
+- [x] **Implement broken image fallback** - In ImageTile, add `<Image onError={handleError} />` handler. On 404/403, show placeholder icon + "Image unavailable" + delete button. Graceful degradation. (~20 min)
+  ```
+  Work Log:
+  - Enhanced existing error fallback UI in ImageTile component
+  - Added "Image unavailable" text message for clarity
+  - Added delete button styled in red with trash icon
+  - Error state maintains tile dimensions to prevent layout shift
+  - Uses bg-[#14171A] background to match dark theme
+  - Button has proper hover states and focus-visible outline
+  - Gracefully handles 404/403 errors without crashing grid
+  ```
 
 - [ ] **Add circuit breaker for blob requests** - If >3 consecutive blob 404s, pause loading and show banner "Storage connection issue detected. Retrying...". Prevent cascade failures. (~30 min)
 
