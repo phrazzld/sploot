@@ -21,7 +21,15 @@
 
 - [x] **Fix transactional upload flow** - Refactor `/app/api/upload/route.ts:24-91` to: (1) upload to blob first, (2) only create DB record if blob succeeds, (3) rollback blob on DB failure. Atomic operation prevents orphans. (~30 min)
 
-- [ ] **Add blob URL validation in Prisma schema** - Modify `prisma/schema.prisma` to add `@db.Text` check constraint ensuring `blobUrl` matches pattern `https://[a-z0-9-]+\.public\.blob\.vercel-storage\.com/.*`. Prevents malformed URLs. (~10 min)
+- [x] **Add blob URL validation in Prisma schema** - Modify `prisma/schema.prisma` to add `@db.Text` check constraint ensuring `blobUrl` matches pattern `https://[a-z0-9-]+\.public\.blob\.vercel-storage\.com/.*`. Prevents malformed URLs. (~10 min)
+  ```
+  Work Log:
+  - Created migration 20250929_add_blob_url_validation with PostgreSQL CHECK constraints
+  - Validates blobUrl format: ^https://[a-z0-9-]+\.public\.blob\.vercel-storage\.com/.+$
+  - Also validates thumbnailUrl format if set (nullable field)
+  - Updated schema comments to document validation
+  - Run `pnpm db:migrate` to apply constraints to database
+  ```
 
 - [x] **Create manual cleanup script** - Write `scripts/clean-orphaned-assets.ts` that: (1) finds assets with invalid blob URLs, (2) prompts for confirmation, (3) deletes from DB with audit log. Run once to clean current state. (~25 min)
 
