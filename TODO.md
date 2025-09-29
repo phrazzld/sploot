@@ -15,7 +15,7 @@
 ### Data Integrity Guards
 - [x] **Add asset integrity check on mount** - In `useAssets` hook, validate first 10 assets have valid blob URLs. If >50% broken, show warning banner + audit button. Early detection. (~20 min)
 
-- [~] **Implement optimistic UI rollback** - On upload, show optimistic tile immediately. If upload fails after 10s, animate tile out and show toast error. Don't leave ghost tiles. (~25 min)
+- [x] **Implement optimistic UI rollback** - On upload, show optimistic tile immediately. If upload fails after 10s, animate tile out and show toast error. Don't leave ghost tiles. (~25 min)
 
 ## 🔧 P2: Infrastructure & Monitoring
 
