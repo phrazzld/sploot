@@ -528,10 +528,10 @@ export function UploadZone({
           // Show success notification
           const successCount = currentFiles.filter(f => f.status === 'success' || f.status === 'duplicate').length;
           if (successCount > 0) {
-            showToast({
-              message: `✓ ${successCount} ${successCount === 1 ? 'file' : 'files'} uploaded successfully`,
-              type: 'success'
-            });
+            showToast(
+              `✓ ${successCount} ${successCount === 1 ? 'file' : 'files'} uploaded successfully`,
+              'success'
+            );
           }
 
           // Clear the file list to reset upload zone
@@ -792,10 +792,10 @@ export function UploadZone({
       console.error('[UploadZone] Error processing files:', error);
 
       // Show error to user
-      showToast({
-        message: 'Failed to process files. Please try again.',
-        type: 'error'
-      });
+      showToast(
+        'Failed to process files. Please try again.',
+        'error'
+      );
 
       // Ensure we clear the preparing state on error
       setIsPreparing(false);

@@ -364,6 +364,9 @@ export async function* streamProcessFiles(
  * React hook for file stream processing
  */
 export function useFileStreamProcessor(options?: ProcessorOptions) {
+  const React = require('react');
+  const processorRef = React.useRef(null) as { current: FileStreamProcessor | null };
+
   if (typeof window === 'undefined') {
     return {
       processFiles: async function* (_: FileList) {
@@ -382,9 +385,6 @@ export function useFileStreamProcessor(options?: ProcessorOptions) {
       resetStats: () => {}
     };
   }
-
-  const React = require('react');
-  const processorRef = React.useRef(null) as { current: FileStreamProcessor | null };
 
   if (!processorRef.current) {
     processorRef.current = new FileStreamProcessor(options);

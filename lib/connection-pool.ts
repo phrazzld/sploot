@@ -331,7 +331,8 @@ export function getConnectionPool(): ConnectionPool {
  * Hook for React components to monitor pool stats
  */
 export function useConnectionPoolStats() {
-  const [stats, setStats] = React.useState<PoolStats>({
+  const React = require('react');
+  const [stats, setStats] = React.useState({
     activeConnections: 0,
     queuedRequests: 0,
     totalProcessed: 0,
@@ -360,5 +361,3 @@ export function useConnectionPoolStats() {
 // Prevent direct instantiation
 export type { PoolStats };
 
-// Import React only if in browser context
-const React = typeof window !== 'undefined' ? require('react') : null;

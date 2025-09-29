@@ -220,7 +220,7 @@ export function FileListVirtual({
   // Performance optimization: measure once after mount
   useLayoutEffect(() => {
     virtualizer.measure();
-  }, [filesArray.length]);
+  }, [filesArray.length, virtualizer]);
 
   const virtualItems = virtualizer.getVirtualItems();
 

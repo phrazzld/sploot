@@ -63,7 +63,7 @@ export default function TestSearchAnimationPage() {
               />
             </div>
             <p className="text-sm text-[#B3B7BE] mt-4">
-              Click or press "/" to focus. Uses cubic-bezier(0.4, 0, 0.2, 1) for smooth acceleration
+              Click or press &quot;/&quot; to focus. Uses cubic-bezier(0.4, 0, 0.2, 1) for smooth acceleration
             </p>
           </section>
 

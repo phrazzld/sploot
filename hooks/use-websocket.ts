@@ -67,7 +67,7 @@ export function useWebSocketSubscription<T = any>(
   }, [handler]);
 
   useEffect(() => {
-    if (!options?.enabled ?? true) {
+    if (options?.enabled === false) {
       return;
     }
 
@@ -97,7 +97,7 @@ export function useEmbeddingUpdates(
   const manager = getWebSocketManager();
 
   useEffect(() => {
-    if (!options?.enabled ?? true || assetIds.length === 0) {
+    if (options?.enabled === false || assetIds.length === 0) {
       return;
     }
 

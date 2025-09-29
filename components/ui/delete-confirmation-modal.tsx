@@ -141,7 +141,7 @@ export function DeleteConfirmationModal({
                   )}
                 </div>
                 <span className="text-[#B3B7BE] text-sm select-none group-hover:text-[#E6E8EB] transition-colors">
-                  Don't ask me again
+                  Don&apos;t ask me again
                 </span>
               </label>
             </div>

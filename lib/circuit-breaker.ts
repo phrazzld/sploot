@@ -412,7 +412,7 @@ export function getGlobalCircuitBreaker(): CircuitBreaker {
  */
 export function useCircuitBreakerStats() {
   const React = require('react');
-  const [stats, setStats] = React.useState<CircuitBreakerStats | null>(null);
+  const [stats, setStats] = React.useState(null as CircuitBreakerStats | null);
   const [timeUntilClose, setTimeUntilClose] = React.useState(0);
 
   React.useEffect(() => {

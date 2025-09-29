@@ -179,6 +179,11 @@ export class PgNotifyListener {
 
     try {
       // Get the asset owner to broadcast to the correct user
+      if (!prisma) {
+        console.warn('[PgNotifyListener] Database not available');
+        return;
+      }
+
       const asset = await prisma.asset.findUnique({
         where: { id: assetId },
         select: { ownerUserId: true }

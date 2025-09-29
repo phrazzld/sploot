@@ -190,7 +190,7 @@ export default function TestViewTransitionPage() {
               <ul className="ml-4 space-y-1 text-sm list-disc">
                 <li>Smooth visual transition between different layouts</li>
                 <li>No jarring position changes or layout shifts</li>
-                <li>Maintains user's scroll context</li>
+                <li>Maintains user&apos;s scroll context</li>
                 <li>Fast enough to feel responsive (200ms)</li>
                 <li>Simple implementation with just opacity</li>
               </ul>
