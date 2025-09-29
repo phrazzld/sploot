@@ -544,6 +544,47 @@ export function UploadZone({
     }
   }, [fileMetadata]);
 
+  // Auto-remove failed uploads after 3 seconds with fade-out animation and toast
+  useEffect(() => {
+    const failedFiles = Array.from(fileMetadata.entries()).filter(
+      ([_, file]) => file.status === 'error'
+    );
+
+    if (failedFiles.length === 0) return;
+
+    const timers: NodeJS.Timeout[] = [];
+
+    failedFiles.forEach(([fileId, file]) => {
+      // Wait 3 seconds, then remove the failed file
+      const timer = setTimeout(() => {
+        // Show toast notification
+        const errorMsg = file.error?.includes('timeout')
+          ? 'Upload timed out'
+          : file.error?.includes('too large')
+          ? 'File too large'
+          : 'Upload failed';
+
+        showToast(`${file.name}: ${errorMsg}`, 'error');
+
+        // Remove from state (will trigger fade-out via React transition)
+        setFileMetadata((prev) => {
+          const newMap = new Map(prev);
+          newMap.delete(fileId);
+          return newMap;
+        });
+
+        // Clean up File object reference
+        fileObjects.current.delete(fileId);
+      }, 3000);
+
+      timers.push(timer);
+    });
+
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+    };
+  }, [fileMetadata]);
+
   // Regular upload queue (localStorage-based)
   const { addToQueue } = useUploadQueue();
 
@@ -1133,7 +1174,7 @@ export function UploadZone({
 
         // Upload without blocking on embedding generation for faster response
         xhr.open('POST', '/api/upload');
-        xhr.timeout = 30000; // 30 second timeout per file
+        xhr.timeout = 10000; // 10 second timeout per file
         xhr.send(formData);
       });
 
