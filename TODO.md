@@ -8,7 +8,7 @@
 ### Component-Level Error Handling
 - [x] **Add ImageTileErrorBoundary** - Wrap ImageTile in error boundary that catches blob load failures. Render tombstone tile with retry button instead of crashing grid. Use React Error Boundary API. (~25 min)
 
-- [~] **Add circuit breaker for blob requests** - If >3 consecutive blob 404s, pause loading and show banner "Storage connection issue detected. Retrying...". Prevent cascade failures. (~30 min)
+- [x] **Add circuit breaker for blob requests** - If >3 consecutive blob 404s, pause loading and show banner "Storage connection issue detected. Retrying...". Prevent cascade failures. (~30 min)
 
 - [ ] **Log blob errors to monitoring** - On image load failure, send to `/api/telemetry` with: `{assetId, blobUrl, errorType, timestamp}`. Track patterns for debugging. (~15 min)
 
