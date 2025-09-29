@@ -268,11 +268,7 @@ export function FileListVirtual({
               onRetry={() => retryUpload(file)}
               onRemove={() => removeFile(file.id)}
               onViewDuplicate={() => handleViewDuplicate(file.assetId || '')}
-              measureElement={(el) => {
-                if (el) {
-                  virtualItem.measureElement(el);
-                }
-              }}
+              measureElement={virtualizer.measureElement}
             />
           );
         })}
