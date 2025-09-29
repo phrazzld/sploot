@@ -49,7 +49,14 @@
 
 - [x] **Add contextual empty states** - Different messages based on context: `filtered` → "no memes match these filters", `search` → "no results for 'query'", `first-use` → "drop images here". Pass context via props. (~20 min)
 
-- [ ] **Remove redundant upload button** - If navbar already has upload button visible, hide EmptyState button to avoid duplication. Check screen width and navbar state. (~10 min)
+- [x] **Remove redundant upload button** - If navbar already has upload button visible, hide EmptyState button to avoid duplication. Check screen width and navbar state. (~10 min)
+  ```
+  Work Log:
+  - Added showUploadButton prop to EmptyState component (default: true for backwards compatibility)
+  - Updated ImageGrid and ImageList to pass showUploadButton={false}
+  - Main page toolbar already has prominent upload button, so EmptyState button is redundant
+  - Users can still use ⌘V keyboard shortcut to paste images
+  ```
 
 - [ ] **Add drag-and-drop visual feedback** - On `dragover` event, highlight entire empty state with `border-[#7C5CFF]` and scale(1.02). On `drop`, trigger upload flow. Tactile affordance. (~15 min)
 

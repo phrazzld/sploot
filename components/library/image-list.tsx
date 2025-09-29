@@ -243,7 +243,8 @@ export function ImageList({
   }, [hasMore, loading, onLoadMore]);
 
   const emptyState = useMemo(
-    () => <EmptyState variant="first-use" />,
+    // Hide upload button since the main page toolbar already has a prominent one
+    () => <EmptyState variant="first-use" showUploadButton={false} />,
     []
   );
 

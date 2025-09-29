@@ -136,8 +136,9 @@ export function ImageGrid({
   }
 
   // Empty state
+  // Hide upload button since the main page toolbar already has a prominent one
   if (assets.length === 0 && !loading) {
-    return <EmptyState variant="first-use" onUploadClick={onUploadClick} />;
+    return <EmptyState variant="first-use" onUploadClick={onUploadClick} showUploadButton={false} />;
   }
 
   // Render simple grid for small collections

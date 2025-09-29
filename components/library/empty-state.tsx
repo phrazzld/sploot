@@ -11,6 +11,7 @@ interface EmptyStateProps {
   onUploadClick?: () => void;
   searchQuery?: string;
   className?: string;
+  showUploadButton?: boolean; // Control whether to show the upload button (avoids duplication with navbar)
 }
 
 /**
@@ -22,6 +23,7 @@ export function EmptyState({
   onUploadClick,
   searchQuery,
   className,
+  showUploadButton = true, // Default to true for backwards compatibility
 }: EmptyStateProps) {
   // Performance measurement in development
   useEffect(() => {
@@ -58,7 +60,7 @@ export function EmptyState({
   };
 
   const message = getMessage();
-  const showUploadButton = variant === 'first-use';
+  const shouldShowUploadButton = variant === 'first-use' && showUploadButton;
 
   return (
     <div className={cn('flex h-full items-center justify-center py-8', className)}>
@@ -103,7 +105,7 @@ export function EmptyState({
         </div>
 
         {/* Keyboard hint for first-use */}
-        {showUploadButton && (
+        {shouldShowUploadButton && (
           <div className="mt-2 flex flex-col items-center gap-3">
             <div className="flex items-center gap-2 text-xs text-[#7C5CFF]/70">
               <kbd className="rounded bg-[#1B1F24] px-1.5 py-0.5 font-mono text-[#7C5CFF]">⌘V</kbd>
