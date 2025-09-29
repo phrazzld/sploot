@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { HeartIcon } from '@/components/icons/heart-icon';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { ImageGridSkeleton } from './image-skeleton';
+import { EmptyState } from './empty-state';
 import { error as logError } from '@/lib/logger';
 import type { Asset } from '@/lib/types';
 
@@ -242,33 +243,7 @@ export function ImageList({
   }, [hasMore, loading, onLoadMore]);
 
   const emptyState = useMemo(
-    () => (
-      <div className="flex h-full min-h-[320px] items-center justify-center px-4">
-        <div className="w-full max-w-lg rounded-3xl border border-dashed border-[#2A2F37] bg-[#14171A] p-10 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[#1B1F24]">
-            <svg
-              className="h-10 w-10 text-[#7C5CFF]"
-              viewBox="0 0 48 48"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect x="6" y="8" width="36" height="28" rx="5" stroke="currentColor" strokeWidth="2" opacity="0.9" />
-              <path
-                d="M14 28l7.2-8.5a2 2 0 013 0l4.3 5.1a2 2 0 003 .1L34 22"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.9"
-              />
-              <circle cx="33" cy="17" r="2.5" fill="currentColor" opacity="0.9" />
-            </svg>
-          </div>
-          <h3 className="mt-6 text-lg font-semibold text-[#E6E8EB]">no memes yet</h3>
-          <p className="mt-2 text-sm text-[#B3B7BE]">drop something spicy to start your feed.</p>
-        </div>
-      </div>
-    ),
+    () => <EmptyState variant="first-use" />,
     []
   );
 

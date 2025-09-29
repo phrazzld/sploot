@@ -4,8 +4,8 @@ import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageTile } from './image-tile';
 import { ImageGridSkeleton } from './image-skeleton';
+import { EmptyState } from './empty-state';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
 import type { Asset } from '@/lib/types';
 
 interface ImageGridProps {
@@ -137,75 +137,7 @@ export function ImageGrid({
 
   // Empty state
   if (assets.length === 0 && !loading) {
-    return (
-      <div className="flex h-full items-center justify-center py-16">
-        <div className="flex w-full max-w-lg flex-col items-center gap-6 rounded-3xl border border-dashed border-[#2A2F37] bg-[#14171A] p-10 text-center">
-          <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-[#1B1F24]">
-            <svg
-              className="h-14 w-14 text-[#7C5CFF]"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect x="8" y="12" width="48" height="40" rx="6" stroke="currentColor" strokeWidth="2.5" opacity="0.9" />
-              <path
-                d="M18 39l9.5-11a2 2 0 013 0l6 7.2a2 2 0 003.1.1L44 30"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.9"
-              />
-              <circle cx="42" cy="23" r="3.5" fill="currentColor" opacity="0.9" />
-            </svg>
-          </div>
-
-          <div>
-            <h3 className="text-xl font-semibold text-[#E6E8EB]">drop files here</h3>
-            <p className="mt-2 text-sm text-[#B3B7BE]">
-              drag and drop images into your library or start an upload to see them appear instantly.
-            </p>
-          </div>
-
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <span className="text-xs uppercase tracking-wide text-[#7C5CFF]">or</span>
-            {onUploadClick ? (
-              <button
-                onClick={onUploadClick}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M10 4v12M4 10h12"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                upload images
-              </button>
-            ) : (
-              <Link
-                href="/app?upload=1"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M10 4v12M4 10h12"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                upload images
-              </Link>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+    return <EmptyState variant="first-use" onUploadClick={onUploadClick} />;
   }
 
   // Render simple grid for small collections
