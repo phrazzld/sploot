@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { useEmbeddingRetry } from '@/hooks/use-embedding-retry';
+import { useBlobCircuitBreaker } from '@/contexts/blob-circuit-breaker-context';
 import { HeartIcon } from '@/components/icons/heart-icon';
 import type { Asset } from '@/lib/types';
 
@@ -45,6 +46,7 @@ export function ImageTile({
     return 'pending';
   });
   const deleteConfirmation = useDeleteConfirmation();
+  const { recordBlobError, recordBlobSuccess } = useBlobCircuitBreaker();
 
   // Debug mode tracking
   const [debugInfo, setDebugInfo] = useState<{
@@ -335,10 +337,17 @@ export function ImageTile({
                 'transition-opacity duration-300'
               )}
               loading="lazy"
-              onLoad={() => setImageLoaded(true)}
-              onError={() => {
+              onLoad={() => {
+                setImageLoaded(true);
+                recordBlobSuccess();
+              }}
+              onError={(e) => {
                 setImageError(true);
                 setImageLoaded(true);
+
+                // Try to determine if this is a 404 by checking the image source
+                // Next.js Image component doesn't expose HTTP status, so we record all errors as potential 404s
+                recordBlobError(404);
               }}
             />
           </>

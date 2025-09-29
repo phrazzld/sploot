@@ -105,6 +105,22 @@ body {
   will-change: background-position;
 }
 
+/* Slide down animation for banner */
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-down {
+  animation: slideDown 300ms ease-out;
+}
+
 /* Optimized transitions for 60fps */
 .transition-skeleton {
   transition: opacity 300ms ease-out, transform 300ms ease-out;
