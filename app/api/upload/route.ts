@@ -241,11 +241,44 @@ export async function POST(req: NextRequest) {
       const dbStartTime = Date.now();
       if (!databaseAvailable || !prisma) {
         // Clean up uploaded file if database is not available
+        const cleanupErrors: string[] = [];
         try {
           const { del } = await import('@vercel/blob');
-          await del(blob.url);
+
+          // Delete main blob
+          try {
+            await del(blob.url);
+            console.log(`[cleanup] Successfully deleted blob after DB unavailable: ${blob.url}`);
+          } catch (mainDelError) {
+            const error = `Failed to delete main blob: ${mainDelError}`;
+            console.error(`[cleanup] ${error}`);
+            cleanupErrors.push(error);
+          }
+
+          // Delete thumbnail blob if it exists
+          if (thumbnailBlob) {
+            try {
+              await del(thumbnailBlob.url);
+              console.log(`[cleanup] Successfully deleted thumbnail after DB unavailable: ${thumbnailBlob.url}`);
+            } catch (thumbDelError) {
+              const error = `Failed to delete thumbnail: ${thumbDelError}`;
+              console.error(`[cleanup] ${error}`);
+              cleanupErrors.push(error);
+            }
+          }
         } catch (cleanupError) {
-          console.error('Failed to cleanup uploaded file:', cleanupError);
+          const error = `Failed to import del function: ${cleanupError}`;
+          console.error(`[cleanup] ${error}`);
+          cleanupErrors.push(error);
+        }
+
+        // Log warning if cleanup failed
+        if (cleanupErrors.length > 0) {
+          console.error(`[ORPHAN ALERT] Failed to cleanup ${cleanupErrors.length} blob(s) after DB unavailable. Manual cleanup required:`, {
+            mainBlob: blob.url,
+            thumbnailBlob: thumbnailBlob?.url,
+            errors: cleanupErrors,
+          });
         }
 
         console.log(`[perf] Upload failed - database unavailable (${Date.now() - startTime}ms)`);
@@ -360,16 +393,44 @@ export async function POST(req: NextRequest) {
           const existingAsset = await assetExists(userId, checksum);
           if (existingAsset) {
             // Clean up the uploaded files since we have a duplicate
+            const cleanupErrors: string[] = [];
             try {
               const { del } = await import('@vercel/blob');
-              await del(blob.url);
+
+              // Delete main blob
+              try {
+                await del(blob.url);
+                console.log(`[cleanup] Successfully deleted duplicate blob: ${blob.url}`);
+              } catch (mainDelError) {
+                const error = `Failed to delete duplicate main blob: ${mainDelError}`;
+                console.error(`[cleanup] ${error}`);
+                cleanupErrors.push(error);
+              }
+
+              // Delete thumbnail blob if it exists
               if (thumbnailBlob) {
-                await del(thumbnailBlob.url).catch(err =>
-                  console.error('Failed to cleanup thumbnail:', err)
-                );
+                try {
+                  await del(thumbnailBlob.url);
+                  console.log(`[cleanup] Successfully deleted duplicate thumbnail: ${thumbnailBlob.url}`);
+                } catch (thumbDelError) {
+                  const error = `Failed to delete duplicate thumbnail: ${thumbDelError}`;
+                  console.error(`[cleanup] ${error}`);
+                  cleanupErrors.push(error);
+                }
               }
             } catch (cleanupError) {
-              console.error('Failed to cleanup duplicate upload:', cleanupError);
+              const error = `Failed to import del function: ${cleanupError}`;
+              console.error(`[cleanup] ${error}`);
+              cleanupErrors.push(error);
+            }
+
+            // Log warning if cleanup failed
+            if (cleanupErrors.length > 0) {
+              console.error(`[ORPHAN ALERT] Failed to cleanup ${cleanupErrors.length} duplicate blob(s). Manual cleanup required:`, {
+                mainBlob: blob.url,
+                thumbnailBlob: thumbnailBlob?.url,
+                errors: cleanupErrors,
+              });
             }
 
             // Generate embeddings for existing asset if missing
@@ -409,16 +470,45 @@ export async function POST(req: NextRequest) {
         }
 
         // Clean up uploaded files since database record creation failed
+        // This is critical to prevent orphaned blobs
+        const cleanupErrors: string[] = [];
         try {
           const { del } = await import('@vercel/blob');
-          await del(blob.url);
+
+          // Delete main blob
+          try {
+            await del(blob.url);
+            console.log(`[cleanup] Successfully deleted orphaned blob: ${blob.url}`);
+          } catch (mainDelError) {
+            const error = `Failed to delete main blob ${blob.url}: ${mainDelError}`;
+            console.error(`[cleanup] ${error}`);
+            cleanupErrors.push(error);
+          }
+
+          // Delete thumbnail blob if it exists
           if (thumbnailBlob) {
-            await del(thumbnailBlob.url).catch(err =>
-              console.error('Failed to cleanup thumbnail:', err)
-            );
+            try {
+              await del(thumbnailBlob.url);
+              console.log(`[cleanup] Successfully deleted orphaned thumbnail: ${thumbnailBlob.url}`);
+            } catch (thumbDelError) {
+              const error = `Failed to delete thumbnail ${thumbnailBlob.url}: ${thumbDelError}`;
+              console.error(`[cleanup] ${error}`);
+              cleanupErrors.push(error);
+            }
           }
         } catch (cleanupError) {
-          console.error('Failed to cleanup uploaded file:', cleanupError);
+          const error = `Failed to import del function: ${cleanupError}`;
+          console.error(`[cleanup] ${error}`);
+          cleanupErrors.push(error);
+        }
+
+        // If cleanup failed, log explicit warning about orphaned blob
+        if (cleanupErrors.length > 0) {
+          console.error(`[ORPHAN ALERT] Failed to cleanup ${cleanupErrors.length} blob(s) after DB error. Manual cleanup required:`, {
+            mainBlob: blob.url,
+            thumbnailBlob: thumbnailBlob?.url,
+            errors: cleanupErrors,
+          });
         }
 
         console.log(`[perf] Upload failed - database error (${Date.now() - startTime}ms)`);
