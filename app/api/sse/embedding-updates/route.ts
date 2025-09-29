@@ -9,9 +9,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { prisma } from '@/lib/db';
-
-// Store active connections for cleanup
-const activeConnections = new Map<string, Set<ReadableStreamDefaultController>>();
+import { addConnection, removeConnection } from '@/lib/sse-broadcaster';
 
 // Connection configuration
 const HEARTBEAT_INTERVAL = 30000; // 30 seconds
@@ -40,10 +38,7 @@ export async function GET(request: NextRequest) {
   const customReadable = new ReadableStream({
     async start(controller) {
       // Add to active connections
-      if (!activeConnections.has(userId)) {
-        activeConnections.set(userId, new Set());
-      }
-      activeConnections.get(userId)!.add(controller);
+      addConnection(userId, controller);
 
       // Send initial connection event
       controller.enqueue(
@@ -168,13 +163,7 @@ export async function GET(request: NextRequest) {
         clearInterval(pollInterval);
 
         // Remove from active connections
-        const userConnections = activeConnections.get(userId);
-        if (userConnections) {
-          userConnections.delete(controller);
-          if (userConnections.size === 0) {
-            activeConnections.delete(userId);
-          }
-        }
+        removeConnection(userId, controller);
       });
     },
   });
@@ -191,41 +180,5 @@ export async function GET(request: NextRequest) {
   });
 }
 
-/**
- * Broadcast an update to all connected clients for a user
- * This can be called from other API routes when embeddings are updated
- */
-export async function broadcastEmbeddingUpdate(
-  userId: string,
-  assetId: string,
-  status: {
-    status: 'pending' | 'processing' | 'ready' | 'failed';
-    error?: string;
-    modelName?: string;
-    hasEmbedding?: boolean;
-  }
-) {
-  const encoder = new TextEncoder();
-  const userConnections = activeConnections.get(userId);
-
-  if (!userConnections || userConnections.size === 0) {
-    return;
-  }
-
-  const message = encoder.encode(`event: embedding-update\ndata: ${JSON.stringify({
-    type: 'embedding-update',
-    assetId,
-    ...status,
-    timestamp: Date.now(),
-  })}\n\n`);
-
-  // Send to all active connections for this user
-  for (const controller of userConnections) {
-    try {
-      controller.enqueue(message);
-    } catch (error) {
-      // Connection might be closed, remove it
-      userConnections.delete(controller);
-    }
-  }
-}
+// broadcastEmbeddingUpdate function has been moved to @/lib/sse-broadcaster
+// to comply with Next.js 15 route export constraints

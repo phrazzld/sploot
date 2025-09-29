@@ -10,7 +10,7 @@
  */
 
 import { Client } from 'pg';
-import { broadcastEmbeddingUpdate } from '@/app/api/sse/embedding-updates/route';
+import { broadcastEmbeddingUpdate } from '@/lib/sse-broadcaster';
 import { prisma } from '@/lib/db';
 
 export interface PgNotification {
