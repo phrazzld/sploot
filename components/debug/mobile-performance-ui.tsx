@@ -11,11 +11,6 @@ export function MobilePerformanceUI() {
   const [activeTab, setActiveTab] = useState<'overview' | 'touch' | 'scroll' | 'gestures'>('overview');
   const [isRunning, setIsRunning] = useState(false);
 
-  // Only show in development and on mobile/tablet
-  if (process.env.NODE_ENV !== 'development') {
-    return null;
-  }
-
   const runAnalysis = useCallback(() => {
     if (!mobilePerformanceAnalyzer) return;
 
@@ -23,16 +18,18 @@ export function MobilePerformanceUI() {
 
     // Wait for some scroll/interaction data to accumulate
     setTimeout(() => {
-      const performanceReport = mobilePerformanceAnalyzer.generateReport();
-      setReport(performanceReport);
-      setIsRunning(false);
-      console.log('Mobile Performance Report:', performanceReport);
+      if (mobilePerformanceAnalyzer) {
+        const performanceReport = mobilePerformanceAnalyzer.generateReport();
+        setReport(performanceReport);
+        setIsRunning(false);
+        console.log('Mobile Performance Report:', performanceReport);
 
-      // Save to localStorage
-      localStorage.setItem('sploot-mobile-performance', JSON.stringify({
-        timestamp: new Date().toISOString(),
-        report: performanceReport,
-      }));
+        // Save to localStorage
+        localStorage.setItem('sploot-mobile-performance', JSON.stringify({
+          timestamp: new Date().toISOString(),
+          report: performanceReport,
+        }));
+      }
     }, 2000);
   }, []);
 
@@ -57,6 +54,11 @@ export function MobilePerformanceUI() {
       mobilePerformanceAnalyzer?.cleanup();
     };
   }, []);
+
+  // Only show in development and on mobile/tablet
+  if (process.env.NODE_ENV !== 'development') {
+    return null;
+  }
 
   if (!isVisible || !report) {
     return null;

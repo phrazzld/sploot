@@ -411,21 +411,19 @@ export function getGlobalCircuitBreaker(): CircuitBreaker {
  * React hook for circuit breaker stats
  */
 export function useCircuitBreakerStats() {
-  if (typeof window === 'undefined') {
-    return {
-      state: 'closed' as CircuitState,
-      isOpen: false,
-      timeUntilClose: 0,
-      stats: null as CircuitBreakerStats | null,
-    };
-  }
-
   const React = require('react');
-  const breaker = getGlobalCircuitBreaker();
-  const [stats, setStats] = React.useState(breaker.getStats());
-  const [timeUntilClose, setTimeUntilClose] = React.useState(breaker.getTimeUntilClose());
+  const [stats, setStats] = React.useState<CircuitBreakerStats | null>(null);
+  const [timeUntilClose, setTimeUntilClose] = React.useState(0);
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const breaker = getGlobalCircuitBreaker();
+    setStats(breaker.getStats());
+    setTimeUntilClose(breaker.getTimeUntilClose());
+
     // Update stats periodically
     const interval = setInterval(() => {
       setStats(breaker.getStats());
@@ -444,8 +442,18 @@ export function useCircuitBreakerStats() {
       clearInterval(interval);
       window.removeEventListener('circuit-breaker-state-change', handleStateChange);
     };
-  }, [breaker]);
+  }, []);
 
+  if (typeof window === 'undefined' || !stats) {
+    return {
+      state: 'closed' as CircuitState,
+      isOpen: false,
+      timeUntilClose: 0,
+      stats: null,
+    };
+  }
+
+  const breaker = getGlobalCircuitBreaker();
   return {
     state: stats.state,
     isOpen: breaker.isOpen(),

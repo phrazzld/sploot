@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       }, HEARTBEAT_INTERVAL);
 
       // If specific assets requested, send their current status
-      if (assetIds.length > 0) {
+      if (assetIds.length > 0 && prisma) {
         try {
           const assets = await prisma.asset.findMany({
             where: {
@@ -111,6 +111,8 @@ export async function GET(request: NextRequest) {
       // Set up database polling for updates (since we can't use LISTEN/NOTIFY in serverless)
       let lastCheck = new Date();
       const pollInterval = setInterval(async () => {
+        if (!prisma) return;
+
         try {
           // Check for new embedding updates
           const updatedEmbeddings = await prisma.assetEmbedding.findMany({

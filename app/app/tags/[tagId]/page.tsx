@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
 import { ImageGrid } from '@/components/library/image-grid';
 
@@ -35,8 +35,9 @@ interface Asset {
 export default function TagPage({
   params,
 }: {
-  params: { tagId: string };
+  params: Promise<{ tagId: string }>;
 }) {
+  const resolvedParams = use(params);
   const [tag, setTag] = useState<Tag | null>(null);
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(true);
@@ -49,7 +50,7 @@ export default function TagPage({
       const tagResponse = await fetch('/api/tags');
       if (tagResponse.ok) {
         const tagData = await tagResponse.json();
-        const currentTag = tagData.tags?.find((t: Tag) => t.id === params.tagId);
+        const currentTag = tagData.tags?.find((t: Tag) => t.id === resolvedParams.tagId);
 
         if (!currentTag) {
           router.push('/app');
@@ -63,7 +64,7 @@ export default function TagPage({
       }
 
       // Fetch assets with this tag
-      const assetsResponse = await fetch(`/api/assets?tagId=${params.tagId}`);
+      const assetsResponse = await fetch(`/api/assets?tagId=${resolvedParams.tagId}`);
       if (assetsResponse.ok) {
         const assetsData = await assetsResponse.json();
         setAssets(assetsData.assets || []);
@@ -77,7 +78,7 @@ export default function TagPage({
   };
 
     fetchTagAndAssets();
-  }, [params.tagId, router]);
+  }, [resolvedParams.tagId, router]);
 
   const handleDelete = async (assetId: string) => {
     try {
