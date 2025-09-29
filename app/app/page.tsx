@@ -8,6 +8,7 @@ import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { ImageList } from '@/components/library/image-list';
+import { AssetIntegrityBanner } from '@/components/library/asset-integrity-banner';
 import { SearchBar, SearchLoadingScreen } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
@@ -118,6 +119,7 @@ function AppPageClient() {
     loading,
     hasMore,
     total,
+    integrityIssue,
     loadAssets,
     updateAsset,
     deleteAsset,
@@ -812,6 +814,16 @@ function AppPageClient() {
           </header>
         </div>
       </div>
+
+      {/* Asset integrity warning banner */}
+      {integrityIssue && !libraryQuery && (
+        <AssetIntegrityBanner
+          onAudit={() => {
+            // Open audit endpoint in new tab
+            window.open('/api/assets/audit', '_blank');
+          }}
+        />
+      )}
 
       {/* Show loading screen when search is executing */}
       {searchLoading && libraryQuery ? (

@@ -21,6 +21,8 @@ export function useAssets(options: UseAssetsOptions = {}) {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [integrityIssue, setIntegrityIssue] = useState(false);
+  const integrityCheckDoneRef = useRef(false);
 
   // Use refs to avoid stale closures
   const loadingRef = useRef(false);
@@ -130,6 +132,45 @@ export function useAssets(options: UseAssetsOptions = {}) {
     return loadAssets(true);
   }, [loadAssets]);
 
+  // Validate asset integrity on first load
+  useEffect(() => {
+    if (assets.length > 0 && !integrityCheckDoneRef.current) {
+      integrityCheckDoneRef.current = true;
+
+      // Sample first 10 assets
+      const sample = assets.slice(0, 10);
+
+      // Validate blob URLs
+      const brokenCount = sample.filter(asset => {
+        const url = asset.blobUrl;
+        // Check if URL is properly formatted and not empty
+        if (!url || typeof url !== 'string' || url.trim() === '') {
+          return true; // Broken
+        }
+        // Check if URL looks like a valid blob URL
+        try {
+          new URL(url);
+          // Vercel blob URLs typically contain 'vercel-storage' or 'blob.vercel-storage.com'
+          if (!url.includes('blob') && !url.includes('vercel')) {
+            return true; // Suspicious URL
+          }
+          return false; // Valid
+        } catch {
+          return true; // Invalid URL format
+        }
+      }).length;
+
+      const brokenPercentage = (brokenCount / sample.length) * 100;
+
+      if (brokenPercentage > 50) {
+        console.warn(
+          `[Asset Integrity] ${brokenCount}/${sample.length} assets have invalid blob URLs (${brokenPercentage.toFixed(1)}%)`
+        );
+        setIntegrityIssue(true);
+      }
+    }
+  }, [assets]);
+
   // Auto-load on mount if enabled
   useEffect(() => {
     if (autoLoad && assets.length === 0 && !loadingRef.current) {
@@ -152,6 +193,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
     hasMore,
     error,
     total,
+    integrityIssue,
     loadAssets,
     updateAsset,
     deleteAsset,
