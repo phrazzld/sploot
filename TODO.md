@@ -10,7 +10,7 @@
 
 - [x] **Add circuit breaker for blob requests** - If >3 consecutive blob 404s, pause loading and show banner "Storage connection issue detected. Retrying...". Prevent cascade failures. (~30 min)
 
-- [ ] **Log blob errors to monitoring** - On image load failure, send to `/api/telemetry` with: `{assetId, blobUrl, errorType, timestamp}`. Track patterns for debugging. (~15 min)
+- [~] **Log blob errors to monitoring** - On image load failure, send to `/api/telemetry` with: `{assetId, blobUrl, errorType, timestamp}`. Track patterns for debugging. (~15 min)
 
 ### Data Integrity Guards
 - [ ] **Add asset integrity check on mount** - In `useAssets` hook, validate first 10 assets have valid blob URLs. If >50% broken, show warning banner + audit button. Early detection. (~20 min)

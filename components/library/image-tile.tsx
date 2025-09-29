@@ -345,9 +345,22 @@ export function ImageTile({
                 setImageError(true);
                 setImageLoaded(true);
 
-                // Try to determine if this is a 404 by checking the image source
-                // Next.js Image component doesn't expose HTTP status, so we record all errors as potential 404s
+                // Record blob error for circuit breaker
                 recordBlobError(404);
+
+                // Send telemetry (fire-and-forget)
+                fetch('/api/telemetry', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    assetId: asset.id,
+                    blobUrl: asset.thumbnailUrl || asset.blobUrl,
+                    errorType: 'blob_load_failure',
+                    timestamp: Date.now(),
+                  }),
+                }).catch(() => {
+                  // Ignore telemetry errors - non-blocking
+                });
               }}
             />
           </>
