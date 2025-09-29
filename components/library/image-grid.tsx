@@ -3,6 +3,7 @@
 import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageTile } from './image-tile';
+import { ImageTileErrorBoundary } from './image-tile-error-boundary';
 import { ImageGridSkeleton } from './image-skeleton';
 import { EmptyState } from './empty-state';
 import { cn } from '@/lib/utils';
@@ -198,13 +199,15 @@ export function ImageGrid({
                   opacity: 0,
                 }}
               >
-                <ImageTile
-                  asset={asset}
-                  onFavorite={handleFavoriteToggle}
-                  onDelete={onAssetDelete}
-                  onSelect={onAssetSelect}
-                  onAssetUpdate={onAssetUpdate}
-                />
+                <ImageTileErrorBoundary asset={asset} onDelete={onAssetDelete}>
+                  <ImageTile
+                    asset={asset}
+                    onFavorite={handleFavoriteToggle}
+                    onDelete={onAssetDelete}
+                    onSelect={onAssetSelect}
+                    onAssetUpdate={onAssetUpdate}
+                  />
+                </ImageTileErrorBoundary>
               </div>
             ))}
           </div>
@@ -285,14 +288,15 @@ export function ImageGrid({
                   }}
                 >
                   {row.map((asset) => (
-                    <ImageTile
-                      key={asset.id}
-                      asset={asset}
-                      onFavorite={handleFavoriteToggle}
-                      onDelete={onAssetDelete}
-                      onSelect={onAssetSelect}
-                      onAssetUpdate={onAssetUpdate}
-                    />
+                    <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
+                      <ImageTile
+                        asset={asset}
+                        onFavorite={handleFavoriteToggle}
+                        onDelete={onAssetDelete}
+                        onSelect={onAssetSelect}
+                        onAssetUpdate={onAssetUpdate}
+                      />
+                    </ImageTileErrorBoundary>
                   ))}
                   {/* Empty cells for last row */}
                   {virtualRow.index === rows.length - 1 &&
