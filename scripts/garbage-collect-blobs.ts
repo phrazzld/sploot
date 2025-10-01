@@ -148,7 +148,9 @@ async function main() {
     console.error('\n❌ Error during garbage collection:', error);
     process.exit(1);
   } finally {
-    await prisma.$disconnect();
+    if (prisma) {
+      await prisma.$disconnect();
+    }
   }
 }
 

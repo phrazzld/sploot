@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState, useEffect, memo } from 'react';
 import type { CSSProperties } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
@@ -24,7 +24,7 @@ interface ImageTileProps {
 
 type EmbeddingStatusType = 'pending' | 'processing' | 'ready' | 'failed';
 
-export function ImageTile({
+function ImageTileComponent({
   asset,
   onFavorite,
   onDelete,
@@ -326,6 +326,7 @@ export function ImageTile({
               </div>
             )}
             <Image
+              key={asset.blobUrl}
               src={asset.thumbnailUrl || asset.blobUrl}
               alt={asset.filename}
               fill
@@ -333,8 +334,8 @@ export function ImageTile({
               className={cn(
                 'h-full w-full',
                 preserveAspectRatio ? 'object-contain' : 'object-cover',
-                imageLoaded ? 'opacity-100 animate-fade-in' : 'opacity-0',
-                'transition-opacity duration-300'
+                imageLoaded ? 'opacity-100' : 'opacity-0',
+                'transition-opacity duration-300 ease-out'
               )}
               loading="lazy"
               onLoad={() => {
@@ -559,3 +560,36 @@ export function ImageTile({
     </>
   );
 }
+
+// Custom comparison function for React.memo
+// Only re-render if these specific props change
+function arePropsEqual(prevProps: ImageTileProps, nextProps: ImageTileProps) {
+  // Always re-render if asset ID changed (different image)
+  if (prevProps.asset.id !== nextProps.asset.id) return false;
+
+  // Re-render if URLs changed
+  if (prevProps.asset.blobUrl !== nextProps.asset.blobUrl) return false;
+  if (prevProps.asset.thumbnailUrl !== nextProps.asset.thumbnailUrl) return false;
+
+  // Re-render if favorite status changed
+  if (prevProps.asset.favorite !== nextProps.asset.favorite) return false;
+
+  // Re-render if embedding status changed
+  if (prevProps.asset.embeddingStatus !== nextProps.asset.embeddingStatus) return false;
+  if (!!prevProps.asset.embedding !== !!nextProps.asset.embedding) return false;
+
+  // Re-render if relevance score changed (for search results)
+  if (prevProps.asset.relevance !== nextProps.asset.relevance) return false;
+
+  // Re-render if preserveAspectRatio prop changed
+  if (prevProps.preserveAspectRatio !== nextProps.preserveAspectRatio) return false;
+
+  // Ignore function prop changes - they're typically stable via useCallback
+  // This prevents unnecessary re-renders when parent re-renders
+
+  // All relevant props are equal, skip re-render
+  return true;
+}
+
+// Export memoized version to prevent unnecessary re-renders
+export const ImageTile = memo(ImageTileComponent, arePropsEqual);

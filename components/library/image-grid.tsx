@@ -60,7 +60,9 @@ export function ImageGrid({
   }, [loading, assets.length]);
 
   // Use virtual scrolling only for large collections
-  const USE_VIRTUAL_SCROLLING_THRESHOLD = 100;
+  // Threshold set high to avoid layout issues during normal usage
+  // Virtual scrolling mainly benefits collections with 500+ items
+  const USE_VIRTUAL_SCROLLING_THRESHOLD = 500;
   const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
 
   // Calculate columns based on container width
@@ -324,12 +326,7 @@ export function ImageGrid({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div
-                  className="grid gap-1"
-                  style={{
-                    gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
-                  }}
-                >
+                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
                   {row.map((asset) => (
                     <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
                       <ImageTile
@@ -341,12 +338,6 @@ export function ImageGrid({
                       />
                     </ImageTileErrorBoundary>
                   ))}
-                  {/* Empty cells for last row */}
-                  {virtualRow.index === rows.length - 1 &&
-                    row.length < columnCount &&
-                    Array.from({ length: columnCount - row.length }).map((_, i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
                 </div>
               </div>
             );

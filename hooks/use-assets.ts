@@ -180,9 +180,24 @@ export function useAssets(options: UseAssetsOptions = {}) {
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
     setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === id ? { ...asset, ...updates } : asset
-      )
+      prev.map((asset) => {
+        if (asset.id !== id) return asset;
+
+        // Check if any values actually changed to avoid creating new reference
+        let hasChanges = false;
+        for (const key in updates) {
+          if (updates[key as keyof Asset] !== asset[key as keyof Asset]) {
+            hasChanges = true;
+            break;
+          }
+        }
+
+        // Return same reference if nothing changed (prevents unnecessary re-renders)
+        if (!hasChanges) return asset;
+
+        // Only create new object if values actually changed
+        return { ...asset, ...updates };
+      })
     );
   }, []);
 
@@ -399,9 +414,24 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
     setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === id ? { ...asset, ...updates } : asset
-      )
+      prev.map((asset) => {
+        if (asset.id !== id) return asset;
+
+        // Check if any values actually changed to avoid creating new reference
+        let hasChanges = false;
+        for (const key in updates) {
+          if (updates[key as keyof Asset] !== asset[key as keyof Asset]) {
+            hasChanges = true;
+            break;
+          }
+        }
+
+        // Return same reference if nothing changed (prevents unnecessary re-renders)
+        if (!hasChanges) return asset;
+
+        // Only create new object if values actually changed
+        return { ...asset, ...updates };
+      })
     );
   }, []);
 
