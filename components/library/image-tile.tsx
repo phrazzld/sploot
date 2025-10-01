@@ -69,7 +69,9 @@ function ImageTileComponent({
       setDebugInfo(prev => ({ ...prev, queuePosition: simulatedPosition }));
       console.log(`[debug_embeddings] Asset ${asset.id}: Simulated queue position - #${simulatedPosition}`);
     }
-  }, [isDebugMode, embeddingStatus, debugInfo.queuePosition, asset.id]);
+    // Only depend on external inputs, not debugInfo.queuePosition which we set internally
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDebugMode, embeddingStatus, asset.id]);
 
   const handleEmbeddingSuccess = (result?: { embedding?: { modelName: string; dimension: number; createdAt: string } }) => {
     if (isDebugMode) {

@@ -626,10 +626,36 @@ async function generateEmbeddingAsync(
     console.log(`Embedding generated successfully for asset ${assetId}`);
   } catch (error) {
     // Log error but don't throw - this is background processing
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     if (error instanceof EmbeddingError) {
-      console.error(`Embedding generation failed for asset ${assetId}:`, error.message);
+      console.error(`Embedding generation failed for asset ${assetId}:`, errorMessage);
     } else {
       console.error(`Unexpected error generating embedding for asset ${assetId}:`, error);
+    }
+
+    // Update embedding status to 'failed' so UI can show error state
+    try {
+      if (databaseAvailable && prisma) {
+        await prisma.assetEmbedding.upsert({
+          where: { assetId },
+          create: {
+            assetId,
+            modelName: 'unknown',
+            modelVersion: 'unknown',
+            dim: 0,
+            status: 'failed',
+            error: errorMessage,
+          },
+          update: {
+            status: 'failed',
+            error: errorMessage,
+          },
+        });
+        console.log(`Marked embedding as failed for asset ${assetId}`);
+      }
+    } catch (updateError) {
+      console.error(`Failed to update embedding status for asset ${assetId}:`, updateError);
     }
   }
 }

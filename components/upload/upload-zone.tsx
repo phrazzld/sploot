@@ -19,6 +19,7 @@ import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
 import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
+import { logger } from '@/lib/logger';
 
 // Lightweight metadata for display - only ~300 bytes per file vs 5MB for File object
 interface FileMetadata {
@@ -91,7 +92,7 @@ function EmbeddingStatusIndicator({
       enabled: !!file.assetId && file.needsEmbedding === true,
       onUpdate: (update) => {
         if (update.assetId === file.assetId) {
-          console.log(`[SSE] Received update for asset ${file.assetId}:`, update.status);
+          logger.debug(`[SSE] Received update for asset ${file.assetId}:`, update.status);
 
           // Map SSE status to component status
           if (update.status === 'processing') {
@@ -118,7 +119,7 @@ function EmbeddingStatusIndicator({
       const client = getSSEClient();
       // Ensure SSE client is connected for this asset
       if (client.getState() === 'disconnected') {
-        console.log(`[SSE] Connecting for asset ${file.assetId}`);
+        logger.debug(`[SSE] Connecting for asset ${file.assetId}`);
         client.connect([file.assetId]);
       }
     }
@@ -729,7 +730,7 @@ export function UploadZone({
       computeChecksum: false, // Skip checksum for now, just process metadata
       onProgress: (fileName, progress) => {
         // Update progress for individual file if needed
-        console.log(`Processing ${fileName}: ${Math.round(progress)}%`);
+        logger.debug(`Processing ${fileName}: ${Math.round(progress)}%`);
       },
       onError: (fileName, error) => {
         console.error(`Error processing ${fileName}:`, error);
@@ -882,7 +883,7 @@ export function UploadZone({
 
     // Get final processor stats for debugging
     const stats = processor.getStats();
-    console.log('[FileStreamProcessor] Stats:', {
+    logger.debug('[FileStreamProcessor] Stats:', {
       filesProcessed: stats.filesProcessed,
       bytesProcessed: stats.bytesProcessed,
       peakMemoryUsage: Math.round(stats.peakMemoryUsage / 1024 / 1024) + 'MB',
@@ -904,7 +905,7 @@ export function UploadZone({
   // Check for interrupted uploads on mount
   useUploadRecovery(
     async (recoveredFiles) => {
-      console.log(`[UploadZone] Recovering ${recoveredFiles.length} interrupted uploads`);
+      logger.debug(`[UploadZone] Recovering ${recoveredFiles.length} interrupted uploads`);
       setRecoveryCount(recoveredFiles.length);
       setShowRecoveryNotification(true);
 
@@ -937,7 +938,7 @@ export function UploadZone({
     // Reset stats for this batch
     uploadStatsRef.current = { successful: 0, failed: 0 };
 
-    console.log(`[Upload] Starting batch upload of ${fileIds.length} files with concurrency: ${currentConcurrency}`);
+    logger.debug(`[Upload] Starting batch upload of ${fileIds.length} files with concurrency: ${currentConcurrency}`);
 
     // Create chunks for parallel processing with concurrency limit
     const uploadQueue = [...fileIds];
@@ -954,12 +955,12 @@ export function UploadZone({
           // Too many failures, reduce concurrency
           const newConcurrency = Math.max(MIN_CONCURRENT_UPLOADS, currentConcurrency - 1);
           setCurrentConcurrency(newConcurrency);
-          console.log(`[Upload] High failure rate ${(failureRate * 100).toFixed(0)}%, reducing concurrency to ${newConcurrency}`);
+          logger.debug(`[Upload] High failure rate ${(failureRate * 100).toFixed(0)}%, reducing concurrency to ${newConcurrency}`);
         } else if (failureRate < 0.05 && currentConcurrency < MAX_CONCURRENT_UPLOADS) {
           // Very few failures, increase concurrency
           const newConcurrency = Math.min(MAX_CONCURRENT_UPLOADS, currentConcurrency + 1);
           setCurrentConcurrency(newConcurrency);
-          console.log(`[Upload] Low failure rate ${(failureRate * 100).toFixed(0)}%, increasing concurrency to ${newConcurrency}`);
+          logger.debug(`[Upload] Low failure rate ${(failureRate * 100).toFixed(0)}%, increasing concurrency to ${newConcurrency}`);
         }
       }
 
@@ -985,7 +986,7 @@ export function UploadZone({
               return newMap;
             });
             retryQueue.push(fileId);
-            console.log(`[Upload] File ${metadata?.name} added to retry queue (attempt ${retryCount + 1}/3)`);
+            logger.debug(`[Upload] File ${metadata?.name} added to retry queue (attempt ${retryCount + 1}/3)`);
           } else {
             // Max retries reached, mark as permanently failed
             uploadStatsRef.current.failed++;
@@ -1004,7 +1005,7 @@ export function UploadZone({
 
     // Process retry queue with exponential backoff
     if (retryQueue.length > 0) {
-      console.log(`[Upload] Processing retry queue with ${retryQueue.length} files`);
+      logger.debug(`[Upload] Processing retry queue with ${retryQueue.length} files`);
       await processRetryQueue(retryQueue);
     }
   };
@@ -1018,7 +1019,7 @@ export function UploadZone({
       const retryCount = metadata?.retryCount || 1;
       const delay = backoffDelays[retryCount - 1] || 9000;
 
-      console.log(`[Upload] Retrying ${metadata?.name} after ${delay}ms delay (attempt ${retryCount}/3)`);
+      logger.debug(`[Upload] Retrying ${metadata?.name} after ${delay}ms delay (attempt ${retryCount}/3)`);
 
       // Wait for backoff delay
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -1036,7 +1037,7 @@ export function UploadZone({
       try {
         await uploadFileToServer(fileId);
         uploadStatsRef.current.successful++;
-        console.log(`[Upload] Retry successful for ${metadata?.name}`);
+        logger.debug(`[Upload] Retry successful for ${metadata?.name}`);
       } catch (error) {
         if (retryCount < 3) {
           // Still have retries left, update retry count and recurse
@@ -1229,7 +1230,7 @@ export function UploadZone({
       progressThrottleMap.current.delete(fileId);
 
       // Log memory cleanup for monitoring during development
-      console.log(`[UploadZone] Cleared file blob for ${metadata.name}, kept metadata only`);
+      logger.debug(`[UploadZone] Cleared file blob for ${metadata.name}, kept metadata only`);
 
       // Remove from persisted queue on success
       if ((metadata as any).persistedId) {
@@ -1427,7 +1428,7 @@ export function UploadZone({
     const failedFiles = filesArray.filter(f => f.status === 'error');
     if (failedFiles.length === 0) return;
 
-    console.log(`[Upload] Retrying all ${failedFiles.length} failed files`);
+    logger.debug(`[Upload] Retrying all ${failedFiles.length} failed files`);
 
     // Reset all failed files to pending status
     const failedFileIds = failedFiles.map(f => f.id);
