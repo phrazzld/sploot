@@ -88,7 +88,42 @@ export function useAssets(options: UseAssetsOptions = {}) {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch assets');
+          // Extract error details from response for better debugging
+          let errorMessage = 'Failed to fetch assets';
+          let errorDetails = null;
+
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+            errorDetails = errorData;
+          } catch {
+            // Response wasn't JSON, use generic message
+          }
+
+          // Log comprehensive error info (development only)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[useAssets] API error:', {
+              status: response.status,
+              statusText: response.statusText,
+              message: errorMessage,
+              details: errorDetails,
+              url: response.url,
+            });
+          }
+
+          // Throw with specific message based on status code
+          const statusMessages: Record<number, string> = {
+            401: 'Unauthorized - Please sign in',
+            403: 'Forbidden - Access denied',
+            404: 'API endpoint not found',
+            500: 'Server error - Please try again',
+            503: 'Service unavailable - Database may be offline',
+          };
+
+          const specificMessage = statusMessages[response.status]
+            || `${errorMessage} (HTTP ${response.status})`;
+
+          throw new Error(specificMessage);
         }
 
         const data = await response.json();
