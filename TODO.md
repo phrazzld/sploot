@@ -20,18 +20,18 @@
 ## 🔧 P2: Infrastructure & Monitoring
 
 ### Automated Cleanup
-- [ ] **Create cron job for orphan detection** - Add Vercel Cron route `/api/cron/audit-assets` that runs daily, finds broken blobs, sends alert email if >10 found. Proactive monitoring. (~30 min)
+- [x] **Create cron job for orphan detection** - Add Vercel Cron route `/api/cron/audit-assets` that runs daily, finds broken blobs, sends alert email if >10 found. Proactive monitoring. (~30 min)
 
-- [ ] **Implement soft delete for assets** - Add `deletedAt` timestamp instead of hard delete. Keep 30-day retention for recovery. Modify delete API to set timestamp, add cron to purge old. (~35 min)
+- [x] **Implement soft delete for assets** - Add `deletedAt` timestamp instead of hard delete. Keep 30-day retention for recovery. Modify delete API to set timestamp, add cron to purge old. (~35 min)
 
-- [ ] **Add blob garbage collection** - Script to find blobs in Vercel Blob storage not referenced by any DB record. Prompt for deletion. Reclaim storage. (~40 min)
+- [x] **Add blob garbage collection** - Script to find blobs in Vercel Blob storage not referenced by any DB record. Prompt for deletion. Reclaim storage. (~40 min)
 
 ### Performance Monitoring
-- [ ] **Add empty state render metrics** - Track `time_to_empty_state` metric from data load → empty state render. P95 target <100ms. Send to analytics. (~15 min)
+- [x] **Add empty state render metrics** - Track `time_to_empty_state` metric from data load → empty state render. P95 target <100ms. Send to analytics. (~15 min)
 
-- [ ] **Monitor broken image ratio** - Emit metric `broken_images_count / total_images_count`. Alert if >1%. Dashboard in Vercel Analytics. (~20 min)
+- [x] **Monitor broken image ratio** - Emit metric `broken_images_count / total_images_count`. Alert if >1%. Dashboard in Vercel Analytics. (~20 min)
 
-- [ ] **Add Core Web Vitals for grid** - Measure CLS (Cumulative Layout Shift) for ImageGrid. Target CLS <0.1. Empty state shouldn't cause layout shift. (~15 min)
+- [x] **Add Core Web Vitals for grid** - Measure CLS (Cumulative Layout Shift) for ImageGrid. Target CLS <0.1. Empty state shouldn't cause layout shift. (~15 min)
 
 ---
 
