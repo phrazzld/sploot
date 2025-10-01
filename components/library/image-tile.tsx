@@ -563,8 +563,48 @@ function ImageTileComponent({
   );
 }
 
-// Custom comparison function for React.memo
-// Only re-render if these specific props change
+/**
+ * Custom comparison function for React.memo optimization.
+ *
+ * IMPORTANT: This function intentionally skips comparison of function props (onClick, onToggleFavorite, etc.)
+ * because it assumes parent components wrap these callbacks in useCallback with stable dependencies.
+ *
+ * **Parent Component Requirements:**
+ * ```tsx
+ * // ✅ CORRECT - Callbacks wrapped in useCallback
+ * const handleClick = useCallback((assetId: string) => {
+ *   navigateToAsset(assetId);
+ * }, []); // Empty deps if truly stable
+ *
+ * const handleToggleFavorite = useCallback(async (assetId: string) => {
+ *   await updateFavorite(assetId);
+ * }, []); // Or include necessary deps
+ *
+ * <ImageTile onClick={handleClick} onToggleFavorite={handleToggleFavorite} />
+ * ```
+ *
+ * ```tsx
+ * // ❌ WRONG - Inline functions recreated on every render
+ * <ImageTile
+ *   onClick={(id) => navigateToAsset(id)}
+ *   onToggleFavorite={async (id) => await updateFavorite(id)}
+ * />
+ * // This causes ALL tiles to re-render on parent state changes!
+ * ```
+ *
+ * **Consequences of violating this assumption:**
+ * - Every parent re-render triggers re-render of ALL ImageTile instances
+ * - Defeats the purpose of React.memo optimization
+ * - Significant performance degradation with 100+ images in grid
+ * - May cause frame drops during scroll on lower-end devices
+ *
+ * **Why we skip function comparison:**
+ * - Comparing functions by reference is unreliable (new function !== new function)
+ * - If parent follows useCallback pattern, functions are stable by reference
+ * - This allows grid to skip re-renders when parent state changes unrelated to tiles
+ *
+ * Only re-renders if visual props change (asset data, favorite status, embedding status, etc.)
+ */
 function arePropsEqual(prevProps: ImageTileProps, nextProps: ImageTileProps) {
   // Always re-render if asset ID changed (different image)
   if (prevProps.asset.id !== nextProps.asset.id) return false;
@@ -586,7 +626,7 @@ function arePropsEqual(prevProps: ImageTileProps, nextProps: ImageTileProps) {
   // Re-render if preserveAspectRatio prop changed
   if (prevProps.preserveAspectRatio !== nextProps.preserveAspectRatio) return false;
 
-  // Ignore function prop changes - they're typically stable via useCallback
+  // Ignore function prop changes - they're stable via useCallback (see JSDoc above)
   // This prevents unnecessary re-renders when parent re-renders
 
   // All relevant props are equal, skip re-render
