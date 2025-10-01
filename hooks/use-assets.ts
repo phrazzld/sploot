@@ -27,6 +27,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
   // Use refs to avoid stale closures
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
+  const hasLoadedRef = useRef(false); // Track if initial load has been attempted
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Keep hasMore ref in sync with state
@@ -61,6 +62,19 @@ export function useAssets(options: UseAssetsOptions = {}) {
           sortOrder,
         });
 
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useAssets] Loading assets:', {
+            reset,
+            offset: currentOffset,
+            limit: initialLimit,
+            sortBy,
+            sortOrder,
+            filterFavorites,
+            tagId,
+          });
+        }
+
         if (filterFavorites !== undefined) {
           params.set('favorite', filterFavorites.toString());
         }
@@ -78,6 +92,16 @@ export function useAssets(options: UseAssetsOptions = {}) {
         }
 
         const data = await response.json();
+
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useAssets] API response:', {
+            assetCount: data.assets?.length || 0,
+            total: data.pagination?.total,
+            hasMore: data.pagination?.hasMore,
+            reset,
+          });
+        }
 
         // Only update state if this request wasn't aborted
         if (controller.signal.aborted) return;
@@ -97,7 +121,13 @@ export function useAssets(options: UseAssetsOptions = {}) {
         if (err instanceof Error && err.name === 'AbortError') {
           return;
         }
+
+        // Log error for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[useAssets] Error loading assets:', err);
+        }
         logError('Error loading assets:', err);
+
         // Only update error state if this request wasn't aborted
         if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : 'Failed to load assets');
@@ -172,11 +202,13 @@ export function useAssets(options: UseAssetsOptions = {}) {
   }, [assets]);
 
   // Auto-load on mount if enabled
+  // Use hasLoadedRef to prevent infinite loop when library is empty
   useEffect(() => {
-    if (autoLoad && assets.length === 0 && !loadingRef.current) {
+    if (autoLoad && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
       loadAssets(true);
     }
-  }, [autoLoad, loadAssets]); // Safe to depend on loadAssets now
+  }, [autoLoad, loadAssets]);
 
   // Cleanup on unmount
   useEffect(() => {
