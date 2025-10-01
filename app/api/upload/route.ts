@@ -19,6 +19,21 @@ export const maxDuration = 60; // 60 second timeout for upload operations
 /**
  * Direct file upload endpoint - handles file upload server-side
  * This is more reliable than client-side uploads for the initial implementation
+ *
+ * CONCURRENCY HANDLING:
+ * The upload flow handles race conditions via database unique constraint on (ownerUserId, checksumSha256).
+ * When simultaneous uploads of identical files occur:
+ * 1. Both requests upload blobs to storage
+ * 2. First request succeeds in DB insert
+ * 3. Second request catches P2002 (unique constraint violation)
+ * 4. Second request cleans up its duplicate blobs and returns existing asset
+ *
+ * Alternative approaches considered:
+ * - Postgres advisory locks: Adds complexity, requires connection pool management
+ * - Pre-upload existence check only: Still has TOCTOU window between check and blob upload
+ * - Idempotent blob names: Works but requires deterministic naming that could expose user data
+ *
+ * Current approach is simplest and safest - database constraint is atomic and cleanup is reliable.
  */
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
