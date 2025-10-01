@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { trackEmptyStateRender } from '@/lib/performance-metrics';
 
 export type EmptyStateVariant = 'first-use' | 'filtered' | 'search';
 
@@ -30,14 +31,20 @@ export function EmptyState({
   // Drag and drop state
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0); // Track nested drag events
+  const mountTimeRef = useRef(performance.now());
 
-  // Performance measurement in development
+  // Performance measurement - track time to empty state render
+  // Target: P95 < 100ms for smooth UX
   useEffect(() => {
+    const renderEnd = performance.now();
+    const renderTime = renderEnd - mountTimeRef.current;
+
+    // Track metric (sends to telemetry)
+    trackEmptyStateRender(mountTimeRef.current);
+
+    // Log in development
     if (process.env.NODE_ENV === 'development') {
-      const renderEnd = performance.now();
-      // Measure time from component mount to first paint
-      // This helps ensure we meet the <16ms target (60fps)
-      console.log(`[perf] EmptyState rendered in ~${renderEnd.toFixed(2)}ms`);
+      console.log(`[perf] EmptyState rendered in ${renderTime.toFixed(2)}ms`);
     }
   }, []);
 

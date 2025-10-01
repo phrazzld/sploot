@@ -7,6 +7,7 @@ import { ImageTileErrorBoundary } from './image-tile-error-boundary';
 import { ImageGridSkeleton } from './image-skeleton';
 import { EmptyState } from './empty-state';
 import { cn } from '@/lib/utils';
+import { trackBrokenImageRatio, setupCLSTracking } from '@/lib/performance-metrics';
 import type { Asset } from '@/lib/types';
 
 interface ImageGridProps {
@@ -37,6 +38,7 @@ export function ImageGrid({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
   const [showingTransition, setShowingTransition] = useState(false);
+  const [brokenImageCount, setBrokenImageCount] = useState(0);
   const setContainerRef = useCallback(
     (node: HTMLDivElement | null) => {
       containerRef.current = node;
@@ -108,6 +110,47 @@ export function ImageGrid({
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
+
+  // Setup CLS (Cumulative Layout Shift) tracking
+  // Monitors layout stability of image grid (target: CLS < 0.1)
+  useEffect(() => {
+    if (assets.length > 0) {
+      setupCLSTracking(containerRef.current || undefined);
+    }
+  }, [assets.length]);
+
+  // Track broken image ratio
+  // Count images that fail to load and report metric
+  useEffect(() => {
+    if (assets.length === 0) return;
+
+    // Listen for image load errors via event delegation
+    const container = containerRef.current;
+    if (!container) return;
+
+    let brokenCount = 0;
+
+    const handleImageError = (e: Event) => {
+      if ((e.target as HTMLElement).tagName === 'IMG') {
+        brokenCount++;
+        setBrokenImageCount(brokenCount);
+      }
+    };
+
+    container.addEventListener('error', handleImageError, true);
+
+    // Report metric after initial render (throttled)
+    const metricsTimer = setTimeout(() => {
+      if (assets.length > 0) {
+        trackBrokenImageRatio(brokenCount, assets.length);
+      }
+    }, 5000); // Wait 5s for images to load/fail
+
+    return () => {
+      container.removeEventListener('error', handleImageError, true);
+      clearTimeout(metricsTimer);
+    };
+  }, [assets.length]);
 
   // Load more when scrolling near bottom
   useEffect(() => {
