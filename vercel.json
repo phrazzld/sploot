@@ -7,6 +7,10 @@
     {
       "path": "/api/cron/audit-assets",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/purge-deleted-assets",
+      "schedule": "0 3 * * *"
     }
   ]
 }
