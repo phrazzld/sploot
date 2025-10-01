@@ -9,7 +9,7 @@ describe('E2E: user journey in mock mode', () => {
   let resetMockStore: () => void;
 
   beforeEach(async () => {
-    jest.resetModules();
+    vi.resetModules();
     process.env.ENABLE_MOCK_SERVICES = 'true';
     process.env.NEXT_PUBLIC_ENABLE_MOCK_SERVICES = 'true';
 

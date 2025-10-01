@@ -4,21 +4,21 @@ import { POST as textEmbeddingPOST } from '@/app/api/embeddings/text/route';
 import { createMockRequest, mockPrisma, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
 
 // Mock dependencies
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
 }));
 
-jest.mock('@/lib/db', () => {
+vi.mock('@/lib/db', () => {
   const helpers = require('../utils/test-helpers');
   return {
     prisma: helpers.mockPrisma(),
-    vectorSearch: jest.fn(),
-    logSearch: jest.fn(),
+    vectorSearch: vi.fn(),
+    logSearch: vi.fn(),
   };
 });
 
-jest.mock('@/lib/embeddings', () => ({
-  createEmbeddingService: jest.fn(),
+vi.mock('@/lib/embeddings', () => ({
+  createEmbeddingService: vi.fn(),
   EmbeddingError: class EmbeddingError extends Error {
     constructor(message: string, public statusCode?: number) {
       super(message);
@@ -26,9 +26,9 @@ jest.mock('@/lib/embeddings', () => ({
   },
 }));
 
-jest.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: jest.fn(),
-  getMultiLayerCache: jest.fn(),
+vi.mock('@/lib/multi-layer-cache', () => ({
+  createMultiLayerCache: vi.fn(),
+  getMultiLayerCache: vi.fn(),
 }));
 
 const mockAuth = require('@clerk/nextjs/server').auth;
@@ -42,7 +42,7 @@ describe('Search Flow Integration Tests', () => {
   const mockEmbedding = Array(1152).fill(0.1);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default mocks
     mockAuth.mockResolvedValue({ userId: testUserId });

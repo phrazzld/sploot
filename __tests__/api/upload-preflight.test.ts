@@ -4,15 +4,15 @@ import { requireUserIdWithSync } from '@/lib/auth/server';
 import { assetExists } from '@/lib/db';
 
 // Mock dependencies
-jest.mock('@/lib/auth/server');
-jest.mock('@/lib/db');
+vi.mock('@/lib/auth/server');
+vi.mock('@/lib/db');
 
-const mockRequireUserIdWithSync = requireUserIdWithSync as jest.MockedFunction<typeof requireUserIdWithSync>;
-const mockAssetExists = assetExists as jest.MockedFunction<typeof assetExists>;
+const mockRequireUserIdWithSync = requireUserIdWithSync as vi.MockedFunction<typeof requireUserIdWithSync>;
+const mockAssetExists = assetExists as vi.MockedFunction<typeof assetExists>;
 
 describe('/api/upload/check', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     mockRequireUserIdWithSync.mockResolvedValue('test-user-id');
   });
 
@@ -138,7 +138,7 @@ describe('/api/upload/check', () => {
       jest.doMock('@/lib/db', () => ({
         databaseAvailable: false,
         prisma: null,
-        assetExists: jest.fn(),
+        assetExists: vi.fn(),
       }));
 
       // Re-import to get mocked version
@@ -176,7 +176,7 @@ describe('/api/upload/check', () => {
 
 describe('Client-side checksum utilities', () => {
   // Mock Web Crypto API
-  const mockDigest = jest.fn();
+  const mockDigest = vi.fn();
   global.crypto = {
     subtle: {
       digest: mockDigest,
@@ -184,7 +184,7 @@ describe('Client-side checksum utilities', () => {
   } as any;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should calculate SHA256 checksum', async () => {

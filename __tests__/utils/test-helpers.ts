@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { jest } from '@jest/globals';
+import { jest } from 'vitest';
 
 // Mock Clerk auth
 export const mockAuth = (userId: string | null = 'test-user-id') => {

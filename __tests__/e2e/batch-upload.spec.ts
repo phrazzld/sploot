@@ -4,7 +4,7 @@
  * verifying upload states, completion times, and searchability
  */
 
-import { jest } from '@jest/globals';
+import { jest } from 'vitest';
 import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService } from '../utils/test-helpers';
 // Types are inferred from Clerk auth objects
 type SessionStatusClaim = 'active' | 'inactive' | 'stale' | 'revoked' | 'tokenExpired' | null;
@@ -22,11 +22,11 @@ import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 // Mock dependencies
-jest.mock('@/lib/db', () => ({
+vi.mock('@/lib/db', () => ({
   prisma: mockPrisma(),
 }));
 
-jest.mock('@vercel/blob', () => mockBlobStorage());
+vi.mock('@vercel/blob', () => mockBlobStorage());
 
 type ClerkAuth = typeof clerkAuth;
 type ClerkAuthResult = Awaited<ReturnType<ClerkAuth>>;
@@ -52,9 +52,9 @@ const createAuthState = (userId: string | null): ClerkAuthResult => {
       orgPermissions: null,
       factorVerificationAge: null,
       tokenType: 'session_token',
-      getToken: jest.fn().mockResolvedValue(null) as any,
-      has: jest.fn().mockReturnValue(false) as any,
-      debug: jest.fn().mockReturnValue({}) as any,
+      getToken: vi.fn().mockResolvedValue(null) as any,
+      has: vi.fn().mockReturnValue(false) as any,
+      debug: vi.fn().mockReturnValue({}) as any,
       isAuthenticated: false,
       redirectToSignIn: createRedirectStub(),
       redirectToSignUp: createRedirectStub(),
@@ -84,19 +84,19 @@ const createAuthState = (userId: string | null): ClerkAuthResult => {
     orgPermissions: [],
     factorVerificationAge: null,
     tokenType: 'session_token',
-    getToken: jest.fn().mockResolvedValue('mock-session-token') as any,
-    has: jest.fn().mockReturnValue(true) as any,
-    debug: jest.fn().mockReturnValue({}) as any,
+    getToken: vi.fn().mockResolvedValue('mock-session-token') as any,
+    has: vi.fn().mockReturnValue(true) as any,
+    debug: vi.fn().mockReturnValue({}) as any,
     isAuthenticated: true,
     redirectToSignIn: createRedirectStub(),
     redirectToSignUp: createRedirectStub(),
   } satisfies ClerkAuthResult;
 };
 
-const authMock = jest.fn() as any;
-const currentUserMock = jest.fn() as any;
+const authMock = vi.fn() as any;
+const currentUserMock = vi.fn() as any;
 
-jest.mock('@clerk/nextjs/server', () => ({
+vi.mock('@clerk/nextjs/server', () => ({
   auth: authMock,
   currentUser: currentUserMock,
 }));
@@ -108,7 +108,7 @@ const setAuthState = (userId: string | null) => {
 
 // Mock embedding service
 const mockEmbedding = Array(1152).fill(0.1);
-jest.mock('@/lib/embeddings', () => ({
+vi.mock('@/lib/embeddings', () => ({
   generateImageEmbedding: jest.fn(() => Promise.resolve({
     embedding: Array(1152).fill(0.1),
     modelName: 'siglip-large',
@@ -138,7 +138,7 @@ describe('E2E: Batch Upload', () => {
   let performanceTracker: ReturnType<typeof getGlobalPerformanceTracker>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     uploadResults = new Map();
     embeddingQueue = getEmbeddingQueueManager();
     performanceTracker = getGlobalPerformanceTracker();

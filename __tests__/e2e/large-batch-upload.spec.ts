@@ -4,28 +4,28 @@
  * measuring performance, memory usage, and failure rates
  */
 
-import { jest } from '@jest/globals';
+import { jest } from 'vitest';
 import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 // Mock dependencies
-jest.mock('@/lib/db', () => ({
+vi.mock('@/lib/db', () => ({
   prisma: mockPrisma(),
   databaseAvailable: true,
-  assetExists: jest.fn<() => Promise<boolean>>().mockResolvedValue(false),
-  findOrCreateAsset: jest.fn<() => Promise<{ asset: any; isDuplicate: boolean }>>().mockResolvedValue({
+  assetExists: vi.fn<() => Promise<boolean>>().mockResolvedValue(false),
+  findOrCreateAsset: vi.fn<() => Promise<{ asset: any; isDuplicate: boolean }>>().mockResolvedValue({
     asset: { id: 'asset-id', blobUrl: 'blob://test', needsEmbedding: true },
     isDuplicate: false,
   }),
-  upsertAssetEmbedding: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
+  upsertAssetEmbedding: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
 }));
 
-jest.mock('@vercel/blob', () => mockBlobStorage());
+vi.mock('@vercel/blob', () => mockBlobStorage());
 
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn<() => Promise<{ userId: string | null }>>().mockResolvedValue({ userId: 'test-user' }),
-  currentUser: jest.fn<() => Promise<any>>().mockResolvedValue({
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn<() => Promise<{ userId: string | null }>>().mockResolvedValue({ userId: 'test-user' }),
+  currentUser: vi.fn<() => Promise<any>>().mockResolvedValue({
     id: 'test-user',
     emailAddresses: [{ emailAddress: 'test@example.com' }],
   }),
@@ -33,20 +33,20 @@ jest.mock('@clerk/nextjs/server', () => ({
 
 // Mock embedding service
 const mockEmbedding = Array(1152).fill(0.1);
-jest.mock('@/lib/embeddings', () => ({
+vi.mock('@/lib/embeddings', () => ({
   createEmbeddingService: jest.fn(() => ({
-    generateImageEmbedding: jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
+    generateImageEmbedding: vi.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
       embedding: mockEmbedding,
       modelName: 'siglip-large',
       dimension: 1152,
     }),
   })),
-  generateImageEmbedding: jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
+  generateImageEmbedding: vi.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
     embedding: mockEmbedding,
     modelName: 'siglip-large',
     dimension: 1152,
   }),
-  generateTextEmbedding: jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
+  generateTextEmbedding: vi.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
     embedding: mockEmbedding,
     modelName: 'siglip-large',
     dimension: 1152,
@@ -92,7 +92,7 @@ describe('Large Batch Upload Performance Test', () => {
   beforeEach(() => {
     uploadResults = [];
     memorySnapshots = [];
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   /**

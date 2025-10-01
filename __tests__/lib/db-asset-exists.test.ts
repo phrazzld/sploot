@@ -1,21 +1,21 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach } from 'vitest';
 import type { ExistingAssetMetadata } from '@/lib/db';
 
 // Mock Prisma client with proper typing
 const mockPrisma = {
   asset: {
-    findFirst: jest.fn() as jest.MockedFunction<any>,
-    create: jest.fn() as jest.MockedFunction<any>,
+    findFirst: vi.fn() as vi.MockedFunction<any>,
+    create: vi.fn() as vi.MockedFunction<any>,
   },
-  $transaction: jest.fn() as jest.MockedFunction<any>,
+  $transaction: vi.fn() as vi.MockedFunction<any>,
 };
 
 // Mock the db module
-jest.mock('@/lib/db', () => ({
+vi.mock('@/lib/db', () => ({
   prisma: null,
   databaseAvailable: true,
-  assetExists: jest.fn(),
-  findOrCreateAsset: jest.fn(),
+  assetExists: vi.fn(),
+  findOrCreateAsset: vi.fn(),
 }));
 
 // Import and setup mocks
@@ -25,11 +25,11 @@ import * as db from '@/lib/db';
 (db as any).prisma = mockPrisma;
 
 // Import actual implementations to test
-const { assetExists, findOrCreateAsset } = jest.requireActual('@/lib/db') as typeof db;
+const { assetExists, findOrCreateAsset } = vi.importActual('@/lib/db') as typeof db;
 
 describe('assetExists', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const mockUserId = 'user123';
@@ -73,7 +73,7 @@ describe('assetExists', () => {
     it('should use transaction when provided', async () => {
       const mockTx = {
         asset: {
-          findFirst: jest.fn() as jest.MockedFunction<any>,
+          findFirst: vi.fn() as vi.MockedFunction<any>,
         },
       };
       mockTx.asset.findFirst.mockResolvedValue(mockAsset);
@@ -119,7 +119,7 @@ describe('assetExists', () => {
 
 describe('findOrCreateAsset', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   const mockUserId = 'user123';
@@ -146,8 +146,8 @@ describe('findOrCreateAsset', () => {
     it('should create new asset', async () => {
       // Mock transaction
       const mockTxAsset = {
-        findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(null),
-        create: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(mockCreatedAsset),
+        findFirst: (vi.fn() as vi.MockedFunction<any>).mockResolvedValue(null),
+        create: (vi.fn() as vi.MockedFunction<any>).mockResolvedValue(mockCreatedAsset),
       };
 
       mockPrisma.$transaction.mockImplementation(async (callback: any) => {
@@ -185,8 +185,8 @@ describe('findOrCreateAsset', () => {
 
       // Mock transaction
       const mockTxAsset = {
-        findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(existingAsset),
-        create: jest.fn() as jest.MockedFunction<any>,
+        findFirst: (vi.fn() as vi.MockedFunction<any>).mockResolvedValue(existingAsset),
+        create: vi.fn() as vi.MockedFunction<any>,
       };
 
       mockPrisma.$transaction.mockImplementation(async (callback: any) => {
@@ -219,8 +219,8 @@ describe('findOrCreateAsset', () => {
           // First call: asset doesn't exist, try to create but fails
           const mockTx = {
             asset: {
-              findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(null),
-              create: (jest.fn() as jest.MockedFunction<any>).mockRejectedValue({ code: 'P2002' }),
+              findFirst: (vi.fn() as vi.MockedFunction<any>).mockResolvedValue(null),
+              create: (vi.fn() as vi.MockedFunction<any>).mockRejectedValue({ code: 'P2002' }),
             },
           };
           return callback(mockTx);
@@ -228,7 +228,7 @@ describe('findOrCreateAsset', () => {
           // Second call: find the existing asset
           const mockTx = {
             asset: {
-              findFirst: (jest.fn() as jest.MockedFunction<any>).mockResolvedValue(existingAsset),
+              findFirst: (vi.fn() as vi.MockedFunction<any>).mockResolvedValue(existingAsset),
             },
           };
           return callback(mockTx);

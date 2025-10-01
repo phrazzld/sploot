@@ -3,20 +3,20 @@ import { createMockRequest } from '../utils/test-helpers';
 import { put } from '@vercel/blob';
 
 // Mock dependencies
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
 }));
 
-jest.mock('@vercel/blob', () => ({
-  put: jest.fn(),
+vi.mock('@vercel/blob', () => ({
+  put: vi.fn(),
 }));
 
 const mockAuth = require('@clerk/nextjs/server').auth;
-const mockPut = put as jest.MockedFunction<typeof put>;
+const mockPut = put as vi.MockedFunction<typeof put>;
 
 describe('/api/upload-url', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('POST', () => {

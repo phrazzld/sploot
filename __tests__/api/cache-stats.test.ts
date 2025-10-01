@@ -2,13 +2,13 @@ import { GET, POST } from '@/app/api/cache/stats/route';
 import { createMockRequest, mockMultiLayerCache } from '../utils/test-helpers';
 
 // Mock dependencies
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
 }));
 
-jest.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: jest.fn(),
-  getMultiLayerCache: jest.fn(),
+vi.mock('@/lib/multi-layer-cache', () => ({
+  createMultiLayerCache: vi.fn(),
+  getMultiLayerCache: vi.fn(),
 }));
 
 const mockAuth = require('@clerk/nextjs/server').auth;
@@ -16,7 +16,7 @@ const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer
 
 describe('/api/cache/stats', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     const mockCache = mockMultiLayerCache();
     createMultiLayerCache.mockReturnValue(mockCache);
     getMultiLayerCache.mockReturnValue(mockCache);

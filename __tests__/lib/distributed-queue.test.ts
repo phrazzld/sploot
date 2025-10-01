@@ -9,7 +9,7 @@ describe('DistributedQueue', () => {
   let executor: jest.Mock;
 
   beforeEach(() => {
-    executor = jest.fn().mockResolvedValue(undefined);
+    executor = vi.fn().mockResolvedValue(undefined);
     queue = new DistributedQueue(executor);
   });
 
@@ -79,7 +79,7 @@ describe('DistributedQueue', () => {
     it('should retry failed items with exponential backoff', async () => {
       jest.useFakeTimers();
 
-      const failingExecutor = jest.fn()
+      const failingExecutor = vi.fn()
         .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValue(undefined);
@@ -110,7 +110,7 @@ describe('DistributedQueue', () => {
     });
 
     it('should move items to dead letter queue after max retries', async () => {
-      const failingExecutor = jest.fn()
+      const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Server error'));
 
       queue = new DistributedQueue(failingExecutor);
@@ -133,7 +133,7 @@ describe('DistributedQueue', () => {
     });
 
     it('should not retry invalid errors', async () => {
-      const failingExecutor = jest.fn()
+      const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Invalid request'));
 
       const errorClassifier = (error: Error): ErrorType => {
@@ -156,7 +156,7 @@ describe('DistributedQueue', () => {
 
   describe('Dead Letter Queue', () => {
     it('should allow retrying dead letter items', async () => {
-      const failingExecutor = jest.fn()
+      const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Temporary error'));
 
       queue = new DistributedQueue(failingExecutor);
@@ -280,7 +280,7 @@ describe('DistributedQueue', () => {
       ];
 
       for (const { message, expectedType } of errors) {
-        const failingExecutor = jest.fn().mockRejectedValueOnce(new Error(message));
+        const failingExecutor = vi.fn().mockRejectedValueOnce(new Error(message));
         const testQueue = new DistributedQueue(failingExecutor);
 
         testQueue.enqueue('test', 'background'); // Low retry count

@@ -3,27 +3,27 @@
  * Tests for upload performance, background embedding generation, retry logic, and concurrent uploads
  */
 
-import { jest } from '@jest/globals';
+import { jest } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
 import { getEmbeddingQueueManager, EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 // Mock dependencies
-jest.mock('@/lib/db', () => ({
+vi.mock('@/lib/db', () => ({
   prisma: mockPrisma(),
 }));
 
-jest.mock('@vercel/blob', () => ({
-  put: jest.fn(),
-  del: jest.fn(),
-  head: jest.fn(),
-  list: jest.fn(),
+vi.mock('@vercel/blob', () => ({
+  put: vi.fn(),
+  del: vi.fn(),
+  head: vi.fn(),
+  list: vi.fn(),
 }));
 
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
-  currentUser: jest.fn(),
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
+  currentUser: vi.fn(),
 }));
 
 // Mock the upload route handler
@@ -75,7 +75,7 @@ describe('Embedding Generation Test Suite', () => {
 
   beforeEach(() => {
     // Reset mocks
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Initialize services
     embeddingQueue = getEmbeddingQueueManager();
@@ -144,7 +144,7 @@ describe('Embedding Generation Test Suite', () => {
   describe('Background Embedding Generation', () => {
     it('should generate embeddings in background within 10 seconds', async () => {
       const mockEmbedding = Array(1152).fill(0.1);
-      const mockGenerateEmbedding = jest.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
+      const mockGenerateEmbedding = vi.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
         embedding: mockEmbedding,
         modelName: 'siglip-large',
         dimension: 1152,
@@ -227,7 +227,7 @@ describe('Embedding Generation Test Suite', () => {
       const retryEvents: { type: string; timestamp: number }[] = [];
 
       // Mock failing then succeeding
-      const mockGenerateEmbedding = jest.fn().mockImplementation(() => {
+      const mockGenerateEmbedding = vi.fn().mockImplementation(() => {
         attemptCount++;
         if (attemptCount < 3) {
           throw new Error('Network error');
@@ -423,7 +423,7 @@ describe('Embedding Generation Test Suite', () => {
   describe('Network Interruption Recovery', () => {
     it('should recover from network interruption and resume processing', async () => {
       let networkAvailable = true;
-      const mockFetch = jest.fn().mockImplementation(() => {
+      const mockFetch = vi.fn().mockImplementation(() => {
         if (!networkAvailable) {
           throw new Error('Network unavailable');
         }

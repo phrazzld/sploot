@@ -2,24 +2,24 @@ import { POST, GET } from '@/app/api/assets/route';
 import { createMockRequest, mockPrisma, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
 
 // Mock dependencies
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
 }));
 
-jest.mock('@/lib/db', () => {
+vi.mock('@/lib/db', () => {
   const helpers = require('../utils/test-helpers');
   return {
     prisma: helpers.mockPrisma(),
   };
 });
 
-jest.mock('@/lib/embeddings', () => ({
-  createEmbeddingService: jest.fn(),
+vi.mock('@/lib/embeddings', () => ({
+  createEmbeddingService: vi.fn(),
 }));
 
-jest.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: jest.fn(),
-  getMultiLayerCache: jest.fn(),
+vi.mock('@/lib/multi-layer-cache', () => ({
+  createMultiLayerCache: vi.fn(),
+  getMultiLayerCache: vi.fn(),
 }));
 
 const mockAuth = require('@clerk/nextjs/server').auth;
@@ -29,7 +29,7 @@ const { prisma } = require('@/lib/db');
 
 describe('/api/assets', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     createEmbeddingService.mockReturnValue(mockEmbeddingService());
     const mockCache = mockMultiLayerCache();
     createMultiLayerCache.mockReturnValue(mockCache);

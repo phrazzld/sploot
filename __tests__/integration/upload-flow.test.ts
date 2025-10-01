@@ -6,28 +6,28 @@ import { createMockRequest, mockPrisma, mockEmbeddingService, mockMultiLayerCach
 import { put, del } from '@vercel/blob';
 
 // Mock dependencies
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn(),
 }));
 
-jest.mock('@/lib/db', () => {
+vi.mock('@/lib/db', () => {
   const helpers = require('../utils/test-helpers');
   return {
     prisma: helpers.mockPrisma(),
-    upsertAssetEmbedding: jest.fn(),
-    vectorSearch: jest.fn(),
-    logSearch: jest.fn(),
+    upsertAssetEmbedding: vi.fn(),
+    vectorSearch: vi.fn(),
+    logSearch: vi.fn(),
     databaseAvailable: true,
   };
 });
 
-jest.mock('@vercel/blob', () => ({
-  put: jest.fn(),
-  del: jest.fn(),
+vi.mock('@vercel/blob', () => ({
+  put: vi.fn(),
+  del: vi.fn(),
 }));
 
-jest.mock('@/lib/embeddings', () => ({
-  createEmbeddingService: jest.fn(),
+vi.mock('@/lib/embeddings', () => ({
+  createEmbeddingService: vi.fn(),
   EmbeddingError: class EmbeddingError extends Error {
     constructor(message: string, public statusCode?: number) {
       super(message);
@@ -35,14 +35,14 @@ jest.mock('@/lib/embeddings', () => ({
   },
 }));
 
-jest.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: jest.fn(),
-  getMultiLayerCache: jest.fn(),
+vi.mock('@/lib/multi-layer-cache', () => ({
+  createMultiLayerCache: vi.fn(),
+  getMultiLayerCache: vi.fn(),
 }));
 
 const mockAuth = require('@clerk/nextjs/server').auth;
-const mockPut = put as jest.MockedFunction<typeof put>;
-const mockDel = del as jest.MockedFunction<typeof del>;
+const mockPut = put as vi.MockedFunction<typeof put>;
+const mockDel = del as vi.MockedFunction<typeof del>;
 const { createEmbeddingService } = require('@/lib/embeddings');
 const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer-cache');
 const { prisma, upsertAssetEmbedding } = require('@/lib/db');
@@ -59,7 +59,7 @@ describe('Upload Flow Integration Tests', () => {
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default mocks
     mockAuth.mockResolvedValue({ userId: testUserId });
