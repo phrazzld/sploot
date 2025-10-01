@@ -36,18 +36,22 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    // Verify cron authorization
+    // Verify cron authorization - required in all environments
     const authHeader = (await headers()).get('authorization');
     const cronSecret = process.env.CRON_SECRET;
 
-    // Allow execution in development or with valid auth
-    if (process.env.NODE_ENV === 'production') {
-      if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json(
-          { error: 'Unauthorized' },
-          { status: 401 }
-        );
-      }
+    if (!cronSecret) {
+      return NextResponse.json(
+        { error: 'CRON_SECRET not configured' },
+        { status: 500 }
+      );
+    }
+
+    if (authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
     }
 
     if (!databaseAvailable || !prisma) {
