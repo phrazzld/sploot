@@ -18,14 +18,14 @@ Prefer `pnpm` to match the lockfile.
 - `pnpm build` compiles with Turbopack; run it before cutting a release.
 - `pnpm start` serves the production build for smoke testing.
 - `pnpm lint` and `pnpm type-check` enforce ESLint rules and TypeScript safety nets.
-- `pnpm test`, `pnpm test:watch`, and `pnpm test:coverage` run the Jest suite.
+- `pnpm test`, `pnpm test:watch`, and `pnpm test:coverage` run the Vitest suite.
 - `pnpm db:migrate:dev` plus `pnpm db:seed` keep your Prisma schema current locally.
 
 ## Coding Style & Naming Conventions
 Use two-space indentation and strict TypeScript types. Components, hooks, and React files follow `PascalCase`; utilities stay `camelCase`. Styling is Tailwind-first—compose utility classes and deduplicate them with `clsx` or `tailwind-merge`. Run `pnpm lint` before sending code for review, and commit only clean output. Any user-facing text you touch must stay in meme-speak; if it vibes like corporate onboarding, rewrite it.
 
 ## Testing Guidelines
-Jest with `@testing-library/react` powers UI and integration coverage. Create specs alongside the related runtime module using the `*.test.ts` suffix. Mock outbound requests with MSW primitives configured in `jest.setup.ts`. Check `pnpm test:coverage` to maintain or raise the existing threshold, and refresh fixtures in `__tests__/utils/` when API shapes move.
+Vitest with `@testing-library/react` powers UI and integration coverage. Create specs alongside the related runtime module using the `*.test.ts` suffix. Mock outbound requests with MSW primitives configured in `vitest.setup.ts`. Check `pnpm test:coverage` to maintain or raise the existing threshold, and refresh fixtures in `__tests__/utils/` when API shapes move.
 
 ## Commit & Pull Request Guidelines
 - Write imperative, under-72-character commit subjects—but make them terminally-online (`Yeet fallback embeds` > `Update embeddings`).
