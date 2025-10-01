@@ -179,13 +179,17 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
-// Mock crypto
-global.crypto = {
-  randomUUID: () => 'mock-uuid-' + Math.random().toString(36).substr(2, 9),
-  subtle: {
-    digest: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
+// Mock crypto (use Object.defineProperty to override readonly property)
+Object.defineProperty(global, 'crypto', {
+  value: {
+    randomUUID: () => 'mock-uuid-' + Math.random().toString(36).substr(2, 9),
+    subtle: {
+      digest: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
+    },
   },
-} as any;
+  writable: true,
+  configurable: true,
+});
 
 // Mock NextResponse
 vi.mock('next/server', async () => {

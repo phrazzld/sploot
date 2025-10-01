@@ -6,7 +6,7 @@ import { DistributedQueue, QueueItem, QueuePriority, ErrorType } from '@/lib/dis
 
 describe('DistributedQueue', () => {
   let queue: DistributedQueue<string>;
-  let executor: jest.Mock;
+  let executor: vi.Mock;
 
   beforeEach(() => {
     executor = vi.fn().mockResolvedValue(undefined);
@@ -77,7 +77,7 @@ describe('DistributedQueue', () => {
 
   describe('Retry Logic', () => {
     it('should retry failed items with exponential backoff', async () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
       const failingExecutor = vi.fn()
         .mockRejectedValueOnce(new Error('Network error'))
@@ -93,20 +93,20 @@ describe('DistributedQueue', () => {
       expect(failingExecutor).toHaveBeenCalledTimes(1);
 
       // Advance timer for retry (1000ms * 2^0 * 2 = 2000ms for network error)
-      jest.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(2000);
 
       // Second attempt - fails
       await queue.processNext();
       expect(failingExecutor).toHaveBeenCalledTimes(2);
 
       // Advance timer for second retry (1000ms * 2^1 * 2 = 4000ms)
-      jest.advanceTimersByTime(4000);
+      vi.advanceTimersByTime(4000);
 
       // Third attempt - succeeds
       await queue.processNext();
       expect(failingExecutor).toHaveBeenCalledTimes(3);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should move items to dead letter queue after max retries', async () => {

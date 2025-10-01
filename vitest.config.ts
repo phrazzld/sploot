@@ -4,11 +4,14 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  css: {
+    postcss: false,
+  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     globals: true,
-    css: true,
+    css: false,
     include: [
       '__tests__/**/*.{test,spec}.{ts,tsx}',
       '**/*.{test,spec}.{ts,tsx}',
