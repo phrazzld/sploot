@@ -40,6 +40,12 @@ async function main() {
   console.log(`Mode: ${dryRun ? 'DRY RUN (no deletions)' : 'DELETE MODE'}\n`);
 
   try {
+    // Check database connection
+    if (!prisma) {
+      console.error('❌ Database connection not available');
+      process.exit(1);
+    }
+
     // Step 1: Fetch all blob URLs from Vercel Blob storage
     console.log('📦 Fetching blobs from Vercel Blob storage...');
     const { blobs } = await listBlobs();
