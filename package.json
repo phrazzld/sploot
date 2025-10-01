@@ -23,7 +23,9 @@
     "generate-og": "node scripts/generate-og-image.js",
     "generate-assets": "npm run generate-icons && npm run generate-og",
     "benchmark": "ts-node scripts/benchmark.ts",
-    "benchmark:large": "ts-node scripts/benchmark.ts 10000"
+    "benchmark:large": "ts-node scripts/benchmark.ts 10000",
+    "gc:blobs": "tsx scripts/garbage-collect-blobs.ts",
+    "gc:blobs:delete": "tsx scripts/garbage-collect-blobs.ts --delete"
   },
   "dependencies": {
     "@clerk/nextjs": "^6.32.0",
