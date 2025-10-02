@@ -119,7 +119,9 @@
 
 ---
 
-- [ ] **Replace arbitrary setTimeout with event-driven waits**
+- [x] **Replace arbitrary setTimeout with event-driven waits**
+  - ✅ Completed - All event-based waits now use waitForQueueEvent helper (see line 372)
+  - Remaining setTimeout at line 265 is intentional (testing retry timing, not waiting for event)
   - **File**: `__tests__/embeddings/embedding-generation.test.ts` (multiple locations)
   - **Problem**: Lines like `await new Promise(resolve => setTimeout(resolve, 5000))` are brittle - too short = flake, too long = slow
   - **Fix Pattern**: Replace with event subscription:
