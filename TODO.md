@@ -89,84 +89,33 @@
 
 ---
 
-- [ ] **Rewrite concurrency test to use actual EmbeddingQueueManager**
-  - **File**: `__tests__/embeddings/embedding-generation.test.ts:389-420`
-  - **Problem**: Test creates fake promise array with broken Promise.race logic → doesn't test real queue manager → maxConcurrent = 10 immediately (all promises created synchronously)
-  - **Why wrong**: Line 408 `uploadQueue.push(trackConcurrency())` creates promise immediately → all 10 exist at once → maxConcurrent increments to 10 before any complete
-  - **Fix**: Replace entire test body (lines 390-419) with:
-    ```typescript
-    it('should respect MAX_CONCURRENT_UPLOADS limit', async () => {
-      const concurrencySnapshots: number[] = [];
-      let currentProcessing = 0;
-
-      // Subscribe to queue events to track actual concurrency
-      embeddingQueue.subscribe((event) => {
-        if (event.type === 'processing') {
-          currentProcessing++;
-          concurrencySnapshots.push(currentProcessing);
-        }
-        if (event.type === 'completed' || event.type === 'failed') {
-          currentProcessing--;
-        }
-      });
-
-      // Add 10 items to queue
-      for (let i = 0; i < 10; i++) {
-        embeddingQueue.addToQueue({
-          assetId: `concurrent-test-${i}`,
-          blobUrl: `https://example.com/test-${i}.jpg`,
-          checksum: `checksum-${i}`,
-          priority: 1,
-        });
-      }
-
-      // Wait for processing (queue manager has MAX_CONCURRENT = 2)
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      // Verify concurrency never exceeded limit
-      const maxObserved = Math.max(...concurrencySnapshots);
-      expect(maxObserved).toBeLessThanOrEqual(2); // EmbeddingQueueManager.MAX_CONCURRENT = 2
-
-      // Cleanup
-      embeddingQueue.stop();
-      embeddingQueue.clear();
-    }, { timeout: 10000 });
-    ```
-  - **Rationale**: Tests actual queue manager behavior (embedding-queue.ts:42 defines MAX_CONCURRENT = 2)
-  - **Test**: Run `pnpm test __tests__/embeddings/embedding-generation.test.ts -t "respect MAX_CONCURRENT"` → should pass
-  - **Expected**: maxObserved = 2 (real concurrency limit)
-  - **Time**: ~12 min
+- [x] **Rewrite concurrency test to use actual EmbeddingQueueManager**
+  - ✅ Completed in commit 11675f7
+  - Replaced fake promise array with real EmbeddingQueueManager event tracking
+  - Test now validates actual MAX_CONCURRENT = 2 behavior
+  - maxObserved correctly stays ≤ 2, test passes in 1002ms
 
 ---
 
-- [ ] **Increase timeout for async embedding generation tests**
-  - **File**: `__tests__/embeddings/embedding-generation.test.ts:145-184, 224-272, 423-471`
-  - **Problem**: Tests doing real async work timeout at 5000ms default
-  - **Fix**: Add `{ timeout: 10000 }` to slow tests:
-    - Line 145: "should generate embeddings in background within 10 seconds"
-    - Line 224: "should automatically retry failed embeddings with exponential backoff"
-    - Line 423: "should recover from network interruption and resume processing"
-  - **Example**:
-    ```typescript
-    // Line 145: Change this
-    it('should generate embeddings in background within 10 seconds', async () => {
-    // To this
-    it('should generate embeddings in background within 10 seconds', async () => {
-      // ... test body ...
-    }, { timeout: 10000 });
-    ```
-  - **Test**: Run `pnpm test __tests__/embeddings/embedding-generation.test.ts -t "Background Embedding"` → tests should complete without timeout
-  - **Time**: ~5 min
+- [x] **Increase timeout for async embedding generation tests**
+  - ✅ Completed in commit c85298d
+  - Added `{ timeout: 10000 }` to 3 async embedding tests:
+    - Line 184: "should generate embeddings in background within 10 seconds"
+    - Line 284: "should automatically retry failed embeddings with exponential backoff"
+    - Line 436: "should recover from network interruption and resume processing"
+  - Tests now complete without timeout errors
 
 ---
 
-- [ ] **Fix large batch upload test timeouts**
-  - **File**: `__tests__/e2e/large-batch-upload.spec.ts` (tests timing out at 5000ms)
-  - **Problem**: Tests uploading 100 files need more time than 5000ms default
-  - **Fix**: Add `{ timeout: 15000 }` to all large batch tests
-  - **Lines to modify**: Any test marked "Large Batch Upload Performance Test"
-  - **Test**: Run `pnpm test __tests__/e2e/large-batch-upload.spec.ts` → should complete without timeout (may still have other issues)
-  - **Time**: ~5 min
+- [x] **Fix large batch upload test timeouts**
+  - ✅ Completed in commit 1c5e474
+  - Added timeouts to 5 large batch upload performance tests:
+    - Line 252: 180s timeout (100 files)
+    - Line 283: 60s timeout (50 files)
+    - Line 304: 60s timeout (50 files)
+    - Line 325: 45s timeout (30 files)
+    - Line 361: 30s timeout (20 files)
+  - Timeouts scaled to file count for realistic simulation delays
 
 ---
 
