@@ -135,24 +135,16 @@ All test tasks should aim for >80% coverage of new components. Use Vitest's `tes
     - All 16 tests passing
   - **Resolution**: Comprehensive test suite exceeding coverage targets
 
-- [ ] **Create process-embeddings cron endpoint test suite** - Create `__tests__/api/cron/process-embeddings.test.ts`. Mock embedding service and Prisma queries. Test case 1: Finds assets older than 1 hour with no embedding. Test case 2: Processes batch of 10 assets maximum. Test case 3: Updates AssetEmbedding on success. Test case 4: Marks embedding as failed on error. Test case 5: Returns stats (totalProcessed, successCount, failureCount). Test case 6: Continues processing after single asset failure. Test case 7: Returns 503 when embedding service unavailable. (~30 min)
-  - **File**: `__tests__/api/cron/process-embeddings.test.ts` (new file)
-  - **Test structure**: 7 test cases minimum
-  - **Mocks required**:
-    - createEmbeddingService() - returns mock with embedImage()
-    - Prisma.asset.findMany() - returns assets needing embeddings
-    - upsertAssetEmbedding() - stores embedding result
-    - headers() for auth
-  - **Time calculations**: 1 hour ago = Date.now() - (60 * 60 * 1000)
-  - **Critical test**: Verify batch size limit (findMany take: 10), verify oldest-first ordering (orderBy createdAt asc)
-  - **Error handling test**: embedImage() throws error, verify next assets still processed
-  - **Assertions**:
-    - Batch size ≤ 10 assets
-    - Processes oldest assets first
-    - Stats match actual results
-    - Failed assets don't block batch
-  - **Coverage target**: 90%+ (includes error paths)
-  - **Reference**: `app/api/cron/process-embeddings/route.ts`
+- [x] **Create process-embeddings cron endpoint test suite** - ✅ Completed with 19 comprehensive test cases covering all critical paths.
+  - **File**: `__tests__/api/cron/process-embeddings.test.ts`
+  - **Test coverage**:
+    - ✅ Authentication (4 tests): CRON_SECRET validation, auth headers, database availability
+    - ✅ Asset discovery (4 tests): 1-hour cutoff, batch size limit, oldest-first ordering
+    - ✅ Embedding processing (6 tests): successful generation, upsert validation, failure handling, error resilience
+    - ✅ Service availability (1 test): initialization failure handling
+    - ✅ Statistics (4 tests): processing stats, success rate, average time, zero success handling
+    - All 19 tests passing
+  - **Resolution**: Comprehensive test suite exceeding coverage targets
 
 ### Context Tests
 
@@ -307,16 +299,16 @@ All test tasks should aim for >80% coverage of new components. Use Vitest's `tes
 
 **P0 Critical**: ✅ 3/3 complete (100%)
 **P1 High Priority**: ✅ 5/5 complete (100%)
-**P2 Test Coverage**: 0/14 complete (0%) - **NOW UNBLOCKED**
-- Cron job tests (3 tasks, ~80 min) - **NEXT UP**
-- Context tests (1 task, ~35 min)
+**P2 Test Coverage**: 3/14 complete (21%) - **IN PROGRESS**
+- ✅ Cron job tests (3/3 tasks complete - audit-assets, purge-deleted-assets, process-embeddings)
+- Context tests (1 task, ~35 min) - **NEXT UP**
 - Chrome component tests (5 tasks, ~2.5 hours)
 - Error boundary tests (1 task, ~25 min)
 
-**Total**: 17/34 tasks complete (50%)
+**Total**: 20/34 tasks complete (59%)
 
-**Next milestone**: Complete P2 cron job tests (~80 min) for critical data integrity coverage
+**Next milestone**: Complete P2 context and chrome component tests (~3 hours)
 
-**Critical path**: P2 Cron tests → P2 Context tests → P2 Chrome tests → P2 Error boundaries
+**Critical path**: P2 Context tests → P2 Chrome tests → P2 Error boundaries
 
-**Estimated completion**: ~5 hours total remaining work
+**Estimated completion**: ~3 hours total remaining work
