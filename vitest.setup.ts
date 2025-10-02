@@ -6,6 +6,10 @@ import { TextEncoder, TextDecoder } from 'util';
 // Cleanup after each test
 afterEach(() => {
   cleanup();
+  // Clear localStorage between tests
+  if (global.localStorage) {
+    global.localStorage.clear();
+  }
 });
 
 // Polyfill for TextEncoder/TextDecoder
@@ -145,6 +149,49 @@ if (!global.Headers) {
   } as any;
 }
 
+// Mock FormData
+if (!global.FormData) {
+  global.FormData = class FormData {
+    private data = new Map<string, any>();
+
+    append(key: string, value: any) {
+      this.data.set(key, value);
+    }
+
+    get(key: string) {
+      return this.data.get(key) || null;
+    }
+
+    has(key: string) {
+      return this.data.has(key);
+    }
+
+    delete(key: string) {
+      this.data.delete(key);
+    }
+
+    set(key: string, value: any) {
+      this.data.set(key, value);
+    }
+
+    forEach(callback: (value: any, key: string) => void) {
+      this.data.forEach((value, key) => callback(value, key));
+    }
+
+    entries() {
+      return this.data.entries();
+    }
+
+    keys() {
+      return this.data.keys();
+    }
+
+    values() {
+      return this.data.values();
+    }
+  } as any;
+}
+
 // Mock environment variables
 process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_mock';
 process.env.CLERK_SECRET_KEY = 'sk_test_mock';
@@ -155,7 +202,27 @@ process.env.REPLICATE_API_TOKEN = 'r8_mock_token';
 // Redis removed - using in-memory cache only
 
 // Mock fetch globally
-global.fetch = vi.fn();
+global.fetch = vi.fn((url: string, options?: RequestInit) => {
+  // Mock /api/assets/{id}/generate-embedding endpoint
+  if (url.includes('/generate-embedding')) {
+    return Promise.resolve({
+      ok: true,
+      status: 200,
+      json: async () => ({ success: true }),
+      text: async () => JSON.stringify({ success: true }),
+      clone: () => ({ ok: true, status: 200 }),
+    } as Response);
+  }
+
+  // Default successful response for other endpoints
+  return Promise.resolve({
+    ok: true,
+    status: 200,
+    json: async () => ({}),
+    text: async () => JSON.stringify({}),
+    clone: () => ({ ok: true, status: 200 }),
+  } as Response);
+}) as any;
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -187,6 +254,42 @@ Object.defineProperty(global, 'crypto', {
       digest: vi.fn().mockResolvedValue(new ArrayBuffer(32)),
     },
   },
+  writable: true,
+  configurable: true,
+});
+
+// Mock localStorage with proper isolation
+class LocalStorageMock {
+  private store = new Map<string, string>();
+
+  getItem(key: string): string | null {
+    return this.store.get(key) || null;
+  }
+
+  setItem(key: string, value: string): void {
+    this.store.set(key, value);
+  }
+
+  removeItem(key: string): void {
+    this.store.delete(key);
+  }
+
+  clear(): void {
+    this.store.clear();
+  }
+
+  get length(): number {
+    return this.store.size;
+  }
+
+  key(index: number): string | null {
+    const keys = Array.from(this.store.keys());
+    return keys[index] || null;
+  }
+}
+
+Object.defineProperty(global, 'localStorage', {
+  value: new LocalStorageMock(),
   writable: true,
   configurable: true,
 });
@@ -234,6 +337,13 @@ vi.mock('next/server', async () => {
           return this.body;
         }
         return JSON.stringify(this.body);
+      }
+
+      async formData() {
+        // If body is already FormData, return it
+        if (this.body instanceof FormData) return this.body;
+        // Otherwise return empty FormData (tests construct their own)
+        return new FormData();
       }
 
       clone() {
