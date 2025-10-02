@@ -77,7 +77,7 @@ function ListRow({
     const shouldDeleteImmediately = deleteConfirmation.openConfirmation({
       id: asset.id,
       imageUrl: asset.thumbnailUrl || asset.blobUrl,
-      imageName: asset.filename,
+      imageName: asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image',
     });
 
     if (shouldDeleteImmediately) {
@@ -125,7 +125,7 @@ function ListRow({
         <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-[#0F1012]">
           <Image
             src={asset.thumbnailUrl || asset.blobUrl}
-            alt={asset.filename}
+            alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
             width={56}
             height={56}
             className="h-full w-full object-cover"
@@ -139,7 +139,7 @@ function ListRow({
 
         <div className="flex flex-1 items-center gap-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[#E6E8EB]">{asset.filename}</p>
+            <p className="truncate text-sm font-medium text-[#E6E8EB]">{asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image'}</p>
             <p className="mt-1 text-xs text-[#8E94A3]">{asset.mime.toUpperCase()}</p>
             {asset.tags && asset.tags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">

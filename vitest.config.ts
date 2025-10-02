@@ -4,9 +4,6 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
-  css: {
-    postcss: false,
-  },
   test: {
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
@@ -44,7 +41,6 @@ export default defineConfig({
         statements: 90,
       },
     },
-    watchExclude: ['**/node_modules/**', '**/.next/**'],
   },
   resolve: {
     alias: {

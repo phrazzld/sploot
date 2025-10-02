@@ -230,7 +230,7 @@ function ImageTileComponent({
     const shouldDelete = deleteConfirmation.openConfirmation({
       id: asset.id,
       imageUrl: asset.thumbnailUrl || asset.blobUrl,
-      imageName: asset.filename,
+      imageName: asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image',
     });
 
     if (shouldDelete) {
@@ -330,7 +330,7 @@ function ImageTileComponent({
             <Image
               key={asset.blobUrl}
               src={asset.thumbnailUrl || asset.blobUrl}
-              alt={asset.filename}
+              alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
               fill
               sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               className={cn(

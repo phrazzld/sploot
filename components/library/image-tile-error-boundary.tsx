@@ -107,7 +107,7 @@ export class ImageTileErrorBoundary extends Component<Props, State> {
 
             {/* Filename for context */}
             <p className="text-[10px] text-[#B3B7BE]/40 text-center truncate max-w-full px-2">
-              {asset.filename}
+              {asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image'}
             </p>
           </div>
         </div>
