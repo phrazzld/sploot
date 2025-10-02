@@ -126,22 +126,14 @@ All test tasks should aim for >80% coverage of new components. Use Vitest's `tes
     - All 16 tests passing
   - **Resolution**: Comprehensive test suite exceeding coverage targets
 
-- [ ] **Create purge-deleted-assets cron endpoint test suite** - Create `__tests__/api/cron/purge-deleted-assets.test.ts`. Mock Prisma queries and Vercel Blob delete. Test case 1: Only deletes assets where deletedAt > 30 days ago. Test case 2: Skips assets with deletedAt within 30 days. Test case 3: Returns correct counts (purgedCount, failedCount). Test case 4: Handles blob deletion failures gracefully. Test case 5: Returns 401 when auth header missing. Test case 6: Handles empty result set (no assets to purge). (~25 min)
-  - **File**: `__tests__/api/cron/purge-deleted-assets.test.ts` (new file)
-  - **Test structure**: 6 test cases minimum
-  - **Mocks required**:
-    - Prisma.asset.findMany() with deletedAt filtering
-    - Prisma.asset.delete()
-    - @vercel/blob del()
-    - headers() for auth
-  - **Date calculations**: 30 days = 30 * 24 * 60 * 60 * 1000 ms
-  - **Critical test**: Mock Date.now() to control time, create assets with deletedAt = now - 31 days (should purge) and now - 29 days (should skip)
-  - **Assertions**:
-    - Deletes assets where deletedAt < (now - 30 days)
-    - Returns accurate counts
-    - Continues on blob delete failure (failedCount increments)
-  - **Coverage target**: 95%+ (critical data integrity path)
-  - **Reference**: `app/api/cron/purge-deleted-assets/route.ts`
+- [x] **Create purge-deleted-assets cron endpoint test suite** - ✅ Completed with 16 comprehensive test cases covering all critical paths.
+  - **File**: `__tests__/api/cron/purge-deleted-assets.test.ts`
+  - **Test coverage**:
+    - ✅ Authentication (4 tests): CRON_SECRET validation, auth headers, database availability
+    - ✅ Asset purging (11 tests): 30-day cutoff, blob deletion, thumbnail handling, error resilience, success rate calculation
+    - ✅ Error handling (1 test): unexpected errors
+    - All 16 tests passing
+  - **Resolution**: Comprehensive test suite exceeding coverage targets
 
 - [ ] **Create process-embeddings cron endpoint test suite** - Create `__tests__/api/cron/process-embeddings.test.ts`. Mock embedding service and Prisma queries. Test case 1: Finds assets older than 1 hour with no embedding. Test case 2: Processes batch of 10 assets maximum. Test case 3: Updates AssetEmbedding on success. Test case 4: Marks embedding as failed on error. Test case 5: Returns stats (totalProcessed, successCount, failureCount). Test case 6: Continues processing after single asset failure. Test case 7: Returns 503 when embedding service unavailable. (~30 min)
   - **File**: `__tests__/api/cron/process-embeddings.test.ts` (new file)
