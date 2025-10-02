@@ -246,7 +246,7 @@ describe('DistributedQueue', () => {
 
   describe('Concurrent Processing', () => {
     it('should process multiple items concurrently', async () => {
-      const slowExecutor = jest.fn(async () => {
+      const slowExecutor = vi.fn(async () => {
         await new Promise(resolve => setTimeout(resolve, 100));
       });
 
