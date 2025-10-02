@@ -404,6 +404,8 @@ export function UploadZone({
 }: UploadZoneProps) {
   // Use Map for O(1) lookups and minimal memory footprint (~300 bytes per file vs 5MB)
   const [fileMetadata, setFileMetadata] = useState(() => new Map<string, FileMetadata>());
+  // Keep ref in sync with state to avoid closure issues in async functions
+  const fileMetadataRef = useRef(fileMetadata);
   // Store File objects temporarily only during active upload
   const fileObjects = useRef(new Map<string, File>());
   const [isDragging, setIsDragging] = useState(false);
@@ -471,6 +473,11 @@ export function UploadZone({
       }, 100);
     }
   }, [fileMetadata, onUploadComplete]);
+
+  // Keep ref in sync with state to avoid stale closures in async retry logic
+  useEffect(() => {
+    fileMetadataRef.current = fileMetadata;
+  }, [fileMetadata]);
 
   // Update upload stats whenever files change - single source of truth
   useEffect(() => {
@@ -971,8 +978,8 @@ export function UploadZone({
           uploadStatsRef.current.successful++;
           activeUploads.delete(uploadPromise);
         }).catch((error) => {
-          // Track retry count
-          const metadata = fileMetadata.get(fileId);
+          // Track retry count (use ref to avoid stale closure)
+          const metadata = fileMetadataRef.current.get(fileId);
           const retryCount = (metadata?.retryCount || 0);
 
           if (retryCount < 3) {
@@ -1015,11 +1022,19 @@ export function UploadZone({
     const backoffDelays = [1000, 3000, 9000]; // 1s, 3s, 9s
 
     for (const fileId of retryFileIds) {
-      const metadata = fileMetadata.get(fileId);
-      const retryCount = metadata?.retryCount || 1;
+      // Use ref to get current metadata, avoiding stale closures
+      const metadata = fileMetadataRef.current.get(fileId);
+
+      // Guard: Skip if metadata is missing (file was removed or reference lost)
+      if (!metadata) {
+        logger.warn(`[Upload] Skipping retry for ${fileId} - metadata not found`);
+        continue;
+      }
+
+      const retryCount = metadata.retryCount || 1;
       const delay = backoffDelays[retryCount - 1] || 9000;
 
-      logger.debug(`[Upload] Retrying ${metadata?.name} after ${delay}ms delay (attempt ${retryCount}/3)`);
+      logger.debug(`[Upload] Retrying ${metadata.name} after ${delay}ms delay (attempt ${retryCount}/3)`);
 
       // Wait for backoff delay
       await new Promise(resolve => setTimeout(resolve, delay));
@@ -1037,8 +1052,16 @@ export function UploadZone({
       try {
         await uploadFileToServer(fileId);
         uploadStatsRef.current.successful++;
-        logger.debug(`[Upload] Retry successful for ${metadata?.name}`);
+        logger.debug(`[Upload] Retry successful for ${metadata.name}`);
       } catch (error) {
+        // Re-check metadata exists before retry logic (may have been removed)
+        const currentMeta = fileMetadataRef.current.get(fileId);
+        if (!currentMeta) {
+          logger.warn(`[Upload] File ${fileId} metadata lost during retry, marking as failed`);
+          uploadStatsRef.current.failed++;
+          continue;
+        }
+
         if (retryCount < 3) {
           // Still have retries left, update retry count and recurse
           setFileMetadata(prev => {
@@ -1049,11 +1072,12 @@ export function UploadZone({
             }
             return newMap;
           });
+          // Recursively retry (will use updated metadata from ref)
           await processRetryQueue([fileId]);
         } else {
           // Max retries reached
           uploadStatsRef.current.failed++;
-          console.error(`[Upload] File ${metadata?.name} failed permanently after 3 retries:`, error);
+          console.error(`[Upload] File ${metadata.name} failed permanently after 3 retries:`, error);
         }
       }
     }
@@ -1063,8 +1087,8 @@ export function UploadZone({
   const uploadFileToServer = async (fileId: string) => {
     const uploadStartTime = Date.now();
 
-    // Get file metadata and File object
-    const metadata = fileMetadata.get(fileId);
+    // Get file metadata and File object (use ref to avoid stale closure)
+    const metadata = fileMetadataRef.current.get(fileId);
     const file = fileObjects.current.get(fileId);
 
     if (!metadata || !file) {
