@@ -369,13 +369,14 @@
 
 ---
 
-- [ ] **Refactor embedding tests to use new helper**
+- [x] **Refactor embedding tests to use new helper**
+  - ✅ Completed - refactored 2 locations in embedding-generation.test.ts
   - **File**: `__tests__/embeddings/embedding-generation.test.ts`
-  - **Changes**: Replace manual event waiting with `waitForQueueEvent()` helper
-  - **Locations**:
-    - Line 161-177: Background generation test
-    - Line 260: Retry logic test
-    - Line 456-467: Network recovery test
+  - **Changes**: Replaced manual event waiting with `waitForQueueEvent()` helper
+  - **Refactored Locations**:
+    - ✅ Lines 161-170: Background generation test (simplified from 17 to 10 lines)
+    - ✅ Lines 465-469: Network recovery test (simplified from 12 to 5 lines)
+    - ⏭️ Line 265: Retry logic test - uses `setTimeout` appropriately (waiting for duration, not event)
   - **Example refactor**:
     ```typescript
     // Before (lines 161-177):

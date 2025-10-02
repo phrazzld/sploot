@@ -5,7 +5,7 @@
 
 import { vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
+import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth, waitForQueueEvent } from '../utils/test-helpers';
 import { getEmbeddingQueueManager, EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
@@ -158,23 +158,16 @@ describe('Embedding Generation Test Suite', () => {
         priority: 1,
       };
 
-      const completedPromise = new Promise<void>((resolve) => {
-        embeddingQueue.subscribe((event) => {
-          if (event.type === 'completed' && event.item.assetId === 'asset-123') {
-            resolve();
-          }
-        });
-      });
-
       const startTime = Date.now();
       embeddingQueue.addToQueue(queueItem);
       embeddingQueue.start();
 
-      // Wait for completion or timeout
-      await Promise.race([
-        completedPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000)),
-      ]);
+      // Wait for completion with timeout
+      await waitForQueueEvent(
+        embeddingQueue,
+        (event) => event.type === 'completed' && event.item.assetId === 'asset-123',
+        10000
+      );
 
       const endTime = Date.now();
       const duration = endTime - startTime;
@@ -469,18 +462,11 @@ describe('Embedding Generation Test Suite', () => {
       networkAvailable = true;
 
       // Should recover and complete
-      const completedPromise = new Promise<void>((resolve) => {
-        embeddingQueue.subscribe((event) => {
-          if (event.type === 'completed' || event.type === 'retry') {
-            resolve();
-          }
-        });
-      });
-
-      await Promise.race([
-        completedPromise,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('Recovery timeout')), 5000)),
-      ]);
+      await waitForQueueEvent(
+        embeddingQueue,
+        (event) => event.type === 'completed' || event.type === 'retry',
+        5000
+      );
 
       // Should have attempted retry after network recovery
       expect(mockFetch).toHaveBeenCalled();
