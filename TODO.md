@@ -46,13 +46,29 @@
 
 ---
 
-- [ ] **Verify Phase 1 completion: Run full test suite**
-  - **Command**: `pnpm test 2>&1 | tee test-results-phase1.log`
-  - **Success Criteria**:
-    - No more "formData is not a function" errors
-    - No more "Cannot read properties of undefined (reading 'ok')" errors
-    - Pass count increases from 275 to ~240-260 (some tests reveal new issues, but infrastructure is solid)
-  - **If fails**: Review test-results-phase1.log, identify remaining infrastructure gaps, add tasks above
+- [x] **Verify Phase 1 completion: Run full test suite**
+  - ✅ Completed - Results logged to test-results-phase1.log
+  - **Results**: 280 passing / 316 total (+5 tests fixed)
+  - **Success Criteria Met**:
+    - ✅ No more "formData is not a function" errors
+    - ✅ No more "Cannot read properties of undefined (reading 'ok')" errors
+    - ✅ FormData polyfill working correctly
+    - ✅ localStorage mock working correctly
+  - **New issues discovered**:
+    - distributed-queue.test.ts uses `jest.fn` instead of `vi.fn` (missed in Vitest migration)
+    - Priority queue ordering tests failing (expected - covered in P1 below)
+
+---
+
+## P0.5: Quick Vitest Migration Cleanup (Discovered in Phase 1)
+
+- [ ] **Fix jest.fn remnants in distributed-queue.test.ts**
+  - **File**: `__tests__/lib/distributed-queue.test.ts:249`
+  - **Problem**: Test uses `jest.fn` instead of `vi.fn` → `ReferenceError: jest is not defined`
+  - **Fix**: Replace `jest.fn` with `vi.fn` throughout the file
+  - **Command**: `grep -n "jest\\.fn" __tests__/lib/distributed-queue.test.ts` to find all instances
+  - **Test**: Run `pnpm test __tests__/lib/distributed-queue.test.ts` → should pass
+  - **Expected**: Fixes 1+ tests in distributed-queue suite
   - **Time**: ~3 min
 
 ---
