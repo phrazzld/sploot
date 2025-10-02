@@ -404,22 +404,15 @@
 
 ---
 
-- [ ] **Add test performance benchmark baseline**
-  - **Purpose**: Track test suite performance over time
-  - **Command**:
-    ```bash
-    # Run tests with timing info
-    pnpm test --reporter=verbose 2>&1 | tee test-performance-baseline.log
-
-    # Extract timing summary
-    grep "Duration" test-performance-baseline.log
-    ```
-  - **Document baseline**: Add to TESTING.md or similar:
-    - Total duration: ~26s (from current run)
-    - Slowest tests: large-batch-upload tests (~5s each)
-    - Target: < 20s for full suite
+- [x] **Add test performance benchmark baseline**
+  - ✅ Completed - baseline captured in test-performance-baseline.log
+  - **Current Performance (2025-10-02)**:
+    - **Total duration**: 49.11s
+    - **Breakdown**: tests 65.11s, environment 8.79s, setup 4.61s, prepare 2.29s, collect 1.41s, transform 1.02s
+    - **Test results**: 288 passing / 28 failing (91.1% pass rate)
+    - **Test files**: 12 passed / 15 failed (27 total)
+  - **Target**: < 40s for full suite
   - **Future optimization**: Use this baseline to measure improvements
-  - **Time**: ~5 min
 
 ---
 
