@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, jest, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { getGlobalMetricsCollector } from '@/lib/metrics-collector';
 
 describe('MetricsCollector', () => {

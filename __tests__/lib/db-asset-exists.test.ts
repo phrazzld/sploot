@@ -1,4 +1,4 @@
-import { describe, it, expect, jest, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { ExistingAssetMetadata } from '@/lib/db';
 
 // Mock Prisma client with proper typing

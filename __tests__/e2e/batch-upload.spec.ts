@@ -4,7 +4,7 @@
  * verifying upload states, completion times, and searchability
  */
 
-import { jest } from 'vitest';
+import { vi } from 'vitest';
 import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService } from '../utils/test-helpers';
 // Types are inferred from Clerk auth objects
 type SessionStatusClaim = 'active' | 'inactive' | 'stale' | 'revoked' | 'tokenExpired' | null;

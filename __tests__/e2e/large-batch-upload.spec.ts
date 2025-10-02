@@ -4,7 +4,7 @@
  * measuring performance, memory usage, and failure rates
  */
 
-import { jest } from 'vitest';
+import { vi } from 'vitest';
 import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';

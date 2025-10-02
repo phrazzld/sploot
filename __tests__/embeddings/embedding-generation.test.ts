@@ -3,7 +3,7 @@
  * Tests for upload performance, background embedding generation, retry logic, and concurrent uploads
  */
 
-import { jest } from 'vitest';
+import { vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
 import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
 import { getEmbeddingQueueManager, EmbeddingQueueItem } from '@/lib/embedding-queue';
