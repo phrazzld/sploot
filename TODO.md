@@ -298,8 +298,10 @@
 
 ---
 
-- [ ] **Create reusable test helper for queue event waiting**
-  - **File**: `__tests__/utils/test-helpers.ts` (add at end of file, before describe block)
+- [x] **Create reusable test helper for queue event waiting**
+  - ✅ Completed - helpers added to test-helpers.ts:265-313
+  - Added `waitForQueueEvent()` - waits for specific queue event with predicate
+  - Added `waitForQueueIdle()` - waits for queue to finish all processing
   - **Purpose**: Replace scattered event-waiting code with reusable helper
   - **Implementation**:
     ```typescript

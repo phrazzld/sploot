@@ -262,6 +262,56 @@ export const parseResponse = async (response: Response) => {
   }
 };
 
+/**
+ * Wait for a specific queue event with timeout
+ * @param queue - EmbeddingQueueManager instance
+ * @param predicate - Function to test if event matches what we're waiting for
+ * @param timeout - Max wait time in ms (default 5000)
+ * @returns Promise that resolves with the matching event
+ */
+export const waitForQueueEvent = (
+  queue: ReturnType<typeof import('@/lib/embedding-queue').getEmbeddingQueueManager>,
+  predicate: (event: import('@/lib/embedding-queue').QueueEvent) => boolean,
+  timeout = 5000
+): Promise<import('@/lib/embedding-queue').QueueEvent> => {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`Timeout waiting for queue event after ${timeout}ms`)),
+      timeout
+    );
+
+    const unsubscribe = queue.subscribe((event) => {
+      if (predicate(event)) {
+        clearTimeout(timer);
+        unsubscribe();
+        resolve(event);
+      }
+    });
+  });
+};
+
+/**
+ * Wait for queue to complete processing all items
+ * @param queue - EmbeddingQueueManager instance
+ * @param timeout - Max wait time in ms (default 10000)
+ */
+export const waitForQueueIdle = async (
+  queue: ReturnType<typeof import('@/lib/embedding-queue').getEmbeddingQueueManager>,
+  timeout = 10000
+): Promise<void> => {
+  const startTime = Date.now();
+
+  while (Date.now() - startTime < timeout) {
+    const status = queue.getStatus();
+    if (status.queued === 0 && status.processing === 0) {
+      return; // Queue is idle
+    }
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+
+  throw new Error(`Queue did not become idle within ${timeout}ms`);
+};
+
 // Add a dummy test to prevent Jest from complaining
 describe('test-helpers', () => {
   it('exports helper functions', () => {
@@ -269,5 +319,7 @@ describe('test-helpers', () => {
     expect(mockPrisma).toBeDefined();
     expect(mockEmbeddingService).toBeDefined();
     expect(mockMultiLayerCache).toBeDefined();
+    expect(waitForQueueEvent).toBeDefined();
+    expect(waitForQueueIdle).toBeDefined();
   });
 });
