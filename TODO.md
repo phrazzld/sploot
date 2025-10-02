@@ -148,24 +148,21 @@ All test tasks should aim for >80% coverage of new components. Use Vitest's `tes
 
 ### Context Tests
 
-- [ ] **Create FilterContext integration test suite** - Create `__tests__/contexts/filter-context.test.tsx`. Use renderHook from @testing-library/react. Mock useSearchParams and useRouter from next/navigation. Test case 1: Initializes state from URL search params (query, tags, showFavorites, showRecent). Test case 2: setQuery updates state and pushes to router. Test case 3: toggleTag adds/removes tags from array. Test case 4: toggleFavorites toggles boolean. Test case 5: toggleRecent toggles boolean and updates sort order. Test case 6: clearFilters resets all state to defaults. (~35 min)
-  - **File**: `__tests__/contexts/filter-context.test.tsx` (new file)
-  - **Test utilities**: `renderHook` from @testing-library/react
-  - **Mocks required**:
-    - next/navigation useSearchParams (return URLSearchParams mock)
-    - next/navigation useRouter (return mock with push, replace)
-    - next/navigation usePathname (return '/library')
-  - **Test structure**: 6 test cases minimum
-  - **Setup per test**: Create wrapper with FilterProvider, render hook inside
-  - **Assertions**:
-    - Initial state matches URL params
-    - State updates trigger router.push with new URLSearchParams
-    - Tag array manipulation works (add/remove)
-    - Boolean toggles work correctly
-    - clearFilters returns to empty state
-  - **URL sync test**: After state change, verify router.push called with correct query string
-  - **Coverage target**: 85%+ (central state management)
-  - **Reference**: `contexts/filter-context.tsx`
+- [x] **Create FilterContext integration test suite** - ✅ Completed with 23 comprehensive test cases covering all filter management scenarios.
+  - **File**: `__tests__/contexts/filter-context.test.tsx`
+  - **Test coverage**:
+    - ✅ Hook usage (2 tests): error handling outside provider, context access within provider
+    - ✅ Initial state (5 tests): URL param parsing for filterType ('all'/'favorites'/'recent'), tagId initialization
+    - ✅ setFilterType (3 tests): URL synchronization for all filter types
+    - ✅ setTagFilter (3 tests): tag setting, clearing, URL param preservation
+    - ✅ toggleFavorites (3 tests): toggle from all, favorites, and recent states
+    - ✅ clearTagFilter (1 test): tag removal
+    - ✅ clearAllFilters (1 test): complete filter reset
+    - ✅ Derived states (1 test): hasActiveFilters computation
+    - ✅ Hook variants (2 tests): useFilterState and useFilterActions separation
+    - ✅ URL synchronization (2 tests): scroll prevention, multi-param handling
+    - All 23 tests passing
+  - **Resolution**: Comprehensive test suite exceeding coverage targets
 
 ### Chrome Component Tests
 
@@ -299,16 +296,16 @@ All test tasks should aim for >80% coverage of new components. Use Vitest's `tes
 
 **P0 Critical**: ✅ 3/3 complete (100%)
 **P1 High Priority**: ✅ 5/5 complete (100%)
-**P2 Test Coverage**: 3/14 complete (21%) - **IN PROGRESS**
-- ✅ Cron job tests (3/3 tasks complete - audit-assets, purge-deleted-assets, process-embeddings)
-- Context tests (1 task, ~35 min) - **NEXT UP**
-- Chrome component tests (5 tasks, ~2.5 hours)
+**P2 Test Coverage**: 4/14 complete (29%) - **IN PROGRESS**
+- ✅ Cron job tests (3/3 complete - audit-assets, purge-deleted-assets, process-embeddings)
+- ✅ Context tests (1/1 complete - FilterContext)
+- Chrome component tests (5 tasks, ~2.5 hours) - **NEXT UP**
 - Error boundary tests (1 task, ~25 min)
 
-**Total**: 20/34 tasks complete (59%)
+**Total**: 21/34 tasks complete (62%)
 
-**Next milestone**: Complete P2 context and chrome component tests (~3 hours)
+**Next milestone**: Complete P2 chrome component tests (~2.5 hours)
 
-**Critical path**: P2 Context tests → P2 Chrome tests → P2 Error boundaries
+**Critical path**: P2 Chrome tests → P2 Error boundaries
 
-**Estimated completion**: ~3 hours total remaining work
+**Estimated completion**: ~2.75 hours total remaining work
