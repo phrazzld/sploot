@@ -62,14 +62,11 @@
 
 ## P0.5: Quick Vitest Migration Cleanup (Discovered in Phase 1)
 
-- [ ] **Fix jest.fn remnants in distributed-queue.test.ts**
-  - **File**: `__tests__/lib/distributed-queue.test.ts:249`
-  - **Problem**: Test uses `jest.fn` instead of `vi.fn` → `ReferenceError: jest is not defined`
-  - **Fix**: Replace `jest.fn` with `vi.fn` throughout the file
-  - **Command**: `grep -n "jest\\.fn" __tests__/lib/distributed-queue.test.ts` to find all instances
-  - **Test**: Run `pnpm test __tests__/lib/distributed-queue.test.ts` → should pass
-  - **Expected**: Fixes 1+ tests in distributed-queue suite
-  - **Time**: ~3 min
+- [x] **Fix jest.fn remnants in distributed-queue.test.ts**
+  - ✅ Completed in commit 496ea3a
+  - Changed `jest.fn` → `vi.fn` at line 249
+  - Test now runs (no more "jest is not defined" error)
+  - Remaining failures are test logic issues, not infrastructure
 
 ---
 
