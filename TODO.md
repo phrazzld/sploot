@@ -397,22 +397,10 @@
 
 ---
 
-- [ ] **Kill stale background dev servers**
-  - **Problem**: 7 `pnpm dev` processes running in background (IDs: f8d3bc, aad8f8, 9ee0a6, ef088b, aa381b, d673a8, 42015a)
-  - **Impact**: Port conflicts, resource waste, potential test interference
-  - **Command**:
-    ```bash
-    # List all pnpm dev processes
-    ps aux | grep "pnpm dev" | grep -v grep
-
-    # Kill all background dev servers
-    pkill -f "pnpm dev"
-
-    # Verify clean
-    lsof -i :3000  # Should show nothing
-    ```
-  - **Test**: Run `lsof -i :3000` → should be empty
-  - **Time**: ~2 min
+- [x] **Kill stale background dev servers**
+  - ✅ Completed - all 7 background shells killed
+  - Verified with `pgrep -f "pnpm dev"` → no processes running
+  - Port 3000 cleared (process PID 51058 terminated)
 
 ---
 
