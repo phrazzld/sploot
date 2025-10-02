@@ -1,12 +1,200 @@
-# TODO: Test Suite Remediation
+# TODO: CI Failure Resolution + Test Suite Remediation
 
-**Context**: Vitest migration complete, but 41/316 tests failing due to incomplete test infrastructure and flawed test logic. Root causes identified through systematic analysis.
+**Context**: CI is failing due to module import issues in test files blocking test execution. Local tests show 288/316 passing (91.1%) but CI can't run tests properly due to `require()` in Vitest mock factories.
 
-**Test Results**: 275 passing, 41 failing
+**CI Status**: ❌ FAILING (PR #1, Run 18203677175)
+**Local Test Results**: 288 passing, 28 failing (91.1%)
 **Branch**: `redesign/navbar-footer-architecture`
 **Date**: 2025-10-02
 
+**See**: `CI-FAILURE-SUMMARY.md` and `CI-RESOLUTION-PLAN.md` for detailed analysis
+
 ---
+
+## P0: CI Blockers (CRITICAL - Tests Won't Run in CI)
+
+### [CODE FIX] Fix require() in Vitest Mock Factories (7 test files blocked)
+
+**Root Cause**: Using `require('../utils/test-helpers')` inside `vi.mock()` factories fails in CI because Vitest hoists these and runs them in ESM context where CommonJS require() doesn't work.
+
+**Impact**: 7 test files cannot load in CI, blocking all those tests from running.
+
+**Strategy**: Replace `require()` with proper ESM imports outside the mock factory.
+
+---
+
+- [ ] **Fix require() in search.test.ts**
+  - **File**: `__tests__/api/search.test.ts:10`
+  - **Current**: `const helpers = require('../utils/test-helpers');` inside vi.mock
+  - **Fix**: Move import to top of file, use in factory:
+    ```typescript
+    import { mockPrisma } from '../utils/test-helpers';
+
+    vi.mock('@/lib/db', () => ({
+      prisma: mockPrisma(),
+      vectorSearch: vi.fn(),
+      logSearch: vi.fn(),
+    }));
+    ```
+  - **Test**: Run `pnpm test __tests__/api/search.test.ts --run` → should load without module errors
+  - **Time**: ~5 min
+
+---
+
+- [ ] **Fix require() in search-advanced.test.ts**
+  - **File**: `__tests__/api/search-advanced.test.ts`
+  - **Fix**: Same pattern as search.test.ts - replace require() with import
+  - **Time**: ~4 min
+
+---
+
+- [ ] **Fix require() in assets.test.ts**
+  - **File**: `__tests__/api/assets.test.ts`
+  - **Fix**: Same pattern - replace require() with import
+  - **Time**: ~4 min
+
+---
+
+- [ ] **Fix require() in asset-crud.test.ts**
+  - **File**: `__tests__/api/asset-crud.test.ts`
+  - **Fix**: Same pattern - replace require() with import
+  - **Time**: ~4 min
+
+---
+
+- [ ] **Verify module resolution for search-flow.test.ts**
+  - **File**: `__tests__/integration/search-flow.test.ts`
+  - **Issue**: Module not found error (check for similar require() pattern)
+  - **Fix**: Update imports if needed
+  - **Time**: ~5 min
+
+---
+
+- [ ] **Verify module resolution for upload-flow.test.ts**
+  - **File**: `__tests__/integration/upload-flow.test.ts`
+  - **Issue**: Module not found error (check for similar require() pattern)
+  - **Fix**: Update imports if needed
+  - **Time**: ~5 min
+
+---
+
+- [ ] **Verify cache-stats.test.ts import**
+  - **File**: `__tests__/api/cache-stats.test.ts:15`
+  - **Issue**: Cannot find module '@/lib/multi-layer-cache' (file exists, check import path)
+  - **Fix**: Verify import path is correct or check if module export is proper
+  - **Time**: ~5 min
+
+---
+
+## P1: Test Implementation Bugs (CODE FIX - Required for CI Pass)
+
+### [CODE FIX] Mock Configuration and Vitest Migration Issues
+
+---
+
+- [ ] **Fix mockAuth configuration in upload-url.test.ts**
+  - **File**: `__tests__/api/upload-url.test.ts:24,40`
+  - **Error**: `TypeError: mockAuth.mockResolvedValue is not a function`
+  - **Impact**: 7 test failures
+  - **Investigation**: Find where mockAuth is created, ensure it's using `vi.fn()`
+  - **Fix**: Update mockAuth to be proper Vitest mock:
+    ```typescript
+    const mockAuth = vi.fn();
+    // or
+    vi.mock('@clerk/nextjs/server', () => ({
+      auth: vi.fn(),
+    }));
+    ```
+  - **Test**: Run `pnpm test __tests__/api/upload-url.test.ts --run` → no mock errors
+  - **Time**: ~15 min
+
+---
+
+- [ ] **Replace jest.fn with vi.fn in upload-preflight.test.ts**
+  - **File**: `__tests__/api/upload-preflight.test.ts:138`
+  - **Error**: `ReferenceError: jest is not defined`
+  - **Fix**: Global find/replace `jest.fn` → `vi.fn` in file
+  - **Test**: Run `pnpm test __tests__/api/upload-preflight.test.ts --run` → no jest errors
+  - **Time**: ~5 min
+
+---
+
+- [ ] **Fix date serialization assertion in upload-preflight.test.ts**
+  - **File**: `__tests__/api/upload-preflight.test.ts:73`
+  - **Error**: Expected Date string "2024-01-01T00:00:00.000Z", received Date object
+  - **Fix**: Either update mock to return ISO string OR update assertion to handle Date object:
+    ```typescript
+    // Option A: Serialize in assertion
+    expect({...result, createdAt: result.createdAt.toISOString()}).toEqual(expected);
+
+    // Option B: Update mock to return string
+    createdAt: new Date('2024-01-01').toISOString()
+    ```
+  - **Test**: Run specific test → assertion passes
+  - **Time**: ~10 min
+
+---
+
+- [ ] **Verify Phase 0 completion: Run full test suite**
+  - **Success Criteria**:
+    - ✅ All test files load without module errors
+    - ✅ No "Cannot find module" errors in CI
+    - ✅ mockAuth errors resolved
+    - ✅ No jest.fn remnants
+    - ✅ Date assertions pass
+  - **Command**: `pnpm test --run`
+  - **Expected**: Tests run in CI, failure count improves
+  - **Time**: ~3 min
+
+---
+
+## P2: CI Infrastructure Improvements (CI FIX - Optional)
+
+### [CI FIX] Graceful Failure Handling
+
+---
+
+- [ ] **Update GitHub Actions workflow to skip coverage on test failure**
+  - **File**: `.github/workflows/*.yml` (find test coverage workflow)
+  - **Issue**: Coverage report step fails when tests fail, causing confusing error messages
+  - **Fix**: Add conditional to skip coverage report if tests failed:
+    ```yaml
+    - name: Run tests with coverage
+      id: test
+      run: pnpm test:coverage
+      continue-on-error: true
+
+    - name: Coverage Report
+      if: steps.test.outcome == 'success'
+      uses: davelosert/vitest-coverage-report-action@v2
+
+    - name: Fail if tests failed
+      if: steps.test.outcome == 'failure'
+      run: exit 1
+    ```
+  - **Time**: ~10 min
+
+---
+
+- [ ] **Add File.arrayBuffer() polyfill to vitest.setup.ts**
+  - **File**: `vitest.setup.ts`
+  - **Issue**: `file.arrayBuffer is not a function` in upload-preflight tests
+  - **Fix**: Add polyfill if not already present:
+    ```typescript
+    if (!File.prototype.arrayBuffer) {
+      File.prototype.arrayBuffer = async function() {
+        return new ArrayBuffer(0);
+      };
+    }
+    ```
+  - **Test**: Run upload-preflight tests → no arrayBuffer errors
+  - **Time**: ~5 min
+
+---
+
+## P3: Original Test Remediation (Continued)
+
+**Context**: Pre-existing test failures unrelated to CI blocking issues. Continue fixing after P0-P1 complete.
 
 ## P0: Test Infrastructure Fixes (Blocking 15+ tests)
 
