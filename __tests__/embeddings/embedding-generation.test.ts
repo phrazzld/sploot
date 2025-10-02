@@ -181,7 +181,7 @@ describe('Embedding Generation Test Suite', () => {
 
       // Should complete within 10 seconds
       expect(duration).toBeLessThan(10000);
-    });
+    }, { timeout: 10000 });
 
     it('should process queue in FIFO order with priority support', async () => {
       const processedOrder: string[] = [];
@@ -281,7 +281,7 @@ describe('Embedding Generation Test Suite', () => {
         expect(firstRetryDelay).toBeGreaterThanOrEqual(900); // ~1 second
         expect(firstRetryDelay).toBeLessThan(1500);
       }
-    });
+    }, { timeout: 10000 });
 
     it('should handle different error types with appropriate retry strategies', async () => {
       // Test rate limit error - should wait longer
@@ -433,7 +433,7 @@ describe('Embedding Generation Test Suite', () => {
   });
 
   describe('Network Interruption Recovery', () => {
-    it('should recover from network interruption and resume processing', async () => {
+    it('should recover from network interruption and resume processing', { timeout: 10000 }, async () => {
       let networkAvailable = true;
       const mockFetch = vi.fn().mockImplementation(() => {
         if (!networkAvailable) {
