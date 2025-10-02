@@ -399,37 +399,41 @@ describe('Embedding Generation Test Suite', () => {
     });
 
     it('should respect MAX_CONCURRENT_UPLOADS limit', async () => {
-      const MAX_CONCURRENT = 3;
-      let currentlyProcessing = 0;
-      let maxConcurrent = 0;
+      const concurrencySnapshots: number[] = [];
+      let currentProcessing = 0;
 
-      // Track concurrent processing
-      const trackConcurrency = async () => {
-        currentlyProcessing++;
-        maxConcurrent = Math.max(maxConcurrent, currentlyProcessing);
-
-        // Simulate processing time
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        currentlyProcessing--;
-      };
-
-      // Create upload queue simulation
-      const uploadQueue: Promise<void>[] = [];
-      for (let i = 0; i < 10; i++) {
-        uploadQueue.push(trackConcurrency());
-
-        // Enforce concurrency limit
-        if (uploadQueue.length >= MAX_CONCURRENT) {
-          await Promise.race(uploadQueue);
+      // Subscribe to queue events to track actual concurrency
+      embeddingQueue.subscribe((event) => {
+        if (event.type === 'processing') {
+          currentProcessing++;
+          concurrencySnapshots.push(currentProcessing);
         }
+        if (event.type === 'completed' || event.type === 'failed') {
+          currentProcessing--;
+        }
+      });
+
+      // Add 10 items to queue
+      for (let i = 0; i < 10; i++) {
+        embeddingQueue.addToQueue({
+          assetId: `concurrent-test-${i}`,
+          blobUrl: `https://example.com/test-${i}.jpg`,
+          checksum: `checksum-${i}`,
+          priority: 1,
+        });
       }
 
-      await Promise.all(uploadQueue);
+      // Wait for processing (queue manager has MAX_CONCURRENT = 2)
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Should never exceed max concurrent limit
-      expect(maxConcurrent).toBeLessThanOrEqual(MAX_CONCURRENT);
-    });
+      // Verify concurrency never exceeded limit
+      const maxObserved = Math.max(...concurrencySnapshots);
+      expect(maxObserved).toBeLessThanOrEqual(2); // EmbeddingQueueManager.MAX_CONCURRENT = 2
+
+      // Cleanup
+      embeddingQueue.stop();
+      embeddingQueue.clear();
+    }, { timeout: 10000 });
   });
 
   describe('Network Interruption Recovery', () => {
