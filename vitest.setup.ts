@@ -379,3 +379,15 @@ vi.mock('next/server', async () => {
     },
   };
 });
+
+// Polyfill File.arrayBuffer() for tests
+if (typeof File !== 'undefined' && !File.prototype.arrayBuffer) {
+  File.prototype.arrayBuffer = async function(this: File) {
+    // In test environment, crypto.subtle.digest is mocked anyway,
+    // so we just need to return a valid ArrayBuffer
+    const encoder = new TextEncoder();
+    // Use file name as content for a non-empty buffer
+    const content = this.name || 'test content';
+    return encoder.encode(content).buffer;
+  };
+}

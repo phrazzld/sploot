@@ -52,37 +52,21 @@
 
 ---
 
-- [ ] **Replace jest.fn with vi.fn in upload-preflight.test.ts**
+- [x] **Replace jest.doMock with vi.doMock in upload-preflight.test.ts**
   - **File**: `__tests__/api/upload-preflight.test.ts:138`
   - **Error**: `ReferenceError: jest is not defined`
-  - **Fix**: Global find/replace `jest.fn` → `vi.fn` in file
+  - **Fix**: Replace `jest.doMock` → `vi.doMock`
   - **Test**: Run `pnpm test __tests__/api/upload-preflight.test.ts --run` → no jest errors
+  - **Commit**: 3da4d06
   - **Time**: ~5 min
 
 ---
 
-- [ ] **Replace jest.fn with vi.fn in upload-preflight.test.ts**
-  - **File**: `__tests__/api/upload-preflight.test.ts:138`
-  - **Error**: `ReferenceError: jest is not defined`
-  - **Fix**: Global find/replace `jest.fn` → `vi.fn` in file
-  - **Test**: Run `pnpm test __tests__/api/upload-preflight.test.ts --run` → no jest errors
-  - **Time**: ~5 min
-
----
-
-- [ ] **Fix date serialization assertion in upload-preflight.test.ts**
-  - **File**: `__tests__/api/upload-preflight.test.ts:73`
-  - **Error**: Expected Date string "2024-01-01T00:00:00.000Z", received Date object
-  - **Fix**: Either update mock to return ISO string OR update assertion to handle Date object:
-    ```typescript
-    // Option A: Serialize in assertion
-    expect({...result, createdAt: result.createdAt.toISOString()}).toEqual(expected);
-
-    // Option B: Update mock to return string
-    createdAt: new Date('2024-01-01').toISOString()
-    ```
-  - **Test**: Run specific test → assertion passes
-  - **Time**: ~10 min
+- [x] **Fix date serialization assertion in upload-preflight.test.ts**
+  - **File**: `__tests__/api/upload-preflight.test.ts:84`
+  - **Status**: Already fixed! Line 84 correctly uses `createdAt: existingAsset.createdAt.toISOString()`
+  - **Note**: Test expects ISO string and correctly serializes Date object to string in assertion
+  - **Time**: 0 min (verification only)
 
 ---
 
