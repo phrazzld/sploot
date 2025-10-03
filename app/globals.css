@@ -3,18 +3,24 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Terminal color system */
+  --color-terminal-green: #4ADE80;
+  --color-terminal-red: #EF4444;
+  --color-terminal-yellow: #FBBF24;
+  --color-terminal-gray: #888888;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #000000;
     --foreground: #ededed;
   }
 }
