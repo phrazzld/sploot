@@ -35,7 +35,8 @@ const formatFileSize = (bytes: number) => {
 const formatTimestamp = (value: Date | string) => {
   const date = typeof value === 'string' ? new Date(value) : value;
   if (Number.isNaN(date.getTime())) return 'unknown';
-  return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  // ISO 8601 format for terminal aesthetic: 2025-06-17T14:23:45Z
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z');
 };
 
 function ListRow({
@@ -162,7 +163,7 @@ function ListRow({
             <span>{formatFileSize(asset.size || 0)}</span>
           </div>
 
-          <div className="hidden min-w-[120px] text-xs text-[#8E94A3] xl:block">{formatTimestamp(asset.createdAt)}</div>
+          <div className="hidden min-w-[120px] font-mono text-xs text-[#8E94A3] xl:block">{formatTimestamp(asset.createdAt)}</div>
 
           <div className="flex items-center gap-2">
             <button
