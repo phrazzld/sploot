@@ -135,7 +135,7 @@ describe('/api/upload/check', () => {
 
     it('should handle database unavailable', async () => {
       // Mock database unavailable by mocking the module
-      jest.doMock('@/lib/db', () => ({
+      vi.doMock('@/lib/db', () => ({
         databaseAvailable: false,
         prisma: null,
         assetExists: vi.fn(),
