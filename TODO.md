@@ -42,7 +42,7 @@
 
 ### Search & Similarity Scoring
 
-- [ ] **Add confidence score overlay to search result tiles** - When search is active, display similarity score in top-right corner of each image tile. Format: monospace, 2 decimal places (e.g., "0.94"), `font-mono text-xs`. Success criteria: Scores appear only during search, positioned absolutely, don't obscure image content.
+- [~] **Add confidence score overlay to search result tiles** - When search is active, display similarity score in top-right corner of each image tile. Format: monospace, 2 decimal places (e.g., "0.94"), `font-mono text-xs`. Success criteria: Scores appear only during search, positioned absolutely, don't obscure image content.
 
 - [ ] **Implement color coding based on similarity scores** - Add border color to image tiles based on score: `>0.85` = terminal green, `0.7-0.85` = terminal yellow, `<0.7` = white/default. Border: 2px solid, subtle glow effect. Success criteria: High-confidence results visually distinct, accessible color contrast.
 

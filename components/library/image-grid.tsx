@@ -23,6 +23,7 @@ interface ImageGridProps {
   onScrollContainerReady?: (node: HTMLDivElement | null) => void;
   onUploadClick?: () => void;
   density?: GridDensity;
+  showSimilarityScores?: boolean;
 }
 
 export function ImageGrid({
@@ -37,6 +38,7 @@ export function ImageGrid({
   onScrollContainerReady,
   onUploadClick,
   density = 'dense',
+  showSimilarityScores = false,
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -293,6 +295,7 @@ export function ImageGrid({
                     onDelete={onAssetDelete}
                     onSelect={onAssetSelect}
                     onAssetUpdate={onAssetUpdate}
+                    showSimilarityScore={showSimilarityScores}
                   />
                 </ImageTileErrorBoundary>
               </div>
@@ -377,6 +380,7 @@ export function ImageGrid({
                         onDelete={onAssetDelete}
                         onSelect={onAssetSelect}
                         onAssetUpdate={onAssetUpdate}
+                        showSimilarityScore={showSimilarityScores}
                       />
                     </ImageTileErrorBoundary>
                   ))}

@@ -20,6 +20,7 @@ interface ImageTileProps {
   preserveAspectRatio?: boolean;
   onClick?: () => void;
   onAssetUpdate?: (id: string, updates: Partial<Asset>) => void;
+  showSimilarityScore?: boolean;
 }
 
 type EmbeddingStatusType = 'pending' | 'processing' | 'ready' | 'failed';
@@ -32,7 +33,8 @@ function ImageTileComponent({
   onToggleFavorite,
   preserveAspectRatio = false,
   onClick,
-  onAssetUpdate
+  onAssetUpdate,
+  showSimilarityScore = false,
 }: ImageTileProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -262,6 +264,15 @@ function ImageTileComponent({
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Extract similarity score from search results
+  // Similarity is 0-1, display as 0.00 format
+  const similarityScore = useMemo(() => {
+    if (!showSimilarityScore) return null;
+    const score = (asset as any).similarity;
+    if (typeof score !== 'number') return null;
+    return score.toFixed(2);
+  }, [showSimilarityScore, asset]);
+
   return (
     <>
       <div
@@ -410,6 +421,17 @@ function ImageTileComponent({
             </svg>
           </button>
         </div>
+
+        {/* Similarity score overlay - top right, only during search */}
+        {similarityScore !== null && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className="px-2 py-1 rounded bg-black/80 backdrop-blur-sm border border-[#2A2F37]">
+              <span className="font-mono text-xs text-white tabular-nums">
+                {similarityScore}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Hover overlay with metadata - optimized for dense grid */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
@@ -625,6 +647,14 @@ function arePropsEqual(prevProps: ImageTileProps, nextProps: ImageTileProps) {
 
   // Re-render if preserveAspectRatio prop changed
   if (prevProps.preserveAspectRatio !== nextProps.preserveAspectRatio) return false;
+
+  // Re-render if showSimilarityScore prop changed
+  if (prevProps.showSimilarityScore !== nextProps.showSimilarityScore) return false;
+
+  // Re-render if similarity score changed (for search results)
+  const prevSimilarity = (prevProps.asset as any).similarity;
+  const nextSimilarity = (nextProps.asset as any).similarity;
+  if (prevSimilarity !== nextSimilarity) return false;
 
   // Ignore function prop changes - they're stable via useCallback (see JSDoc above)
   // This prevents unnecessary re-renders when parent re-renders

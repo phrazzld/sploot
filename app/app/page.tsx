@@ -879,6 +879,7 @@ function AppPageClient() {
                     onScrollContainerReady={handleScrollContainerReady}
                     onUploadClick={() => setShowUploadPanel(true)}
                     density={gridDensity}
+                    showSimilarityScores={isSearching}
                   />
                 </ImageGridErrorBoundary>
               )}
