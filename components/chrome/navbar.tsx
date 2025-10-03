@@ -35,8 +35,8 @@ export function Navbar({
         'z-50',
         // Height: 56px
         'h-14',
-        // Background and border
-        'bg-[#14171A] border-b border-[#2A2F37]',
+        // Background and border - pure black with ultra-subtle separation
+        'bg-black border-b border-[#1A1A1A]',
         // Backdrop for glass effect
         'backdrop-blur-sm',
         // Layout
