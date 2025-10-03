@@ -1,419 +1,136 @@
-# TODO: Test Suite Remediation
+# TODO: Bloomberg Terminal × Linear Aesthetic Redesign
 
-**Context**: CI test failures preventing merge. 66 tests failing across multiple suites.
-**Branch**: `redesign/navbar-footer-architecture`
-**Status**: Build passing ✅, Tests failing ❌ (332/398 passing, 83.4%)
-**Goal**: Achieve 95%+ pass rate (380+/398 tests passing)
+> **Objective**: Transform Sploot into a high-density, information-rich "meme intelligence operations" interface inspired by Bloomberg Terminal and Linear's minimal visual language. Treating meme collection with tactical seriousness creates delightful cognitive dissonance while improving information density and usability.
 
 ---
 
-## P0: Critical Mocking Infrastructure Fixes (Blocks 32 tests)
+## Phase 1: Foundation (Core Visual Identity)
 
-### [TEST FIX] Refactor Prisma Mocking Strategy
+### Color System & Typography
 
-**Root Cause**: `vi.mocked(prisma)` doesn't create nested mock functions. Tests call `prisma.assetTag.findMany.mockResolvedValue()` but that method doesn't exist as a mock.
+- [x] **Replace dark mode background with pure black** - Update `app/globals.css` line 17 from `--background: #0a0a0a;` to `--background: #000000;`. Success criteria: All dark mode surfaces use pure black, verified in DevTools computed styles.
 
-**Current (Broken)**:
-```typescript
-vi.mock('@/lib/db');
-const mockPrisma = vi.mocked(prisma);
-// Later in test:
-prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
-```
+- [x] **Add JetBrains Mono font for metadata display** - Import `JetBrains_Mono` from `next/font/google` in `app/layout.tsx` alongside existing Geist fonts. Add CSS variable `--font-jetbrains-mono` to `@theme inline` block in `globals.css`. Success criteria: Font loads without FOUT, available as Tailwind `font-mono` utility.
 
-**Solution Options**:
+- [x] **Define terminal color system in CSS custom properties** - Add to `globals.css` `:root` block: `--color-terminal-green: #4ADE80`, `--color-terminal-red: #EF4444`, `--color-terminal-yellow: #FBBF24`, `--color-terminal-gray: #888888`. Success criteria: Colors accessible via `text-[var(--color-terminal-green)]` in components.
 
-**Option A: Use mockPrisma() factory (RECOMMENDED)**
-- Leverage existing `mockPrisma()` helper from test-helpers.ts
-- Provides pre-configured nested mocks for all Prisma models
-- Consistent with other working tests
+- [x] **Remove Lime Pop accent color from design system** - Search codebase for `#BAFF39` references and replace with `#4ADE80` (terminal green) or context-appropriate color. Update CLAUDE.md color documentation. Success criteria: Zero references to Lime Pop, verified via `grep -r "BAFF39"`.
 
-**Option B: Manual nested mock creation**
-- Create mocks for each Prisma method individually
-- More boilerplate but maximum control
+- [x] **Update theme color metadata to pure black** - Change `themeColor` in `app/layout.tsx` viewport config from `#7C5CFF` to `#000000`. Update manifest theme_color and msapplication-TileColor. Success criteria: Browser chrome shows black background on mobile.
 
----
+### Layout & Chrome
 
-### Task 1: Fix search-flow.test.ts Prisma Mocks (12 failures) [x]
+- [ ] **Add corner bracket SVG component for viewport framing** - Create `components/chrome/corner-brackets.tsx` with four SVG corner brackets (top-left, top-right, bottom-left, bottom-right). Each bracket: 24px × 24px, 2px stroke, `#888888` color, positioned absolutely. Success criteria: Brackets frame main content area without overlapping scrollbars.
 
-**File**: `__tests__/integration/search-flow.test.ts`
-**Failures**: 12/16 tests
-**Error Pattern**: `prisma.assetTag.findMany.mockResolvedValue is not a function`
+- [ ] **Integrate corner brackets into AppChrome layout** - Import and render `<CornerBrackets />` in `components/chrome/app-chrome.tsx` as fixed overlay. Position using `fixed` with 8px inset from viewport edges. Success criteria: Brackets visible on all pages, stay fixed during scroll.
 
-**Implementation Steps**:
+- [ ] **Update navbar background to pure black with subtle border** - Change `components/chrome/navbar.tsx` line 39 from `bg-[#14171A]` to `bg-black`. Update border color from `border-[#2A2F37]` to `border-[#1A1A1A]` for ultra-subtle separation. Success criteria: Navbar seamlessly blends with pure black background.
 
-1. **Replace current mock setup** (lines 10-22):
-   ```typescript
-   // REMOVE:
-   vi.mock('@/lib/db');
-   const mockPrisma = vi.mocked(prisma);
+- [ ] **Convert stats display to monospace typography** - Update `components/chrome/stats-display.tsx` to use `font-mono` class instead of default font. Change format from "134 memes • 2 bangers • 9.9 MB" to terminal-style "247 ASSETS | 843MB | LAST SYNC: 2025-06-17T14:23". Success criteria: Stats use JetBrains Mono, ISO 8601 timestamps, pipe separators.
 
-   // REPLACE WITH:
-   import { mockPrisma } from '../utils/test-helpers';
+### Grid Density
 
-   vi.mock('@/lib/db', () => ({
-     prisma: mockPrisma(),
-     vectorSearch: vi.fn(),
-     logSearch: vi.fn(),
-     databaseAvailable: true,
-   }));
-   ```
+- [ ] **Increase default grid columns for dense view** - Update grid configuration to show 6 columns on desktop (1440px+), 4 on tablet (768px+), 2 on mobile. Modify grid gap from current value to 8px for tighter spacing. Success criteria: 6-8 memes visible on laptop screen without scrolling.
 
-2. **Update beforeEach** to configure mock behavior:
-   ```typescript
-   beforeEach(() => {
-     vi.clearAllMocks();
+- [ ] **Add grid density toggle to view options** - Create density options: "Compact" (8 columns, 4px gap), "Dense" (6 columns, 8px gap - default), "Comfortable" (4 columns, 16px gap). Store preference in URL params. Success criteria: User can toggle between densities, preference persists in URL.
 
-     // Configure prisma mocks
-     const db = require('@/lib/db');
-     db.prisma.assetTag.findMany.mockResolvedValue([]);
-     db.prisma.searchLog.findMany.mockResolvedValue([]);
-     db.prisma.searchLog.create.mockResolvedValue({});
-     db.vectorSearch.mockResolvedValue([/* mock results */]);
-     db.logSearch.mockResolvedValue(undefined);
-   });
-   ```
-
-3. **Remove direct prisma references** throughout file:
-   ```typescript
-   // CHANGE: prisma.assetTag.findMany.mockResolvedValue([])
-   // TO: db.prisma.assetTag.findMany.mockResolvedValue([])
-   // (where db = require('@/lib/db'))
-   ```
-
-4. **Test verification**:
-   ```bash
-   pnpm test __tests__/integration/search-flow.test.ts --run
-   # Expected: 16/16 passing (currently 4/16)
-   ```
-
-**Affected Lines**: 11-14, 89, 328, 403, 450, 559, 620, 652, 698
-**Time Estimate**: 20 minutes
-**Priority**: P0 - Blocking
+- [ ] **Update image tile hover states for dense grid** - Reduce padding/margins in `image-tile.tsx` hover overlay. Decrease metadata font size to `text-xs` (12px). Ensure hover states don't cause layout shift in tight grid. Success criteria: Hover overlay readable at dense spacing, no CLS.
 
 ---
 
-### Task 2: Fix upload-flow.test.ts Prisma Mocks (9 failures) [x]
+## Phase 2: Intelligence Layer (Data-Driven UI)
 
-**File**: `__tests__/integration/upload-flow.test.ts`
-**Failures**: 9/13 tests
-**Error Pattern**: Same as Task 1
+### Search & Similarity Scoring
 
-**Implementation Steps**:
+- [ ] **Add confidence score overlay to search result tiles** - When search is active, display similarity score in top-right corner of each image tile. Format: monospace, 2 decimal places (e.g., "0.94"), `font-mono text-xs`. Success criteria: Scores appear only during search, positioned absolutely, don't obscure image content.
 
-1. Apply same mockPrisma() factory pattern as Task 1
-2. Update mock configuration in beforeEach
-3. Fix all prisma method calls throughout file
-4. Verify with: `pnpm test __tests__/integration/upload-flow.test.ts --run`
+- [ ] **Implement color coding based on similarity scores** - Add border color to image tiles based on score: `>0.85` = terminal green, `0.7-0.85` = terminal yellow, `<0.7` = white/default. Border: 2px solid, subtle glow effect. Success criteria: High-confidence results visually distinct, accessible color contrast.
 
-**Expected Result**: 13/13 passing (currently 4/13)
-**Time Estimate**: 20 minutes
-**Priority**: P0 - Blocking
+- [ ] **Create similarity score legend component** - Add small legend to search results header explaining color system: "Green: High match (>85%) • Yellow: Medium (70-85%) • White: Standard". Dismissible, stores preference in localStorage. Success criteria: Legend shows on first search, can be dismissed, explains color coding.
 
----
+### Status Line & Monitoring
 
-### Task 3: Fix asset-crud.test.ts Prisma Mocks (11 failures) [x]
+- [ ] **Create terminal-style status line component** - New component `components/chrome/status-line.tsx` showing: asset count, storage usage, last upload timestamp (ISO 8601), processing queue depth. Monospace, `text-xs`, positioned top-right of navbar. Success criteria: Real-time updates, monospace formatting, unobtrusive positioning.
 
-**File**: `__tests__/api/asset-crud.test.ts`
-**Failures**: 11/15 tests
-**Error Pattern**: `mockPrisma.asset.findUnique.mockResolvedValue is not a function`
+- [ ] **Add real-time stats to status line** - Connect status line to asset count, total size calculation, and upload queue status. Update every 500ms when queue is active, every 5s when idle. Success criteria: Stats update without re-render thrashing, accurate within 1 second.
 
-**Implementation Steps**:
+- [ ] **Implement processing state indicators** - Update upload flow to show terminal-style messages: `[PROCESSING] Generating embeddings...`, `[COMPLETE] Indexed: drake_001.jpg`, `[ERROR] Upload failed: file exceeds 10MB`. Monospace, color-coded by state. Success criteria: Messages appear in toast/banner, clear terminal aesthetic.
 
-1. Check current mock setup (likely uses vi.mocked pattern)
-2. Replace with mockPrisma() factory from test-helpers
-3. Configure mocks in beforeEach for asset CRUD operations:
-   ```typescript
-   db.prisma.asset.findUnique.mockResolvedValue(mockAsset);
-   db.prisma.asset.update.mockResolvedValue(mockAsset);
-   db.prisma.asset.delete.mockResolvedValue(mockAsset);
-   ```
-4. Test verification: `pnpm test __tests__/api/asset-crud.test.ts --run`
+### Metadata & Timestamps
 
-**Expected Result**: 15/15 passing (currently 4/15)
-**Time Estimate**: 15 minutes
-**Priority**: P0 - Blocking
+- [ ] **Convert all timestamps to ISO 8601 format** - Find all timestamp displays (upload time, last modified, etc.) and convert to `2025-06-17T14:23:45Z` format. Use monospace font. Success criteria: Consistent timestamp format across app, verified via visual audit.
+
+- [ ] **Add monospace formatting to file metadata** - Display filename, dimensions, file size in monospace. Format: `drake_meme.jpg | 1920×1080 | 2.4MB`. Success criteria: Metadata uses JetBrains Mono, aligned columns in lists.
+
+- [ ] **Show file processing status with terminal syntax** - When hover over image, show processing status: `[✓] EMBEDDED`, `[⏳] QUEUED`, `[✗] FAILED`. Monospace, color-coded (green check, yellow hourglass, red X). Success criteria: Status visible on hover, clear at-a-glance processing state.
 
 ---
 
-## P1: Distributed Queue Test Logic Fixes (5 failures)
+## Phase 3: Power User Features
 
-### [TEST LOGIC FIX] Distributed Queue FIFO Order Test
+### Command Palette & Shortcuts
 
-**Root Cause**: Test assumes all 3 items process, but queue processes items one at a time. `normal-2` might be skipped due to async timing or queue implementation.
+- [ ] **Add terminal-style command palette theme** - Update `components/chrome/command-palette.tsx` with monospace font, pure black background, terminal green highlights. Commands prefixed with `>` like VS Code. Success criteria: Palette matches terminal aesthetic, keyboard nav preserved.
 
-**File**: `__tests__/lib/distributed-queue.test.ts:60-75`
-**Failure**: `expected ['normal-1', 'normal-3'] to deeply equal ['normal-1', 'normal-2', 'normal-3']`
+- [ ] **Extend command palette with density commands** - Add commands: `> Set Density: Compact`, `> Set Density: Dense`, `> Set Density: Comfortable`. Also add `> Show Confidence Scores` toggle. Success criteria: Commands functional, affect view immediately.
 
-**Investigation Required**:
-1. Check if `processNext()` processes exactly one item or multiple
-2. Verify queue state after each processNext() call
-3. Determine if test expectation is wrong or implementation has bug
+- [ ] **Document keyboard shortcuts in terminal style** - Update shortcuts display (⌘K help) with monospace layout. Format: `⌘ + K → Command Palette`, `/ → Search`, `1-3 → Density`. Success criteria: Help modal uses monospace, aligned columns.
 
-**Task 4: Debug and Fix FIFO Order Test** [x]
+### Advanced Filtering & Search
 
-**Steps**:
-1. Add logging to understand actual behavior:
-   ```typescript
-   console.log('Queue size before:', queue.size());
-   await queue.processNext();
-   console.log('Processed:', processed, 'Queue size:', queue.size());
-   ```
+- [ ] **Add search query syntax indicators** - When user searches, show parsed query in terminal syntax: `QUERY: "drake meme" | FILTERS: [favorites] | RESULTS: 23`. Monospace, positioned below search bar. Success criteria: Query breakdown visible, helps users understand search.
 
-2. Run test in isolation: `pnpm test -t "should maintain FIFO order"`
+- [ ] **Implement search performance metrics** - Show search latency in monospace: `Search completed in 0.89s`. Position near search results count. Success criteria: Accurate timing, updates per search, monospace format.
 
-3. **Hypothesis A**: processNext() doesn't process all items
-   - **Fix**: Call processNext() in loop until queue empty
-   - **Verification**: All items processed in order
+- [ ] **Add advanced filter UI with terminal aesthetic** - Create filter panel with monospace labels: `[ ] FAVORITES ONLY`, `[ ] HAS EMBEDDING`, `DATE RANGE: [____] TO [____]`. Checkbox/input styling matches terminal. Success criteria: Filters functional, clear terminal aesthetic.
 
-4. **Hypothesis B**: Queue implementation has FIFO bug
-   - **Fix**: Investigate PriorityQueue.dequeue() logic
-   - **Verification**: Items dequeue in insertion order for same priority
+### View Modes & Preferences
 
-**Time Estimate**: 30 minutes
-**Priority**: P1 - Important
+- [ ] **Create view mode indicator in status line** - Add current view mode to status line: `VIEW: DENSE GRID | SORT: RELEVANCE`. Monospace, clickable to change. Success criteria: Always visible, clear current state.
+
+- [ ] **Add density preference to URL state** - Extend URL params to include `density=compact|dense|comfortable`. Sync with view mode and sort params. Success criteria: Density persists in URL, shareable links preserve density.
+
+- [ ] **Implement smooth transitions between density modes** - When changing density, animate grid reconfiguration over 200ms. Use CSS Grid `transition: grid-template-columns 200ms`. Success criteria: Smooth transition, no jank, 60fps.
 
 ---
 
-### Task 5: Fix Dead Letter Queue Tests (3 failures) [x]
+## Testing & Validation
 
-**Files**: Lines 113-180
-**Failures**:
-- "should move items to dead letter queue after max retries" - `expected 0 to be 1`
-- "should not retry invalid errors" - `expected 0 to be 1`
-- "should allow retrying dead letter items" - `expected 0 to be 1`
+- [ ] **Create visual regression test for terminal aesthetic** - Add Playwright test capturing screenshots of: navbar, grid at all densities, search results with scores, command palette. Compare against baseline. Success criteria: Automated visual regression detection.
 
-**Root Cause**: `metrics.dead` always returns 0, suggesting items aren't moving to dead letter queue.
+- [ ] **Verify color contrast meets WCAG AA** - Test all terminal colors (green, red, yellow, gray) on black background. Ensure text contrast ≥4.5:1. Success criteria: All color combinations pass WebAIM contrast checker.
 
-**Investigation Steps**:
-1. Check DistributedQueue.moveToDeadLetter() implementation
-2. Verify maxRetries logic in retry handling
-3. Confirm dead letter queue is actually populated
+- [ ] **Test monospace alignment across browsers** - Verify JetBrains Mono renders consistently in Chrome, Safari, Firefox. Check alignment in stats line, timestamps, file metadata. Success criteria: No alignment issues, font loads reliably.
 
-**Implementation**:
-1. Add dead letter queue size check: `expect(queue.getDeadLetterQueue().length).toBe(1)`
-2. If implementation is broken, fix moveToDeadLetter() logic
-3. If test is wrong, update assertions to match actual behavior
+- [ ] **Performance test with dense grid (1000+ images)** - Load 1000 images in compact mode. Measure: initial render time, scroll FPS, memory usage. Ensure <2s render, 60fps scroll. Success criteria: Dense mode performs well at scale.
 
-**Time Estimate**: 45 minutes
-**Priority**: P1 - Important
+- [ ] **Audit keyboard navigation with new UI** - Test all keyboard shortcuts with terminal-styled components. Verify focus indicators visible on black background. Success criteria: All shortcuts work, focus rings visible.
 
 ---
 
-### Task 6: Fix Metrics Tracking Test [x]
+## Documentation Updates
 
-**File**: Line 211-223
-**Failure**: `expected 1 to be 2` - successCount tracking
+- [ ] **Update AESTHETIC.md with Bloomberg Terminal direction** - Document terminal color system, typography rules (when to use monospace vs sans), corner bracket usage, density guidelines. Success criteria: Clear guidelines for future development.
 
-**Root Cause**: Metrics not incrementing correctly or test expectations wrong.
+- [ ] **Update CLAUDE.md design system section** - Replace "Crisp Lab Minimal" with "Bloomberg Terminal × Linear" aesthetic. Document new color palette, remove Lime Pop. Success criteria: CLAUDE.md reflects current design direction.
 
-**Steps**:
-1. Verify both test items actually succeed (check executor mock)
-2. Add logging: `console.log('Metrics:', queue.getMetrics())`
-3. Check if metrics.successCount increments in DistributedQueue
-4. Fix either metrics logic or test expectation
-
-**Time Estimate**: 15 minutes
-**Priority**: P1 - Important
+- [ ] **Create component documentation for terminal elements** - Document `CornerBrackets`, `StatusLine`, terminal-styled `CommandPalette`. Include usage examples, props, styling guidelines. Success criteria: Developers can implement new features matching aesthetic.
 
 ---
 
-## P2: Embedding Generation Timing Fixes (2 failures)
+## Future Enhancements (Move to BACKLOG.md)
 
-### Task 7: Fix Exponential Backoff Retry Test [!]
+These are out of scope for initial implementation but valuable future improvements:
 
-```
-Work Log:
-- Test creates `mockGenerateEmbedding` but never connects it to embedding queue
-- Queue is initialized with `getEmbeddingQueueManager()` - uses real embedding service
-- Test subscribes to events and waits 5s, but only gets 'completed' event, not 'retry'
-- Need to either:
-  1. Mock the embedding service module globally, or
-  2. Inject mock service into queue, or
-  3. Verify queue auto-starts processing (may need manual `.start()` call)
-- Blocked by: Need to understand embedding queue initialization and service injection pattern
-```
-
-**File**: `__tests__/embeddings/embedding-generation.test.ts:252-284`
-**Failure**: `expected ['completed'] to include 'retry'`
-**Timeout**: 5012ms (indicates slow/hanging test)
-
-**Root Cause**: Event subscription doesn't capture 'retry' events, only captures 'completed'.
-
-**Investigation**:
-1. Check EmbeddingQueueManager event emission
-2. Verify retry events are actually emitted during failures
-3. Confirm event subscription timing (subscribe before or after retry?)
-
-**Fix Options**:
-
-**Option A: Subscribe earlier to catch retry events**
-```typescript
-const events: QueueEvent[] = [];
-const unsubscribe = embeddingQueue.subscribe((event) => {
-  events.push(event);
-});
-
-// Then trigger failure and wait
-```
-
-**Option B: Use waitForQueueEvent for specific retry event**
-```typescript
-await waitForQueueEvent(
-  embeddingQueue,
-  (event) => event.type === 'retry',
-  10000  // Longer timeout for retries
-);
-```
-
-**Time Estimate**: 30 minutes
-**Priority**: P2 - Optional
+- **Animated CRT scan line effect** (optional, could be too much)
+- **Sound effects for upload/search** (terminal beeps)
+- **Heat map visualization of search clusters** (advanced analytics)
+- **Multi-column list view** (Bloomberg-style data tables)
+- **Customizable status line metrics** (user chooses what to display)
+- **Terminal color theme variants** (amber, green, blue phosphor themes)
 
 ---
 
-### Task 8: Fix Network Recovery Test Timeout
-
-**File**: `__tests__/embeddings/embedding-generation.test.ts:436-474`
-**Failure**: `Timeout waiting for queue event after 5000ms`
-**Timeout**: 6007ms
-
-**Root Cause**: Queue doesn't resume processing after mock network recovery, or event never fires.
-
-**Steps**:
-1. Verify network error simulation actually pauses queue
-2. Check if "online" event listener is set up in test
-3. Confirm queue.start() is called after recovery
-4. Increase timeout if operation legitimately takes longer
-
-**Fix**:
-```typescript
-// Ensure queue starts processing after recovery
-Object.defineProperty(navigator, 'onLine', { value: true });
-window.dispatchEvent(new Event('online'));
-embeddingQueue.start(); // Explicitly start if needed
-
-await waitForQueueEvent(
-  embeddingQueue,
-  (event) => event.type === 'completed',
-  10000 // Increase timeout
-);
-```
-
-**Time Estimate**: 20 minutes
-**Priority**: P2 - Optional
-
----
-
-## P3: Search API Tests (6 failures)
-
-### Task 9: Fix Search API Prisma Mock Issues
-
-**File**: `__tests__/api/search.test.ts`
-**Failures**: 6/15 tests
-**Error Pattern**: Same prisma mocking issue as P0 tasks
-
-**Steps**:
-1. Apply mockPrisma() factory pattern
-2. Configure search-specific mocks:
-   ```typescript
-   db.prisma.searchLog.findMany.mockResolvedValue([]);
-   db.prisma.searchLog.groupBy.mockResolvedValue([]);
-   db.vectorSearch.mockResolvedValue([/* mock results */]);
-   ```
-3. Test: `pnpm test __tests__/api/search.test.ts --run`
-
-**Expected Result**: 15/15 passing (currently 9/15)
-**Time Estimate**: 15 minutes
-**Priority**: P3 - Optional
-
----
-
-## P4: Batch Upload Concurrency (1 failure)
-
-### Task 10: Fix Batch Upload Concurrency Test
-
-**File**: `__tests__/e2e/batch-upload.spec.ts`
-**Failure**: 1/10 tests
-**Test**: "should handle concurrent uploads efficiently"
-**Timeout**: 255ms (suggests slow operation)
-
-**Investigation**:
-1. Check expected vs actual concurrency limit
-2. Verify upload throttling logic
-3. Confirm test timeout is reasonable
-
-**Steps**:
-1. Run test in isolation with verbose logging
-2. Check if concurrency limit is correctly enforced
-3. Adjust test expectations or increase timeout if needed
-
-**Time Estimate**: 15 minutes
-**Priority**: P4 - Low
-
----
-
-## Summary & Execution Strategy
-
-### Task Prioritization
-
-**Phase 1: Critical Infrastructure** (60 minutes)
-- Task 1: search-flow.test.ts Prisma mocks
-- Task 2: upload-flow.test.ts Prisma mocks
-- Task 3: asset-crud.test.ts Prisma mocks
-- **Impact**: Fixes 32/66 failures (48%)
-
-**Phase 2: Queue Logic** (90 minutes)
-- Task 4: FIFO order debugging
-- Task 5: Dead letter queue fixes
-- Task 6: Metrics tracking
-- **Impact**: Fixes 5/66 failures (8%)
-
-**Phase 3: Optional Improvements** (80 minutes)
-- Tasks 7-10: Embedding, search, batch upload
-- **Impact**: Fixes remaining 29/66 failures (44%)
-
-### Success Metrics
-
-**Minimum Viable** (Merge Ready):
-- ✅ P0 tasks complete: 364/398 passing (91%)
-- ✅ No infrastructure blocking issues
-- ✅ All critical paths tested
-
-**Ideal Target**:
-- ✅ All phases complete: 398/398 passing (100%)
-- ✅ Robust, maintainable test suite
-- ✅ Fast execution (<60s total)
-
-### Testing After Each Phase
-
-```bash
-# After P0:
-pnpm test __tests__/integration/ __tests__/api/asset-crud.test.ts --run
-
-# After P1:
-pnpm test __tests__/lib/distributed-queue.test.ts --run
-
-# Full suite:
-pnpm test --run
-```
-
----
-
-## Notes & Learnings
-
-### Why Tests Failed
-1. **Mock Infrastructure**: vi.mocked() doesn't create nested mocks automatically
-2. **Test Expectations**: Some tests written before implementation was finalized
-3. **Timing Issues**: Async event capture requires proper subscription setup
-4. **Documentation Gap**: Mocking patterns not documented in test-helpers.ts
-
-### Preventing Future Failures
-1. **Document Mocking Patterns**: Add examples to test-helpers.ts
-2. **Mock Validation**: Create helper to validate mock structure
-3. **Event Testing**: Use waitForQueueEvent consistently
-4. **CI Fast-Fail**: Run tests before expensive build steps
-
-### Technical Debt Created
-- None - all changes are test-only fixes
-- Opportunity to refactor mockPrisma() for better ergonomics
-- Consider creating `setupPrismaMocks()` helper for common patterns
+**Total Tasks**: 41 core implementation tasks
+**Estimated Effort**: ~20-25 hours (assuming parallel development)
+**Priority Order**: Phase 1 → Phase 2 → Phase 3 (each phase builds on previous)

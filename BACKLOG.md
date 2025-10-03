@@ -207,11 +207,82 @@
 
 - **Progressive enhancement without JavaScript** - Suggested ensuring basic functionality works with JavaScript disabled. **Rejected because**: This is a React SPA that fundamentally requires JavaScript. Progressive enhancement doesn't make sense for the application architecture. Focus should be on optimizing the JavaScript experience.
 
+## 🎨 Terminal Aesthetic Enhancements
+
+### Visual Polish
+
+- **Add animated CRT scan line effect** - Subtle horizontal scan line that moves top-to-bottom every 2-3 seconds. Pure CSS animation using `:after` pseudo-element with gradient. Enable/disable via settings.
+  - **Rationale for deferring**: Could be polarizing; core terminal aesthetic works without it
+  - **Effort**: Small (~1 hour)
+  - **Priority**: Very Low
+  - **Trade-off**: Adds character but risks feeling gimmicky
+  - **Implementation**: CSS keyframe moving `linear-gradient` overlay at 5% opacity
+
+- **Terminal color theme variants** - Implement classic CRT phosphor color themes: Amber (P3), Green (P1), Blue (IBM), alongside default white. User-selectable in settings, affects all terminal colors.
+  - **Rationale for deferring**: Current white-on-black works well; themes are nice-to-have personalization
+  - **Effort**: Medium (~2-3 hours for 4 themes)
+  - **Priority**: Low
+  - **Themes**: `--theme-p3-amber`, `--theme-p1-green`, `--theme-ibm-blue`, `--theme-default`
+  - **Storage**: Save preference in `UserPreferences` table
+
+- **Add CRT glow effect to high-confidence search results** - Subtle outer glow on images with similarity >0.90, mimicking phosphor bloom. Use `box-shadow` with terminal green color.
+  - **Rationale for deferring**: Color-coded borders already indicate confidence; glow is extra
+  - **Effort**: Small (~30 min)
+  - **Priority**: Very Low
+  - **CSS**: `box-shadow: 0 0 20px rgba(74, 222, 128, 0.4);`
+
+### Audio Feedback
+
+- **Add terminal sound effects for actions** - Subtle beeps for: upload complete (success tone), search executed (query tone), error occurred (error tone). Use Web Audio API, ~100ms duration, <10KB each.
+  - **Rationale for deferring**: Visual feedback is sufficient; audio could annoy users
+  - **Effort**: Medium (~2 hours including sound design)
+  - **Priority**: Very Low
+  - **Toggle**: Must be opt-in via settings, disabled by default
+  - **Accessibility**: Respect `prefers-reduced-motion` for auto-disable
+
+### Advanced Data Visualization
+
+- **Heat map visualization of semantic search clusters** - 2D visualization showing how memes cluster in embedding space. Click cluster to filter. Uses UMAP dimensionality reduction of 512D vectors to 2D.
+  - **Rationale for deferring**: Complex feature requiring significant backend work; cool but not essential
+  - **Effort**: Large (~6-8 hours including UMAP integration)
+  - **Priority**: Low
+  - **Library**: `umap-js` for client-side dimensionality reduction
+  - **UX**: Modal/drawer showing cluster map, click to filter by region
+
+- **Live embedding queue depth graph** - Real-time sparkline showing queue depth over last 60 seconds. Updates every second. Positioned in status line.
+  - **Rationale for deferring**: Current queue depth number is sufficient; graph is visual polish
+  - **Effort**: Small (~1-2 hours)
+  - **Priority**: Very Low
+  - **Implementation**: Canvas-based sparkline, circular buffer of 60 datapoints
+
+### Terminal UI Components
+
+- **Multi-column list view with Bloomberg-style data tables** - Alternative to grid: dense tabular view showing filename | dimensions | size | upload date | similarity in aligned monospace columns. Sortable by any column.
+  - **Rationale for deferring**: Current grid and list views work well; table view is power-user feature
+  - **Effort**: Medium (~3-4 hours)
+  - **Priority**: Medium
+  - **Layout**: CSS Grid with fixed column widths, virtual scrolling for performance
+  - **Shortcut**: Add `3` key to switch to table view
+
+- **Customizable status line metrics** - Allow users to choose which metrics appear in status line: asset count, size, upload time, queue depth, search latency, FPS counter. Drag-to-reorder.
+  - **Rationale for deferring**: Default metrics cover 90% use case; customization is nice-to-have
+  - **Effort**: Medium (~2-3 hours)
+  - **Priority**: Low
+  - **Storage**: Save preference in localStorage or `UserPreferences`
+  - **UI**: Settings modal with checkboxes and drag handles
+
+- **Terminal command history in command palette** - Store last 20 commands executed. Press ↑/↓ to cycle through history like bash. Persist in localStorage.
+  - **Rationale for deferring**: Current command palette works; history is convenience feature
+  - **Effort**: Small (~1 hour)
+  - **Priority**: Low
+  - **Storage**: `localStorage.commandHistory`, max 20 items
+  - **Shortcuts**: ↑/↓ to navigate, Ctrl+R to search history
+
 ---
 
 ## 📊 Backlog Statistics
 
-**Total Items**: 31
+**Total Items**: 40
 - Infrastructure & Tooling: 3 items
 - Accessibility: 3 items
 - Performance: 3 items
@@ -219,7 +290,8 @@
 - Documentation: 3 items
 - Testing: 3 items
 - UX Enhancements: 3 items
+- Terminal Aesthetic: 9 items
 - Rejected: 4 items
 
-**Estimated Total Effort**: ~30-35 hours
-**Highest Priority Items**: Memory leak detection, rate limiting, architecture documentation
+**Estimated Total Effort**: ~45-50 hours
+**Highest Priority Items**: Memory leak detection, rate limiting, architecture documentation, multi-column list view
