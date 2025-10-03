@@ -1,23 +1,6 @@
 import { NextRequest } from 'next/server';
 import { vi } from 'vitest';
 
-// Mock Clerk auth
-export const mockAuth = (userId: string | null = 'test-user-id') => {
-  vi.mock('@clerk/nextjs/server', () => ({
-    auth: vi.fn<() => Promise<{ userId: string | null }>>().mockResolvedValue({ userId }),
-    currentUser: vi.fn<() => Promise<any>>().mockResolvedValue(
-      userId
-        ? {
-            id: userId,
-            emailAddresses: [{ emailAddress: 'test@example.com' }],
-            firstName: 'Test',
-            lastName: 'User',
-          }
-        : null
-    ),
-  }));
-};
-
 // Mock Prisma client
 export const mockPrisma = () => {
   const mockAsset = {
