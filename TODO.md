@@ -112,7 +112,7 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 
 ---
 
-### Task 3: Fix asset-crud.test.ts Prisma Mocks (11 failures) [~]
+### Task 3: Fix asset-crud.test.ts Prisma Mocks (11 failures) [x]
 
 **File**: `__tests__/api/asset-crud.test.ts`
 **Failures**: 11/15 tests
