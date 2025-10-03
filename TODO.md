@@ -150,7 +150,7 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 2. Verify queue state after each processNext() call
 3. Determine if test expectation is wrong or implementation has bug
 
-**Task 4: Debug and Fix FIFO Order Test**
+**Task 4: Debug and Fix FIFO Order Test** [~]
 
 **Steps**:
 1. Add logging to understand actual behavior:

@@ -58,6 +58,9 @@ describe('DistributedQueue', () => {
     });
 
     it('should maintain FIFO order within same priority', async () => {
+      // Mock Math.random to ensure deterministic processing (always < 0.8 for normal queue)
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
       queue.enqueue('normal-1', 'normal');
       queue.enqueue('normal-2', 'normal');
       queue.enqueue('normal-3', 'normal');
@@ -72,6 +75,8 @@ describe('DistributedQueue', () => {
       await queue.processNext();
 
       expect(processed).toEqual(['normal-1', 'normal-2', 'normal-3']);
+
+      mockRandom.mockRestore();
     });
   });
 

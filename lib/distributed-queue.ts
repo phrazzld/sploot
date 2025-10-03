@@ -46,13 +46,14 @@ export interface QueueMetrics {
  * Priority Queue implementation using a min-heap
  */
 class PriorityQueue<T> {
-  private items: Array<{ item: T; priority: number }> = [];
+  private items: Array<{ item: T; priority: number; sequence: number }> = [];
+  private sequenceCounter: number = 0;
 
   constructor(private basePriority: number) {}
 
   enqueue(item: T, additionalPriority: number = 0): void {
     const priority = this.basePriority + additionalPriority;
-    this.items.push({ item, priority });
+    this.items.push({ item, priority, sequence: this.sequenceCounter++ });
     this.bubbleUp(this.items.length - 1);
   }
 
@@ -85,8 +86,16 @@ class PriorityQueue<T> {
   private bubbleUp(index: number): void {
     while (index > 0) {
       const parentIndex = Math.floor((index - 1) / 2);
-      if (this.items[index].priority >= this.items[parentIndex].priority) break;
-      [this.items[index], this.items[parentIndex]] = [this.items[parentIndex], this.items[index]];
+      const current = this.items[index];
+      const parent = this.items[parentIndex];
+
+      // Compare priority first, then sequence for FIFO order
+      if (current.priority > parent.priority ||
+          (current.priority === parent.priority && current.sequence >= parent.sequence)) {
+        break;
+      }
+
+      [this.items[index], this.items[parentIndex]] = [parent, current];
       index = parentIndex;
     }
   }
@@ -97,14 +106,24 @@ class PriorityQueue<T> {
       const right = 2 * index + 2;
       let smallest = index;
 
-      if (left < this.items.length &&
-          this.items[left].priority < this.items[smallest].priority) {
-        smallest = left;
+      // Compare with left child
+      if (left < this.items.length) {
+        const leftItem = this.items[left];
+        const smallestItem = this.items[smallest];
+        if (leftItem.priority < smallestItem.priority ||
+            (leftItem.priority === smallestItem.priority && leftItem.sequence < smallestItem.sequence)) {
+          smallest = left;
+        }
       }
 
-      if (right < this.items.length &&
-          this.items[right].priority < this.items[smallest].priority) {
-        smallest = right;
+      // Compare with right child
+      if (right < this.items.length) {
+        const rightItem = this.items[right];
+        const smallestItem = this.items[smallest];
+        if (rightItem.priority < smallestItem.priority ||
+            (rightItem.priority === smallestItem.priority && rightItem.sequence < smallestItem.sequence)) {
+          smallest = right;
+        }
       }
 
       if (smallest === index) break;
