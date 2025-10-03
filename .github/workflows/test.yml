@@ -29,11 +29,17 @@ jobs:
         run: pnpm install
 
       - name: Run tests with coverage
+        id: test
         run: pnpm test:coverage
+        continue-on-error: true
 
       - name: Coverage Report
         uses: davelosert/vitest-coverage-report-action@v2
-        if: always()
+        if: steps.test.outcome == 'success'
         with:
           json-summary-path: ./coverage/coverage-summary.json
           json-final-path: ./coverage/coverage-final.json
+
+      - name: Fail if tests failed
+        if: steps.test.outcome == 'failure'
+        run: exit 1
