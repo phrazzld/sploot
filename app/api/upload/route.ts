@@ -8,7 +8,6 @@ import crypto from 'crypto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { processUploadedImage } from '@/lib/image-processing';
-import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 /**
  * Configure route segment options
@@ -20,11 +19,24 @@ export const maxDuration = 60; // 60 second timeout for upload operations
 /**
  * Direct file upload endpoint - handles file upload server-side
  * This is more reliable than client-side uploads for the initial implementation
+ *
+ * CONCURRENCY HANDLING:
+ * The upload flow handles race conditions via database unique constraint on (ownerUserId, checksumSha256).
+ * When simultaneous uploads of identical files occur:
+ * 1. Both requests upload blobs to storage
+ * 2. First request succeeds in DB insert
+ * 3. Second request catches P2002 (unique constraint violation)
+ * 4. Second request cleans up its duplicate blobs and returns existing asset
+ *
+ * Alternative approaches considered:
+ * - Postgres advisory locks: Adds complexity, requires connection pool management
+ * - Pre-upload existence check only: Still has TOCTOU window between check and blob upload
+ * - Idempotent blob names: Works but requires deterministic naming that could expose user data
+ *
+ * Current approach is simplest and safest - database constraint is atomic and cleanup is reliable.
  */
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
-  const tracker = getGlobalPerformanceTracker();
-  tracker.start(PERF_OPERATIONS.UPLOAD_SINGLE);
 
   try {
     // Check if we should generate embeddings synchronously (slower but more reliable)
@@ -96,12 +108,9 @@ export async function POST(req: NextRequest) {
 
     // Process image to create optimized versions
     let processedImages;
-    tracker.start('image:processing');
     try {
       processedImages = await processUploadedImage(buffer, file.type);
-      tracker.end('image:processing');
     } catch (error) {
-      tracker.end('image:processing');
       console.error('Image processing failed:', error);
       // Fall back to original image if processing fails
       processedImages = null;
@@ -223,13 +232,11 @@ export async function POST(req: NextRequest) {
     // Upload to Vercel Blob storage
     try {
       // Upload main image (processed or original)
-      tracker.start(PERF_OPERATIONS.UPLOAD_TO_BLOB);
       const mainBuffer = processedImages ? processedImages.main.buffer : buffer;
       const blob = await put(uniqueFilename, mainBuffer, {
         access: 'public',
         addRandomSuffix: false,
       });
-      tracker.end(PERF_OPERATIONS.UPLOAD_TO_BLOB);
 
       // Upload thumbnail if processing succeeded
       let thumbnailBlob = null;
@@ -247,18 +254,48 @@ export async function POST(req: NextRequest) {
 
       // Create asset record in database (required for the asset to be visible)
       const dbStartTime = Date.now();
-      tracker.start(PERF_OPERATIONS.UPLOAD_TO_DB);
       if (!databaseAvailable || !prisma) {
         // Clean up uploaded file if database is not available
+        const cleanupErrors: string[] = [];
         try {
           const { del } = await import('@vercel/blob');
-          await del(blob.url);
+
+          // Delete main blob
+          try {
+            await del(blob.url);
+            console.log(`[cleanup] Successfully deleted blob after DB unavailable: ${blob.url}`);
+          } catch (mainDelError) {
+            const error = `Failed to delete main blob: ${mainDelError}`;
+            console.error(`[cleanup] ${error}`);
+            cleanupErrors.push(error);
+          }
+
+          // Delete thumbnail blob if it exists
+          if (thumbnailBlob) {
+            try {
+              await del(thumbnailBlob.url);
+              console.log(`[cleanup] Successfully deleted thumbnail after DB unavailable: ${thumbnailBlob.url}`);
+            } catch (thumbDelError) {
+              const error = `Failed to delete thumbnail: ${thumbDelError}`;
+              console.error(`[cleanup] ${error}`);
+              cleanupErrors.push(error);
+            }
+          }
         } catch (cleanupError) {
-          console.error('Failed to cleanup uploaded file:', cleanupError);
+          const error = `Failed to import del function: ${cleanupError}`;
+          console.error(`[cleanup] ${error}`);
+          cleanupErrors.push(error);
         }
 
-        tracker.end(PERF_OPERATIONS.UPLOAD_TO_DB);
-        tracker.end(PERF_OPERATIONS.UPLOAD_SINGLE);
+        // Log warning if cleanup failed
+        if (cleanupErrors.length > 0) {
+          console.error(`[ORPHAN ALERT] Failed to cleanup ${cleanupErrors.length} blob(s) after DB unavailable. Manual cleanup required:`, {
+            mainBlob: blob.url,
+            thumbnailBlob: thumbnailBlob?.url,
+            errors: cleanupErrors,
+          });
+        }
+
         console.log(`[perf] Upload failed - database unavailable (${Date.now() - startTime}ms)`);
         return NextResponse.json(
           {
@@ -323,20 +360,16 @@ export async function POST(req: NextRequest) {
           return newAsset;
         });
 
-        tracker.end(PERF_OPERATIONS.UPLOAD_TO_DB);
         console.log(`[perf] Database write: ${Date.now() - dbStartTime}ms`);
 
         // Generate embeddings based on sync preference
         if (syncEmbeddings) {
           // Synchronous: Generate embeddings immediately (slower but reliable)
           const embeddingStartTime = Date.now();
-          tracker.start(PERF_OPERATIONS.EMBEDDING_GENERATE);
           try {
             await generateEmbeddingAsync(asset.id, asset.blobUrl, asset.checksumSha256);
-            tracker.end(PERF_OPERATIONS.EMBEDDING_GENERATE);
             console.log(`[sync] Successfully generated embedding for asset ${asset.id} (${Date.now() - embeddingStartTime}ms)`);
           } catch (embError) {
-            tracker.end(PERF_OPERATIONS.EMBEDDING_GENERATE);
             console.error(`[sync] Failed to generate embedding for asset ${asset.id}:`, embError);
             // Don't fail the upload if embedding fails
           }
@@ -347,16 +380,9 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        const totalTime = tracker.end(PERF_OPERATIONS.UPLOAD_SINGLE) || (Date.now() - startTime);
+        const totalTime = Date.now() - startTime;
         console.log(`[perf] Upload completed successfully in ${totalTime}ms`);
 
-        // Log performance summary periodically
-        if (tracker.getSampleCount(PERF_OPERATIONS.UPLOAD_SINGLE) % 10 === 0) {
-          const summary = tracker.getSummary(PERF_OPERATIONS.UPLOAD_SINGLE);
-          if (summary) {
-            console.log(`[perf] Upload stats - Avg: ${summary.average.toFixed(0)}ms, P95: ${summary.p95.toFixed(0)}ms, Samples: ${summary.samples}`);
-          }
-        }
         return NextResponse.json({
           success: true,
           asset: {
@@ -382,16 +408,44 @@ export async function POST(req: NextRequest) {
           const existingAsset = await assetExists(userId, checksum);
           if (existingAsset) {
             // Clean up the uploaded files since we have a duplicate
+            const cleanupErrors: string[] = [];
             try {
               const { del } = await import('@vercel/blob');
-              await del(blob.url);
+
+              // Delete main blob
+              try {
+                await del(blob.url);
+                console.log(`[cleanup] Successfully deleted duplicate blob: ${blob.url}`);
+              } catch (mainDelError) {
+                const error = `Failed to delete duplicate main blob: ${mainDelError}`;
+                console.error(`[cleanup] ${error}`);
+                cleanupErrors.push(error);
+              }
+
+              // Delete thumbnail blob if it exists
               if (thumbnailBlob) {
-                await del(thumbnailBlob.url).catch(err =>
-                  console.error('Failed to cleanup thumbnail:', err)
-                );
+                try {
+                  await del(thumbnailBlob.url);
+                  console.log(`[cleanup] Successfully deleted duplicate thumbnail: ${thumbnailBlob.url}`);
+                } catch (thumbDelError) {
+                  const error = `Failed to delete duplicate thumbnail: ${thumbDelError}`;
+                  console.error(`[cleanup] ${error}`);
+                  cleanupErrors.push(error);
+                }
               }
             } catch (cleanupError) {
-              console.error('Failed to cleanup duplicate upload:', cleanupError);
+              const error = `Failed to import del function: ${cleanupError}`;
+              console.error(`[cleanup] ${error}`);
+              cleanupErrors.push(error);
+            }
+
+            // Log warning if cleanup failed
+            if (cleanupErrors.length > 0) {
+              console.error(`[ORPHAN ALERT] Failed to cleanup ${cleanupErrors.length} duplicate blob(s). Manual cleanup required:`, {
+                mainBlob: blob.url,
+                thumbnailBlob: thumbnailBlob?.url,
+                errors: cleanupErrors,
+              });
             }
 
             // Generate embeddings for existing asset if missing
@@ -431,16 +485,45 @@ export async function POST(req: NextRequest) {
         }
 
         // Clean up uploaded files since database record creation failed
+        // This is critical to prevent orphaned blobs
+        const cleanupErrors: string[] = [];
         try {
           const { del } = await import('@vercel/blob');
-          await del(blob.url);
+
+          // Delete main blob
+          try {
+            await del(blob.url);
+            console.log(`[cleanup] Successfully deleted orphaned blob: ${blob.url}`);
+          } catch (mainDelError) {
+            const error = `Failed to delete main blob ${blob.url}: ${mainDelError}`;
+            console.error(`[cleanup] ${error}`);
+            cleanupErrors.push(error);
+          }
+
+          // Delete thumbnail blob if it exists
           if (thumbnailBlob) {
-            await del(thumbnailBlob.url).catch(err =>
-              console.error('Failed to cleanup thumbnail:', err)
-            );
+            try {
+              await del(thumbnailBlob.url);
+              console.log(`[cleanup] Successfully deleted orphaned thumbnail: ${thumbnailBlob.url}`);
+            } catch (thumbDelError) {
+              const error = `Failed to delete thumbnail ${thumbnailBlob.url}: ${thumbDelError}`;
+              console.error(`[cleanup] ${error}`);
+              cleanupErrors.push(error);
+            }
           }
         } catch (cleanupError) {
-          console.error('Failed to cleanup uploaded file:', cleanupError);
+          const error = `Failed to import del function: ${cleanupError}`;
+          console.error(`[cleanup] ${error}`);
+          cleanupErrors.push(error);
+        }
+
+        // If cleanup failed, log explicit warning about orphaned blob
+        if (cleanupErrors.length > 0) {
+          console.error(`[ORPHAN ALERT] Failed to cleanup ${cleanupErrors.length} blob(s) after DB error. Manual cleanup required:`, {
+            mainBlob: blob.url,
+            thumbnailBlob: thumbnailBlob?.url,
+            errors: cleanupErrors,
+          });
         }
 
         console.log(`[perf] Upload failed - database error (${Date.now() - startTime}ms)`);
@@ -543,10 +626,36 @@ async function generateEmbeddingAsync(
     console.log(`Embedding generated successfully for asset ${assetId}`);
   } catch (error) {
     // Log error but don't throw - this is background processing
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
     if (error instanceof EmbeddingError) {
-      console.error(`Embedding generation failed for asset ${assetId}:`, error.message);
+      console.error(`Embedding generation failed for asset ${assetId}:`, errorMessage);
     } else {
       console.error(`Unexpected error generating embedding for asset ${assetId}:`, error);
+    }
+
+    // Update embedding status to 'failed' so UI can show error state
+    try {
+      if (databaseAvailable && prisma) {
+        await prisma.assetEmbedding.upsert({
+          where: { assetId },
+          create: {
+            assetId,
+            modelName: 'unknown',
+            modelVersion: 'unknown',
+            dim: 0,
+            status: 'failed',
+            error: errorMessage,
+          },
+          update: {
+            status: 'failed',
+            error: errorMessage,
+          },
+        });
+        console.log(`Marked embedding as failed for asset ${assetId}`);
+      }
+    } catch (updateError) {
+      console.error(`Failed to update embedding status for asset ${assetId}:`, updateError);
     }
   }
 }

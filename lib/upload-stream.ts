@@ -341,6 +341,9 @@ export function createUploadStream(
  * React hook for streaming uploads
  */
 export function useUploadStream(options?: UploadStreamOptions) {
+  const React = require('react');
+  const uploaderRef = React.useRef(null) as { current: UploadStream | null };
+
   if (typeof window === 'undefined') {
     return {
       createStream: (_: File) => new ReadableStream<StreamedChunk>(),
@@ -348,9 +351,6 @@ export function useUploadStream(options?: UploadStreamOptions) {
       calculateChecksum: async (_: File) => ''
     };
   }
-
-  const React = require('react');
-  const uploaderRef = React.useRef(null) as { current: UploadStream | null };
 
   if (!uploaderRef.current) {
     uploaderRef.current = new UploadStream(options);

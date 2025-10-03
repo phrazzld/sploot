@@ -35,8 +35,8 @@ model User {
 model Asset {
   id              String    @id @default(cuid())
   ownerUserId     String    @map("owner_user_id")
-  blobUrl         String    @map("blob_url")
-  thumbnailUrl    String?   @map("thumbnail_url") // URL for 256px thumbnail
+  blobUrl         String    @map("blob_url") // Validated via CHECK constraint: https://[a-z0-9-]+.public.blob.vercel-storage.com/*
+  thumbnailUrl    String?   @map("thumbnail_url") // URL for 256px thumbnail. Validated via CHECK constraint if set
   pathname        String    // Path in blob storage
   thumbnailPath   String?   @map("thumbnail_path") // Path for thumbnail in blob storage
   mime            String

@@ -1,46 +1,31 @@
 import { POST } from '@/app/api/search/advanced/route';
-import { createMockRequest, mockPrisma, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
+import { createMockRequest, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
+import { auth } from '@clerk/nextjs/server';
+import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
+import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
+import { prisma, vectorSearch, logSearch } from '@/lib/db';
 
 // Mock dependencies
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
-}));
+vi.mock('@clerk/nextjs/server');
+vi.mock('@/lib/db');
+vi.mock('@/lib/embeddings');
+vi.mock('@/lib/multi-layer-cache');
 
-jest.mock('@/lib/db', () => {
-  const helpers = require('../utils/test-helpers');
-  return {
-    prisma: helpers.mockPrisma(),
-    vectorSearch: jest.fn(),
-    logSearch: jest.fn(),
-  };
-});
-
-jest.mock('@/lib/embeddings', () => ({
-  createEmbeddingService: jest.fn(),
-  EmbeddingError: class EmbeddingError extends Error {
-    constructor(message: string, public statusCode?: number) {
-      super(message);
-    }
-  },
-}));
-
-jest.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: jest.fn(),
-  getMultiLayerCache: jest.fn(),
-}));
-
-const mockAuth = require('@clerk/nextjs/server').auth;
-const { createEmbeddingService } = require('@/lib/embeddings');
-const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer-cache');
-const { prisma, vectorSearch, logSearch } = require('@/lib/db');
+const mockAuth = vi.mocked(auth);
+const mockPrisma = vi.mocked(prisma);
+const mockVectorSearch = vi.mocked(vectorSearch);
+const mockLogSearch = vi.mocked(logSearch);
+const mockCreateEmbeddingService = vi.mocked(createEmbeddingService);
+const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
+const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('/api/search/advanced', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    createEmbeddingService.mockReturnValue(mockEmbeddingService());
+    vi.clearAllMocks();
+    mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService());
     const mockCache = mockMultiLayerCache();
-    createMultiLayerCache.mockReturnValue(mockCache);
-    getMultiLayerCache.mockReturnValue(mockCache);
+    mockCreateMultiLayerCache.mockReturnValue(mockCache);
+    mockGetMultiLayerCache.mockReturnValue(mockCache);
   });
 
   describe('POST', () => {

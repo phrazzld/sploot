@@ -11,6 +11,26 @@ const nextConfig: NextConfig = {
     // Allow production builds to succeed even if there are ESLint errors
     ignoreDuringBuilds: true,
   },
+  // Image optimization configuration
+  images: {
+    // Configure domains for Next.js Image optimization
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '*.public.blob.vercel-storage.com',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.blob.vercel-storage.com',
+      }
+    ],
+    // Enable WebP and AVIF formats for better compression
+    formats: ['image/avif', 'image/webp'],
+    // Set device sizes for responsive images
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
+    // Set image sizes for different breakpoints
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
+  },
   // Compiler optimizations for production
   compiler: {
     // Remove all console statements in production builds

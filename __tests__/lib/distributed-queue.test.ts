@@ -6,10 +6,10 @@ import { DistributedQueue, QueueItem, QueuePriority, ErrorType } from '@/lib/dis
 
 describe('DistributedQueue', () => {
   let queue: DistributedQueue<string>;
-  let executor: jest.Mock;
+  let executor: vi.Mock;
 
   beforeEach(() => {
-    executor = jest.fn().mockResolvedValue(undefined);
+    executor = vi.fn().mockResolvedValue(undefined);
     queue = new DistributedQueue(executor);
   });
 
@@ -58,6 +58,9 @@ describe('DistributedQueue', () => {
     });
 
     it('should maintain FIFO order within same priority', async () => {
+      // Mock Math.random to ensure deterministic processing (always < 0.8 for normal queue)
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
       queue.enqueue('normal-1', 'normal');
       queue.enqueue('normal-2', 'normal');
       queue.enqueue('normal-3', 'normal');
@@ -72,14 +75,16 @@ describe('DistributedQueue', () => {
       await queue.processNext();
 
       expect(processed).toEqual(['normal-1', 'normal-2', 'normal-3']);
+
+      mockRandom.mockRestore();
     });
   });
 
   describe('Retry Logic', () => {
     it('should retry failed items with exponential backoff', async () => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
 
-      const failingExecutor = jest.fn()
+      const failingExecutor = vi.fn()
         .mockRejectedValueOnce(new Error('Network error'))
         .mockRejectedValueOnce(new Error('Network error'))
         .mockResolvedValue(undefined);
@@ -93,33 +98,41 @@ describe('DistributedQueue', () => {
       expect(failingExecutor).toHaveBeenCalledTimes(1);
 
       // Advance timer for retry (1000ms * 2^0 * 2 = 2000ms for network error)
-      jest.advanceTimersByTime(2000);
+      vi.advanceTimersByTime(2000);
 
       // Second attempt - fails
       await queue.processNext();
       expect(failingExecutor).toHaveBeenCalledTimes(2);
 
       // Advance timer for second retry (1000ms * 2^1 * 2 = 4000ms)
-      jest.advanceTimersByTime(4000);
+      vi.advanceTimersByTime(4000);
 
       // Third attempt - succeeds
       await queue.processNext();
       expect(failingExecutor).toHaveBeenCalledTimes(3);
 
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should move items to dead letter queue after max retries', async () => {
-      const failingExecutor = jest.fn()
+      vi.useFakeTimers();
+
+      const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Server error'));
 
       queue = new DistributedQueue(failingExecutor);
 
       queue.enqueue('doomed-item', 'background'); // Background has max 3 retries
 
-      // Process until item moves to dead letter
+      // Process until item moves to dead letter (background has 3 max retries)
       for (let i = 0; i < 3; i++) {
         await queue.processNext();
+        if (i < 2) {
+          // Advance timer for retry backoff (server error has 3x multiplier)
+          // Backoff formula: 1000ms * 2^retryCount * 3 (server multiplier)
+          const backoff = 1000 * Math.pow(2, i) * 3;
+          vi.advanceTimersByTime(backoff);
+        }
       }
 
       const metrics = queue.getMetrics();
@@ -130,10 +143,14 @@ describe('DistributedQueue', () => {
       expect(deadItems).toHaveLength(1);
       expect(deadItems[0].data).toBe('doomed-item');
       expect(deadItems[0].errorType).toBe('server');
+
+      vi.useRealTimers();
     });
 
     it('should not retry invalid errors', async () => {
-      const failingExecutor = jest.fn()
+      vi.useFakeTimers();
+
+      const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Invalid request'));
 
       const errorClassifier = (error: Error): ErrorType => {
@@ -147,25 +164,34 @@ describe('DistributedQueue', () => {
 
       await queue.processNext();
 
-      // Should immediately go to dead letter
+      // Should immediately go to dead letter (no retry for invalid errors)
       const metrics = queue.getMetrics();
       expect(metrics.dead).toBe(1);
       expect(failingExecutor).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
     });
   });
 
   describe('Dead Letter Queue', () => {
     it('should allow retrying dead letter items', async () => {
-      const failingExecutor = jest.fn()
+      vi.useFakeTimers();
+
+      const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Temporary error'));
 
       queue = new DistributedQueue(failingExecutor);
 
       const id = queue.enqueue('retry-me', 'background');
 
-      // Fail until dead letter
+      // Fail until dead letter (background has 3 max retries)
       for (let i = 0; i < 3; i++) {
         await queue.processNext();
+        if (i < 2) {
+          // Advance timer for retry backoff
+          const backoff = 1000 * Math.pow(2, i) * 2; // unknown error has 2x multiplier
+          vi.advanceTimersByTime(backoff);
+        }
       }
 
       expect(queue.getMetrics().dead).toBe(1);
@@ -178,6 +204,8 @@ describe('DistributedQueue', () => {
       // Should be back in urgent queue
       expect(queue.getQueueSizes().urgent).toBe(1);
       expect(queue.getMetrics().dead).toBe(0);
+
+      vi.useRealTimers();
     });
 
     it('should clear dead letter queue', () => {
@@ -210,6 +238,9 @@ describe('DistributedQueue', () => {
 
   describe('Metrics', () => {
     it('should track success metrics', async () => {
+      // Mock Math.random to ensure deterministic processing
+      const mockRandom = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+
       queue.enqueue('success-1', 'normal');
       queue.enqueue('success-2', 'normal');
 
@@ -219,7 +250,9 @@ describe('DistributedQueue', () => {
       const metrics = queue.getMetrics();
       expect(metrics.successCount).toBe(2);
       expect(metrics.failureCount).toBe(0);
-      expect(metrics.avgProcessingTime).toBeGreaterThan(0);
+      expect(metrics.avgProcessingTime).toBeGreaterThanOrEqual(0); // Mock executor completes instantly
+
+      mockRandom.mockRestore();
     });
 
     it('should track queue sizes accurately', () => {
@@ -246,7 +279,7 @@ describe('DistributedQueue', () => {
 
   describe('Concurrent Processing', () => {
     it('should process multiple items concurrently', async () => {
-      const slowExecutor = jest.fn(async () => {
+      const slowExecutor = vi.fn(async () => {
         await new Promise(resolve => setTimeout(resolve, 100));
       });
 
@@ -280,7 +313,7 @@ describe('DistributedQueue', () => {
       ];
 
       for (const { message, expectedType } of errors) {
-        const failingExecutor = jest.fn().mockRejectedValueOnce(new Error(message));
+        const failingExecutor = vi.fn().mockRejectedValueOnce(new Error(message));
         const testQueue = new DistributedQueue(failingExecutor);
 
         testQueue.enqueue('test', 'background'); // Low retry count

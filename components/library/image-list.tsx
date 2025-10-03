@@ -1,11 +1,13 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 import { HeartIcon } from '@/components/icons/heart-icon';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { ImageGridSkeleton } from './image-skeleton';
+import { EmptyState } from './empty-state';
 import { error as logError } from '@/lib/logger';
 import type { Asset } from '@/lib/types';
 
@@ -75,7 +77,7 @@ function ListRow({
     const shouldDeleteImmediately = deleteConfirmation.openConfirmation({
       id: asset.id,
       imageUrl: asset.thumbnailUrl || asset.blobUrl,
-      imageName: asset.filename,
+      imageName: asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image',
     });
 
     if (shouldDeleteImmediately) {
@@ -118,12 +120,14 @@ function ListRow({
         tabIndex={0}
         onClick={handleRowClick}
         onKeyDown={handleRowKeyDown}
-        className="group flex w-full items-center gap-4 rounded-2xl border border-transparent bg-[#14171A] px-4 py-3 text-left transition-colors hover:border-[#2A2F37] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+        className="group flex w-full items-center gap-3 rounded-lg bg-[#0F1012] px-3 py-2 text-left transition-all hover:ring-1 hover:ring-[#7C5CFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
       >
-        <div className="relative h-16 w-16 flex-shrink-0 overflow-hidden rounded-xl bg-[#0F1216]">
-          <img
+        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-[#0F1012]">
+          <Image
             src={asset.thumbnailUrl || asset.blobUrl}
-            alt={asset.filename}
+            alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
+            width={56}
+            height={56}
             className="h-full w-full object-cover"
           />
           {asset.favorite && (
@@ -135,7 +139,7 @@ function ListRow({
 
         <div className="flex flex-1 items-center gap-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[#E6E8EB]">{asset.filename}</p>
+            <p className="truncate text-sm font-medium text-[#E6E8EB]">{asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image'}</p>
             <p className="mt-1 text-xs text-[#8E94A3]">{asset.mime.toUpperCase()}</p>
             {asset.tags && asset.tags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
@@ -216,10 +220,23 @@ export function ImageList({
   containerClassName,
 }: ImageListProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [showingTransition, setShowingTransition] = useState(false);
 
   useEffect(() => {
     onScrollContainerReady?.(containerRef.current);
   }, [onScrollContainerReady]);
+
+  // Handle transition from skeleton to empty state
+  useEffect(() => {
+    if (!loading && assets.length === 0) {
+      // Start transition: show skeleton fading out
+      setShowingTransition(true);
+      const timer = setTimeout(() => {
+        setShowingTransition(false);
+      }, 300); // Match the fade-out duration
+      return () => clearTimeout(timer);
+    }
+  }, [loading, assets.length]);
 
   useEffect(() => {
     const node = containerRef.current;
@@ -239,31 +256,11 @@ export function ImageList({
   }, [hasMore, loading, onLoadMore]);
 
   const emptyState = useMemo(
+    // Hide upload button since the main page toolbar already has a prominent one
+    // Fade in after skeleton transition completes
     () => (
-      <div className="flex h-full min-h-[320px] items-center justify-center px-4">
-        <div className="w-full max-w-lg rounded-3xl border border-dashed border-[#2A2F37] bg-[#14171A] p-10 text-center">
-          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-2xl bg-[#1B1F24]">
-            <svg
-              className="h-10 w-10 text-[#7C5CFF]"
-              viewBox="0 0 48 48"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect x="6" y="8" width="36" height="28" rx="5" stroke="currentColor" strokeWidth="2" opacity="0.9" />
-              <path
-                d="M14 28l7.2-8.5a2 2 0 013 0l4.3 5.1a2 2 0 003 .1L34 22"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.9"
-              />
-              <circle cx="33" cy="17" r="2.5" fill="currentColor" opacity="0.9" />
-            </svg>
-          </div>
-          <h3 className="mt-6 text-lg font-semibold text-[#E6E8EB]">no memes yet</h3>
-          <p className="mt-2 text-sm text-[#B3B7BE]">drop something spicy to start your feed.</p>
-        </div>
+      <div className="animate-fade-in">
+        <EmptyState variant="first-use" showUploadButton={false} />
       </div>
     ),
     []
@@ -277,10 +274,16 @@ export function ImageList({
     >
       {assets.length === 0 && loading ? (
         <ImageGridSkeleton count={12} variant="list" className="animate-fade-in" />
+      ) : assets.length === 0 && !loading && showingTransition ? (
+        <ImageGridSkeleton
+          count={12}
+          variant="list"
+          className="animate-fade-out opacity-0 transition-opacity duration-300 ease-out"
+        />
       ) : assets.length === 0 && !loading ? (
         emptyState
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-1">
           {assets.map((asset, index) => (
             <ListRow
               key={asset.id}

@@ -326,7 +326,8 @@ export class EmbeddingQueueManager {
     }
 
     // Increment retry count for counted retries
-    if (errorType !== 'rate_limit' && !(errorType === 'network' && item.retryCount === 0)) {
+    // Note: rate_limit is already handled above with early return
+    if (!(errorType === 'network' && item.retryCount === 0)) {
       item.retryCount++;
     }
 

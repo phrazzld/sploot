@@ -1,12 +1,14 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import Image from 'next/image';
 import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
-import { MasonryGrid } from '@/components/library/masonry-grid';
 import { ImageList } from '@/components/library/image-list';
+import { AssetIntegrityBanner } from '@/components/library/asset-integrity-banner';
 import { SearchBar, SearchLoadingScreen } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
@@ -14,22 +16,41 @@ import { HeartIcon } from '@/components/icons/heart-icon';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
-import { useSearchShortcut } from '@/hooks/use-keyboard-shortcut';
+import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
+import { CommandPalette, useCommandPalette } from '@/components/chrome/command-palette';
+import { useSortPreferences } from '@/hooks/use-sort-preferences';
+import { useFilter } from '@/contexts/filter-context';
+import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
 
-export default function AppPage() {
+function AppPageClient() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const queryParam = searchParams.get('q') ?? '';
-  const tagIdParam = searchParams.get('tagId');
-  const favoritesOnly = searchParams.get('favorite') === 'true';
+
+  // Use filter context for centralized filter state
+  const {
+    filterType,
+    tagId: tagIdParam,
+    tagName: contextTagName,
+    isFavoritesOnly: favoritesOnly,
+    isRecentFilter,
+    toggleFavorites,
+    clearTagFilter,
+    setTagFilter,
+  } = useFilter();
+  const viewModeParam = searchParams.get('view') as ViewMode | null;
+  const viewMode = viewModeParam || 'grid'; // Default to grid if not specified
 
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'masonry' | 'list'>('grid');
-  const [sortBy, setSortBy] = useState<'createdAt' | 'favorite' | 'size' | 'filename'>('createdAt');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+
+  // Command palette state
+  const { isOpen: isCommandPaletteOpen, openPalette, closePalette } = useCommandPalette();
+
+  // Use sort preferences hook with localStorage persistence and debouncing
+  const { sortBy, direction: sortOrder, handleSortChange, getSortColumn } = useSortPreferences();
   const [failedEmbeddings, setFailedEmbeddings] = useState<EmbeddingQueueItem[]>([]);
   const [showRetryModal, setShowRetryModal] = useState(false);
   const [retryProgress, setRetryProgress] = useState({ current: 0, total: 0, processing: false });
@@ -49,12 +70,14 @@ export default function AppPage() {
     tagId: string | null;
     favorites: boolean;
     sortBy: string;
-    sortOrder: string;
+    sortDirection: string;
   } | undefined>(undefined);
   const pendingRefreshRef = useRef<boolean>(false);
 
-  // Convert filename to createdAt for the actual sorting
-  const actualSortBy = sortBy === 'filename' ? 'createdAt' : sortBy;
+  // Get the actual database column for sorting
+  // When recent filter is active, always sort by createdAt desc
+  const actualSortBy = isRecentFilter ? 'createdAt' : getSortColumn(sortBy);
+  const actualSortOrder = isRecentFilter ? 'desc' : sortOrder;
 
   // Sync URL parameter to local state (for browser navigation)
   // but NOT during typing to prevent sync loops
@@ -96,14 +119,15 @@ export default function AppPage() {
     loading,
     hasMore,
     total,
+    integrityIssue,
     loadAssets,
     updateAsset,
     deleteAsset,
     refresh,
   } = useAssets({
     initialLimit: 100,
-    sortBy: actualSortBy,
-    sortOrder,
+    sortBy: actualSortBy as 'createdAt' | 'size' | 'favorite' | undefined,
+    sortOrder: actualSortOrder as 'asc' | 'desc',
     autoLoad: true,
     filterFavorites: favoritesOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,
@@ -147,41 +171,25 @@ export default function AppPage() {
   }, []);
 
   // Global keyboard shortcut to focus search (Cmd+K / Ctrl+K)
-  useSearchShortcut(() => {
+  const focusSearchBar = useCallback(() => {
     // Focus the search input using a query selector since we can't easily pass refs through all components
     const searchInput = document.querySelector('[data-search-bar] input') as HTMLInputElement;
     if (searchInput) {
       searchInput.focus();
       searchInput.select(); // Select all text for quick replacement
     }
-  });
+  }, []);
 
-  // Load preferences from localStorage on mount
+  // Replace search shortcut with command palette
+  useSearchShortcut(openPalette);
+
+  // Also add "/" key shortcut to focus search
+  useSlashSearchShortcut(focusSearchBar);
+
+  // Mark as client-side mounted
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedViewMode = localStorage.getItem('viewMode') as 'grid' | 'masonry' | 'list';
-      const savedSortBy = localStorage.getItem('sortBy') as 'createdAt' | 'favorite' | 'size' | 'filename';
-      const savedSortOrder = localStorage.getItem('sortOrder') as 'asc' | 'desc';
-
-      if (savedViewMode) setViewMode(savedViewMode);
-      if (savedSortBy) setSortBy(savedSortBy);
-      if (savedSortOrder) setSortOrder(savedSortOrder);
-    }
-  }, []); // Only run once on mount
-
-  // Save preferences to localStorage
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('viewMode', viewMode);
-    }
-  }, [viewMode]);
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('sortBy', sortBy);
-      localStorage.setItem('sortOrder', sortOrder);
-    }
-  }, [sortBy, sortOrder]);
+    setIsClient(true);
+  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -306,13 +314,19 @@ export default function AppPage() {
 
   const searchHitCount = filteredSearchAssets.length;
 
-  const activeTagName = useMemo(() => {
-    if (!tagIdParam) return null;
+  // Update tag name when we have the asset data
+  useEffect(() => {
+    if (!tagIdParam || contextTagName) return;
     const fromAssets = [...assets, ...searchAssets].find((asset) =>
       asset.tags?.some((tag) => tag.id === tagIdParam)
     );
-    return fromAssets?.tags?.find((tag) => tag.id === tagIdParam)?.name ?? null;
-  }, [assets, searchAssets, tagIdParam]);
+    const tagName = fromAssets?.tags?.find((tag) => tag.id === tagIdParam)?.name ?? null;
+    if (tagName && tagName !== contextTagName) {
+      setTagFilter(tagIdParam, tagName);
+    }
+  }, [assets, searchAssets, tagIdParam, contextTagName, setTagFilter]);
+
+  const activeTagName = contextTagName;
 
   const handleInlineSearch = useCallback((searchCommand: { query: string; timestamp: number; updateUrl?: boolean }) => {
     const query = searchCommand.query;
@@ -332,13 +346,8 @@ export default function AppPage() {
     }
   }, [updateUrlParams]);
 
-  const toggleFavoritesOnly = useCallback(() => {
-    updateUrlParams({ favorite: favoritesOnly ? null : 'true' });
-  }, [favoritesOnly, updateUrlParams]);
-
-  const clearTagFilter = useCallback(() => {
-    updateUrlParams({ tagId: null });
-  }, [updateUrlParams]);
+  // Use filter actions from context (they handle URL updates internally)
+  const toggleFavoritesOnly = toggleFavorites;
 
   const handleScrollContainerReady = useCallback((node: HTMLDivElement | null) => {
     gridScrollRef.current = node;
@@ -381,15 +390,56 @@ export default function AppPage() {
   }, []);
 
   const handleViewModeChange = useCallback(
-    (mode: 'grid' | 'masonry' | 'list') => {
+    (mode: ViewMode) => {
       if (mode === viewMode) return;
 
       captureScrollPosition();
       setIsViewModeTransitioning(true);
-      setViewMode(mode);
+
+      // Update URL params to include view mode
+      const params = new URLSearchParams(searchParams.toString());
+      params.set('view', mode);
+      router.push(`${pathname}?${params.toString()}`, { scroll: false });
     },
-    [captureScrollPosition, viewMode]
+    [captureScrollPosition, viewMode, searchParams, pathname, router]
   );
+
+  // Number key shortcuts for view mode switching with debouncing
+  const viewModeSwitchRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const handleViewModeShortcut = useCallback((mode: ViewMode) => {
+    // Clear any existing timeout
+    if (viewModeSwitchRef.current) {
+      clearTimeout(viewModeSwitchRef.current);
+    }
+
+    // Debounce for 100ms to prevent rapid switching
+    viewModeSwitchRef.current = setTimeout(() => {
+      handleViewModeChange(mode);
+    }, 100);
+  }, [handleViewModeChange]);
+
+  // Key 1 for grid view
+  useKeyboardShortcut({
+    key: '1',
+    callback: () => handleViewModeShortcut('grid'),
+    enabled: true,
+  });
+
+  // Key 2 for list view
+  useKeyboardShortcut({
+    key: '2',
+    callback: () => handleViewModeShortcut('list'),
+    enabled: true,
+  });
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (viewModeSwitchRef.current) {
+        clearTimeout(viewModeSwitchRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     restoreScrollPosition();
@@ -408,21 +458,22 @@ export default function AppPage() {
   const gridContainerClassName = useMemo(
     () =>
       cn(
-        'h-full overflow-y-auto overflow-x-hidden transition-all duration-300 ease-out transform-gpu',
-        isViewModeTransitioning ? 'opacity-0 scale-[0.98]' : 'opacity-100 scale-100'
+        'h-full overflow-y-auto overflow-x-hidden transition-opacity duration-200 ease-in-out',
+        isViewModeTransitioning ? 'opacity-0' : 'opacity-100'
       ),
     [isViewModeTransitioning]
   );
 
   // Sort assets by filename if needed (since API doesn't support it)
   const sortedAssets = useMemo(() => {
-    if (sortBy !== 'filename') return assets;
+    // Only apply client-side sorting for filename since DB doesn't sort by it
+    if (sortBy !== 'name') return assets;
 
     const sorted = [...assets].sort((a, b) => {
       const nameA = a.filename.toLowerCase();
       const nameB = b.filename.toLowerCase();
 
-      if (sortOrder === 'asc') {
+      if (actualSortOrder === 'asc') {
         return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
       } else {
         return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
@@ -430,7 +481,7 @@ export default function AppPage() {
     });
 
     return sorted;
-  }, [assets, sortBy, sortOrder]);
+  }, [assets, sortBy, actualSortOrder]);
 
   const trimmedLibraryQuery = libraryQuery.trim();
   const isSearching = trimmedLibraryQuery.length > 0;
@@ -465,13 +516,14 @@ export default function AppPage() {
     [deleteAsset, deleteSearchAsset]
   );
 
+  // Trigger refresh when filters or sort preferences change
   useEffect(() => {
     const prev = filtersRef.current;
     const current = {
       tagId: tagIdParam ?? null,
       favorites: favoritesOnly,
       sortBy: actualSortBy,
-      sortOrder,
+      sortDirection: actualSortOrder as 'asc' | 'desc',
     };
 
     if (!prev) {
@@ -483,7 +535,7 @@ export default function AppPage() {
       prev.tagId !== current.tagId ||
       prev.favorites !== current.favorites ||
       prev.sortBy !== current.sortBy ||
-      prev.sortOrder !== current.sortOrder;
+      prev.sortDirection !== current.sortDirection;
 
     if (filtersChanged) {
       if (isSearching) {
@@ -498,7 +550,7 @@ export default function AppPage() {
     }
 
     filtersRef.current = current;
-  }, [tagIdParam, favoritesOnly, actualSortBy, sortOrder, isSearching, refresh]);
+  }, [tagIdParam, favoritesOnly, actualSortBy, actualSortOrder, isSearching, refresh]);
 
   useEffect(() => {
     if (!trimmedLibraryQuery) {
@@ -508,31 +560,51 @@ export default function AppPage() {
   }, [trimmedLibraryQuery]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="px-6 pb-0 pt-6 md:px-10">
-        <div className="mx-auto w-full max-w-7xl">
-          <header className="flex flex-col gap-6">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h1 className="text-3xl font-semibold text-[#E6E8EB]">your library</h1>
-                <p className="mt-2 text-sm text-[#B3B7BE]">
-                  {stats.total > 0 ? (
+    <div className="flex h-[calc(100vh-56px)] flex-col">
+      {/* Container with ultra-wide support - max-width at 1920px+ */}
+      <div className="px-6 pb-6 pt-6 md:px-10 2xl:px-12 border-b border-[#1B1F24]">
+        <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1920px]">
+          <header className="flex flex-col gap-4">
+            {/* Title bar with inline stats */}
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <h1 className="text-2xl font-semibold text-[#E6E8EB]">your library</h1>
+              {stats.total > 0 && (
+                <span className="text-sm text-[#6A6E78]">
+                  • {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
+                  {stats.favorites > 0 && (
                     <>
-                      {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
-                      {stats.favorites > 0 && (
-                        <>
-                          {' '}• {stats.favorites}{' '}
-                          {stats.favorites === 1 ? 'banger' : 'bangers'}
-                        </>
-                      )}
-                      {' '}• {stats.sizeFormatted}
+                      {' '}• {stats.favorites}{' '}
+                      {stats.favorites === 1 ? 'banger' : 'bangers'}
                     </>
-                  ) : (
-                    'start building your meme collection'
                   )}
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
+                  {' '}• {stats.sizeFormatted}
+                </span>
+              )}
+            </div>
+
+            {/* Search bar - hero element */}
+            <SearchBar
+              onSearch={handleInlineSearch}
+              inline
+              initialQuery={queryParam}
+              searchState={
+                searchLoading ? 'loading' :
+                  isTypingRef.current ? 'typing' :
+                    libraryQuery && searchAssets.length > 0 ? 'success' :
+                      libraryQuery && searchAssets.length === 0 ? 'no-results' :
+                        searchError ? 'error' :
+                          'idle'
+              }
+              resultCount={searchAssets.length}
+              className="w-full"
+              placeholder="search your memes..."
+              autoFocus={false}
+            />
+
+            {/* Action toolbar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {/* Left group: Primary actions */}
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowUploadPanel((prev) => !prev)}
@@ -546,7 +618,7 @@ export default function AppPage() {
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v12M4 10h12" />
                   </svg>
-                  {showUploadPanel ? 'close upload tray' : 'upload new meme'}
+                  {showUploadPanel ? 'close' : 'upload'}
                 </button>
                 {failedEmbeddings.length > 0 && (
                   <button
@@ -571,160 +643,93 @@ export default function AppPage() {
                   )}
                 >
                   <HeartIcon className="h-4 w-4" filled={favoritesOnly} />
-                  {favoritesOnly ? 'show bangers only' : 'show all memes'}
+                  {favoritesOnly ? 'bangers' : 'all'}
                 </button>
               </div>
-            </div>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-2 rounded-full bg-[#14171A] p-1 ring-1 ring-[#1F2328]">
-                {(
-                  [
-                    {
-                      value: 'grid' as const,
-                      label: 'grid',
-                      icon: (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <rect x="4" y="4" width="6" height="6" />
-                          <rect x="14" y="4" width="6" height="6" />
-                          <rect x="4" y="14" width="6" height="6" />
-                          <rect x="14" y="14" width="6" height="6" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      value: 'masonry' as const,
-                      label: 'masonry',
-                      icon: (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <rect x="4" y="4" width="7" height="10" />
-                          <rect x="15" y="4" width="5" height="6" />
-                          <rect x="4" y="16" width="5" height="4" />
-                          <rect x="11" y="12" width="9" height="8" />
-                        </svg>
-                      ),
-                    },
-                    {
-                      value: 'list' as const,
-                      label: 'list',
-                      icon: (
-                        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                          <line x1="4" x2="20" y1="7" y2="7" strokeLinecap="round" />
-                          <line x1="4" x2="20" y1="12" y2="12" strokeLinecap="round" />
-                          <line x1="4" x2="20" y1="17" y2="17" strokeLinecap="round" />
-                        </svg>
-                      ),
-                    },
-                  ]
-                ).map((option) => {
-                  const isActive = viewMode === option.value;
-                  return (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => handleViewModeChange(option.value)}
-                      aria-pressed={isActive}
-                      className={cn(
-                        'flex items-center gap-2 rounded-full px-3 py-1.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
-                        isActive
-                          ? 'bg-[#7C5CFF] text-white shadow-[0_12px_20px_-14px_rgba(124,92,255,0.95)]'
-                          : 'text-[#B3B7BE] hover:text-[#E6E8EB]'
-                      )}
-                    >
-                      {option.icon}
-                      <span className="hidden text-xs font-medium capitalize sm:inline">{option.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+              {/* Right group: View controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                <ViewModeToggle
+                  value={viewMode}
+                  onChange={handleViewModeChange}
+                  size="md"
+                  showLabels={false}
+                />
 
-              <div className="relative sort-dropdown-container">
-                <button
-                  type="button"
-                  onClick={() => setShowSortDropdown((prev) => !prev)}
-                  className="flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
-                  </svg>
-                  <span>
-                    {sortBy === 'createdAt' ? 'date' : sortBy === 'favorite' ? 'bangers' : sortBy === 'size' ? 'size' : 'name'}
-                    {sortOrder === 'desc' ? ' ↓' : ' ↑'}
-                  </span>
-                </button>
+                <div className="relative sort-dropdown-container">
+                  <button
+                    type="button"
+                    onClick={() => setShowSortDropdown((prev) => !prev)}
+                    className="flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
+                    </svg>
+                    <span className="hidden sm:inline">
+                      {sortBy === 'recent' || sortBy === 'date' ? 'date' : sortBy === 'size' ? 'size' : sortBy === 'name' ? 'name' : 'date'}
+                    </span>
+                    <span>{sortOrder === 'desc' ? '↓' : '↑'}</span>
+                  </button>
 
-                {showSortDropdown && (
-                  <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-[#2A2F37] bg-[#0F1216] shadow-2xl">
-                    <div className="py-1">
-                      <button
-                        onClick={() => {
-                          setSortBy('createdAt');
-                          setSortOrder(sortBy === 'createdAt' && sortOrder === 'desc' ? 'asc' : 'desc');
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'createdAt' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        )}
-                      >
-                        date {sortBy === 'createdAt' && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSortBy('favorite');
-                          setSortOrder('desc');
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'favorite' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        )}
-                      >
-                        bangers first
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSortBy('size');
-                          setSortOrder(sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        )}
-                      >
-                        size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
-                      </button>
-                      <button
-                        onClick={() => {
-                          setSortBy('filename');
-                          setSortOrder(sortBy === 'filename' && sortOrder === 'asc' ? 'desc' : 'asc');
-                          setShowSortDropdown(false);
-                        }}
-                        className={cn(
-                          'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                          sortBy === 'filename' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
-                        )}
-                      >
-                        name {sortBy === 'filename' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
-                      </button>
+                  {showSortDropdown && (
+                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-[#2A2F37] bg-[#0F1216] shadow-2xl">
+                      <div className="py-1">
+                        <button
+                          onClick={() => {
+                            handleSortChange('date', sortBy === 'date' && sortOrder === 'desc' ? 'asc' : 'desc');
+                            setShowSortDropdown(false);
+                          }}
+                          className={cn(
+                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
+                            sortBy === 'date' || sortBy === 'recent' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          )}
+                        >
+                          date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleSortChange('size', sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
+                            setShowSortDropdown(false);
+                          }}
+                          className={cn(
+                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
+                            sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          )}
+                        >
+                          size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleSortChange('name', sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
+                            setShowSortDropdown(false);
+                          }}
+                          className={cn(
+                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
+                            sortBy === 'name' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                          )}
+                        >
+                          name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
+                        </button>
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </div>
+
+                {tagIdParam && (
+                  <button
+                    type="button"
+                    onClick={clearTagFilter}
+                    className="inline-flex items-center gap-1 rounded-full border border-[#2A2F37] bg-[#14171A] px-3 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                  >
+                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="hidden sm:inline">clear</span>
+                    <span className="text-[#7C5CFF]">#{activeTagName ?? 'tag'}</span>
+                  </button>
                 )}
               </div>
 
-              {tagIdParam && (
-                <button
-                  type="button"
-                  onClick={clearTagFilter}
-                  className="inline-flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M18 6L6 18M6 6l12 12" />
-                  </svg>
-                  clear tag {activeTagName ? `#${activeTagName}` : ''}
-                </button>
-              )}
             </div>
 
             {(!isSearching && (favoritesOnly || tagIdParam)) && (
@@ -742,23 +747,6 @@ export default function AppPage() {
                 )}
               </div>
             )}
-
-            <div className="space-y-2">
-              <SearchBar
-                onSearch={handleInlineSearch}
-                inline
-                initialQuery={queryParam}
-                searchState={
-                  searchLoading ? 'loading' :
-                    isTypingRef.current ? 'typing' :
-                      libraryQuery && searchAssets.length > 0 ? 'success' :
-                        libraryQuery && searchAssets.length === 0 ? 'no-results' :
-                          searchError ? 'error' :
-                            'idle'
-                }
-                resultCount={searchAssets.length}
-              />
-            </div>
 
             {showUploadPanel && (
               <div className="rounded-3xl border border-dashed border-[#2A2F37] bg-[#111419] p-5">
@@ -827,32 +815,24 @@ export default function AppPage() {
         </div>
       </div>
 
+      {/* Asset integrity warning banner */}
+      {integrityIssue && !libraryQuery && (
+        <AssetIntegrityBanner
+          onAudit={() => {
+            // Open audit endpoint in new tab
+            window.open('/api/assets/audit', '_blank');
+          }}
+        />
+      )}
+
       {/* Show loading screen when search is executing */}
       {searchLoading && libraryQuery ? (
         <SearchLoadingScreen query={libraryQuery} />
       ) : (
-        <div className="flex-1 overflow-hidden px-6 pb-8 pt-6 md:px-10">
-          <div className="mx-auto flex h-full w-full max-w-7xl flex-col overflow-hidden rounded-3xl border border-[#1F2328] bg-[#101319]">
+        <div className="flex-1 overflow-hidden">
+          <div className="mx-auto flex h-full w-full flex-col overflow-hidden 2xl:max-w-[1920px]">
             <div className="h-full flex-1 overflow-hidden">
-              {viewMode === 'masonry' ? (
-                <div
-                  ref={handleScrollContainerReady}
-                  className={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
-                  style={{ scrollbarGutter: 'stable' }}
-                >
-                  <MasonryGrid
-                    assets={activeAssets}
-                    loading={activeLoading}
-                    hasMore={activeHasMore}
-                    onLoadMore={handleLoadMore}
-                    onAssetUpdate={handleAssetUpdate}
-                    onAssetDelete={handleAssetDelete}
-                    onAssetSelect={setSelectedAsset}
-                    onUploadClick={() => setShowUploadPanel(true)}
-                    className="mx-auto w-full max-w-6xl"
-                  />
-                </div>
-              ) : viewMode === 'list' ? (
+              {viewMode === 'list' ? (
                 <ImageList
                   assets={activeAssets}
                   loading={activeLoading}
@@ -862,7 +842,7 @@ export default function AppPage() {
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
                   onScrollContainerReady={handleScrollContainerReady}
-                  containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                  containerClassName={cn(gridContainerClassName, 'w-full')}
                   onUploadClick={() => setShowUploadPanel(true)}
                 />
               ) : (
@@ -877,7 +857,7 @@ export default function AppPage() {
                     onAssetUpdate={handleAssetUpdate}
                     onAssetDelete={handleAssetDelete}
                     onAssetSelect={setSelectedAsset}
-                    containerClassName={cn(gridContainerClassName, 'px-2 w-full max-w-full')}
+                    containerClassName={cn(gridContainerClassName, 'w-full')}
                     onScrollContainerReady={handleScrollContainerReady}
                     onUploadClick={() => setShowUploadPanel(true)}
                   />
@@ -898,11 +878,16 @@ export default function AppPage() {
             className="max-w-4xl max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
           >
-            <img
-              src={selectedAsset.blobUrl}
-              alt={selectedAsset.filename}
-              className="max-w-full max-h-[90vh] object-contain rounded-lg"
-            />
+            <div className="relative w-full h-full">
+              <Image
+                src={selectedAsset.blobUrl}
+                alt={selectedAsset.filename}
+                width={1920}
+                height={1080}
+                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                priority
+              />
+            </div>
             <button
               onClick={() => setSelectedAsset(null)}
               className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
@@ -991,6 +976,26 @@ export default function AppPage() {
           </div>
         </div>
       )}
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={closePalette}
+        onUpload={() => router.push('/app/upload')}
+        onSignOut={() => window.location.href = '/api/auth/signout'}
+      />
     </div>
+  );
+}
+
+export default function AppPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-[calc(100vh-56px)] flex-col items-center justify-center">
+        <div className="text-[#B3B7BE]">Loading...</div>
+      </div>
+    }>
+      <AppPageClient />
+    </Suspense>
   );
 }

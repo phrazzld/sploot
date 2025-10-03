@@ -174,6 +174,7 @@ export async function POST(req: NextRequest) {
           id: result.id,
           blobUrl: result.blob_url,
           pathname: result.pathname,
+          filename: result.pathname.split('/').pop() || result.pathname,
           mime: result.mime,
           width: result.width,
           height: result.height,

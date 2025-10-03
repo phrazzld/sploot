@@ -1,0 +1,1301 @@
+
+> sploot@0.1.0 test /Users/phaedrus/Development/sploot
+> vitest --run
+
+[33mThe CJS build of Vite's Node API is deprecated. See https://vite.dev/guide/troubleshooting.html#vite-cjs-node-api-deprecated for more details.[39m
+
+ RUN  v2.1.9 /Users/phaedrus/Development/sploot
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should return success when no assets need purging
+[cron] Found 0 assets to purge (deleted >2025-09-02T18:46:01.280Z)
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should only delete assets where deletedAt > 30 days ago
+[cron] Found 0 assets to purge (deleted >2025-09-02T18:46:01.281Z)
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should successfully purge assets older than 30 days
+[cron] Found 2 assets to purge (deleted >2025-09-02T18:46:01.281Z)
+[cron] Purging asset asset-old-1 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/old-1.jpg
+[cron]   Deleted blob: https://blob.vercel-storage.com/old-1-thumb.jpg
+[cron]   Successfully purged asset asset-old-1
+[cron] Purging asset asset-old-2 (deleted Mon Sep 01 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/old-2.jpg
+[cron]   Successfully purged asset asset-old-2
+[cron] Purge complete: {
+  totalTime: '0ms',
+  found: 2,
+  purged: 2,
+  failed: 0,
+  blobsDeleted: 3,
+  successRate: '100%'
+}
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should handle blob deletion failures gracefully
+[cron] Found 1 assets to purge (deleted >2025-09-02T18:46:01.283Z)
+[cron] Purging asset asset-1 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Successfully purged asset asset-1
+[cron] Purge complete: {
+  totalTime: '0ms',
+  found: 1,
+  purged: 1,
+  failed: 0,
+  blobsDeleted: 0,
+  successRate: '100%'
+}
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should continue processing after single asset failure
+[cron] Found 2 assets to purge (deleted >2025-09-02T18:46:01.285Z)
+[cron] Purging asset asset-fail (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/fail.jpg
+[cron] Purging asset asset-success (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/success.jpg
+[cron]   Successfully purged asset asset-success
+[cron] Purge complete: {
+  totalTime: '1ms',
+  found: 2,
+  purged: 1,
+  failed: 1,
+  blobsDeleted: 2,
+  successRate: '50%'
+}
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should return correct counts (purgedCount, failedCount, blobsDeleted)
+[cron] Found 2 assets to purge (deleted >2025-09-02T18:46:01.291Z)
+[cron] Purging asset asset-1 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/1.jpg
+[cron]   Deleted blob: https://blob.vercel-storage.com/1-thumb.jpg
+[cron]   Successfully purged asset asset-1
+[cron] Purging asset asset-2 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/2.jpg
+[cron]   Deleted blob: https://blob.vercel-storage.com/2-thumb.jpg
+[cron]   Successfully purged asset asset-2
+[cron] Purge complete: {
+  totalTime: '0ms',
+  found: 2,
+  purged: 2,
+  failed: 0,
+  blobsDeleted: 4,
+  successRate: '100%'
+}
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should handle empty result set (no assets to purge)
+[cron] Found 0 assets to purge (deleted >2025-09-02T18:46:01.291Z)
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should include cutoffDate in response when assets are purged
+[cron] Found 1 assets to purge (deleted >2025-09-02T18:46:01.292Z)
+[cron] Purging asset asset-1 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/test.jpg
+[cron]   Successfully purged asset asset-1
+[cron] Purge complete: {
+  totalTime: '0ms',
+  found: 1,
+  purged: 1,
+  failed: 0,
+  blobsDeleted: 1,
+  successRate: '100%'
+}
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should calculate success rate correctly
+[cron] Found 10 assets to purge (deleted >2025-09-02T18:46:01.292Z)
+[cron] Purging asset asset-0 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/0.jpg
+[cron]   Successfully purged asset asset-0
+[cron] Purging asset asset-1 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/1.jpg
+[cron]   Successfully purged asset asset-1
+[cron] Purging asset asset-2 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/2.jpg
+[cron] Purging asset asset-3 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/3.jpg
+[cron]   Successfully purged asset asset-3
+[cron] Purging asset asset-4 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/4.jpg
+[cron] Purging asset asset-5 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/5.jpg
+[cron]   Successfully purged asset asset-5
+[cron] Purging asset asset-6 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/6.jpg
+[cron]   Successfully purged asset asset-6
+[cron] Purging asset asset-7 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/7.jpg
+[cron]   Successfully purged asset asset-7
+[cron] Purging asset asset-8 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/8.jpg
+[cron] Purging asset asset-9 (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/9.jpg
+[cron]   Successfully purged asset asset-9
+[cron] Purge complete: {
+  totalTime: '0ms',
+  found: 10,
+  purged: 7,
+  failed: 3,
+  blobsDeleted: 10,
+  successRate: '70%'
+}
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should delete both blobUrl and thumbnailUrl when present
+[cron] Found 1 assets to purge (deleted >2025-09-02T18:46:01.292Z)
+[cron] Purging asset asset-with-thumb (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/main.jpg
+[cron]   Deleted blob: https://blob.vercel-storage.com/thumb.jpg
+[cron]   Successfully purged asset asset-with-thumb
+[cron] Purge complete: {
+  totalTime: '0ms',
+  found: 1,
+  purged: 1,
+  failed: 0,
+  blobsDeleted: 2,
+  successRate: '100%'
+}
+
+stdout | __tests__/api/cron/purge-deleted-assets.test.ts > /api/cron/purge-deleted-assets > Asset Purging > should only delete blobUrl when thumbnailUrl is null
+[cron] Found 1 assets to purge (deleted >2025-09-02T18:46:01.293Z)
+[cron] Purging asset asset-no-thumb (deleted Thu Aug 28 2025 13:46:01 GMT-0500 (Central Daylight Time))
+[cron]   Deleted blob: https://blob.vercel-storage.com/main.jpg
+[cron]   Successfully purged asset asset-no-thumb
+[cron] Purge complete: {
+  totalTime: '0ms',
+  found: 1,
+  purged: 1,
+  failed: 0,
+  blobsDeleted: 1,
+  successRate: '100%'
+}
+
+ ✓ __tests__/api/cron/purge-deleted-assets.test.ts (16 tests) 17ms
+ ❯ __tests__/integration/search-flow.test.ts (0 test)
+ ❯ __tests__/integration/upload-flow.test.ts (0 test)
+stdout | __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Background Embedding Generation > should generate embeddings in background within 10 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-123
+
+stdout | __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Background Embedding Generation > should process queue in FIFO order with priority support
+[EmbeddingQueue] Successfully generated embedding for normal-1
+[EmbeddingQueue] Successfully generated embedding for high-1
+[EmbeddingQueue] Successfully generated embedding for normal-2
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Asset Discovery > should return success when no assets need processing
+[cron] Found 0 assets needing embeddings
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Asset Discovery > should find assets older than 1 hour with no embedding
+[cron] Found 0 assets needing embeddings
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Asset Discovery > should process batch of 10 assets maximum
+[cron] Found 0 assets needing embeddings
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Asset Discovery > should process oldest assets first
+[cron] Found 0 assets needing embeddings
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Embedding Processing > should successfully process assets and generate embeddings
+[cron] Found 2 assets needing embeddings
+[cron] Processing asset asset-1 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-1 (0ms)
+[cron] Processing asset asset-2 (created Thu Oct 02 2025 10:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-2 (0ms)
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 2,
+  successful: 2,
+  failed: 0,
+  successRate: '100%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Embedding Processing > should call upsertAssetEmbedding with correct parameters
+[cron] Found 1 assets needing embeddings
+[cron] Processing asset asset-123 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-123 (0ms)
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 1,
+  successful: 1,
+  failed: 0,
+  successRate: '100%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Embedding Processing > should handle embedding generation failure
+[cron] Found 1 assets needing embeddings
+[cron] Processing asset asset-fail (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 1,
+  successful: 0,
+  failed: 1,
+  successRate: '0%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Embedding Processing > should continue processing after single asset failure
+[cron] Found 2 assets needing embeddings
+[cron] Processing asset asset-fail (created Thu Oct 02 2025 10:46:01 GMT-0500 (Central Daylight Time))
+[cron] Processing asset asset-success (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-success (0ms)
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 2,
+  successful: 1,
+  failed: 1,
+  successRate: '50%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Embedding Processing > should handle upsert failure
+[cron] Found 1 assets needing embeddings
+[cron] Processing asset asset-upsert-fail (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 1,
+  successful: 0,
+  failed: 1,
+  successRate: '0%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Service Availability > should return 503 when embedding service fails to initialize
+[cron] Found 1 assets needing embeddings
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Statistics > should return correct processing stats
+[cron] Found 2 assets needing embeddings
+[cron] Processing asset asset-1 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-1 (0ms)
+[cron] Processing asset asset-2 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-2 (0ms)
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 2,
+  successful: 2,
+  failed: 0,
+  successRate: '100%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Statistics > should calculate success rate correctly with failures
+[cron] Found 10 assets needing embeddings
+[cron] Processing asset asset-0 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-0 (0ms)
+[cron] Processing asset asset-1 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-1 (0ms)
+[cron] Processing asset asset-2 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Processing asset asset-3 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-3 (0ms)
+[cron] Processing asset asset-4 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Processing asset asset-5 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-5 (0ms)
+[cron] Processing asset asset-6 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-6 (0ms)
+[cron] Processing asset asset-7 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-7 (0ms)
+[cron] Processing asset asset-8 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Processing asset asset-9 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-9 (0ms)
+[cron] Processing complete: {
+  totalTime: '1ms',
+  processed: 10,
+  successful: 7,
+  failed: 3,
+  successRate: '70%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Statistics > should calculate average processing time correctly
+[cron] Found 1 assets needing embeddings
+[cron] Processing asset asset-1 (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Successfully generated embedding for asset asset-1 (0ms)
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 1,
+  successful: 1,
+  failed: 0,
+  successRate: '100%',
+  avgProcessingTime: '0ms'
+}
+
+stdout | __tests__/api/cron/process-embeddings.test.ts > /api/cron/process-embeddings > Statistics > should handle zero success rate correctly
+[cron] Found 1 assets needing embeddings
+[cron] Processing asset asset-fail (created Thu Oct 02 2025 11:46:01 GMT-0500 (Central Daylight Time))
+[cron] Processing complete: {
+  totalTime: '0ms',
+  processed: 1,
+  successful: 0,
+  failed: 1,
+  successRate: '0%',
+  avgProcessingTime: '0ms'
+}
+
+ ✓ __tests__/api/cron/process-embeddings.test.ts (19 tests) 21ms
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should return success when no assets exist
+[cron] Auditing 0 assets across all users...
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should correctly identify valid assets
+[cron] Auditing 2 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 2,
+  valid: 2,
+  broken: 0,
+  errors: 0,
+  percentBroken: '0.00%',
+  usersAffected: 0
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should correctly identify broken assets (404)
+[cron] Auditing 2 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 2,
+  valid: 0,
+  broken: 2,
+  errors: 0,
+  percentBroken: '100.00%',
+  usersAffected: 1
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should track broken assets per user
+[cron] Auditing 3 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 3,
+  valid: 0,
+  broken: 3,
+  errors: 0,
+  percentBroken: '100.00%',
+  usersAffected: 2
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should send alert when >10 broken assets found
+[cron] Auditing 12 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 12,
+  valid: 0,
+  broken: 12,
+  errors: 0,
+  percentBroken: '100.00%',
+  usersAffected: 1
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should not send alert when ≤10 broken assets found
+[cron] Auditing 10 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 10,
+  valid: 0,
+  broken: 10,
+  errors: 0,
+  percentBroken: '100.00%',
+  usersAffected: 1
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should handle fetch errors gracefully
+[cron] Auditing 2 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 2,
+  valid: 0,
+  broken: 0,
+  errors: 2,
+  percentBroken: '0.00%',
+  usersAffected: 0
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should handle mixed results (valid, broken, error)
+[cron] Auditing 3 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 3,
+  valid: 1,
+  broken: 1,
+  errors: 1,
+  percentBroken: '33.33%',
+  usersAffected: 1
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should only audit non-deleted assets
+[cron] Auditing 0 assets across all users...
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should use HEAD request for blob checks
+[cron] Auditing 1 assets across all users...
+[cron] Audit complete: {
+  totalTime: '1ms',
+  totalAssets: 1,
+  valid: 1,
+  broken: 0,
+  errors: 0,
+  percentBroken: '0.00%',
+  usersAffected: 0
+}
+
+stdout | __tests__/api/cron/audit-assets.test.ts > /api/cron/audit-assets > Asset Auditing > should include timeout in blob checks
+[cron] Auditing 1 assets across all users...
+[cron] Audit complete: {
+  totalTime: '0ms',
+  totalAssets: 1,
+  valid: 1,
+  broken: 0,
+  errors: 0,
+  percentBroken: '0.00%',
+  usersAffected: 0
+}
+
+ ❯ __tests__/api/search.test.ts (0 test)
+ ✓ __tests__/api/cron/audit-assets.test.ts (16 tests) 32ms
+ ✓ __tests__/contexts/filter-context.test.tsx (23 tests) 134ms
+stdout | __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Retry Logic > should automatically retry failed embeddings with exponential backoff
+[EmbeddingQueue] Successfully generated embedding for retry-test
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should upload 5 images simultaneously
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should upload 5 images simultaneously
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should upload 5 images simultaneously
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should upload 5 images simultaneously
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should upload 5 images simultaneously
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should show "uploading" state immediately for all files
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should show "uploading" state immediately for all files
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should show "uploading" state immediately for all files
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should show "uploading" state immediately for all files
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should show "uploading" state immediately for all files
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should complete all uploads within 5 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should complete all uploads within 5 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should complete all uploads within 5 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should complete all uploads within 5 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should complete all uploads within 5 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+Batch Upload Performance:
+Total time for 5 uploads: 216ms
+Average per upload: 43.2ms
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should make all images searchable within 15 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+stdout | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Retry Logic > should retry failed items with exponential backoff
+[DistributedQueue] Retrying item 1759430762249-nl8l9kl0i (attempt 1) after 2000ms
+[DistributedQueue] Retrying item 1759430762249-nl8l9kl0i (attempt 2) after 4000ms
+
+stdout | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Retry Logic > should move items to dead letter queue after max retries
+[DistributedQueue] Retrying item 1759430762252-jy53higz7 (attempt 1) after 3000ms
+
+stderr | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Retry Logic > should not retry invalid errors
+[DistributedQueue] Item 1759430762254-yffi61nwt moved to deadletter after 1 retries: Error: Invalid request
+    at /Users/phaedrus/Development/sploot/__tests__/lib/distributed-queue.test.ts:137:28
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+
+stdout | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Dead Letter Queue > should allow retrying dead letter items
+[DistributedQueue] Retrying item 1759430762255-o7e1ow6bu (attempt 1) after 2000ms
+
+ ❯ __tests__/api/asset-crud.test.ts (0 test)
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should make all images searchable within 15 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should make all images searchable within 15 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+ ✓ __tests__/components/library/image-tile-error-boundary.test.tsx (19 tests) 153ms
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should make all images searchable within 15 seconds
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+ ✓ __tests__/components/chrome/view-mode-toggle.test.tsx (36 tests) 205ms
+ ✓ __tests__/components/chrome/filter-chips.test.tsx (32 tests) 220ms
+stdout | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Error Classification > should classify errors correctly
+[DistributedQueue] Retrying item 1759430762461-3owjq61kr (attempt 1) after 5000ms
+
+stdout | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Error Classification > should classify errors correctly
+[DistributedQueue] Retrying item 1759430762471-gdw07yxcv (attempt 1) after 2000ms
+
+stdout | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Error Classification > should classify errors correctly
+[DistributedQueue] Retrying item 1759430762483-pmvhp9jx1 (attempt 1) after 3000ms
+
+stderr | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Error Classification > should classify errors correctly
+[DistributedQueue] Item 1759430762494-vnkcyohf8 moved to deadletter after 1 retries: Error: Invalid request format
+    at /Users/phaedrus/Development/sploot/__tests__/lib/distributed-queue.test.ts:283:63
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/vitest@2.1.9_@types+node@20.19.14_@vitest+ui@2.1.9_jsdom@25.0.1_lightningcss@1.30.1_terser@5.44.0/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+    at withEnv (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/vitest@2.1.9_@types+node@20.19.14_@vitest+ui@2.1.9_jsdom@25.0.1_lightningcss@1.30.1_terser@5.44.0/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:90:5)
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should make all images searchable within 15 seconds
+Time to Searchable:
+Total time: 387ms
+upload-1: Upload 112ms, Embedding 275ms, Total 387ms
+upload-2: Upload 173ms, Embedding 214ms, Total 387ms
+upload-3: Upload 285ms, Embedding 102ms, Total 387ms
+upload-4: Upload 112ms, Embedding 275ms, Total 387ms
+upload-5: Upload 199ms, Embedding 188ms, Total 387ms
+
+stdout | __tests__/lib/distributed-queue.test.ts > DistributedQueue > Error Classification > should classify errors correctly
+[DistributedQueue] Retrying item 1759430762506-93eut219s (attempt 1) after 2000ms
+
+ ❯ __tests__/lib/distributed-queue.test.ts (13 tests | 4 failed) 280ms
+   × DistributedQueue > Priority Processing > should maintain FIFO order within same priority 5ms
+     → expected [ 'normal-1', 'normal-3', 'normal-2' ] to deeply equal [ 'normal-1', 'normal-2', 'normal-3' ]
+   × DistributedQueue > Retry Logic > should move items to dead letter queue after max retries 2ms
+     → expected +0 to be 1 // Object.is equality
+   × DistributedQueue > Dead Letter Queue > should allow retrying dead letter items 1ms
+     → expected +0 to be 1 // Object.is equality
+   × DistributedQueue > Metrics > should track success metrics 0ms
+     → expected 0 to be greater than 0
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should find uploaded images through search
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should find uploaded images through search
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should find uploaded images through search
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+
+ ✓ __tests__/components/chrome/command-palette.test.tsx (30 tests) 529ms
+stderr | __tests__/components/chrome/search-bar-elastic.test.tsx > SearchBarElastic > Keyboard Navigation > should focus search input when / shortcut is triggered
+An update to SearchBarElastic inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+An update to SearchBarElastic inside a test was not wrapped in act(...).
+
+When testing, code that causes React state updates should be wrapped into act(...):
+
+act(() => {
+  /* fire events that update state */
+});
+/* assert on the output */
+
+This ensures that you're testing the behavior the user would see in the browser. Learn more at https://react.dev/link/wrap-tests-with-act
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should find uploaded images through search
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should find uploaded images through search
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+
+ ✓ __tests__/components/chrome/search-bar-elastic.test.tsx (32 tests) 587ms
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle concurrent uploads efficiently
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle concurrent uploads efficiently
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle concurrent uploads efficiently
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+
+ ❯ __tests__/api/assets.test.ts (0 test)
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle concurrent uploads efficiently
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle concurrent uploads efficiently
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+ ❯ __tests__/lib/db-asset-exists.test.ts (9 tests | 9 failed) 5ms
+   × assetExists > when asset exists > should return typed asset metadata 2ms
+     → assetExists is not a function
+   × assetExists > when asset exists > should use transaction when provided 0ms
+     → assetExists is not a function
+   × assetExists > when asset exists > should include embedding flag when requested 0ms
+     → assetExists is not a function
+   × assetExists > when asset does not exist > should return null 0ms
+     → assetExists is not a function
+   × assetExists > error handling > should throw when database error occurs 0ms
+     → assetExists is not a function
+   × findOrCreateAsset > when asset does not exist > should create new asset 0ms
+     → findOrCreateAsset is not a function
+   × findOrCreateAsset > when asset already exists > should return existing asset 0ms
+     → findOrCreateAsset is not a function
+   × findOrCreateAsset > race condition handling > should handle unique constraint violation 0ms
+     → findOrCreateAsset is not a function
+   × findOrCreateAsset > race condition handling > should throw on other errors 0ms
+     → findOrCreateAsset is not a function
+ ❯ __tests__/api/search-advanced.test.ts (0 test)
+ ❯ __tests__/api/cache-stats.test.ts (0 test)
+stderr | __tests__/api/upload-preflight.test.ts > /api/upload/check > POST > should handle authentication errors
+Error in upload preflight check: Error: Authentication failed
+    at /Users/phaedrus/Development/sploot/__tests__/api/upload-preflight.test.ts:120:51
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:146:14
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:11
+    at runWithTimeout (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:39:7)
+    at runTest (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:17)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+
+ ❯ __tests__/api/upload-preflight.test.ts (8 tests | 3 failed) 23ms
+   × /api/upload/check > POST > should return exists=true with asset data when duplicate found 8ms
+     → expected { id: 'asset-123', …(10) } to deeply equal { id: 'asset-123', …(10) }
+   × /api/upload/check > POST > should handle database unavailable 0ms
+     → jest is not defined
+   × Client-side checksum utilities > should calculate SHA256 checksum 7ms
+     → file.arrayBuffer is not a function
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should track performance metrics accurately
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should track performance metrics accurately
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+stdout | __tests__/lib/metrics-collector.test.ts > MetricsCollector > Upload Metrics > should track upload lifecycle
+[Metrics] Upload test-upload-1 completed: {
+  duration: '0.00s',
+  size: '0.00MB',
+  throughput: '5.94MB/s',
+  chunks: 2,
+  retries: 0
+}
+
+stdout | __tests__/lib/metrics-collector.test.ts > MetricsCollector > Comprehensive Report > should generate complete metrics report
+[Metrics] Upload upload-1 completed: {
+  duration: '0.00s',
+  size: '1.00MB',
+  throughput: '428632.66MB/s',
+  chunks: 1,
+  retries: 0
+}
+
+ ✓ __tests__/lib/metrics-collector.test.ts (7 tests) 4ms
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should track performance metrics accurately
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should track performance metrics accurately
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should track performance metrics accurately
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+Performance Metrics:
+Average upload time: 222.6ms
+Max upload time: 272.0ms
+
+ ❯ __tests__/api/upload-url.test.ts (8 tests | 7 failed) 7ms
+   × /api/upload-url > POST > should return 401 if user is not authenticated 3ms
+     → mockAuth.mockResolvedValue is not a function
+   × /api/upload-url > POST > should return 400 if filename is missing 0ms
+     → mockAuth.mockResolvedValue is not a function
+   × /api/upload-url > POST > should return 400 if mimeType is missing 0ms
+     → mockAuth.mockResolvedValue is not a function
+   × /api/upload-url > POST > should return 400 for invalid file type 0ms
+     → mockAuth.mockResolvedValue is not a function
+   × /api/upload-url > POST > should successfully generate upload URL for valid image 0ms
+     → mockAuth.mockResolvedValue is not a function
+   × /api/upload-url > POST > should handle different valid image types 0ms
+     → mockAuth.mockResolvedValue is not a function
+   × /api/upload-url > POST > should handle blob storage errors gracefully 0ms
+     → mockAuth.mockResolvedValue is not a function
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle upload errors gracefully
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle upload errors gracefully
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+ ✓ __tests__/components/chrome/navbar.test.tsx (14 tests) 84ms
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should maintain upload order in results
+[EmbeddingQueue] Successfully generated embedding for asset-upload-4
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should maintain upload order in results
+[EmbeddingQueue] Successfully generated embedding for asset-upload-3
+
+ ✓ __tests__/api/health.test.ts (2 tests) 4ms
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should maintain upload order in results
+[EmbeddingQueue] Successfully generated embedding for asset-upload-2
+
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should maintain upload order in results
+[EmbeddingQueue] Successfully generated embedding for asset-upload-1
+
+ ❯ __tests__/e2e/batch-upload.spec.ts (10 tests | 1 failed) 2868ms
+   ✓ E2E: Batch Upload > should upload 5 images simultaneously 309ms
+   ✓ E2E: Batch Upload > should make all images searchable within 15 seconds 388ms
+   ✓ E2E: Batch Upload > should find uploaded images through search 550ms
+   × E2E: Batch Upload > should handle concurrent uploads efficiently 283ms
+     → expected 5 to be less than or equal to 3
+stdout | __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should maintain upload order in results
+[EmbeddingQueue] Successfully generated embedding for asset-upload-5
+
+stderr | __tests__/integration/user-journey.test.ts > E2E: user journey in mock mode > allows upload, favorite toggling, and semantic search
+Vercel Blob error: BlobAccessError: Vercel Blob: Access denied, please provide a valid token for this resource.
+    at getBlobError (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vercel+blob@1.1.1/node_modules/@vercel/blob/src/api.ts:209:15)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vercel+blob@1.1.1/node_modules/@vercel/blob/src/api.ts:360:31
+    at requestApi (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vercel+blob@1.1.1/node_modules/@vercel/blob/src/api.ts:285:23)
+    at Module.put (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vercel+blob@1.1.1/node_modules/@vercel/blob/src/put.ts:63:22)
+    at generateUploadUrl (/Users/phaedrus/Development/sploot/app/api/upload-url/route.ts:95:18)
+    at POST (/Users/phaedrus/Development/sploot/app/api/upload-url/route.ts:51:40)
+    at /Users/phaedrus/Development/sploot/__tests__/integration/user-journey.test.ts:65:23
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+Upload URL generation error: Error: Failed to generate upload URL. Please check your Vercel Blob configuration.
+    at generateUploadUrl (/Users/phaedrus/Development/sploot/app/api/upload-url/route.ts:120:11)
+    at processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at POST (/Users/phaedrus/Development/sploot/app/api/upload-url/route.ts:51:40)
+    at /Users/phaedrus/Development/sploot/__tests__/integration/user-journey.test.ts:65:23
+    at file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///Users/phaedrus/Development/sploot/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+
+ ❯ __tests__/integration/user-journey.test.ts (1 test | 1 failed) 356ms
+   × E2E: user journey in mock mode > allows upload, favorite toggling, and semantic search 355ms
+     → expected 500 to be 200 // Object.is equality
+stdout | __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Concurrent Uploads > should respect MAX_CONCURRENT_UPLOADS limit
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-0
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-1
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-2
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-3
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-4
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-5
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-6
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-7
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-8
+[EmbeddingQueue] Successfully generated embedding for concurrent-test-9
+
+stdout | __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Network Interruption Recovery > should recover from network interruption and resume processing
+[EmbeddingQueue] Successfully generated embedding for network-recovery-test
+
+stdout | __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Performance Metrics > should track comprehensive performance metrics
+[perf] Performance Summary:
+┌─────────┬───────────────────────────┬─────────┬──────────┬─────────────┬──────────┬──────────┬──────────┐
+│ (index) │ Operation                 │ Samples │ Avg (ms) │ Median (ms) │ Min (ms) │ Max (ms) │ P95 (ms) │
+├─────────┼───────────────────────────┼─────────┼──────────┼─────────────┼──────────┼──────────┼──────────┤
+│ 0       │ 'upload:blob_storage'     │ 1       │ '200.0'  │ '200.0'     │ '200.0'  │ '200.0'  │ '200.0'  │
+│ 1       │ 'upload:database_write'   │ 1       │ '50.0'   │ '50.0'      │ '50.0'   │ '50.0'   │ '50.0'   │
+│ 2       │ 'embedding:generate'      │ 1       │ '3000.0' │ '3000.0'    │ '3000.0' │ '3000.0' │ '3000.0' │
+│ 3       │ 'embedding:queue_wait'    │ 1       │ '100.0'  │ '100.0'     │ '100.0'  │ '100.0'  │ '100.0'  │
+│ 4       │ 'embedding:replicate_api' │ 1       │ '2500.0' │ '2500.0'    │ '2500.0' │ '2500.0' │ '2500.0' │
+└─────────┴───────────────────────────┴─────────┴──────────┴─────────────┴──────────┴──────────┴──────────┘
+
+ ❯ __tests__/embeddings/embedding-generation.test.ts (15 tests | 2 failed) 12231ms
+   × Embedding Generation Test Suite > Retry Logic > should automatically retry failed embeddings with exponential backoff 5007ms
+     → expected [ 'completed' ] to include 'retry'
+   ✓ Embedding Generation Test Suite > Concurrent Uploads > should respect MAX_CONCURRENT_UPLOADS limit 1001ms
+   × Embedding Generation Test Suite > Network Interruption Recovery > should recover from network interruption and resume processing 6003ms
+     → Recovery timeout
+stdout | __tests__/e2e/large-batch-upload.spec.ts > Large Batch Upload Performance Test > should handle 100 simultaneous files within performance targets
+=== Large Batch Upload Performance Results ===
+Total Files: 100
+Total Time: 18.18s
+Average Upload Time: 1.02s
+Success Rate: 93.0%
+Failure Rate: 7.0%
+Peak Memory: 130.0MB
+Average Memory: 126.8MB
+Throughput: 5.12 files/sec
+
+ ❯ __tests__/e2e/large-batch-upload.spec.ts (6 tests | 1 failed) 48393ms
+   × Large Batch Upload Performance Test > should handle 100 simultaneous files within performance targets 18348ms
+     → expected 0.93 to be greater than or equal to 0.95
+   ✓ Large Batch Upload Performance Test > should maintain responsive UI during large batch upload 9671ms
+   ✓ Large Batch Upload Performance Test > should handle memory efficiently with cleanup 9626ms
+   ✓ Large Batch Upload Performance Test > should handle mixed file sizes appropriately 6428ms
+   ✓ Large Batch Upload Performance Test > should recover from failures gracefully 4318ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 7 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/api/asset-crud.test.ts [ __tests__/api/asset-crud.test.ts ]
+ FAIL  __tests__/api/assets.test.ts [ __tests__/api/assets.test.ts ]
+ FAIL  __tests__/integration/upload-flow.test.ts [ __tests__/integration/upload-flow.test.ts ]
+Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ ❯ lib/auth/server.ts:2:31
+      1| import { isMockMode } from '../env';
+      2| import { getOrCreateUser } from '../db';
+       |                               ^
+      3| 
+      4| interface AuthResult {
+
+Caused by: Error: Cannot find module '../utils/test-helpers'
+Require stack:
+- /Users/phaedrus/Development/sploot/__tests__/api/asset-crud.test.ts
+ ❯ __tests__/api/asset-crud.test.ts:7:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'MODULE_NOT_FOUND', requireStack: [ '/Users/phaedrus/Development/sploot/__tests__/api/asset-crud.test.ts' ] }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/35]⎯
+
+ FAIL  __tests__/api/cache-stats.test.ts [ __tests__/api/cache-stats.test.ts ]
+Error: Cannot find module '@/lib/multi-layer-cache'
+Require stack:
+- /Users/phaedrus/Development/sploot/__tests__/api/cache-stats.test.ts
+ ❯ __tests__/api/cache-stats.test.ts:15:55
+     13| 
+     14| const mockAuth = require('@clerk/nextjs/server').auth;
+     15| const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/m…
+       |                                                       ^
+     16| 
+     17| describe('/api/cache/stats', () => {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/35]⎯
+
+ FAIL  __tests__/api/search-advanced.test.ts [ __tests__/api/search-advanced.test.ts ]
+Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ ❯ app/api/search/advanced/route.ts:2:31
+      1| import { NextRequest, NextResponse } from 'next/server';
+      2| import { prisma, databaseAvailable } from '@/lib/db';
+       |                               ^
+      3| import { createEmbeddingService, EmbeddingError } from '@/lib/embeddin…
+      4| import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi…
+
+Caused by: Error: Cannot find module '../utils/test-helpers'
+Require stack:
+- /Users/phaedrus/Development/sploot/__tests__/api/search-advanced.test.ts
+ ❯ __tests__/api/search-advanced.test.ts:7:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'MODULE_NOT_FOUND', requireStack: [ '/Users/phaedrus/Development/sploot/__tests__/api/search-advanced.test.ts' ] }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/35]⎯
+
+ FAIL  __tests__/api/search.test.ts [ __tests__/api/search.test.ts ]
+ FAIL  __tests__/integration/search-flow.test.ts [ __tests__/integration/search-flow.test.ts ]
+Error: [vitest] There was an error when mocking a module. If you are using "vi.mock" factory, make sure there are no top level variables inside, since this call is hoisted to top of the file. Read more: https://vitest.dev/api/vi.html#vi-mock
+ ❯ app/api/search/route.ts:2:31
+      1| import { NextRequest, NextResponse } from 'next/server';
+      2| import { prisma, databaseAvailable, vectorSearch, logSearch } from '@/…
+       |                               ^
+      3| import { createEmbeddingService, EmbeddingError } from '@/lib/embeddin…
+      4| import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi…
+
+Caused by: Error: Cannot find module '../utils/test-helpers'
+Require stack:
+- /Users/phaedrus/Development/sploot/__tests__/api/search.test.ts
+ ❯ __tests__/api/search.test.ts:7:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'MODULE_NOT_FOUND', requireStack: [ '/Users/phaedrus/Development/sploot/__tests__/api/search.test.ts' ] }
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/35]⎯
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 28 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  __tests__/api/upload-preflight.test.ts > /api/upload/check > POST > should return exists=true with asset data when duplicate found
+AssertionError: expected { id: 'asset-123', …(10) } to deeply equal { id: 'asset-123', …(10) }
+
+- Expected
++ Received
+
+  Object {
+    "blobUrl": "https://blob.example.com/asset.jpg",
+    "checksumSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+-   "createdAt": "2024-01-01T00:00:00.000Z",
++   "createdAt": 2024-01-01T00:00:00.000Z,
+    "hasEmbedding": true,
+    "height": 600,
+    "id": "asset-123",
+    "mime": "image/jpeg",
+    "pathname": "/uploads/asset.jpg",
+    "size": 1024,
+    "thumbnailUrl": "https://blob.example.com/asset-thumb.jpg",
+    "width": 800,
+  }
+
+ ❯ __tests__/api/upload-preflight.test.ts:73:26
+     71|       expect(response.status).toBe(200);
+     72|       expect(data.exists).toBe(true);
+     73|       expect(data.asset).toEqual({
+       |                          ^
+     74|         id: 'asset-123',
+     75|         blobUrl: 'https://blob.example.com/asset.jpg',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/35]⎯
+
+ FAIL  __tests__/api/upload-preflight.test.ts > /api/upload/check > POST > should handle database unavailable
+ReferenceError: jest is not defined
+ ❯ __tests__/api/upload-preflight.test.ts:138:7
+    136|     it('should handle database unavailable', async () => {
+    137|       // Mock database unavailable by mocking the module
+    138|       jest.doMock('@/lib/db', () => ({
+       |       ^
+    139|         databaseAvailable: false,
+    140|         prisma: null,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/35]⎯
+
+ FAIL  __tests__/api/upload-preflight.test.ts > Client-side checksum utilities > should calculate SHA256 checksum
+TypeError: file.arrayBuffer is not a function
+ ❯ calculateSHA256 lib/checksum.ts:12:29
+     10| export async function calculateSHA256(file: File | Blob): Promise<stri…
+     11|   // Read file as ArrayBuffer
+     12|   const buffer = await file.arrayBuffer();
+       |                             ^
+     13| 
+     14|   // Calculate SHA-256 hash using Web Crypto API
+ ❯ __tests__/api/upload-preflight.test.ts:205:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/35]⎯
+
+ FAIL  __tests__/api/upload-url.test.ts > /api/upload-url > POST > should return 401 if user is not authenticated
+TypeError: mockAuth.mockResolvedValue is not a function
+ ❯ __tests__/api/upload-url.test.ts:24:16
+     22|   describe('POST', () => {
+     23|     it('should return 401 if user is not authenticated', async () => {
+     24|       mockAuth.mockResolvedValue({ userId: null });
+       |                ^
+     25| 
+     26|       const request = createMockRequest('POST', {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/35]⎯
+
+ FAIL  __tests__/api/upload-url.test.ts > /api/upload-url > POST > should return 400 if filename is missing
+TypeError: mockAuth.mockResolvedValue is not a function
+ ❯ __tests__/api/upload-url.test.ts:40:16
+     38| 
+     39|     it('should return 400 if filename is missing', async () => {
+     40|       mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+       |                ^
+     41| 
+     42|       const request = createMockRequest('POST', {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/35]⎯
+
+ FAIL  __tests__/api/upload-url.test.ts > /api/upload-url > POST > should return 400 if mimeType is missing
+TypeError: mockAuth.mockResolvedValue is not a function
+ ❯ __tests__/api/upload-url.test.ts:55:16
+     53| 
+     54|     it('should return 400 if mimeType is missing', async () => {
+     55|       mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+       |                ^
+     56| 
+     57|       const request = createMockRequest('POST', {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/35]⎯
+
+ FAIL  __tests__/api/upload-url.test.ts > /api/upload-url > POST > should return 400 for invalid file type
+TypeError: mockAuth.mockResolvedValue is not a function
+ ❯ __tests__/api/upload-url.test.ts:70:16
+     68| 
+     69|     it('should return 400 for invalid file type', async () => {
+     70|       mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+       |                ^
+     71| 
+     72|       const request = createMockRequest('POST', {
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/35]⎯
+
+ FAIL  __tests__/api/upload-url.test.ts > /api/upload-url > POST > should successfully generate upload URL for valid image
+TypeError: mockAuth.mockResolvedValue is not a function
+ ❯ __tests__/api/upload-url.test.ts:86:16
+     84| 
+     85|     it('should successfully generate upload URL for valid image', asyn…
+     86|       mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+       |                ^
+     87|       mockPut.mockResolvedValue({
+     88|         url: 'https://example.blob.vercel-storage.com/test-123.jpg',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/35]⎯
+
+ FAIL  __tests__/api/upload-url.test.ts > /api/upload-url > POST > should handle different valid image types
+TypeError: mockAuth.mockResolvedValue is not a function
+ ❯ __tests__/api/upload-url.test.ts:118:16
+    116| 
+    117|     it('should handle different valid image types', async () => {
+    118|       mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+       |                ^
+    119|       mockPut.mockResolvedValue({
+    120|         url: 'https://example.blob.vercel-storage.com/test-123.png',
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/35]⎯
+
+ FAIL  __tests__/api/upload-url.test.ts > /api/upload-url > POST > should handle blob storage errors gracefully
+TypeError: mockAuth.mockResolvedValue is not a function
+ ❯ __tests__/api/upload-url.test.ts:149:16
+    147| 
+    148|     it('should handle blob storage errors gracefully', async () => {
+    149|       mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+       |                ^
+    150|       mockPut.mockRejectedValue(new Error('Storage error'));
+    151| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/35]⎯
+
+ FAIL  __tests__/e2e/batch-upload.spec.ts > E2E: Batch Upload > should handle concurrent uploads efficiently
+AssertionError: expected 5 to be less than or equal to 3
+ ❯ __tests__/e2e/batch-upload.spec.ts:445:27
+    443|     // Should handle concurrent uploads (max 3 based on implementation)
+    444|     expect(maxConcurrent).toBeGreaterThan(1); // Confirms parallelism
+    445|     expect(maxConcurrent).toBeLessThanOrEqual(3); // Respects concurre…
+       |                           ^
+    446|   });
+    447| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/35]⎯
+
+ FAIL  __tests__/e2e/large-batch-upload.spec.ts > Large Batch Upload Performance Test > should handle 100 simultaneous files within performance targets
+AssertionError: expected 0.93 to be greater than or equal to 0.95
+ ❯ __tests__/e2e/large-batch-upload.spec.ts:279:44
+    277|     // Assertions
+    278|     expect(performanceMetrics.totalTime).toBeLessThan(TARGET_TIME);
+    279|     expect(performanceMetrics.successRate).toBeGreaterThanOrEqual(TARG…
+       |                                            ^
+    280|     expect(performanceMetrics.peakMemoryUsage).toBeLessThan(TARGET_MEM…
+    281|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/35]⎯
+
+ FAIL  __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Retry Logic > should automatically retry failed embeddings with exponential backoff
+AssertionError: expected [ 'completed' ] to include 'retry'
+ ❯ it.timeout __tests__/embeddings/embedding-generation.test.ts:276:31
+    274|       // Should have retry events
+    275|       const retryEventTypes = retryEvents.map(e => e.type);
+    276|       expect(retryEventTypes).toContain('retry');
+       |                               ^
+    277| 
+    278|       // Check exponential backoff timing
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/35]⎯
+
+ FAIL  __tests__/embeddings/embedding-generation.test.ts > Embedding Generation Test Suite > Network Interruption Recovery > should recover from network interruption and resume processing
+Error: Recovery timeout
+ ❯ Timeout._onTimeout __tests__/embeddings/embedding-generation.test.ts:482:60
+    480|       await Promise.race([
+    481|         completedPromise,
+    482|         new Promise((_, reject) => setTimeout(() => reject(new Error('…
+       |                                                            ^
+    483|       ]);
+    484| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/35]⎯
+
+ FAIL  __tests__/integration/user-journey.test.ts > E2E: user journey in mock mode > allows upload, favorite toggling, and semantic search
+AssertionError: expected 500 to be 200 // Object.is equality
+
+- Expected
++ Received
+
+- 200
++ 500
+
+ ❯ __tests__/integration/user-journey.test.ts:66:30
+     64| 
+     65|     const uploadRes = await uploadUrlPOST(uploadReq);
+     66|     expect(uploadRes.status).toBe(200);
+       |                              ^
+     67|     const uploadData = await uploadRes.json();
+     68|     expect(uploadData.pathname).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > assetExists > when asset exists > should return typed asset metadata
+TypeError: assetExists is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:55:28
+     53|       mockPrisma.asset.findFirst.mockResolvedValue(mockAsset);
+     54| 
+     55|       const result = await assetExists(mockUserId, mockChecksum);
+       |                            ^
+     56| 
+     57|       expect(result).toEqual({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > assetExists > when asset exists > should use transaction when provided
+TypeError: assetExists is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:81:13
+     79|       mockTx.asset.findFirst.mockResolvedValue(mockAsset);
+     80| 
+     81|       await assetExists(mockUserId, mockChecksum, { tx: mockTx as any …
+       |             ^
+     82| 
+     83|       expect(mockTx.asset.findFirst).toHaveBeenCalledTimes(1);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > assetExists > when asset exists > should include embedding flag when requested
+TypeError: assetExists is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:95:28
+     93|       });
+     94| 
+     95|       const result = await assetExists(mockUserId, mockChecksum, { inc…
+       |                            ^
+     96| 
+     97|       expect(result?.hasEmbedding).toBe(true);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > assetExists > when asset does not exist > should return null
+TypeError: assetExists is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:105:28
+    103|       mockPrisma.asset.findFirst.mockResolvedValue(null);
+    104| 
+    105|       const result = await assetExists(mockUserId, mockChecksum);
+       |                            ^
+    106| 
+    107|       expect(result).toBeNull();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > assetExists > error handling > should throw when database error occurs
+TypeError: assetExists is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:115:20
+    113|       mockPrisma.asset.findFirst.mockRejectedValue(new Error('Database…
+    114| 
+    115|       await expect(assetExists(mockUserId, mockChecksum)).rejects.toTh…
+       |                    ^
+    116|     });
+    117|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > findOrCreateAsset > when asset does not exist > should create new asset
+TypeError: findOrCreateAsset is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:160:28
+    158|       });
+    159| 
+    160|       const result = await findOrCreateAsset(mockUserId, mockAssetData…
+       |                            ^
+    161| 
+    162|       expect(result).toEqual({
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[25/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > findOrCreateAsset > when asset already exists > should return existing asset
+TypeError: findOrCreateAsset is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:199:28
+    197|       });
+    198| 
+    199|       const result = await findOrCreateAsset(mockUserId, mockAssetData…
+       |                            ^
+    200| 
+    201|       expect(mockTxAsset.create).not.toHaveBeenCalled();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[26/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > findOrCreateAsset > race condition handling > should handle unique constraint violation
+TypeError: findOrCreateAsset is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:238:28
+    236|       });
+    237| 
+    238|       const result = await findOrCreateAsset(mockUserId, mockAssetData…
+       |                            ^
+    239| 
+    240|       expect(result.id).toBe('raceAsset123');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[27/35]⎯
+
+ FAIL  __tests__/lib/db-asset-exists.test.ts > findOrCreateAsset > race condition handling > should throw on other errors
+TypeError: findOrCreateAsset is not a function
+ ❯ __tests__/lib/db-asset-exists.test.ts:247:20
+    245|       mockPrisma.$transaction.mockRejectedValue(new Error('Unexpected …
+    246| 
+    247|       await expect(findOrCreateAsset(mockUserId, mockAssetData)).rejec…
+       |                    ^
+    248|     });
+    249|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[28/35]⎯
+
+ FAIL  __tests__/lib/distributed-queue.test.ts > DistributedQueue > Priority Processing > should maintain FIFO order within same priority
+AssertionError: expected [ 'normal-1', 'normal-3', 'normal-2' ] to deeply equal [ 'normal-1', 'normal-2', 'normal-3' ]
+
+- Expected
++ Received
+
+  Array [
+    "normal-1",
+-   "normal-2",
+    "normal-3",
++   "normal-2",
+  ]
+
+ ❯ __tests__/lib/distributed-queue.test.ts:74:25
+     72|       await queue.processNext();
+     73| 
+     74|       expect(processed).toEqual(['normal-1', 'normal-2', 'normal-3']);
+       |                         ^
+     75|     });
+     76|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[29/35]⎯
+
+ FAIL  __tests__/lib/distributed-queue.test.ts > DistributedQueue > Retry Logic > should move items to dead letter queue after max retries
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ __tests__/lib/distributed-queue.test.ts:126:28
+    124| 
+    125|       const metrics = queue.getMetrics();
+    126|       expect(metrics.dead).toBe(1);
+       |                            ^
+    127|       expect(metrics.failureCount).toBe(1);
+    128| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[30/35]⎯
+
+ FAIL  __tests__/lib/distributed-queue.test.ts > DistributedQueue > Dead Letter Queue > should allow retrying dead letter items
+AssertionError: expected +0 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 0
+
+ ❯ __tests__/lib/distributed-queue.test.ts:171:39
+    169|       }
+    170| 
+    171|       expect(queue.getMetrics().dead).toBe(1);
+       |                                       ^
+    172| 
+    173|       // Retry from dead letter
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[31/35]⎯
+
+ FAIL  __tests__/lib/distributed-queue.test.ts > DistributedQueue > Metrics > should track success metrics
+AssertionError: expected 0 to be greater than 0
+ ❯ __tests__/lib/distributed-queue.test.ts:222:41
+    220|       expect(metrics.successCount).toBe(2);
+    221|       expect(metrics.failureCount).toBe(0);
+    222|       expect(metrics.avgProcessingTime).toBeGreaterThan(0);
+       |                                         ^
+    223|     });
+    224| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[32/35]⎯
+
+ Test Files  15 failed | 12 passed (27)
+      Tests  28 failed | 288 passed (316)
+   Start at  13:45:59
+   Duration  49.97s (transform 1.06s, setup 5.20s, collect 1.63s, tests 66.15s, environment 12.63s, prepare 2.93s)
+
+ ELIFECYCLE  Test failed. See above for more details.

@@ -421,32 +421,30 @@ export function getGlobalMetricsCollector(): MetricsCollector {
 
 // React hook for metrics
 export function useMetrics() {
-  if (typeof window === 'undefined') {
-    return {
-      report: null as MetricsReport | null,
-      collector: null as MetricsCollector | null,
-    };
-  }
-
-  // Dynamic import React only when in browser
-  const React = typeof window !== 'undefined' ? require('react') : null;
-  if (!React) {
-    return {
-      report: null as MetricsReport | null,
-      collector: null as MetricsCollector | null,
-    };
-  }
-
+  const React = require('react');
   const collector = getGlobalMetricsCollector();
-  const [report, setReport] = React.useState<MetricsReport>(collector.getReport());
+  const [report, setReport] = React.useState(
+    typeof window !== 'undefined' ? collector.getReport() : null as MetricsReport | null
+  );
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
     const interval = setInterval(() => {
       setReport(collector.getReport());
     }, 1000);
 
     return () => clearInterval(interval);
   }, [collector]);
+
+  if (typeof window === 'undefined') {
+    return {
+      report: null as MetricsReport | null,
+      collector: null as MetricsCollector | null,
+    };
+  }
 
   return {
     report,

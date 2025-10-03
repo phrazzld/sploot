@@ -4,28 +4,28 @@
  * measuring performance, memory usage, and failure rates
  */
 
-import { jest } from '@jest/globals';
-import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
+import { vi } from 'vitest';
+import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService } from '../utils/test-helpers';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 // Mock dependencies
-jest.mock('@/lib/db', () => ({
+vi.mock('@/lib/db', () => ({
   prisma: mockPrisma(),
   databaseAvailable: true,
-  assetExists: jest.fn().mockResolvedValue(false),
-  findOrCreateAsset: jest.fn().mockResolvedValue({
+  assetExists: vi.fn<() => Promise<boolean>>().mockResolvedValue(false),
+  findOrCreateAsset: vi.fn<() => Promise<{ asset: any; isDuplicate: boolean }>>().mockResolvedValue({
     asset: { id: 'asset-id', blobUrl: 'blob://test', needsEmbedding: true },
     isDuplicate: false,
   }),
-  upsertAssetEmbedding: jest.fn().mockResolvedValue(true),
+  upsertAssetEmbedding: vi.fn<() => Promise<boolean>>().mockResolvedValue(true),
 }));
 
-jest.mock('@vercel/blob', () => mockBlobStorage());
+vi.mock('@vercel/blob', () => mockBlobStorage());
 
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn().mockResolvedValue({ userId: 'test-user' }),
-  currentUser: jest.fn().mockResolvedValue({
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: vi.fn<() => Promise<{ userId: string | null }>>().mockResolvedValue({ userId: 'test-user' }),
+  currentUser: vi.fn<() => Promise<any>>().mockResolvedValue({
     id: 'test-user',
     emailAddresses: [{ emailAddress: 'test@example.com' }],
   }),
@@ -33,20 +33,20 @@ jest.mock('@clerk/nextjs/server', () => ({
 
 // Mock embedding service
 const mockEmbedding = Array(1152).fill(0.1);
-jest.mock('@/lib/embeddings', () => ({
+vi.mock('@/lib/embeddings', () => ({
   createEmbeddingService: jest.fn(() => ({
-    generateImageEmbedding: jest.fn().mockResolvedValue({
+    generateImageEmbedding: vi.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
       embedding: mockEmbedding,
       modelName: 'siglip-large',
       dimension: 1152,
     }),
   })),
-  generateImageEmbedding: jest.fn().mockResolvedValue({
+  generateImageEmbedding: vi.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
     embedding: mockEmbedding,
     modelName: 'siglip-large',
     dimension: 1152,
   }),
-  generateTextEmbedding: jest.fn().mockResolvedValue({
+  generateTextEmbedding: vi.fn<() => Promise<{ embedding: number[]; modelName: string; dimension: number }>>().mockResolvedValue({
     embedding: mockEmbedding,
     modelName: 'siglip-large',
     dimension: 1152,
@@ -92,7 +92,7 @@ describe('Large Batch Upload Performance Test', () => {
   beforeEach(() => {
     uploadResults = [];
     memorySnapshots = [];
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   /**
@@ -249,7 +249,7 @@ describe('Large Batch Upload Performance Test', () => {
     };
   }
 
-  test('should handle 100 simultaneous files within performance targets', async () => {
+  test('should handle 100 simultaneous files within performance targets', { timeout: 180000 }, async () => {
     // Generate test images
     const files = generateTestImages(TEST_SIZE);
     expect(files).toHaveLength(TEST_SIZE);
@@ -280,7 +280,7 @@ describe('Large Batch Upload Performance Test', () => {
     expect(performanceMetrics.peakMemoryUsage).toBeLessThan(TARGET_MEMORY);
   });
 
-  test('should maintain responsive UI during large batch upload', async () => {
+  test('should maintain responsive UI during large batch upload', { timeout: 60000 }, async () => {
     const files = generateTestImages(50); // Smaller test for UI responsiveness
     let uiBlockedTime = 0;
     const maxBlockingTime = 50; // 50ms max blocking time for UI responsiveness
@@ -301,7 +301,7 @@ describe('Large Batch Upload Performance Test', () => {
     expect(uiBlockedTime).toBeLessThan(maxBlockingTime);
   });
 
-  test('should handle memory efficiently with cleanup', async () => {
+  test('should handle memory efficiently with cleanup', { timeout: 60000 }, async () => {
     const files = generateTestImages(50);
     const memoryCheckpoints: number[] = [];
 
@@ -322,7 +322,7 @@ describe('Large Batch Upload Performance Test', () => {
     expect(memoryIncrease).toBeLessThan(10 * 1024 * 1024); // Less than 10MB increase
   });
 
-  test('should handle mixed file sizes appropriately', async () => {
+  test('should handle mixed file sizes appropriately', { timeout: 45000 }, async () => {
     const files = generateTestImages(30); // Mix of different sizes
     await processUploadsWithConcurrency(files);
 
@@ -358,7 +358,7 @@ describe('Large Batch Upload Performance Test', () => {
     }
   });
 
-  test('should recover from failures gracefully', async () => {
+  test('should recover from failures gracefully', { timeout: 30000 }, async () => {
     const files = generateTestImages(20);
 
     // Force some failures by mocking

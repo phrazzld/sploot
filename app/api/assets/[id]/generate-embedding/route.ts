@@ -4,7 +4,7 @@ import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { getAuth } from '@/lib/auth/server';
 import { isMockMode } from '@/lib/env';
 import { mockGenerateEmbedding } from '@/lib/mock-store';
-import { broadcastEmbeddingUpdate } from '@/app/api/sse/embedding-updates/route';
+import { broadcastEmbeddingUpdate } from '@/lib/sse-broadcaster';
 
 // Request deduplication: Track in-flight requests
 const inFlightRequests = new Map<string, Promise<any>>();

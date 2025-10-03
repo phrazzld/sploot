@@ -21,10 +21,13 @@ export function useAssets(options: UseAssetsOptions = {}) {
   const [error, setError] = useState<string | null>(null);
   const [total, setTotal] = useState(0);
   const [offset, setOffset] = useState(0);
+  const [integrityIssue, setIntegrityIssue] = useState(false);
+  const integrityCheckDoneRef = useRef(false);
 
   // Use refs to avoid stale closures
   const loadingRef = useRef(false);
   const hasMoreRef = useRef(true);
+  const hasLoadedRef = useRef(false); // Track if initial load has been attempted
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Keep hasMore ref in sync with state
@@ -59,6 +62,19 @@ export function useAssets(options: UseAssetsOptions = {}) {
           sortOrder,
         });
 
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useAssets] Loading assets:', {
+            reset,
+            offset: currentOffset,
+            limit: initialLimit,
+            sortBy,
+            sortOrder,
+            filterFavorites,
+            tagId,
+          });
+        }
+
         if (filterFavorites !== undefined) {
           params.set('favorite', filterFavorites.toString());
         }
@@ -72,10 +88,55 @@ export function useAssets(options: UseAssetsOptions = {}) {
         });
 
         if (!response.ok) {
-          throw new Error('Failed to fetch assets');
+          // Extract error details from response for better debugging
+          let errorMessage = 'Failed to fetch assets';
+          let errorDetails = null;
+
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorMessage;
+            errorDetails = errorData;
+          } catch {
+            // Response wasn't JSON, use generic message
+          }
+
+          // Log comprehensive error info (development only)
+          if (process.env.NODE_ENV === 'development') {
+            console.error('[useAssets] API error:', {
+              status: response.status,
+              statusText: response.statusText,
+              message: errorMessage,
+              details: errorDetails,
+              url: response.url,
+            });
+          }
+
+          // Throw with specific message based on status code
+          const statusMessages: Record<number, string> = {
+            401: 'Unauthorized - Please sign in',
+            403: 'Forbidden - Access denied',
+            404: 'API endpoint not found',
+            500: 'Server error - Please try again',
+            503: 'Service unavailable - Database may be offline',
+          };
+
+          const specificMessage = statusMessages[response.status]
+            || `${errorMessage} (HTTP ${response.status})`;
+
+          throw new Error(specificMessage);
         }
 
         const data = await response.json();
+
+        // Debug logging in development
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[useAssets] API response:', {
+            assetCount: data.assets?.length || 0,
+            total: data.pagination?.total,
+            hasMore: data.pagination?.hasMore,
+            reset,
+          });
+        }
 
         // Only update state if this request wasn't aborted
         if (controller.signal.aborted) return;
@@ -95,7 +156,13 @@ export function useAssets(options: UseAssetsOptions = {}) {
         if (err instanceof Error && err.name === 'AbortError') {
           return;
         }
+
+        // Log error for debugging
+        if (process.env.NODE_ENV === 'development') {
+          console.error('[useAssets] Error loading assets:', err);
+        }
         logError('Error loading assets:', err);
+
         // Only update error state if this request wasn't aborted
         if (!controller.signal.aborted) {
           setError(err instanceof Error ? err.message : 'Failed to load assets');
@@ -113,9 +180,24 @@ export function useAssets(options: UseAssetsOptions = {}) {
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
     setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === id ? { ...asset, ...updates } : asset
-      )
+      prev.map((asset) => {
+        if (asset.id !== id) return asset;
+
+        // Check if any values actually changed to avoid creating new reference
+        let hasChanges = false;
+        for (const key in updates) {
+          if (updates[key as keyof Asset] !== asset[key as keyof Asset]) {
+            hasChanges = true;
+            break;
+          }
+        }
+
+        // Return same reference if nothing changed (prevents unnecessary re-renders)
+        if (!hasChanges) return asset;
+
+        // Only create new object if values actually changed
+        return { ...asset, ...updates };
+      })
     );
   }, []);
 
@@ -130,12 +212,53 @@ export function useAssets(options: UseAssetsOptions = {}) {
     return loadAssets(true);
   }, [loadAssets]);
 
-  // Auto-load on mount if enabled
+  // Validate asset integrity on first load
   useEffect(() => {
-    if (autoLoad && assets.length === 0 && !loadingRef.current) {
+    if (assets.length > 0 && !integrityCheckDoneRef.current) {
+      integrityCheckDoneRef.current = true;
+
+      // Sample first 10 assets
+      const sample = assets.slice(0, 10);
+
+      // Validate blob URLs
+      const brokenCount = sample.filter(asset => {
+        const url = asset.blobUrl;
+        // Check if URL is properly formatted and not empty
+        if (!url || typeof url !== 'string' || url.trim() === '') {
+          return true; // Broken
+        }
+        // Check if URL looks like a valid blob URL
+        try {
+          new URL(url);
+          // Vercel blob URLs typically contain 'vercel-storage' or 'blob.vercel-storage.com'
+          if (!url.includes('blob') && !url.includes('vercel')) {
+            return true; // Suspicious URL
+          }
+          return false; // Valid
+        } catch {
+          return true; // Invalid URL format
+        }
+      }).length;
+
+      const brokenPercentage = (brokenCount / sample.length) * 100;
+
+      if (brokenPercentage > 50) {
+        console.warn(
+          `[Asset Integrity] ${brokenCount}/${sample.length} assets have invalid blob URLs (${brokenPercentage.toFixed(1)}%)`
+        );
+        setIntegrityIssue(true);
+      }
+    }
+  }, [assets]);
+
+  // Auto-load on mount if enabled
+  // Use hasLoadedRef to prevent infinite loop when library is empty
+  useEffect(() => {
+    if (autoLoad && !hasLoadedRef.current) {
+      hasLoadedRef.current = true;
       loadAssets(true);
     }
-  }, [autoLoad, loadAssets]); // Safe to depend on loadAssets now
+  }, [autoLoad, loadAssets]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -152,6 +275,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
     hasMore,
     error,
     total,
+    integrityIssue,
     loadAssets,
     updateAsset,
     deleteAsset,
@@ -290,9 +414,24 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
     setAssets((prev) =>
-      prev.map((asset) =>
-        asset.id === id ? { ...asset, ...updates } : asset
-      )
+      prev.map((asset) => {
+        if (asset.id !== id) return asset;
+
+        // Check if any values actually changed to avoid creating new reference
+        let hasChanges = false;
+        for (const key in updates) {
+          if (updates[key as keyof Asset] !== asset[key as keyof Asset]) {
+            hasChanges = true;
+            break;
+          }
+        }
+
+        // Return same reference if nothing changed (prevents unnecessary re-renders)
+        if (!hasChanges) return asset;
+
+        // Only create new object if values actually changed
+        return { ...asset, ...updates };
+      })
     );
   }, []);
 

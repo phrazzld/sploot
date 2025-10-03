@@ -4,9 +4,6 @@ import "./globals.css";
 import { AuthProvider } from "@/lib/auth/client";
 import { ToastContainer } from "@/components/ui/toast";
 import { EmbeddingStatusProvider } from "@/contexts/embedding-status-context";
-import { ConnectionPoolMonitor } from "@/components/debug/connection-pool-monitor";
-import { CircuitBreakerIndicator } from "@/components/debug/circuit-breaker-indicator";
-import { MetricsOverlay } from "@/components/debug/metrics-overlay";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -121,9 +118,6 @@ export default function RootLayout({
           >
             {children}
             <ToastContainer />
-            <ConnectionPoolMonitor />
-            <CircuitBreakerIndicator />
-            <MetricsOverlay />
           </body>
         </html>
       </EmbeddingStatusProvider>

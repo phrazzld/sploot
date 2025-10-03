@@ -74,3 +74,12 @@ export function useSearchShortcut(callback: () => void, enabled = true) {
     enabled,
   });
 }
+
+// Convenience hook for / key to focus search
+export function useSlashSearchShortcut(callback: () => void, enabled = true) {
+  useKeyboardShortcut({
+    key: '/',
+    callback,
+    enabled,
+  });
+}

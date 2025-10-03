@@ -14,10 +14,8 @@
 
 import { Client } from 'pg';
 import { PrismaClient } from '@prisma/client';
-import * as dotenv from 'dotenv';
-
 // Load environment variables
-dotenv.config({ path: '.env.local' });
+// Note: dotenv is not installed in production, using process.env directly
 
 const prisma = new PrismaClient();
 
@@ -43,11 +41,13 @@ async function testPgNotify() {
     // Set up notification handler
     listenerClient.on('notification', (msg) => {
       console.log(`\n📨 Received notification on channel '${msg.channel}':`);
-      console.log(JSON.stringify(JSON.parse(msg.payload), null, 2));
-      notifications.push({
-        channel: msg.channel,
-        payload: JSON.parse(msg.payload)
-      });
+      if (msg.payload) {
+        console.log(JSON.stringify(JSON.parse(msg.payload), null, 2));
+        notifications.push({
+          channel: msg.channel,
+          payload: JSON.parse(msg.payload)
+        });
+      }
     });
 
     // Listen to channels

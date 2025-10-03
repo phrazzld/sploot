@@ -331,26 +331,29 @@ export function getConnectionPool(): ConnectionPool {
  * Hook for React components to monitor pool stats
  */
 export function useConnectionPoolStats() {
-  if (typeof window === 'undefined') {
-    return {
-      activeConnections: 0,
-      queuedRequests: 0,
-      totalProcessed: 0,
-      totalErrors: 0,
-      averageWaitTime: 0,
-    };
-  }
-
-  const pool = getConnectionPool();
-  const [stats, setStats] = React.useState(pool.getStats());
+  const React = require('react');
+  const [stats, setStats] = React.useState({
+    activeConnections: 0,
+    queuedRequests: 0,
+    totalProcessed: 0,
+    totalErrors: 0,
+    averageWaitTime: 0,
+  });
 
   React.useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const pool = getConnectionPool();
+    setStats(pool.getStats());
+
     const interval = setInterval(() => {
       setStats(pool.getStats());
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [pool]);
+  }, []);
 
   return stats;
 }
@@ -358,5 +361,3 @@ export function useConnectionPoolStats() {
 // Prevent direct instantiation
 export type { PoolStats };
 
-// Import React only if in browser context
-const React = typeof window !== 'undefined' ? require('react') : null;

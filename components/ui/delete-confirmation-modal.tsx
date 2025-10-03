@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 interface DeleteConfirmationModalProps {
@@ -90,9 +91,11 @@ export function DeleteConfirmationModal({
           {imageUrl && (
             <div className="px-6 py-4">
               <div className="relative bg-[#1B1F24] rounded-lg overflow-hidden border border-[#2A2F37]">
-                <img
+                <Image
                   src={imageUrl}
                   alt={imageName || 'Image to delete'}
+                  width={400}
+                  height={128}
                   className="w-full h-32 object-contain"
                 />
                 {imageName && (
@@ -138,7 +141,7 @@ export function DeleteConfirmationModal({
                   )}
                 </div>
                 <span className="text-[#B3B7BE] text-sm select-none group-hover:text-[#E6E8EB] transition-colors">
-                  Don't ask me again
+                  Don&apos;t ask me again
                 </span>
               </label>
             </div>

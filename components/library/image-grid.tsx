@@ -3,9 +3,11 @@
 import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ImageTile } from './image-tile';
+import { ImageTileErrorBoundary } from './image-tile-error-boundary';
 import { ImageGridSkeleton } from './image-skeleton';
+import { EmptyState } from './empty-state';
 import { cn } from '@/lib/utils';
-import Link from 'next/link';
+import { trackBrokenImageRatio, setupCLSTracking } from '@/lib/performance-metrics';
 import type { Asset } from '@/lib/types';
 
 interface ImageGridProps {
@@ -35,6 +37,8 @@ export function ImageGrid({
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [showingTransition, setShowingTransition] = useState(false);
+  const [brokenImageCount, setBrokenImageCount] = useState(0);
   const setContainerRef = useCallback(
     (node: HTMLDivElement | null) => {
       containerRef.current = node;
@@ -43,8 +47,22 @@ export function ImageGrid({
     [onScrollContainerReady]
   );
 
+  // Handle transition from skeleton to empty state
+  useEffect(() => {
+    if (!loading && assets.length === 0) {
+      // Start transition: show skeleton fading out
+      setShowingTransition(true);
+      const timer = setTimeout(() => {
+        setShowingTransition(false);
+      }, 300); // Match the fade-out duration
+      return () => clearTimeout(timer);
+    }
+  }, [loading, assets.length]);
+
   // Use virtual scrolling only for large collections
-  const USE_VIRTUAL_SCROLLING_THRESHOLD = 100;
+  // Threshold set high to avoid layout issues during normal usage
+  // Virtual scrolling mainly benefits collections with 500+ items
+  const USE_VIRTUAL_SCROLLING_THRESHOLD = 500;
   const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
 
   // Calculate columns based on container width
@@ -52,7 +70,7 @@ export function ImageGrid({
     if (!containerWidth) return 1;
 
     const ITEM_WIDTH = 280;
-    const GAP = 16;
+    const GAP = 4;
     const MIN_COLUMNS = 1;
     const MAX_COLUMNS = 5;
 
@@ -75,7 +93,7 @@ export function ImageGrid({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => containerRef.current,
-    estimateSize: () => 380, // Estimated row height
+    estimateSize: () => 320, // Estimated row height (reduced since no metadata)
     overscan: 2, // Render 2 rows outside viewport
   });
 
@@ -94,6 +112,47 @@ export function ImageGrid({
     window.addEventListener('resize', updateWidth);
     return () => window.removeEventListener('resize', updateWidth);
   }, []);
+
+  // Setup CLS (Cumulative Layout Shift) tracking
+  // Monitors layout stability of image grid (target: CLS < 0.1)
+  useEffect(() => {
+    if (assets.length > 0) {
+      setupCLSTracking(containerRef.current || undefined);
+    }
+  }, [assets.length]);
+
+  // Track broken image ratio
+  // Count images that fail to load and report metric
+  useEffect(() => {
+    if (assets.length === 0) return;
+
+    // Listen for image load errors via event delegation
+    const container = containerRef.current;
+    if (!container) return;
+
+    let brokenCount = 0;
+
+    const handleImageError = (e: Event) => {
+      if ((e.target as HTMLElement).tagName === 'IMG') {
+        brokenCount++;
+        setBrokenImageCount(brokenCount);
+      }
+    };
+
+    container.addEventListener('error', handleImageError, true);
+
+    // Report metric after initial render (throttled)
+    const metricsTimer = setTimeout(() => {
+      if (assets.length > 0) {
+        trackBrokenImageRatio(brokenCount, assets.length);
+      }
+    }, 5000); // Wait 5s for images to load/fail
+
+    return () => {
+      container.removeEventListener('error', handleImageError, true);
+      clearTimeout(metricsTimer);
+    };
+  }, [assets.length]);
 
   // Load more when scrolling near bottom
   useEffect(() => {
@@ -135,75 +194,33 @@ export function ImageGrid({
     );
   }
 
+  // Transitioning from skeleton to empty state
+  // Show skeleton fading out for smooth transition
+  if (assets.length === 0 && !loading && showingTransition) {
+    return (
+      <div className="h-full">
+        <div
+          ref={setContainerRef}
+          className={cn('h-full overflow-auto p-4', containerClassName)}
+          style={{ scrollbarGutter: 'stable' }}
+        >
+          <ImageGridSkeleton
+            count={20}
+            variant="tile"
+            className="animate-fade-out opacity-0 transition-opacity duration-300 ease-out"
+          />
+        </div>
+      </div>
+    );
+  }
+
   // Empty state
+  // Hide upload button since the main page toolbar already has a prominent one
+  // Fade in after skeleton transition completes
   if (assets.length === 0 && !loading) {
     return (
-      <div className="flex h-full items-center justify-center py-16">
-        <div className="flex w-full max-w-lg flex-col items-center gap-6 rounded-3xl border border-dashed border-[#2A2F37] bg-[#14171A] p-10 text-center">
-          <div className="flex h-28 w-28 items-center justify-center rounded-2xl bg-[#1B1F24]">
-            <svg
-              className="h-14 w-14 text-[#7C5CFF]"
-              viewBox="0 0 64 64"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <rect x="8" y="12" width="48" height="40" rx="6" stroke="currentColor" strokeWidth="2.5" opacity="0.9" />
-              <path
-                d="M18 39l9.5-11a2 2 0 013 0l6 7.2a2 2 0 003.1.1L44 30"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                opacity="0.9"
-              />
-              <circle cx="42" cy="23" r="3.5" fill="currentColor" opacity="0.9" />
-            </svg>
-          </div>
-
-          <div>
-            <h3 className="text-xl font-semibold text-[#E6E8EB]">drop files here</h3>
-            <p className="mt-2 text-sm text-[#B3B7BE]">
-              drag and drop images into your library or start an upload to see them appear instantly.
-            </p>
-          </div>
-
-          <div className="flex flex-col items-center gap-3 sm:flex-row">
-            <span className="text-xs uppercase tracking-wide text-[#7C5CFF]">or</span>
-            {onUploadClick ? (
-              <button
-                onClick={onUploadClick}
-                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M10 4v12M4 10h12"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                upload images
-              </button>
-            ) : (
-              <Link
-                href="/app?upload=1"
-                className="inline-flex items-center gap-2 rounded-lg bg-[#7C5CFF] px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
-              >
-                <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path
-                    d="M10 4v12M4 10h12"
-                    stroke="currentColor"
-                    strokeWidth="1.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                upload images
-              </Link>
-            )}
-          </div>
-        </div>
+      <div className="animate-fade-in">
+        <EmptyState variant="first-use" onUploadClick={onUploadClick} showUploadButton={false} />
       </div>
     );
   }
@@ -217,7 +234,7 @@ export function ImageGrid({
           className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
             {assets.map((asset, index) => (
               <div
                 key={asset.id}
@@ -227,13 +244,15 @@ export function ImageGrid({
                   opacity: 0,
                 }}
               >
-                <ImageTile
-                  asset={asset}
-                  onFavorite={handleFavoriteToggle}
-                  onDelete={onAssetDelete}
-                  onSelect={onAssetSelect}
-                  onAssetUpdate={onAssetUpdate}
-                />
+                <ImageTileErrorBoundary asset={asset} onDelete={onAssetDelete}>
+                  <ImageTile
+                    asset={asset}
+                    onFavorite={handleFavoriteToggle}
+                    onDelete={onAssetDelete}
+                    onSelect={onAssetSelect}
+                    onAssetUpdate={onAssetUpdate}
+                  />
+                </ImageTileErrorBoundary>
               </div>
             ))}
           </div>
@@ -307,28 +326,18 @@ export function ImageGrid({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div
-                  className="grid gap-4"
-                  style={{
-                    gridTemplateColumns: `repeat(${columnCount}, 1fr)`,
-                  }}
-                >
+                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
                   {row.map((asset) => (
-                    <ImageTile
-                      key={asset.id}
-                      asset={asset}
-                      onFavorite={handleFavoriteToggle}
-                      onDelete={onAssetDelete}
-                      onSelect={onAssetSelect}
-                      onAssetUpdate={onAssetUpdate}
-                    />
+                    <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
+                      <ImageTile
+                        asset={asset}
+                        onFavorite={handleFavoriteToggle}
+                        onDelete={onAssetDelete}
+                        onSelect={onAssetSelect}
+                        onAssetUpdate={onAssetUpdate}
+                      />
+                    </ImageTileErrorBoundary>
                   ))}
-                  {/* Empty cells for last row */}
-                  {virtualRow.index === rows.length - 1 &&
-                    row.length < columnCount &&
-                    Array.from({ length: columnCount - row.length }).map((_, i) => (
-                      <div key={`empty-${i}`} />
-                    ))}
                 </div>
               </div>
             );

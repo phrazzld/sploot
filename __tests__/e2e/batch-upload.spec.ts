@@ -4,39 +4,121 @@
  * verifying upload states, completion times, and searchability
  */
 
-import { jest } from '@jest/globals';
-import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth } from '../utils/test-helpers';
+import { vi } from 'vitest';
+import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService } from '../utils/test-helpers';
+// Types are inferred from Clerk auth objects
+type SessionStatusClaim = 'active' | 'inactive' | 'stale' | 'revoked' | 'tokenExpired' | null;
+interface JwtPayload {
+  __raw: string;
+  iss: string;
+  sub: string;
+  sid: string;
+  nbf: number;
+  exp: number;
+  iat: number;
+}
+import type { auth as clerkAuth, currentUser as clerkCurrentUser } from '@clerk/nextjs/server';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
 
 // Mock dependencies
-jest.mock('@/lib/db', () => ({
+vi.mock('@/lib/db', () => ({
   prisma: mockPrisma(),
 }));
 
-jest.mock('@vercel/blob', () => mockBlobStorage());
+vi.mock('@vercel/blob', () => mockBlobStorage());
 
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn().mockResolvedValue({ userId: 'test-user' }),
-  currentUser: jest.fn().mockResolvedValue({
-    id: 'test-user',
-    emailAddresses: [{ emailAddress: 'test@example.com' }],
-  }),
+type ClerkAuth = typeof clerkAuth;
+type ClerkAuthResult = Awaited<ReturnType<ClerkAuth>>;
+type ClerkCurrentUser = typeof clerkCurrentUser;
+type ClerkCurrentUserResult = Awaited<ReturnType<ClerkCurrentUser>>;
+
+const createRedirectStub = (): ClerkAuthResult['redirectToSignIn'] =>
+  ((() => {
+    throw new Error('redirect not supported in tests');
+  }) as ClerkAuthResult['redirectToSignIn']);
+
+const createAuthState = (userId: string | null): ClerkAuthResult => {
+  if (!userId) {
+    return {
+      sessionClaims: null,
+      sessionId: null,
+      sessionStatus: null,
+      actor: null,
+      userId: null,
+      orgId: null,
+      orgRole: null,
+      orgSlug: null,
+      orgPermissions: null,
+      factorVerificationAge: null,
+      tokenType: 'session_token',
+      getToken: vi.fn().mockResolvedValue(null) as any,
+      has: vi.fn().mockReturnValue(false) as any,
+      debug: vi.fn().mockReturnValue({}) as any,
+      isAuthenticated: false,
+      redirectToSignIn: createRedirectStub(),
+      redirectToSignUp: createRedirectStub(),
+    } satisfies ClerkAuthResult;
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const claims: JwtPayload = {
+    __raw: '',
+    iss: 'https://sploot.test',
+    sub: userId,
+    sid: `sess_${userId}`,
+    nbf: now,
+    exp: now + 3600,
+    iat: now,
+  };
+
+  return {
+    sessionClaims: claims,
+    sessionId: claims.sid,
+    sessionStatus: 'active' as SessionStatusClaim,
+    actor: undefined,
+    userId,
+    orgId: undefined,
+    orgRole: undefined,
+    orgSlug: undefined,
+    orgPermissions: [],
+    factorVerificationAge: null,
+    tokenType: 'session_token',
+    getToken: vi.fn().mockResolvedValue('mock-session-token') as any,
+    has: vi.fn().mockReturnValue(true) as any,
+    debug: vi.fn().mockReturnValue({}) as any,
+    isAuthenticated: true,
+    redirectToSignIn: createRedirectStub(),
+    redirectToSignUp: createRedirectStub(),
+  } satisfies ClerkAuthResult;
+};
+
+const authMock = vi.fn() as any;
+const currentUserMock = vi.fn() as any;
+
+vi.mock('@clerk/nextjs/server', () => ({
+  auth: authMock,
+  currentUser: currentUserMock,
 }));
+
+const setAuthState = (userId: string | null) => {
+  authMock.mockResolvedValue(createAuthState(userId));
+  currentUserMock.mockResolvedValue(null as ClerkCurrentUserResult);
+};
 
 // Mock embedding service
 const mockEmbedding = Array(1152).fill(0.1);
-jest.mock('@/lib/embeddings', () => ({
-  generateImageEmbedding: jest.fn().mockResolvedValue({
-    embedding: mockEmbedding,
+vi.mock('@/lib/embeddings', () => ({
+  generateImageEmbedding: jest.fn(() => Promise.resolve({
+    embedding: Array(1152).fill(0.1),
     modelName: 'siglip-large',
     dimension: 1152,
-  }),
-  generateTextEmbedding: jest.fn().mockResolvedValue({
-    embedding: mockEmbedding,
+  })),
+  generateTextEmbedding: jest.fn(() => Promise.resolve({
+    embedding: Array(1152).fill(0.1),
     modelName: 'siglip-large',
     dimension: 1152,
-  }),
+  })),
 }));
 
 interface UploadResult {
@@ -56,14 +138,14 @@ describe('E2E: Batch Upload', () => {
   let performanceTracker: ReturnType<typeof getGlobalPerformanceTracker>;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     uploadResults = new Map();
     embeddingQueue = getEmbeddingQueueManager();
     performanceTracker = getGlobalPerformanceTracker();
     performanceTracker.reset();
 
     // Mock auth for all requests
-    mockAuth('test-user');
+    setAuthState('test-user');
   });
 
   afterEach(() => {
@@ -414,8 +496,7 @@ describe('E2E: Batch Upload', () => {
     ];
 
     // Mock error for empty file
-    const originalUpload = uploadFile;
-    jest.spyOn(global, 'uploadFile' as any).mockImplementation(async (file: File, uploadId: string) => {
+    const uploadWithError = async (file: File, uploadId: string) => {
       if (file.size === 0) {
         const result: UploadResult = {
           assetId: `asset-${uploadId}`,
@@ -427,14 +508,14 @@ describe('E2E: Batch Upload', () => {
         uploadResults.set(uploadId, result);
         return result;
       }
-      return originalUpload(file, uploadId);
-    });
+      return uploadFile(file, uploadId);
+    };
 
     // Upload all files
     const results = await Promise.all([
-      uploadFile(files[0], 'upload-1'),
-      uploadFile(files[1], 'upload-2'),
-      uploadFile(files[2], 'upload-3'),
+      uploadWithError(files[0], 'upload-1'),
+      uploadWithError(files[1], 'upload-2'),
+      uploadWithError(files[2], 'upload-3'),
     ]);
 
     // Check results

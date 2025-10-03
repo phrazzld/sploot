@@ -101,7 +101,7 @@ class LoadTestRunner {
       // For now, simulating with timing
       const formData = new FormData();
       const imageBuffer = this.createTestImage(userId, imageNum);
-      const blob = new Blob([imageBuffer], { type: 'image/png' });
+      const blob = new Blob([new Uint8Array(imageBuffer)], { type: 'image/png' });
       formData.append('file', blob, filename);
 
       const response = await fetch(`${this.config.apiBaseUrl}/api/upload`, {

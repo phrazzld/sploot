@@ -148,23 +148,6 @@ export function SearchBar({
       {/* Search bar container with pill shape */}
       <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="relative">
         <div className="relative flex items-center">
-          {/* Search icon */}
-          <div className="absolute left-6 pointer-events-none text-[#B3B7BE]">
-            <svg
-              className="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-              />
-            </svg>
-          </div>
-
           {/* Input field */}
           <input
             ref={inputRef}
@@ -187,12 +170,12 @@ export function SearchBar({
                 setShowHistory(true);
               }
             }}
-            placeholder={placeholder || 'search your memes... (press enter)'}
+            placeholder={placeholder || 'search your memes...'}
             autoFocus={autoFocus}
             className={`
-              w-full h-[52px] pl-14 pr-24
-              bg-[#14171A] text-[#E6E8EB] placeholder-[#6A6E78]
-              rounded-full border
+              w-full h-[56px] pl-6 pr-12 text-base
+              bg-[#0F1216] text-[#E6E8EB] placeholder-[#6A6E78]
+              rounded-2xl border-2
               focus:outline-none focus:ring-2
               transition-all duration-300
               ${searchState === 'typing' ? 'border-[#7C5CFF] ring-2 ring-[#7C5CFF]/20' : ''}
@@ -200,8 +183,8 @@ export function SearchBar({
               ${searchState === 'success' ? 'border-[#22C55E]' : ''}
               ${searchState === 'no-results' ? 'border-[#FFC107]' : ''}
               ${searchState === 'error' ? 'border-[#EF4444]' : ''}
-              ${searchState === 'idle' ? 'border-[#2A2F37] focus:border-[#7C5CFF] focus:ring-[#7C5CFF]/20' : ''}
-              focus:shadow-[inset_0_0_12px_rgba(124,92,255,0.1)]
+              ${searchState === 'idle' ? 'border-[#1F2328] focus:border-[#7C5CFF] focus:ring-[#7C5CFF]/20' : ''}
+              focus:shadow-[0_0_20px_rgba(124,92,255,0.15)]
             `}
           />
 
@@ -233,33 +216,6 @@ export function SearchBar({
                 </svg>
               </button>
             )}
-
-            {/* Submit button - always visible */}
-            <button
-              type="submit"
-              className="
-                p-2 text-[#7C5CFF] hover:text-[#8F72FF]
-                hover:bg-[#7C5CFF]/10 rounded-full
-                transition-all duration-200
-                focus:outline-none focus:ring-2 focus:ring-[#7C5CFF]/30
-              "
-              aria-label="search"
-              title="search (enter)"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                strokeWidth={2.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            </button>
           </div>
         </div>
       </form>

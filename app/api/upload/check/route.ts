@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           height: existingAsset.height,
           checksumSha256: existingAsset.checksumSha256,
           hasEmbedding: existingAsset.hasEmbedding,
-          createdAt: existingAsset.createdAt,
+          createdAt: existingAsset.createdAt.toISOString(),
         },
         message: 'Asset already exists in your library',
       });

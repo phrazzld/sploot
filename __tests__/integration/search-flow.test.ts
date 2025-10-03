@@ -1,40 +1,60 @@
 import { POST as searchPOST, GET as searchGET } from '@/app/api/search/route';
 import { POST as advancedSearchPOST } from '@/app/api/search/advanced/route';
 import { POST as textEmbeddingPOST } from '@/app/api/embeddings/text/route';
-import { createMockRequest, mockPrisma, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
+import { createMockRequest, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
+import { auth } from '@clerk/nextjs/server';
+import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
+import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
 
 // Mock dependencies
-jest.mock('@clerk/nextjs/server', () => ({
-  auth: jest.fn(),
-}));
-
-jest.mock('@/lib/db', () => {
-  const helpers = require('../utils/test-helpers');
-  return {
-    prisma: helpers.mockPrisma(),
-    vectorSearch: jest.fn(),
-    logSearch: jest.fn(),
-  };
-});
-
-jest.mock('@/lib/embeddings', () => ({
-  createEmbeddingService: jest.fn(),
-  EmbeddingError: class EmbeddingError extends Error {
-    constructor(message: string, public statusCode?: number) {
-      super(message);
-    }
+vi.mock('@clerk/nextjs/server');
+vi.mock('@/lib/db', () => ({
+  prisma: {
+    asset: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn(),
+    },
+    assetEmbedding: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn(),
+    },
+    assetTag: {
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+      create: vi.fn(),
+    },
+    tag: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
+    searchLog: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+      groupBy: vi.fn(),
+    },
+    $queryRaw: vi.fn(),
+    $queryRawUnsafe: vi.fn(),
+    $transaction: vi.fn(),
   },
+  vectorSearch: vi.fn(),
+  logSearch: vi.fn(),
+  databaseAvailable: true,
 }));
+vi.mock('@/lib/embeddings');
+vi.mock('@/lib/multi-layer-cache');
 
-jest.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: jest.fn(),
-  getMultiLayerCache: jest.fn(),
-}));
-
-const mockAuth = require('@clerk/nextjs/server').auth;
-const { createEmbeddingService } = require('@/lib/embeddings');
-const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer-cache');
-const { prisma, vectorSearch, logSearch } = require('@/lib/db');
+const mockAuth = vi.mocked(auth);
+const mockCreateEmbeddingService = vi.mocked(createEmbeddingService);
+const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
+const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('Search Flow Integration Tests', () => {
   const testUserId = 'test-user-id';
@@ -42,14 +62,14 @@ describe('Search Flow Integration Tests', () => {
   const mockEmbedding = Array(1152).fill(0.1);
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
 
     // Setup default mocks
     mockAuth.mockResolvedValue({ userId: testUserId });
-    createEmbeddingService.mockReturnValue(mockEmbeddingService());
+    mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService());
     const mockCache = mockMultiLayerCache();
-    createMultiLayerCache.mockReturnValue(mockCache);
-    getMultiLayerCache.mockReturnValue(mockCache);
+    mockCreateMultiLayerCache.mockReturnValue(mockCache);
+    mockGetMultiLayerCache.mockReturnValue(mockCache);
   });
 
   describe('Complete Search Flow', () => {
@@ -98,16 +118,17 @@ describe('Search Flow Integration Tests', () => {
           distance: 0.3,
         },
       ];
-      vectorSearch.mockResolvedValue(mockSearchResults);
+      const { prisma, vectorSearch, logSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue(mockSearchResults);
 
       // Setup: Mock tags for assets
-      prisma.assetTag.findMany.mockResolvedValue([
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([
         { assetId: 'asset-1', tag: { name: 'funny' } },
         { assetId: 'asset-1', tag: { name: 'cat' } },
-      ]);
+      ] as any);
 
       // Setup: Mock search logging
-      logSearch.mockResolvedValue(undefined);
+      vi.mocked(logSearch).mockResolvedValue(undefined);
 
       // Execute search
       const request = createMockRequest('POST', {
@@ -131,7 +152,8 @@ describe('Search Flow Integration Tests', () => {
       expect(embeddingService.embedText).toHaveBeenCalledWith(testQuery);
 
       // Verify vector search was called
-      expect(vectorSearch).toHaveBeenCalledWith(
+      const { vectorSearch: mockVectorSearch } = await import('@/lib/db');
+      expect(mockVectorSearch).toHaveBeenCalledWith(
         testUserId,
         mockEmbedding,
         { limit: 30, threshold: 0.6 }
@@ -146,7 +168,8 @@ describe('Search Flow Integration Tests', () => {
       );
 
       // Verify search was logged
-      expect(logSearch).toHaveBeenCalledWith(
+      const { logSearch: mockLogSearch } = await import('@/lib/db');
+      expect(mockLogSearch).toHaveBeenCalledWith(
         testUserId,
         testQuery,
         2,
@@ -188,6 +211,7 @@ describe('Search Flow Integration Tests', () => {
 
       // Verify no embedding generation or vector search occurred
       expect(createEmbeddingService).not.toHaveBeenCalled();
+      const { vectorSearch } = await import('@/lib/db');
       expect(vectorSearch).not.toHaveBeenCalled();
     });
 
@@ -228,7 +252,8 @@ describe('Search Flow Integration Tests', () => {
       createEmbeddingService.mockReturnValue(embeddingService);
 
       // Simulate vector search failure
-      vectorSearch.mockRejectedValue(new Error('Database connection lost'));
+      const { vectorSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockRejectedValue(new Error('Database connection lost'));
 
       const request = createMockRequest('POST', {
         query: testQuery,
@@ -290,7 +315,8 @@ describe('Search Flow Integration Tests', () => {
       createEmbeddingService.mockReturnValue(embeddingService);
 
       // Return results for wrong user (should be filtered)
-      vectorSearch.mockResolvedValue([]);
+      const { vectorSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue([]);
 
       const request = createMockRequest('POST', {
         query: testQuery,
@@ -303,7 +329,8 @@ describe('Search Flow Integration Tests', () => {
       expect(data.results).toEqual([]);
 
       // Verify search was scoped to correct user
-      expect(vectorSearch).toHaveBeenCalledWith(
+      const { vectorSearch: mockVectorSearch } = await import('@/lib/db');
+      expect(mockVectorSearch).toHaveBeenCalledWith(
         otherUserId,
         mockEmbedding,
         expect.any(Object)
@@ -339,8 +366,9 @@ describe('Search Flow Integration Tests', () => {
           distance: 0.25,
         },
       ];
-      vectorSearch.mockResolvedValue(filteredResults);
-      prisma.assetTag.findMany.mockResolvedValue([]);
+      const { prisma, vectorSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue(filteredResults);
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([] as any);
 
       const request = createMockRequest('POST', {
         query: testQuery,
@@ -414,8 +442,9 @@ describe('Search Flow Integration Tests', () => {
           distance: 0.3,
         },
       ];
-      vectorSearch.mockResolvedValue(results);
-      prisma.assetTag.findMany.mockResolvedValue([]);
+      const { prisma, vectorSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue(results);
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([] as any);
 
       const request = createMockRequest('POST', {
         query: testQuery,
@@ -448,7 +477,8 @@ describe('Search Flow Integration Tests', () => {
       });
       createEmbeddingService.mockReturnValue(embeddingService);
 
-      vectorSearch.mockResolvedValue([
+      const { prisma, vectorSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue([
         {
           id: 'asset-meta',
           blob_url: 'https://example.blob.vercel-storage.com/meta.jpg',
@@ -462,11 +492,11 @@ describe('Search Flow Integration Tests', () => {
         },
       ]);
 
-      prisma.assetTag.findMany.mockResolvedValue([
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([
         { assetId: 'asset-meta', tag: { name: 'funny' } },
         { assetId: 'asset-meta', tag: { name: 'cat' } },
         { assetId: 'asset-meta', tag: { name: 'meme' } },
-      ]);
+      ] as any);
 
       const request = createMockRequest('POST', {
         query: testQuery,
@@ -505,7 +535,8 @@ describe('Search Flow Integration Tests', () => {
         },
       ];
 
-      prisma.searchLog.findMany.mockResolvedValue(recentSearches);
+      const { prisma } = await import('@/lib/db');
+      vi.mocked(prisma.searchLog.findMany).mockResolvedValue(recentSearches as any);
 
       const request = createMockRequest('GET', null, {}, {
         type: 'recent',
@@ -526,7 +557,8 @@ describe('Search Flow Integration Tests', () => {
         { query: 'funny dog', _count: { query: 50 } },
       ];
 
-      prisma.searchLog.groupBy.mockResolvedValue(popularSearches);
+      const { prisma } = await import('@/lib/db');
+      vi.mocked(prisma.searchLog.groupBy).mockResolvedValue(popularSearches as any);
 
       const request = createMockRequest('GET', null, {}, {
         type: 'popular',
@@ -558,7 +590,8 @@ describe('Search Flow Integration Tests', () => {
       });
       createEmbeddingService.mockReturnValue(embeddingService);
 
-      vectorSearch.mockResolvedValue([
+      const { prisma, vectorSearch, logSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue([
         {
           id: 'asset-1',
           blob_url: 'https://example.blob.vercel-storage.com/test.jpg',
@@ -571,8 +604,8 @@ describe('Search Flow Integration Tests', () => {
           distance: 0.25,
         },
       ]);
-      prisma.assetTag.findMany.mockResolvedValue([]);
-      logSearch.mockResolvedValue(undefined);
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([] as any);
+      vi.mocked(logSearch).mockResolvedValue(undefined);
 
       getMultiLayerCache.mockReturnValue(mockCache);
 
@@ -619,7 +652,8 @@ describe('Search Flow Integration Tests', () => {
       });
       createEmbeddingService.mockReturnValue(embeddingService);
 
-      vectorSearch.mockResolvedValue([
+      const { prisma, vectorSearch, logSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue([
         {
           id: 'asset-1',
           blob_url: 'https://example.blob.vercel-storage.com/test.jpg',
@@ -632,8 +666,8 @@ describe('Search Flow Integration Tests', () => {
           distance: 0.25,
         },
       ]);
-      prisma.assetTag.findMany.mockResolvedValue([]);
-      logSearch.mockResolvedValue(undefined);
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([] as any);
+      vi.mocked(logSearch).mockResolvedValue(undefined);
 
       const request = createMockRequest('POST', {
         query: testQuery,
@@ -663,9 +697,10 @@ describe('Search Flow Integration Tests', () => {
       });
       createEmbeddingService.mockReturnValue(embeddingService);
 
-      vectorSearch.mockResolvedValue([]);
-      prisma.assetTag.findMany.mockResolvedValue([]);
-      logSearch.mockResolvedValue(undefined);
+      const { prisma, vectorSearch, logSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue([]);
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([] as any);
+      vi.mocked(logSearch).mockResolvedValue(undefined);
 
       const queries = ['cat meme', 'dog meme', 'bird meme'];
       const searchPromises = queries.map(query => {
@@ -709,9 +744,10 @@ describe('Search Flow Integration Tests', () => {
         distance: 0.1 + (i * 0.001), // Increasing distance
       }));
 
-      vectorSearch.mockResolvedValue(largeResultSet.slice(0, 30)); // Return first 30
-      prisma.assetTag.findMany.mockResolvedValue([]);
-      logSearch.mockResolvedValue(undefined);
+      const { prisma, vectorSearch, logSearch } = await import('@/lib/db');
+      vi.mocked(vectorSearch).mockResolvedValue(largeResultSet.slice(0, 30)); // Return first 30
+      vi.mocked(prisma.assetTag.findMany).mockResolvedValue([] as any);
+      vi.mocked(logSearch).mockResolvedValue(undefined);
 
       const request = createMockRequest('POST', {
         query: testQuery,
