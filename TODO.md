@@ -90,40 +90,25 @@
 
 ---
 
-- [ ] **Update GitHub Actions workflow to skip coverage on test failure**
-  - **File**: `.github/workflows/*.yml` (find test coverage workflow)
+- [x] **Update GitHub Actions workflow to skip coverage on test failure**
+  - **File**: `.github/workflows/test.yml`
   - **Issue**: Coverage report step fails when tests fail, causing confusing error messages
-  - **Fix**: Add conditional to skip coverage report if tests failed:
-    ```yaml
-    - name: Run tests with coverage
-      id: test
-      run: pnpm test:coverage
-      continue-on-error: true
-
-    - name: Coverage Report
-      if: steps.test.outcome == 'success'
-      uses: davelosert/vitest-coverage-report-action@v2
-
-    - name: Fail if tests failed
-      if: steps.test.outcome == 'failure'
-      run: exit 1
-    ```
+  - **Fix**: Added conditional logic to gracefully handle test failures
+  - **Implementation**:
+    - Added `continue-on-error: true` to test step
+    - Changed coverage condition from `always()` to `steps.test.outcome == 'success'`
+    - Added explicit failure step if tests failed
+  - **Commit**: 884b2c6
   - **Time**: ~10 min
 
 ---
 
-- [ ] **Add File.arrayBuffer() polyfill to vitest.setup.ts**
+- [x] **Add File.arrayBuffer() polyfill to vitest.setup.ts**
   - **File**: `vitest.setup.ts`
   - **Issue**: `file.arrayBuffer is not a function` in upload-preflight tests
-  - **Fix**: Add polyfill if not already present:
-    ```typescript
-    if (!File.prototype.arrayBuffer) {
-      File.prototype.arrayBuffer = async function() {
-        return new ArrayBuffer(0);
-      };
-    }
-    ```
-  - **Test**: Run upload-preflight tests → no arrayBuffer errors
+  - **Status**: ✅ Already completed in commit 79b05bb
+  - **Implementation**: Added polyfill that returns encoded text as ArrayBuffer
+  - **Commit**: 79b05bb
   - **Time**: ~5 min
 
 ---
