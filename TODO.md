@@ -32,7 +32,7 @@
 
 - [x] **Increase default grid columns for dense view** - Update grid configuration to show 6 columns on desktop (1440px+), 4 on tablet (768px+), 2 on mobile. Modify grid gap from current value to 8px for tighter spacing. Success criteria: 6-8 memes visible on laptop screen without scrolling.
 
-- [~] **Add grid density toggle to view options** - Create density options: "Compact" (8 columns, 4px gap), "Dense" (6 columns, 8px gap - default), "Comfortable" (4 columns, 16px gap). Store preference in URL params. Success criteria: User can toggle between densities, preference persists in URL.
+- [x] **Add grid density toggle to view options** - Create density options: "Compact" (8 columns, 4px gap), "Dense" (6 columns, 8px gap - default), "Comfortable" (4 columns, 16px gap). Store preference in URL params. Success criteria: User can toggle between densities, preference persists in URL.
 
 - [x] **Update image tile hover states for dense grid** - Reduce padding/margins in `image-tile.tsx` hover overlay. Decrease metadata font size to `text-xs` (12px). Ensure hover states don't cause layout shift in tight grid. Success criteria: Hover overlay readable at dense spacing, no CLS.
 
