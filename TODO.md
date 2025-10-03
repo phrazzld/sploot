@@ -220,7 +220,19 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 
 ## P2: Embedding Generation Timing Fixes (2 failures)
 
-### Task 7: Fix Exponential Backoff Retry Test
+### Task 7: Fix Exponential Backoff Retry Test [!]
+
+```
+Work Log:
+- Test creates `mockGenerateEmbedding` but never connects it to embedding queue
+- Queue is initialized with `getEmbeddingQueueManager()` - uses real embedding service
+- Test subscribes to events and waits 5s, but only gets 'completed' event, not 'retry'
+- Need to either:
+  1. Mock the embedding service module globally, or
+  2. Inject mock service into queue, or
+  3. Verify queue auto-starts processing (may need manual `.start()` call)
+- Blocked by: Need to understand embedding queue initialization and service injection pattern
+```
 
 **File**: `__tests__/embeddings/embedding-generation.test.ts:252-284`
 **Failure**: `expected ['completed'] to include 'retry'`
