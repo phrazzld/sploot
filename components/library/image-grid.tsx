@@ -9,6 +9,7 @@ import { EmptyState } from './empty-state';
 import { cn } from '@/lib/utils';
 import { trackBrokenImageRatio, setupCLSTracking } from '@/lib/performance-metrics';
 import type { Asset } from '@/lib/types';
+import type { GridDensity } from '@/components/chrome/grid-density-toggle';
 
 interface ImageGridProps {
   assets: Asset[];
@@ -21,6 +22,7 @@ interface ImageGridProps {
   containerClassName?: string;
   onScrollContainerReady?: (node: HTMLDivElement | null) => void;
   onUploadClick?: () => void;
+  density?: GridDensity;
 }
 
 export function ImageGrid({
@@ -34,6 +36,7 @@ export function ImageGrid({
   containerClassName,
   onScrollContainerReady,
   onUploadClick,
+  density = 'dense',
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -65,20 +68,45 @@ export function ImageGrid({
   const USE_VIRTUAL_SCROLLING_THRESHOLD = 500;
   const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
 
-  // Calculate columns based on container width with terminal aesthetic density
-  // Dense grid for Bloomberg-style information density
+  // Calculate columns based on container width and density setting
+  // Compact (8 cols), Dense (6 cols - default), Comfortable (4 cols)
   const columnCount = useMemo(() => {
     if (!containerWidth) return 1;
 
-    // Terminal aesthetic: denser grid for more information on screen
-    // Desktop (1440px+): 6 columns, Tablet (768px+): 4 columns, Mobile: 2 columns
-    if (containerWidth >= 1440) return 6;
-    if (containerWidth >= 1024) return 5;
-    if (containerWidth >= 768) return 4;
-    if (containerWidth >= 640) return 3;
-    if (containerWidth >= 480) return 2;
+    // Define column counts for each density at different breakpoints
+    const densityConfig = {
+      compact: {
+        1440: 8,
+        1024: 6,
+        768: 5,
+        640: 4,
+        480: 3,
+      },
+      dense: {
+        1440: 6,
+        1024: 5,
+        768: 4,
+        640: 3,
+        480: 2,
+      },
+      comfortable: {
+        1440: 4,
+        1024: 3,
+        768: 3,
+        640: 2,
+        480: 2,
+      },
+    };
+
+    const config = densityConfig[density];
+
+    if (containerWidth >= 1440) return config[1440];
+    if (containerWidth >= 1024) return config[1024];
+    if (containerWidth >= 768) return config[768];
+    if (containerWidth >= 640) return config[640];
+    if (containerWidth >= 480) return config[480];
     return 1;
-  }, [containerWidth]);
+  }, [containerWidth, density]);
 
   // Calculate rows based on items and columns
   const rows = useMemo(() => {
@@ -88,6 +116,20 @@ export function ImageGrid({
       return assets.slice(start, start + columnCount);
     });
   }, [assets, columnCount]);
+
+  // Gap classes based on density
+  const gapClass = useMemo(() => {
+    switch (density) {
+      case 'compact':
+        return 'gap-1'; // 4px
+      case 'dense':
+        return 'gap-2'; // 8px - default
+      case 'comfortable':
+        return 'gap-4'; // 16px
+      default:
+        return 'gap-2';
+    }
+  }, [density]);
 
   // Virtual scrolling setup - hook must always be called
   const virtualizer = useVirtualizer({
@@ -234,7 +276,7 @@ export function ImageGrid({
           className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6", gapClass)}>
             {assets.map((asset, index) => (
               <div
                 key={asset.id}
@@ -326,7 +368,7 @@ export function ImageGrid({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+                <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6", gapClass)}>
                   {row.map((asset) => (
                     <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
                       <ImageTile

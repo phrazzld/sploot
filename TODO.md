@@ -20,21 +20,21 @@
 
 ### Layout & Chrome
 
-- [ ] **Add corner bracket SVG component for viewport framing** - Create `components/chrome/corner-brackets.tsx` with four SVG corner brackets (top-left, top-right, bottom-left, bottom-right). Each bracket: 24px × 24px, 2px stroke, `#888888` color, positioned absolutely. Success criteria: Brackets frame main content area without overlapping scrollbars.
+- [x] **Add corner bracket SVG component for viewport framing** - Create `components/chrome/corner-brackets.tsx` with four SVG corner brackets (top-left, top-right, bottom-left, bottom-right). Each bracket: 24px × 24px, 2px stroke, `#888888` color, positioned absolutely. Success criteria: Brackets frame main content area without overlapping scrollbars.
 
-- [ ] **Integrate corner brackets into AppChrome layout** - Import and render `<CornerBrackets />` in `components/chrome/app-chrome.tsx` as fixed overlay. Position using `fixed` with 8px inset from viewport edges. Success criteria: Brackets visible on all pages, stay fixed during scroll.
+- [x] **Integrate corner brackets into AppChrome layout** - Import and render `<CornerBrackets />` in `components/chrome/app-chrome.tsx` as fixed overlay. Position using `fixed` with 8px inset from viewport edges. Success criteria: Brackets visible on all pages, stay fixed during scroll.
 
-- [ ] **Update navbar background to pure black with subtle border** - Change `components/chrome/navbar.tsx` line 39 from `bg-[#14171A]` to `bg-black`. Update border color from `border-[#2A2F37]` to `border-[#1A1A1A]` for ultra-subtle separation. Success criteria: Navbar seamlessly blends with pure black background.
+- [x] **Update navbar background to pure black with subtle border** - Change `components/chrome/navbar.tsx` line 39 from `bg-[#14171A]` to `bg-black`. Update border color from `border-[#2A2F37]` to `border-[#1A1A1A]` for ultra-subtle separation. Success criteria: Navbar seamlessly blends with pure black background.
 
-- [ ] **Convert stats display to monospace typography** - Update `components/chrome/stats-display.tsx` to use `font-mono` class instead of default font. Change format from "134 memes • 2 bangers • 9.9 MB" to terminal-style "247 ASSETS | 843MB | LAST SYNC: 2025-06-17T14:23". Success criteria: Stats use JetBrains Mono, ISO 8601 timestamps, pipe separators.
+- [x] **Convert stats display to monospace typography** - Update `components/chrome/stats-display.tsx` to use `font-mono` class instead of default font. Change format from "134 memes • 2 bangers • 9.9 MB" to terminal-style "247 ASSETS | 843MB | LAST SYNC: 2025-06-17T14:23". Success criteria: Stats use JetBrains Mono, ISO 8601 timestamps, pipe separators.
 
 ### Grid Density
 
-- [ ] **Increase default grid columns for dense view** - Update grid configuration to show 6 columns on desktop (1440px+), 4 on tablet (768px+), 2 on mobile. Modify grid gap from current value to 8px for tighter spacing. Success criteria: 6-8 memes visible on laptop screen without scrolling.
+- [x] **Increase default grid columns for dense view** - Update grid configuration to show 6 columns on desktop (1440px+), 4 on tablet (768px+), 2 on mobile. Modify grid gap from current value to 8px for tighter spacing. Success criteria: 6-8 memes visible on laptop screen without scrolling.
 
-- [ ] **Add grid density toggle to view options** - Create density options: "Compact" (8 columns, 4px gap), "Dense" (6 columns, 8px gap - default), "Comfortable" (4 columns, 16px gap). Store preference in URL params. Success criteria: User can toggle between densities, preference persists in URL.
+- [~] **Add grid density toggle to view options** - Create density options: "Compact" (8 columns, 4px gap), "Dense" (6 columns, 8px gap - default), "Comfortable" (4 columns, 16px gap). Store preference in URL params. Success criteria: User can toggle between densities, preference persists in URL.
 
-- [ ] **Update image tile hover states for dense grid** - Reduce padding/margins in `image-tile.tsx` hover overlay. Decrease metadata font size to `text-xs` (12px). Ensure hover states don't cause layout shift in tight grid. Success criteria: Hover overlay readable at dense spacing, no CLS.
+- [x] **Update image tile hover states for dense grid** - Reduce padding/margins in `image-tile.tsx` hover overlay. Decrease metadata font size to `text-xs` (12px). Ensure hover states don't cause layout shift in tight grid. Success criteria: Hover overlay readable at dense spacing, no CLS.
 
 ---
 
@@ -58,7 +58,7 @@
 
 ### Metadata & Timestamps
 
-- [ ] **Convert all timestamps to ISO 8601 format** - Find all timestamp displays (upload time, last modified, etc.) and convert to `2025-06-17T14:23:45Z` format. Use monospace font. Success criteria: Consistent timestamp format across app, verified via visual audit.
+- [x] **Convert all timestamps to ISO 8601 format** - Find all timestamp displays (upload time, last modified, etc.) and convert to `2025-06-17T14:23:45Z` format. Use monospace font. Success criteria: Consistent timestamp format across app, verified via visual audit.
 
 - [ ] **Add monospace formatting to file metadata** - Display filename, dimensions, file size in monospace. Format: `drake_meme.jpg | 1920×1080 | 2.4MB`. Success criteria: Metadata uses JetBrains Mono, aligned columns in lists.
 

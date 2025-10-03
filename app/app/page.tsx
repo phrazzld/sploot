@@ -21,6 +21,7 @@ import { CommandPalette, useCommandPalette } from '@/components/chrome/command-p
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
+import { GridDensityToggle, type GridDensity } from '@/components/chrome/grid-density-toggle';
 
 function AppPageClient() {
   const router = useRouter();
@@ -41,6 +42,8 @@ function AppPageClient() {
   } = useFilter();
   const viewModeParam = searchParams.get('view') as ViewMode | null;
   const viewMode = viewModeParam || 'grid'; // Default to grid if not specified
+  const densityParam = searchParams.get('density') as GridDensity | null;
+  const gridDensity = densityParam || 'dense'; // Default to dense if not specified
 
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
@@ -404,6 +407,16 @@ function AppPageClient() {
     [captureScrollPosition, viewMode, searchParams, pathname, router]
   );
 
+  const handleDensityChange = useCallback(
+    (density: GridDensity) => {
+      if (density === gridDensity) return;
+
+      // Update URL params to include density
+      updateUrlParams({ density });
+    },
+    [gridDensity, updateUrlParams]
+  );
+
   // Number key shortcuts for view mode switching with debouncing
   const viewModeSwitchRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const handleViewModeShortcut = useCallback((mode: ViewMode) => {
@@ -649,6 +662,11 @@ function AppPageClient() {
 
               {/* Right group: View controls */}
               <div className="flex flex-wrap items-center gap-2">
+                <GridDensityToggle
+                  value={gridDensity}
+                  onChange={handleDensityChange}
+                  size="md"
+                />
                 <ViewModeToggle
                   value={viewMode}
                   onChange={handleViewModeChange}
@@ -860,6 +878,7 @@ function AppPageClient() {
                     containerClassName={cn(gridContainerClassName, 'w-full')}
                     onScrollContainerReady={handleScrollContainerReady}
                     onUploadClick={() => setShowUploadPanel(true)}
+                    density={gridDensity}
                   />
                 </ImageGridErrorBoundary>
               )}
