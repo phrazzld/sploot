@@ -200,7 +200,7 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 
 ---
 
-### Task 6: Fix Metrics Tracking Test
+### Task 6: Fix Metrics Tracking Test [~]
 
 **File**: Line 211-223
 **Failure**: `expected 1 to be 2` - successCount tracking
