@@ -1,18 +1,14 @@
 import { POST } from '@/app/api/upload-url/route';
 import { createMockRequest } from '../utils/test-helpers';
 import { put } from '@vercel/blob';
+import { auth } from '@clerk/nextjs/server';
 
 // Mock dependencies
-vi.mock('@clerk/nextjs/server', () => ({
-  auth: vi.fn(),
-}));
+vi.mock('@clerk/nextjs/server');
+vi.mock('@vercel/blob');
 
-vi.mock('@vercel/blob', () => ({
-  put: vi.fn(),
-}));
-
-const mockAuth = require('@clerk/nextjs/server').auth;
-const mockPut = put as vi.MockedFunction<typeof put>;
+const mockAuth = vi.mocked(auth);
+const mockPut = vi.mocked(put);
 
 describe('/api/upload-url', () => {
   beforeEach(() => {
