@@ -2,50 +2,28 @@ import { POST as uploadUrlPOST } from '@/app/api/upload-url/route';
 import { POST as assetsPOST } from '@/app/api/assets/route';
 import { POST as generateEmbeddingPOST } from '@/app/api/assets/[id]/generate-embedding/route';
 import { GET as embeddingStatusGET } from '@/app/api/assets/[id]/embedding-status/route';
-import { createMockRequest, mockPrisma, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
+import { createMockRequest, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
 import { put, del } from '@vercel/blob';
+import { auth } from '@clerk/nextjs/server';
+import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
+import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
+import { prisma, upsertAssetEmbedding, vectorSearch, logSearch, databaseAvailable } from '@/lib/db';
 
 // Mock dependencies
-vi.mock('@clerk/nextjs/server', () => ({
-  auth: vi.fn(),
-}));
+vi.mock('@clerk/nextjs/server');
+vi.mock('@/lib/db');
+vi.mock('@vercel/blob');
+vi.mock('@/lib/embeddings');
+vi.mock('@/lib/multi-layer-cache');
 
-vi.mock('@/lib/db', () => {
-  const helpers = require('../utils/test-helpers');
-  return {
-    prisma: helpers.mockPrisma(),
-    upsertAssetEmbedding: vi.fn(),
-    vectorSearch: vi.fn(),
-    logSearch: vi.fn(),
-    databaseAvailable: true,
-  };
-});
-
-vi.mock('@vercel/blob', () => ({
-  put: vi.fn(),
-  del: vi.fn(),
-}));
-
-vi.mock('@/lib/embeddings', () => ({
-  createEmbeddingService: vi.fn(),
-  EmbeddingError: class EmbeddingError extends Error {
-    constructor(message: string, public statusCode?: number) {
-      super(message);
-    }
-  },
-}));
-
-vi.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: vi.fn(),
-  getMultiLayerCache: vi.fn(),
-}));
-
-const mockAuth = require('@clerk/nextjs/server').auth;
-const mockPut = put as vi.MockedFunction<typeof put>;
-const mockDel = del as vi.MockedFunction<typeof del>;
-const { createEmbeddingService } = require('@/lib/embeddings');
-const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer-cache');
-const { prisma, upsertAssetEmbedding } = require('@/lib/db');
+const mockAuth = vi.mocked(auth);
+const mockPrisma = vi.mocked(prisma);
+const mockUpsertAssetEmbedding = vi.mocked(upsertAssetEmbedding);
+const mockPut = vi.mocked(put);
+const mockDel = vi.mocked(del);
+const mockCreateEmbeddingService = vi.mocked(createEmbeddingService);
+const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
+const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('Upload Flow Integration Tests', () => {
   const testUserId = 'test-user-id';
@@ -63,10 +41,10 @@ describe('Upload Flow Integration Tests', () => {
 
     // Setup default mocks
     mockAuth.mockResolvedValue({ userId: testUserId });
-    createEmbeddingService.mockReturnValue(mockEmbeddingService());
+    mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService());
     const mockCache = mockMultiLayerCache();
-    createMultiLayerCache.mockReturnValue(mockCache);
-    getMultiLayerCache.mockReturnValue(mockCache);
+    mockCreateMultiLayerCache.mockReturnValue(mockCache);
+    mockGetMultiLayerCache.mockReturnValue(mockCache);
   });
 
   describe('Complete Upload Flow', () => {

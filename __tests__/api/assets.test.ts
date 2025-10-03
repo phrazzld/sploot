@@ -1,39 +1,29 @@
 import { POST, GET } from '@/app/api/assets/route';
-import { createMockRequest, mockPrisma, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
+import { createMockRequest, mockEmbeddingService, mockMultiLayerCache } from '../utils/test-helpers';
+import { auth } from '@clerk/nextjs/server';
+import { createEmbeddingService } from '@/lib/embeddings';
+import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
+import { prisma } from '@/lib/db';
 
 // Mock dependencies
-vi.mock('@clerk/nextjs/server', () => ({
-  auth: vi.fn(),
-}));
+vi.mock('@clerk/nextjs/server');
+vi.mock('@/lib/db');
+vi.mock('@/lib/embeddings');
+vi.mock('@/lib/multi-layer-cache');
 
-vi.mock('@/lib/db', () => {
-  const helpers = require('../utils/test-helpers');
-  return {
-    prisma: helpers.mockPrisma(),
-  };
-});
-
-vi.mock('@/lib/embeddings', () => ({
-  createEmbeddingService: vi.fn(),
-}));
-
-vi.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: vi.fn(),
-  getMultiLayerCache: vi.fn(),
-}));
-
-const mockAuth = require('@clerk/nextjs/server').auth;
-const { createEmbeddingService } = require('@/lib/embeddings');
-const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer-cache');
-const { prisma } = require('@/lib/db');
+const mockAuth = vi.mocked(auth);
+const mockPrisma = vi.mocked(prisma);
+const mockCreateEmbeddingService = vi.mocked(createEmbeddingService);
+const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
+const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('/api/assets', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    createEmbeddingService.mockReturnValue(mockEmbeddingService());
+    mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService());
     const mockCache = mockMultiLayerCache();
-    createMultiLayerCache.mockReturnValue(mockCache);
-    getMultiLayerCache.mockReturnValue(mockCache);
+    mockCreateMultiLayerCache.mockReturnValue(mockCache);
+    mockGetMultiLayerCache.mockReturnValue(mockCache);
   });
 
   describe('POST', () => {

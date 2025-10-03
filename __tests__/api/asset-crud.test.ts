@@ -1,39 +1,28 @@
 import { GET, PATCH, DELETE } from '@/app/api/assets/[id]/route';
-import { createMockRequest, mockPrisma, mockMultiLayerCache } from '../utils/test-helpers';
+import { createMockRequest, mockMultiLayerCache } from '../utils/test-helpers';
 import { del } from '@vercel/blob';
+import { auth } from '@clerk/nextjs/server';
+import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
+import { prisma } from '@/lib/db';
 
 // Mock dependencies
-vi.mock('@clerk/nextjs/server', () => ({
-  auth: vi.fn(),
-}));
+vi.mock('@clerk/nextjs/server');
+vi.mock('@/lib/db');
+vi.mock('@vercel/blob');
+vi.mock('@/lib/multi-layer-cache');
 
-vi.mock('@/lib/db', () => {
-  const helpers = require('../utils/test-helpers');
-  return {
-    prisma: helpers.mockPrisma(),
-  };
-});
-
-vi.mock('@vercel/blob', () => ({
-  del: vi.fn(),
-}));
-
-vi.mock('@/lib/multi-layer-cache', () => ({
-  createMultiLayerCache: vi.fn(),
-  getMultiLayerCache: vi.fn(),
-}));
-
-const mockAuth = require('@clerk/nextjs/server').auth;
-const mockDel = del as vi.MockedFunction<typeof del>;
-const { createMultiLayerCache, getMultiLayerCache } = require('@/lib/multi-layer-cache');
-const { prisma } = require('@/lib/db');
+const mockAuth = vi.mocked(auth);
+const mockPrisma = vi.mocked(prisma);
+const mockDel = vi.mocked(del);
+const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
+const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('/api/assets/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     const mockCache = mockMultiLayerCache();
-    createMultiLayerCache.mockReturnValue(mockCache);
-    getMultiLayerCache.mockReturnValue(mockCache);
+    mockCreateMultiLayerCache.mockReturnValue(mockCache);
+    mockGetMultiLayerCache.mockReturnValue(mockCache);
   });
 
   const mockAsset = {
