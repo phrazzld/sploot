@@ -115,6 +115,8 @@ describe('DistributedQueue', () => {
     });
 
     it('should move items to dead letter queue after max retries', async () => {
+      vi.useFakeTimers();
+
       const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Server error'));
 
@@ -122,9 +124,15 @@ describe('DistributedQueue', () => {
 
       queue.enqueue('doomed-item', 'background'); // Background has max 3 retries
 
-      // Process until item moves to dead letter
+      // Process until item moves to dead letter (background has 3 max retries)
       for (let i = 0; i < 3; i++) {
         await queue.processNext();
+        if (i < 2) {
+          // Advance timer for retry backoff (server error has 3x multiplier)
+          // Backoff formula: 1000ms * 2^retryCount * 3 (server multiplier)
+          const backoff = 1000 * Math.pow(2, i) * 3;
+          vi.advanceTimersByTime(backoff);
+        }
       }
 
       const metrics = queue.getMetrics();
@@ -135,9 +143,13 @@ describe('DistributedQueue', () => {
       expect(deadItems).toHaveLength(1);
       expect(deadItems[0].data).toBe('doomed-item');
       expect(deadItems[0].errorType).toBe('server');
+
+      vi.useRealTimers();
     });
 
     it('should not retry invalid errors', async () => {
+      vi.useFakeTimers();
+
       const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Invalid request'));
 
@@ -152,15 +164,19 @@ describe('DistributedQueue', () => {
 
       await queue.processNext();
 
-      // Should immediately go to dead letter
+      // Should immediately go to dead letter (no retry for invalid errors)
       const metrics = queue.getMetrics();
       expect(metrics.dead).toBe(1);
       expect(failingExecutor).toHaveBeenCalledTimes(1);
+
+      vi.useRealTimers();
     });
   });
 
   describe('Dead Letter Queue', () => {
     it('should allow retrying dead letter items', async () => {
+      vi.useFakeTimers();
+
       const failingExecutor = vi.fn()
         .mockRejectedValue(new Error('Temporary error'));
 
@@ -168,9 +184,14 @@ describe('DistributedQueue', () => {
 
       const id = queue.enqueue('retry-me', 'background');
 
-      // Fail until dead letter
+      // Fail until dead letter (background has 3 max retries)
       for (let i = 0; i < 3; i++) {
         await queue.processNext();
+        if (i < 2) {
+          // Advance timer for retry backoff
+          const backoff = 1000 * Math.pow(2, i) * 2; // unknown error has 2x multiplier
+          vi.advanceTimersByTime(backoff);
+        }
       }
 
       expect(queue.getMetrics().dead).toBe(1);
@@ -183,6 +204,8 @@ describe('DistributedQueue', () => {
       // Should be back in urgent queue
       expect(queue.getQueueSizes().urgent).toBe(1);
       expect(queue.getMetrics().dead).toBe(0);
+
+      vi.useRealTimers();
     });
 
     it('should clear dead letter queue', () => {
