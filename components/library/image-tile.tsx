@@ -411,18 +411,18 @@ function ImageTileComponent({
           </button>
         </div>
 
-        {/* Hover overlay with metadata */}
+        {/* Hover overlay with metadata - optimized for dense grid */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          {/* Bottom info on hover */}
-          <div className="absolute bottom-0 left-0 right-0 p-2">
-            <div className="flex items-center justify-between text-white/90 text-xs">
+          {/* Bottom info on hover - reduced padding for dense spacing */}
+          <div className="absolute bottom-0 left-0 right-0 p-1">
+            <div className="flex items-center justify-between text-white/90 text-xs font-mono">
               <span className="truncate max-w-[60%]">
                 {asset.width}×{asset.height} • {formatFileSize(asset.size || 0)}
               </span>
               {typeof asset.relevance === 'number' && (
                 <span
                   className={cn(
-                    'font-semibold',
+                    'font-semibold tabular-nums',
                     asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
                   )}
                 >
