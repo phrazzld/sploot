@@ -175,7 +175,7 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 
 ---
 
-### Task 5: Fix Dead Letter Queue Tests (3 failures) [~]
+### Task 5: Fix Dead Letter Queue Tests (3 failures) [x]
 
 **Files**: Lines 113-180
 **Failures**:
