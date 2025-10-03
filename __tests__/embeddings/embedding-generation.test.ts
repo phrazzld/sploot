@@ -5,9 +5,10 @@
 
 import { vi } from 'vitest';
 import { NextRequest, NextResponse } from 'next/server';
-import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, mockAuth, waitForQueueEvent } from '../utils/test-helpers';
+import { createMockRequest, mockPrisma, mockBlobStorage, mockEmbeddingService, waitForQueueEvent } from '../utils/test-helpers';
 import { getEmbeddingQueueManager, EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { getGlobalPerformanceTracker, PERF_OPERATIONS } from '@/lib/performance';
+import { auth } from '@clerk/nextjs/server';
 
 // Mock dependencies
 vi.mock('@/lib/db', () => ({
@@ -21,10 +22,7 @@ vi.mock('@vercel/blob', () => ({
   list: vi.fn(),
 }));
 
-vi.mock('@clerk/nextjs/server', () => ({
-  auth: vi.fn(),
-  currentUser: vi.fn(),
-}));
+vi.mock('@clerk/nextjs/server');
 
 // Mock the upload route handler
 const mockUploadHandler = async (request: NextRequest) => {
@@ -83,7 +81,8 @@ describe('Embedding Generation Test Suite', () => {
     performanceTracker.reset();
 
     // Mock auth
-    mockAuth('test-user');
+    const mockAuth = vi.mocked(auth);
+    mockAuth.mockResolvedValue({ userId: 'test-user' });
   });
 
   afterEach(() => {
