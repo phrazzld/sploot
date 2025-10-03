@@ -955,7 +955,7 @@ function AppPageClient() {
                 </div>
                 <div className="w-full bg-[#1F2328] rounded-full h-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#7C5CFF] to-[#BAFF39] h-full rounded-full transition-all duration-500 ease-out"
+                    className="bg-[var(--color-terminal-green)] h-full rounded-full transition-all duration-500 ease-out"
                     style={{ width: `${(retryProgress.current / retryProgress.total) * 100}%` }}
                   />
                 </div>
