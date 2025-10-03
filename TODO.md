@@ -34,7 +34,7 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 
 ---
 
-### Task 1: Fix search-flow.test.ts Prisma Mocks (12 failures)
+### Task 1: Fix search-flow.test.ts Prisma Mocks (12 failures) [~]
 
 **File**: `__tests__/integration/search-flow.test.ts`
 **Failures**: 12/16 tests
