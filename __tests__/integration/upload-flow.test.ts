@@ -11,14 +11,52 @@ import { prisma, upsertAssetEmbedding, vectorSearch, logSearch, databaseAvailabl
 
 // Mock dependencies
 vi.mock('@clerk/nextjs/server');
-vi.mock('@/lib/db');
+vi.mock('@/lib/db', () => ({
+  prisma: {
+    asset: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findMany: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      delete: vi.fn(),
+      count: vi.fn(),
+    },
+    assetEmbedding: {
+      create: vi.fn(),
+      findFirst: vi.fn(),
+      findUnique: vi.fn(),
+      update: vi.fn(),
+      upsert: vi.fn(),
+    },
+    assetTag: {
+      findMany: vi.fn(),
+      deleteMany: vi.fn(),
+      create: vi.fn(),
+    },
+    tag: {
+      findFirst: vi.fn(),
+      create: vi.fn(),
+    },
+    searchLog: {
+      create: vi.fn(),
+      findMany: vi.fn(),
+      groupBy: vi.fn(),
+    },
+    $queryRaw: vi.fn(),
+    $queryRawUnsafe: vi.fn(),
+    $transaction: vi.fn(),
+  },
+  upsertAssetEmbedding: vi.fn(),
+  vectorSearch: vi.fn(),
+  logSearch: vi.fn(),
+  databaseAvailable: true,
+}));
 vi.mock('@vercel/blob');
 vi.mock('@/lib/embeddings');
 vi.mock('@/lib/multi-layer-cache');
 
 const mockAuth = vi.mocked(auth);
-const mockPrisma = vi.mocked(prisma);
-const mockUpsertAssetEmbedding = vi.mocked(upsertAssetEmbedding);
 const mockPut = vi.mocked(put);
 const mockDel = vi.mocked(del);
 const mockCreateEmbeddingService = vi.mocked(createEmbeddingService);
@@ -101,8 +139,9 @@ describe('Upload Flow Integration Tests', () => {
         phash: null,
       };
 
-      prisma.asset.findFirst.mockResolvedValue(null); // No duplicate
-      prisma.asset.create.mockResolvedValue(mockAsset);
+      const { prisma, upsertAssetEmbedding } = await import('@/lib/db');
+      vi.mocked(prisma.asset.findFirst).mockResolvedValue(null); // No duplicate
+      vi.mocked(prisma.asset.create).mockResolvedValue(mockAsset as any);
 
       const assetResponse = await assetsPOST(createAssetRequest);
       const assetData = await assetResponse.json();
@@ -125,15 +164,15 @@ describe('Upload Flow Integration Tests', () => {
         processingTime: 150,
       });
 
-      prisma.asset.findUnique.mockResolvedValue(mockAsset);
-      upsertAssetEmbedding.mockResolvedValue({
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue(mockAsset as any);
+      vi.mocked(upsertAssetEmbedding).mockResolvedValue({
         assetId: 'asset-123',
         modelName: 'siglip-large',
         modelVersion: 'siglip-large',
         dim: 1152,
         createdAt: new Date(),
         updatedAt: new Date(),
-      });
+      } as any);
 
       const generateEmbeddingRequest = createMockRequest('POST');
       const embeddingResponse = await generateEmbeddingPOST(
@@ -165,7 +204,8 @@ describe('Upload Flow Integration Tests', () => {
         phash: null,
       };
 
-      prisma.asset.findFirst.mockResolvedValue(existingAsset);
+      const { prisma } = await import('@/lib/db');
+      vi.mocked(prisma.asset.findFirst).mockResolvedValue(existingAsset as any);
 
       const request = createMockRequest('POST', {
         blobUrl: 'https://example.blob.vercel-storage.com/new.jpg',
@@ -192,8 +232,9 @@ describe('Upload Flow Integration Tests', () => {
 
     it('should handle upload with embedding service failure gracefully', async () => {
       // Asset creation should succeed even if embedding fails
-      prisma.asset.findFirst.mockResolvedValue(null);
-      prisma.asset.create.mockResolvedValue({
+      const { prisma } = await import('@/lib/db');
+      vi.mocked(prisma.asset.findFirst).mockResolvedValue(null);
+      vi.mocked(prisma.asset.create).mockResolvedValue({
         id: 'asset-456',
         ownerUserId: testUserId,
         blobUrl: 'https://example.blob.vercel-storage.com/test.jpg',
@@ -285,7 +326,8 @@ describe('Upload Flow Integration Tests', () => {
       expect(responses).toHaveLength(3);
       expect(responses.every(r => r.status === 200)).toBe(true);
       expect(results.every(r => r.message === 'Asset created successfully')).toBe(true);
-      expect(prisma.asset.create).toHaveBeenCalledTimes(3);
+      const { prisma: mockPrismaForAssertion } = await import('@/lib/db');
+      expect(mockPrismaForAssertion.asset.create).toHaveBeenCalledTimes(3);
     });
 
     it('should validate file type restrictions', async () => {
@@ -341,7 +383,8 @@ describe('Upload Flow Integration Tests', () => {
     });
 
     it('should check embedding status correctly', async () => {
-      prisma.asset.findUnique.mockResolvedValue({
+      const { prisma } = await import('@/lib/db');
+      vi.mocked(prisma.asset.findUnique).mockResolvedValue({
         id: 'asset-123',
         ownerUserId: testUserId,
         blobUrl: 'https://example.blob.vercel-storage.com/test.jpg',
