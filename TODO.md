@@ -93,7 +93,7 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 
 ---
 
-### Task 2: Fix upload-flow.test.ts Prisma Mocks (9 failures) [~]
+### Task 2: Fix upload-flow.test.ts Prisma Mocks (9 failures) [x]
 
 **File**: `__tests__/integration/upload-flow.test.ts`
 **Failures**: 9/13 tests
@@ -112,7 +112,7 @@ prisma.assetTag.findMany.mockResolvedValue([]);  // ❌ Not a function
 
 ---
 
-### Task 3: Fix asset-crud.test.ts Prisma Mocks (11 failures)
+### Task 3: Fix asset-crud.test.ts Prisma Mocks (11 failures) [~]
 
 **File**: `__tests__/api/asset-crud.test.ts`
 **Failures**: 11/15 tests
