@@ -54,7 +54,7 @@
 
 - [x] **Add real-time stats to status line** - Connect status line to asset count, total size calculation, and upload queue status. Update every 500ms when queue is active, every 5s when idle. Success criteria: Stats update without re-render thrashing, accurate within 1 second.
 
-- [~] **Implement processing state indicators** - Update upload flow to show terminal-style messages: `[PROCESSING] Generating embeddings...`, `[COMPLETE] Indexed: drake_001.jpg`, `[ERROR] Upload failed: file exceeds 10MB`. Monospace, color-coded by state. Success criteria: Messages appear in toast/banner, clear terminal aesthetic.
+- [x] **Implement processing state indicators** - Update upload flow to show terminal-style messages: `[PROCESSING] Generating embeddings...`, `[COMPLETE] Indexed: drake_001.jpg`, `[ERROR] Upload failed: file exceeds 10MB`. Monospace, color-coded by state. Success criteria: Messages appear in toast/banner, clear terminal aesthetic.
 
 ### Metadata & Timestamps
 
