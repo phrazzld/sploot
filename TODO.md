@@ -50,7 +50,7 @@
 
 ### Status Line & Monitoring
 
-- [ ] **Create terminal-style status line component** - New component `components/chrome/status-line.tsx` showing: asset count, storage usage, last upload timestamp (ISO 8601), processing queue depth. Monospace, `text-xs`, positioned top-right of navbar. Success criteria: Real-time updates, monospace formatting, unobtrusive positioning.
+- [~] **Create terminal-style status line component** - New component `components/chrome/status-line.tsx` showing: asset count, storage usage, last upload timestamp (ISO 8601), processing queue depth. Monospace, `text-xs`, positioned top-right of navbar. Success criteria: Real-time updates, monospace formatting, unobtrusive positioning.
 
 - [ ] **Add real-time stats to status line** - Connect status line to asset count, total size calculation, and upload queue status. Update every 500ms when queue is active, every 5s when idle. Success criteria: Stats update without re-render thrashing, accurate within 1 second.
 
