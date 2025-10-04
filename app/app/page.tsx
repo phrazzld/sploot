@@ -146,7 +146,7 @@ function AppPageClient() {
 
       // Show a subtle notification that library was refreshed
       if (event.detail?.filename) {
-        showToast(`${event.detail.filename} added to library`, 'success');
+        showToast(`[COMPLETE] Indexed: ${event.detail.filename}`, 'complete', 3000, true);
       }
     };
 
@@ -259,8 +259,10 @@ function AppPageClient() {
             setShowRetryModal(false);
             setRetryProgress({ current: 0, total: 0, processing: false });
             showToast(
-              `✓ Retried ${completed} ${completed === 1 ? 'meme' : 'memes'}`,
-              'success'
+              `[COMPLETE] Retried ${completed} ${completed === 1 ? 'meme' : 'memes'}`,
+              'complete',
+              3000,
+              true
             );
           }, 1000);
         }
@@ -777,18 +779,24 @@ function AppPageClient() {
                     // Show success toast
                     if (stats.uploaded > 0 && stats.duplicates > 0) {
                       showToast(
-                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'meme' : 'memes'} added, ${stats.duplicates} already existed`,
-                        'success'
+                        `[COMPLETE] Uploaded ${stats.uploaded} ${stats.uploaded === 1 ? 'asset' : 'assets'}, ${stats.duplicates} duplicates skipped`,
+                        'complete',
+                        3000,
+                        true
                       );
                     } else if (stats.uploaded > 0) {
                       showToast(
-                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'meme' : 'memes'} added to your vault`,
-                        'success'
+                        `[COMPLETE] Uploaded ${stats.uploaded} ${stats.uploaded === 1 ? 'asset' : 'assets'}`,
+                        'complete',
+                        3000,
+                        true
                       );
                     } else if (stats.duplicates > 0) {
                       showToast(
-                        `${stats.duplicates} ${stats.duplicates === 1 ? 'image' : 'images'} already in your vault`,
-                        'info'
+                        `[INFO] ${stats.duplicates} ${stats.duplicates === 1 ? 'duplicate' : 'duplicates'} skipped`,
+                        'info',
+                        3000,
+                        true
                       );
                     }
 

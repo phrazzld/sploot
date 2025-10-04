@@ -5,12 +5,13 @@ import { cn } from '@/lib/utils';
 
 interface ToastProps {
   message: string;
-  type?: 'success' | 'error' | 'info';
+  type?: 'success' | 'error' | 'info' | 'processing' | 'complete';
   duration?: number;
   onClose: () => void;
+  terminalStyle?: boolean;
 }
 
-export function Toast({ message, type = 'success', duration = 3000, onClose }: ToastProps) {
+export function Toast({ message, type = 'success', duration = 3000, onClose, terminalStyle = false }: ToastProps) {
   const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
 
@@ -52,12 +53,31 @@ export function Toast({ message, type = 'success', duration = 3000, onClose }: T
         <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
+    processing: (
+      <svg className="h-5 w-5 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+      </svg>
+    ),
+    complete: (
+      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path
+          d="M5 13l4 4L19 7"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    ),
   };
 
   const colors = {
     success: 'text-[#B6FF6E] bg-[#B6FF6E]/10',
-    error: 'text-[#FF4D4D] bg-[#FF4D4D]/10',
+    error: 'text-[var(--color-terminal-red)] bg-[var(--color-terminal-red)]/10',
     info: 'text-[#7C5CFF] bg-[#7C5CFF]/10',
+    processing: 'text-[var(--color-terminal-yellow)] bg-[var(--color-terminal-yellow)]/10',
+    complete: 'text-[var(--color-terminal-green)] bg-[var(--color-terminal-green)]/10',
   };
 
   return (
@@ -73,7 +93,12 @@ export function Toast({ message, type = 'success', duration = 3000, onClose }: T
       <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', colors[type])}>
         {icons[type]}
       </div>
-      <p className="text-sm font-medium text-[#E6E8EB]">{message}</p>
+      <p className={cn(
+        'text-sm font-medium text-[#E6E8EB]',
+        terminalStyle && 'font-mono'
+      )}>
+        {message}
+      </p>
     </div>
   );
 }
@@ -82,8 +107,9 @@ export function Toast({ message, type = 'success', duration = 3000, onClose }: T
 interface ToastData {
   id: string;
   message: string;
-  type?: 'success' | 'error' | 'info';
+  type?: 'success' | 'error' | 'info' | 'processing' | 'complete';
   duration?: number;
+  terminalStyle?: boolean;
 }
 
 let toastQueue: ToastData[] = [];
@@ -124,18 +150,25 @@ export function ToastContainer() {
       message={currentToast.message}
       type={currentToast.type}
       duration={currentToast.duration}
+      terminalStyle={currentToast.terminalStyle}
       onClose={() => removeToast(currentToast.id)}
     />
   );
 }
 
 // Global function to show toast
-export function showToast(message: string, type: 'success' | 'error' | 'info' = 'success', duration = 3000) {
+export function showToast(
+  message: string,
+  type: 'success' | 'error' | 'info' | 'processing' | 'complete' = 'success',
+  duration = 3000,
+  terminalStyle = false
+) {
   const toast: ToastData = {
     id: `${Date.now()}-${Math.random()}`,
     message,
     type,
     duration,
+    terminalStyle,
   };
 
   if (addToastFunction) {
