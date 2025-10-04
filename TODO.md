@@ -46,7 +46,7 @@
 
 - [x] **Implement color coding based on similarity scores** - Add border color to image tiles based on score: `>0.85` = terminal green, `0.7-0.85` = terminal yellow, `<0.7` = white/default. Border: 2px solid, subtle glow effect. Success criteria: High-confidence results visually distinct, accessible color contrast.
 
-- [~] **Create similarity score legend component** - Add small legend to search results header explaining color system: "Green: High match (>85%) • Yellow: Medium (70-85%) • White: Standard". Dismissible, stores preference in localStorage. Success criteria: Legend shows on first search, can be dismissed, explains color coding.
+- [x] **Create similarity score legend component** - Add small legend to search results header explaining color system: "Green: High match (>85%) • Yellow: Medium (70-85%) • White: Standard". Dismissible, stores preference in localStorage. Success criteria: Legend shows on first search, can be dismissed, explains color coding.
 
 ### Status Line & Monitoring
 
