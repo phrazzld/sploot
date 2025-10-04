@@ -18,6 +18,7 @@ import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 import { CommandPalette, useCommandPalette } from '@/components/chrome/command-palette';
+import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from '@/components/chrome/keyboard-shortcuts-help';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
@@ -51,6 +52,9 @@ function AppPageClient() {
 
   // Command palette state
   const { isOpen: isCommandPaletteOpen, openPalette, closePalette } = useCommandPalette();
+
+  // Keyboard shortcuts help state
+  const { isOpen: isHelpOpen, openHelp, closeHelp } = useKeyboardShortcutsHelp();
 
   // Use sort preferences hook with localStorage persistence and debouncing
   const { sortBy, direction: sortOrder, handleSortChange, getSortColumn } = useSortPreferences();
@@ -444,6 +448,13 @@ function AppPageClient() {
   useKeyboardShortcut({
     key: '2',
     callback: () => handleViewModeShortcut('list'),
+    enabled: true,
+  });
+
+  // ? for keyboard shortcuts help
+  useKeyboardShortcut({
+    key: '?',
+    callback: openHelp,
     enabled: true,
   });
 
@@ -1016,6 +1027,12 @@ function AppPageClient() {
         onSignOut={() => window.location.href = '/api/auth/signout'}
         onDensityChange={handleDensityChange}
         currentDensity={gridDensity}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp
+        isOpen={isHelpOpen}
+        onClose={closeHelp}
       />
     </div>
   );
