@@ -466,8 +466,25 @@ function ImageTileComponent({
           {/* Bottom info on hover - terminal-style metadata with pipes */}
           <div className="absolute bottom-0 left-0 right-0 p-1.5">
             <div className="flex flex-col gap-0.5">
-              <div className="text-white/90 text-xs font-mono truncate">
-                {asset.filename}
+              <div className="flex items-center justify-between">
+                <div className="text-white/90 text-xs font-mono truncate">
+                  {asset.filename}
+                </div>
+                {/* Terminal-style embedding status */}
+                <div className="text-xs font-mono ml-2 shrink-0">
+                  {embeddingStatus === 'ready' && (
+                    <span className="text-[var(--color-terminal-green)]">[✓] EMBEDDED</span>
+                  )}
+                  {embeddingStatus === 'processing' && (
+                    <span className="text-[var(--color-terminal-yellow)]">[⏳] PROCESSING</span>
+                  )}
+                  {embeddingStatus === 'pending' && (
+                    <span className="text-[var(--color-terminal-yellow)]">[⏳] QUEUED</span>
+                  )}
+                  {embeddingStatus === 'failed' && (
+                    <span className="text-[var(--color-terminal-red)]">[✗] FAILED</span>
+                  )}
+                </div>
               </div>
               <div className="flex items-center justify-between text-white/70 text-xs font-mono">
                 <span className="truncate">
