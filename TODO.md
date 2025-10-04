@@ -72,7 +72,7 @@
 
 - [x] **Add terminal-style command palette theme** - Update `components/chrome/command-palette.tsx` with monospace font, pure black background, terminal green highlights. Commands prefixed with `>` like VS Code. Success criteria: Palette matches terminal aesthetic, keyboard nav preserved.
 
-- [ ] **Extend command palette with density commands** - Add commands: `> Set Density: Compact`, `> Set Density: Dense`, `> Set Density: Comfortable`. Also add `> Show Confidence Scores` toggle. Success criteria: Commands functional, affect view immediately.
+- [x] **Extend command palette with density commands** - Add commands: `> Set Density: Compact`, `> Set Density: Dense`, `> Set Density: Comfortable`. Also add `> Show Confidence Scores` toggle. Success criteria: Commands functional, affect view immediately.
 
 - [ ] **Document keyboard shortcuts in terminal style** - Update shortcuts display (⌘K help) with monospace layout. Format: `⌘ + K → Command Palette`, `/ → Search`, `1-3 → Density`. Success criteria: Help modal uses monospace, aligned columns.
 
