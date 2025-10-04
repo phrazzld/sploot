@@ -52,7 +52,7 @@
 
 - [x] **Create terminal-style status line component** - New component `components/chrome/status-line.tsx` showing: asset count, storage usage, last upload timestamp (ISO 8601), processing queue depth. Monospace, `text-xs`, positioned top-right of navbar. Success criteria: Real-time updates, monospace formatting, unobtrusive positioning.
 
-- [~] **Add real-time stats to status line** - Connect status line to asset count, total size calculation, and upload queue status. Update every 500ms when queue is active, every 5s when idle. Success criteria: Stats update without re-render thrashing, accurate within 1 second.
+- [x] **Add real-time stats to status line** - Connect status line to asset count, total size calculation, and upload queue status. Update every 500ms when queue is active, every 5s when idle. Success criteria: Stats update without re-render thrashing, accurate within 1 second.
 
 - [ ] **Implement processing state indicators** - Update upload flow to show terminal-style messages: `[PROCESSING] Generating embeddings...`, `[COMPLETE] Indexed: drake_001.jpg`, `[ERROR] Upload failed: file exceeds 10MB`. Monospace, color-coded by state. Success criteria: Messages appear in toast/banner, clear terminal aesthetic.
 
