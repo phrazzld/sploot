@@ -70,7 +70,7 @@
 
 ### Command Palette & Shortcuts
 
-- [ ] **Add terminal-style command palette theme** - Update `components/chrome/command-palette.tsx` with monospace font, pure black background, terminal green highlights. Commands prefixed with `>` like VS Code. Success criteria: Palette matches terminal aesthetic, keyboard nav preserved.
+- [x] **Add terminal-style command palette theme** - Update `components/chrome/command-palette.tsx` with monospace font, pure black background, terminal green highlights. Commands prefixed with `>` like VS Code. Success criteria: Palette matches terminal aesthetic, keyboard nav preserved.
 
 - [ ] **Extend command palette with density commands** - Add commands: `> Set Density: Compact`, `> Set Density: Dense`, `> Set Density: Comfortable`. Also add `> Show Confidence Scores` toggle. Success criteria: Commands functional, affect view immediately.
 
