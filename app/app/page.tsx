@@ -9,7 +9,7 @@ import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { ImageList } from '@/components/library/image-list';
 import { AssetIntegrityBanner } from '@/components/library/asset-integrity-banner';
-import { SearchBar, SearchLoadingScreen } from '@/components/search';
+import { SearchBar, SearchLoadingScreen, SimilarityScoreLegend } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
 import { HeartIcon } from '@/components/icons/heart-icon';
@@ -808,18 +808,21 @@ function AppPageClient() {
                 )}
 
                 {!searchError && !searchLoading && filteredSearchAssets.length > 0 && (
-                  <div className="rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
-                    <span className="flex flex-col gap-1">
-                      <span>
-                        showing <span className="font-semibold text-[#B6FF6E]">{searchHitCount}</span> matches for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
-                      </span>
-                      {searchMetadata?.thresholdFallback && (
-                        <span className="text-xs text-[#FFAA5C]">
-                          pulled a few low-sim homies so your vibes aren&apos;t empty.
+                  <>
+                    <div className="rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
+                      <span className="flex flex-col gap-1">
+                        <span>
+                          showing <span className="font-semibold text-[#B6FF6E]">{searchHitCount}</span> matches for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
                         </span>
-                      )}
-                    </span>
-                  </div>
+                        {searchMetadata?.thresholdFallback && (
+                          <span className="text-xs text-[#FFAA5C]">
+                            pulled a few low-sim homies so your vibes aren&apos;t empty.
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <SimilarityScoreLegend />
+                  </>
                 )}
 
                 {!searchError && !searchLoading && searchHitCount === 0 && (
