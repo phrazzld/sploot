@@ -273,14 +273,42 @@ function ImageTileComponent({
     return score.toFixed(2);
   }, [showSimilarityScore, asset]);
 
+  // Determine border color based on similarity score
+  // High (>0.85) = terminal green, Medium (0.7-0.85) = terminal yellow, Low (<0.7) = default
+  const scoreBorderStyle = useMemo(() => {
+    if (!showSimilarityScore) return null;
+    const score = (asset as any).similarity;
+    if (typeof score !== 'number') return null;
+
+    if (score > 0.85) {
+      return {
+        borderColor: 'var(--color-terminal-green)',
+        boxShadow: '0 0 0 2px var(--color-terminal-green), 0 0 12px rgba(74, 222, 128, 0.3)',
+      };
+    } else if (score >= 0.7) {
+      return {
+        borderColor: 'var(--color-terminal-yellow)',
+        boxShadow: '0 0 0 2px var(--color-terminal-yellow), 0 0 12px rgba(251, 191, 36, 0.3)',
+      };
+    }
+    // Low scores get default border (subtle white/gray)
+    return {
+      borderColor: '#464C55',
+      boxShadow: '0 0 0 2px #464C55',
+    };
+  }, [showSimilarityScore, asset]);
+
   return (
     <>
       <div
       onClick={onClick || (() => onSelect?.(asset))}
       className={cn(
         'group relative bg-[#0F1012] rounded-md overflow-hidden w-full',
-        'hover:ring-2 hover:ring-[#7C5CFF] hover:shadow-lg transition-all duration-200 cursor-pointer'
+        'transition-all duration-200 cursor-pointer',
+        // Default hover state when not showing similarity scores
+        !showSimilarityScore && 'hover:ring-2 hover:ring-[#7C5CFF] hover:shadow-lg'
       )}
+      style={scoreBorderStyle || undefined}
     >
       {/* Image container */}
       <div
