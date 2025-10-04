@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { Navbar } from './navbar';
 import { NavbarSpacer } from './chrome-spacers';
 import { CornerBrackets } from './corner-brackets';
+import { StatusLine } from './status-line';
 import { useAuthActions } from '@/lib/auth/client';
+import { useStatusStats } from '@/hooks/use-status-stats';
 
 interface AppChromeProps {
   children: ReactNode;
@@ -19,12 +21,14 @@ interface AppChromeProps {
 export function AppChrome({ children }: AppChromeProps) {
   const { signOut } = useAuthActions();
   const router = useRouter();
+  const stats = useStatusStats();
 
   // Handle sign out
   const handleSignOut = useCallback(async () => {
     await signOut();
     router.push('/');
   }, [signOut, router]);
+
   return (
     <>
       {/* Terminal-style corner brackets for viewport framing */}
@@ -33,6 +37,14 @@ export function AppChrome({ children }: AppChromeProps) {
       {/* Fixed Navbar */}
       <Navbar
         onSignOut={handleSignOut}
+        statusLine={
+          <StatusLine
+            assetCount={stats.assetCount}
+            storageUsed={stats.storageUsed}
+            lastUploadTime={stats.lastUploadTime}
+            queueDepth={stats.queueDepth}
+          />
+        }
       />
 
       {/* Spacer for navbar height */}
