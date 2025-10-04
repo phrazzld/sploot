@@ -17,6 +17,8 @@ interface CommandPaletteProps {
   onClose: () => void;
   onUpload?: () => void;
   onSignOut?: () => void;
+  onDensityChange?: (density: 'compact' | 'dense' | 'comfortable') => void;
+  currentDensity?: 'compact' | 'dense' | 'comfortable';
 }
 
 /**
@@ -28,6 +30,8 @@ export function CommandPalette({
   onClose,
   onUpload,
   onSignOut,
+  onDensityChange,
+  currentDensity = 'dense',
 }: CommandPaletteProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
@@ -85,6 +89,68 @@ export function CommandPalette({
           const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
           searchInput?.focus();
         }, 100);
+      },
+    },
+    {
+      id: 'density-compact',
+      label: `Set Density: Compact${currentDensity === 'compact' ? ' ✓' : ''}`,
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+            <rect x="3" y="3" width="4" height="4" />
+            <rect x="10" y="3" width="4" height="4" />
+            <rect x="17" y="3" width="4" height="4" />
+            <rect x="3" y="10" width="4" height="4" />
+            <rect x="10" y="10" width="4" height="4" />
+            <rect x="17" y="10" width="4" height="4" />
+          </g>
+        </svg>
+      ),
+      action: () => {
+        onClose();
+        if (onDensityChange) {
+          onDensityChange('compact');
+        }
+      },
+    },
+    {
+      id: 'density-dense',
+      label: `Set Density: Dense${currentDensity === 'dense' ? ' ✓' : ''}`,
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+            <rect x="2" y="2" width="6" height="6" />
+            <rect x="11" y="2" width="6" height="6" />
+            <rect x="2" y="11" width="6" height="6" />
+            <rect x="11" y="11" width="6" height="6" />
+          </g>
+        </svg>
+      ),
+      action: () => {
+        onClose();
+        if (onDensityChange) {
+          onDensityChange('dense');
+        }
+      },
+    },
+    {
+      id: 'density-comfortable',
+      label: `Set Density: Comfortable${currentDensity === 'comfortable' ? ' ✓' : ''}`,
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <g strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}>
+            <rect x="2" y="2" width="8" height="8" />
+            <rect x="14" y="2" width="8" height="8" />
+            <rect x="2" y="14" width="8" height="8" />
+            <rect x="14" y="14" width="8" height="8" />
+          </g>
+        </svg>
+      ),
+      action: () => {
+        onClose();
+        if (onDensityChange) {
+          onDensityChange('comfortable');
+        }
       },
     },
     {

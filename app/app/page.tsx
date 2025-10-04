@@ -1014,6 +1014,8 @@ function AppPageClient() {
         onClose={closePalette}
         onUpload={() => router.push('/app/upload')}
         onSignOut={() => window.location.href = '/api/auth/signout'}
+        onDensityChange={handleDensityChange}
+        currentDensity={gridDensity}
       />
     </div>
   );
