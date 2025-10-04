@@ -463,22 +463,27 @@ function ImageTileComponent({
 
         {/* Hover overlay with metadata - optimized for dense grid */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          {/* Bottom info on hover - reduced padding for dense spacing */}
-          <div className="absolute bottom-0 left-0 right-0 p-1">
-            <div className="flex items-center justify-between text-white/90 text-xs font-mono">
-              <span className="truncate max-w-[60%]">
-                {asset.width}×{asset.height} • {formatFileSize(asset.size || 0)}
-              </span>
-              {typeof asset.relevance === 'number' && (
-                <span
-                  className={cn(
-                    'font-semibold tabular-nums',
-                    asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
-                  )}
-                >
-                  {Math.round(asset.relevance)}%
+          {/* Bottom info on hover - terminal-style metadata with pipes */}
+          <div className="absolute bottom-0 left-0 right-0 p-1.5">
+            <div className="flex flex-col gap-0.5">
+              <div className="text-white/90 text-xs font-mono truncate">
+                {asset.filename}
+              </div>
+              <div className="flex items-center justify-between text-white/70 text-xs font-mono">
+                <span className="truncate">
+                  {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
                 </span>
-              )}
+                {typeof asset.relevance === 'number' && (
+                  <span
+                    className={cn(
+                      'font-semibold tabular-nums ml-2',
+                      asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
+                    )}
+                  >
+                    {Math.round(asset.relevance)}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>

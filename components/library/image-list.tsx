@@ -156,11 +156,8 @@ function ListRow({
             )}
           </div>
 
-          <div className="hidden min-w-[160px] flex-col text-xs text-[#8E94A3] md:flex">
-            <span>
-              {asset.width && asset.height ? `${asset.width}×${asset.height}` : 'unknown size'}
-            </span>
-            <span>{formatFileSize(asset.size || 0)}</span>
+          <div className="hidden min-w-[160px] font-mono text-xs text-[#8E94A3] md:block">
+            {asset.width && asset.height ? `${asset.width}×${asset.height}` : 'unknown'} | {formatFileSize(asset.size || 0)}
           </div>
 
           <div className="hidden min-w-[120px] font-mono text-xs text-[#8E94A3] xl:block">{formatTimestamp(asset.createdAt)}</div>

@@ -60,7 +60,7 @@
 
 - [x] **Convert all timestamps to ISO 8601 format** - Find all timestamp displays (upload time, last modified, etc.) and convert to `2025-06-17T14:23:45Z` format. Use monospace font. Success criteria: Consistent timestamp format across app, verified via visual audit.
 
-- [ ] **Add monospace formatting to file metadata** - Display filename, dimensions, file size in monospace. Format: `drake_meme.jpg | 1920×1080 | 2.4MB`. Success criteria: Metadata uses JetBrains Mono, aligned columns in lists.
+- [~] **Add monospace formatting to file metadata** - Display filename, dimensions, file size in monospace. Format: `drake_meme.jpg | 1920×1080 | 2.4MB`. Success criteria: Metadata uses JetBrains Mono, aligned columns in lists.
 
 - [ ] **Show file processing status with terminal syntax** - When hover over image, show processing status: `[✓] EMBEDDED`, `[⏳] QUEUED`, `[✗] FAILED`. Monospace, color-coded (green check, yellow hourglass, red X). Success criteria: Status visible on hover, clear at-a-glance processing state.
 
