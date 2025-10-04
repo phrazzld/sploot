@@ -191,7 +191,7 @@ export function CommandPalette({
     <>
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] animate-fade-in"
+        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -200,29 +200,17 @@ export function CommandPalette({
       <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[20vh]">
         <div
           className={cn(
-            'bg-[#14171A] border border-[#2A2F37] rounded-xl',
+            'bg-black border border-[#1A1A1A]',
             'w-full max-w-lg mx-4',
-            'shadow-2xl animate-scale-in',
+            'shadow-2xl shadow-[#7C5CFF]/10 animate-scale-in',
             'overflow-hidden'
           )}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Search input */}
           <div className="relative">
-            <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none">
-              <svg
-                className="w-5 h-5 text-[#7C5CFF]"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
+            <div className="absolute left-4 top-1/2 -translate-y-1/2 pointer-events-none font-mono text-[var(--color-terminal-green)]">
+              &gt;
             </div>
             <input
               ref={inputRef}
@@ -231,9 +219,9 @@ export function CommandPalette({
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Type a command or search..."
               className={cn(
-                'w-full px-12 py-4',
-                'bg-transparent text-[#E6E8EB]',
-                'placeholder:text-[#B3B7BE]/60',
+                'w-full px-8 py-4',
+                'bg-transparent text-white font-mono',
+                'placeholder:text-[#888888]',
                 'focus:outline-none',
                 'text-sm'
               )}
@@ -245,7 +233,7 @@ export function CommandPalette({
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-[#2A2F37]" />
+          <div className="h-px bg-[#1A1A1A]" />
 
           {/* Commands list */}
           <div className="max-h-96 overflow-y-auto py-2">
@@ -257,25 +245,25 @@ export function CommandPalette({
                   className={cn(
                     'w-full px-4 py-2.5',
                     'flex items-center gap-3',
-                    'text-left transition-colors',
+                    'text-left transition-colors font-mono text-sm',
                     selectedIndex === index
-                      ? 'bg-[#7C5CFF]/10 text-[#E6E8EB]'
-                      : 'text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#1B1F24]'
+                      ? 'bg-[var(--color-terminal-green)]/10 text-white border-l-2 border-[var(--color-terminal-green)]'
+                      : 'text-[#888888] hover:text-white hover:bg-[#0A0A0A] border-l-2 border-transparent'
                   )}
                   onMouseEnter={() => setSelectedIndex(index)}
                 >
                   <span className={cn(
-                    'flex-shrink-0',
-                    selectedIndex === index && 'text-[#7C5CFF]'
+                    'flex-shrink-0 hidden',
+                    selectedIndex === index && 'text-[var(--color-terminal-green)]'
                   )}>
                     {command.icon}
                   </span>
-                  <span className="flex-1 text-sm">{command.label}</span>
+                  <span className="flex-1">{command.label}</span>
                   {command.shortcut && (
                     <span className={cn(
                       'flex-shrink-0 text-xs',
-                      'px-2 py-0.5 rounded',
-                      'bg-[#1B1F24] border border-[#2A2F37]',
+                      'px-2 py-0.5',
+                      'text-[#666666]',
                       'font-mono'
                     )}>
                       {command.shortcut}
@@ -284,28 +272,28 @@ export function CommandPalette({
                 </button>
               ))
             ) : (
-              <div className="px-4 py-8 text-center text-[#B3B7BE] text-sm">
+              <div className="px-4 py-8 text-center text-[#888888] text-sm font-mono">
                 No commands found
               </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="h-px bg-[#2A2F37]" />
-          <div className="px-4 py-3 flex items-center justify-between text-xs text-[#B3B7BE]">
+          <div className="h-px bg-[#1A1A1A]" />
+          <div className="px-4 py-3 flex items-center justify-between text-xs text-[#666666] font-mono">
             <div className="flex items-center gap-4">
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-[#1B1F24] border border-[#2A2F37] rounded">↑</kbd>
-                <kbd className="px-1.5 py-0.5 bg-[#1B1F24] border border-[#2A2F37] rounded">↓</kbd>
-                to navigate
+                <kbd className="px-1.5 py-0.5 bg-[#0A0A0A] border border-[#1A1A1A] text-[#888888]">↑</kbd>
+                <kbd className="px-1.5 py-0.5 bg-[#0A0A0A] border border-[#1A1A1A] text-[#888888]">↓</kbd>
+                navigate
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-[#1B1F24] border border-[#2A2F37] rounded">↵</kbd>
-                to select
+                <kbd className="px-1.5 py-0.5 bg-[#0A0A0A] border border-[#1A1A1A] text-[#888888]">↵</kbd>
+                select
               </span>
               <span className="flex items-center gap-1">
-                <kbd className="px-1.5 py-0.5 bg-[#1B1F24] border border-[#2A2F37] rounded">esc</kbd>
-                to close
+                <kbd className="px-1.5 py-0.5 bg-[#0A0A0A] border border-[#1A1A1A] text-[#888888]">esc</kbd>
+                close
               </span>
             </div>
           </div>
