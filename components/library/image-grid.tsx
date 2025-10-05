@@ -133,6 +133,23 @@ export function ImageGrid({
     }
   }, [density]);
 
+  // Grid column classes based on density - responsive and animated
+  const gridColsClass = useMemo(() => {
+    switch (density) {
+      case 'compact':
+        // 8 cols on xl+, 6 on lg, 5 on md, 4 on sm, 2 on mobile
+        return 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8';
+      case 'dense':
+        // 6 cols on xl+, 5 on lg, 4 on md, 3 on sm, 2 on mobile (default)
+        return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
+      case 'comfortable':
+        // 4 cols on xl+, 3 on lg, 3 on md, 2 on sm, 1 on mobile
+        return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4';
+      default:
+        return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
+    }
+  }, [density]);
+
   // Virtual scrolling setup - hook must always be called
   const virtualizer = useVirtualizer({
     count: rows.length,
@@ -278,7 +295,12 @@ export function ImageGrid({
           className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6", gapClass)}>
+          <div
+            className={cn("grid", gridColsClass, gapClass, "transition-all duration-200 ease-in-out")}
+            style={{
+              transition: 'grid-template-columns 200ms ease-in-out, gap 200ms ease-in-out'
+            }}
+          >
             {assets.map((asset, index) => (
               <div
                 key={asset.id}
@@ -371,7 +393,12 @@ export function ImageGrid({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className={cn("grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6", gapClass)}>
+                <div
+                  className={cn("grid", gridColsClass, gapClass, "transition-all duration-200 ease-in-out")}
+                  style={{
+                    transition: 'grid-template-columns 200ms ease-in-out, gap 200ms ease-in-out'
+                  }}
+                >
                   {row.map((asset) => (
                     <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
                       <ImageTile
