@@ -193,12 +193,15 @@ if (!global.FormData) {
 }
 
 // Mock environment variables
-process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_mock';
-process.env.CLERK_SECRET_KEY = 'sk_test_mock';
-process.env.BLOB_READ_WRITE_TOKEN = 'mock_blob_token';
-process.env.POSTGRES_URL = 'postgresql://mock:mock@localhost:5432/mock';
-process.env.POSTGRES_URL_NON_POOLING = 'postgresql://mock:mock@localhost:5432/mock';
-process.env.REPLICATE_API_TOKEN = 'r8_mock_token';
+// IMPORTANT: Set ENABLE_MOCK_SERVICES=true to force mock mode
+// Use fake but valid-looking values so services appear "configured" but mock mode is still active
+process.env.ENABLE_MOCK_SERVICES = 'true'; // Explicit flag forces mock mode
+process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_mock_12345678901234567890';
+process.env.CLERK_SECRET_KEY = 'sk_test_mock_12345678901234567890';
+process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_test_mock_token_12345678901234567890';
+process.env.POSTGRES_URL = 'postgresql://test:test@localhost:5432/test_db';
+process.env.POSTGRES_URL_NON_POOLING = 'postgresql://test:test@localhost:5432/test_db';
+process.env.REPLICATE_API_TOKEN = 'r8_test_mock_token_12345678901234567890';
 // Redis removed - using in-memory cache only
 
 // Mock fetch globally
