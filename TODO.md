@@ -86,7 +86,7 @@
 
 ### View Modes & Preferences
 
-- [ ] **Create view mode indicator in status line** - Add current view mode to status line: `VIEW: DENSE GRID | SORT: RELEVANCE`. Monospace, clickable to change. Success criteria: Always visible, clear current state.
+- [x] **Create view mode indicator in status line** - Add current view mode to status line: `VIEW: DENSE GRID | SORT: RELEVANCE`. Monospace, clickable to change. Success criteria: Always visible, clear current state.
 
 - [x] **Add density preference to URL state** - Extend URL params to include `density=compact|dense|comfortable`. Sync with view mode and sort params. Success criteria: Density persists in URL, shareable links preserve density.
 
