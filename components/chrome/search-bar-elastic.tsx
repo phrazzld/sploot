@@ -144,8 +144,8 @@ export function SearchBarElastic({
       <div className="absolute left-3 pointer-events-none">
         <svg
           className={cn(
-            'w-4 h-4 transition-colors',
-            isFocused ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+            'w-4 h-4',
+            isFocused ? 'text-[var(--color-terminal-green)]' : 'text-[#666666]'
           )}
           fill="none"
           stroke="currentColor"
@@ -171,15 +171,12 @@ export function SearchBarElastic({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          'w-full h-10 pl-10 pr-10',
-          'bg-[#1B1F24] text-[#E6E8EB]',
-          'border border-[#2A2F37]',
-          'rounded-lg',
-          'placeholder:text-[#B3B7BE]/60',
-          'transition-all duration-200',
-          'focus:outline-none focus:ring-2 focus:ring-[#7C5CFF]/50',
-          'focus:border-[#7C5CFF]',
-          isSearching && 'animate-pulse'
+          'w-full h-10 pl-10 pr-10 font-mono',
+          'bg-black text-[#E6E8EB]',
+          'border',
+          isFocused ? 'border-[var(--color-terminal-green)]' : 'border-[#333333]',
+          'placeholder:text-[#666666]',
+          'focus:outline-none'
         )}
         aria-label="Search"
       />
@@ -190,10 +187,8 @@ export function SearchBarElastic({
           onClick={clearSearch}
           className={cn(
             'absolute right-3',
-            'p-1 rounded-md',
-            'text-[#B3B7BE] hover:text-[#E6E8EB]',
-            'hover:bg-[#2A2F37]',
-            'transition-all duration-200'
+            'p-1',
+            'text-[#666666] hover:text-[var(--color-terminal-red)]'
           )}
           aria-label="Clear search"
         >
@@ -216,7 +211,7 @@ export function SearchBarElastic({
       {/* Keyboard Shortcut Hint */}
       {!isFocused && !query && (
         <div className="absolute right-3 pointer-events-none">
-          <kbd className="px-1.5 py-0.5 text-[10px] font-medium text-[#B3B7BE]/40 bg-[#2A2F37]/50 rounded">
+          <kbd className="px-1.5 py-0.5 font-mono text-[10px] text-[#666666] bg-black border border-[#333333]">
             /
           </kbd>
         </div>

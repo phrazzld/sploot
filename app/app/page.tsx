@@ -580,7 +580,7 @@ function AppPageClient() {
           <header className="flex flex-col gap-4">
             {/* Title bar with inline stats */}
             <div className="flex items-baseline gap-2 flex-wrap">
-              <h1 className="text-2xl font-semibold text-[#E6E8EB]">your library</h1>
+              <h1 className="font-mono text-2xl uppercase text-[#E6E8EB]">your library</h1>
               {stats.total > 0 && (
                 <span className="text-sm text-[#888888] font-mono flex items-center gap-2">
                   <span>{stats.total} <span className="text-[#666666]">ASSETS</span></span>
@@ -817,20 +817,20 @@ function AppPageClient() {
                 )}
 
                 {searchError && (
-                  <div className="rounded-2xl border border-[#FF4D4D]/30 bg-[#251014] p-4 text-sm text-[#FF8C9B]">
+                  <div className="border border-[var(--color-terminal-red)] bg-black p-4 font-mono text-sm uppercase text-[var(--color-terminal-red)]">
                     {searchError}
                   </div>
                 )}
 
                 {!searchError && !searchLoading && filteredSearchAssets.length > 0 && (
                   <>
-                    <div className="rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
+                    <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
                       <span className="flex flex-col gap-1">
                         <span>
-                          showing <span className="font-semibold text-[#B6FF6E]">{searchHitCount}</span> matches for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
+                          showing <span className="text-[var(--color-terminal-green)]">{searchHitCount}</span> matches for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
                         </span>
                         {searchMetadata?.thresholdFallback && (
-                          <span className="text-xs text-[#FFAA5C]">
+                          <span className="text-xs text-[var(--color-terminal-yellow)]">
                             pulled a few low-sim homies so your vibes aren&apos;t empty.
                           </span>
                         )}
@@ -841,8 +841,8 @@ function AppPageClient() {
                 )}
 
                 {!searchError && !searchLoading && searchHitCount === 0 && (
-                  <div className="rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
-                    no matches yet for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;. remix the prompt and try again.
+                  <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
+                    no matches yet for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;. remix the prompt and try again.
                   </div>
                 )}
               </div>
