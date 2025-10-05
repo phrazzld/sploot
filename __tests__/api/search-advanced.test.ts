@@ -3,24 +3,22 @@ import { createMockRequest, mockEmbeddingService, mockMultiLayerCache } from '..
 import { auth } from '@clerk/nextjs/server';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
-import { prisma, vectorSearch, logSearch } from '@/lib/db';
+import { mockPrisma, mockVectorSearch, mockLogSearch, setupPrismaMock, resetPrismaMocks } from '../mocks/prisma';
 
 // Mock dependencies
 vi.mock('@clerk/nextjs/server');
-vi.mock('@/lib/db');
+vi.mock('@/lib/db', setupPrismaMock);
 vi.mock('@/lib/embeddings');
 vi.mock('@/lib/multi-layer-cache');
 
 const mockAuth = vi.mocked(auth);
-const mockPrisma = vi.mocked(prisma);
-const mockVectorSearch = vi.mocked(vectorSearch);
-const mockLogSearch = vi.mocked(logSearch);
 const mockCreateEmbeddingService = vi.mocked(createEmbeddingService);
 const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
 const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('/api/search/advanced', () => {
   beforeEach(() => {
+    resetPrismaMocks();
     vi.clearAllMocks();
     mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService());
     const mockCache = mockMultiLayerCache();

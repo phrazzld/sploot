@@ -3,50 +3,11 @@ import { createMockRequest, mockMultiLayerCache } from '../utils/test-helpers';
 import { del } from '@vercel/blob';
 import { auth } from '@clerk/nextjs/server';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
-import { prisma } from '@/lib/db';
+import { mockPrisma, setupPrismaMock, resetPrismaMocks } from '../mocks/prisma';
 
 // Mock dependencies
 vi.mock('@clerk/nextjs/server');
-vi.mock('@/lib/db', () => ({
-  prisma: {
-    asset: {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      findMany: vi.fn(),
-      findUnique: vi.fn(),
-      update: vi.fn(),
-      delete: vi.fn(),
-      count: vi.fn(),
-    },
-    assetEmbedding: {
-      create: vi.fn(),
-      findFirst: vi.fn(),
-      findUnique: vi.fn(),
-      update: vi.fn(),
-      upsert: vi.fn(),
-    },
-    assetTag: {
-      findMany: vi.fn(),
-      deleteMany: vi.fn(),
-      create: vi.fn(),
-    },
-    tag: {
-      findFirst: vi.fn(),
-      create: vi.fn(),
-    },
-    searchLog: {
-      create: vi.fn(),
-      findMany: vi.fn(),
-      groupBy: vi.fn(),
-    },
-    $queryRaw: vi.fn(),
-    $queryRawUnsafe: vi.fn(),
-    $transaction: vi.fn(),
-  },
-  vectorSearch: vi.fn(),
-  logSearch: vi.fn(),
-  databaseAvailable: true,
-}));
+vi.mock('@/lib/db', setupPrismaMock);
 vi.mock('@vercel/blob');
 vi.mock('@/lib/multi-layer-cache');
 
@@ -57,6 +18,7 @@ const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('/api/assets/[id]', () => {
   beforeEach(() => {
+    resetPrismaMocks();
     vi.clearAllMocks();
     const mockCache = mockMultiLayerCache();
     mockCreateMultiLayerCache.mockReturnValue(mockCache);
