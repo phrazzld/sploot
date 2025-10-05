@@ -9,7 +9,6 @@ import { EmptyState } from './empty-state';
 import { cn } from '@/lib/utils';
 import { trackBrokenImageRatio, setupCLSTracking } from '@/lib/performance-metrics';
 import type { Asset } from '@/lib/types';
-import type { GridDensity } from '@/components/chrome/grid-density-toggle';
 
 interface ImageGridProps {
   assets: Asset[];
@@ -22,7 +21,6 @@ interface ImageGridProps {
   containerClassName?: string;
   onScrollContainerReady?: (node: HTMLDivElement | null) => void;
   onUploadClick?: () => void;
-  density?: GridDensity;
   showSimilarityScores?: boolean;
 }
 
@@ -37,7 +35,6 @@ export function ImageGrid({
   containerClassName,
   onScrollContainerReady,
   onUploadClick,
-  density = 'dense',
   showSimilarityScores = false,
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -70,45 +67,18 @@ export function ImageGrid({
   const USE_VIRTUAL_SCROLLING_THRESHOLD = 500;
   const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
 
-  // Calculate columns based on container width and density setting
-  // Compact (8 cols), Dense (6 cols - default), Comfortable (4 cols)
+  // Fixed column count matching Tailwind breakpoints
+  // grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6
   const columnCount = useMemo(() => {
     if (!containerWidth) return 1;
 
-    // Define column counts for each density at different breakpoints
-    const densityConfig = {
-      compact: {
-        1440: 8,
-        1024: 6,
-        768: 5,
-        640: 4,
-        480: 3,
-      },
-      dense: {
-        1440: 6,
-        1024: 5,
-        768: 4,
-        640: 3,
-        480: 2,
-      },
-      comfortable: {
-        1440: 4,
-        1024: 3,
-        768: 3,
-        640: 2,
-        480: 2,
-      },
-    };
-
-    const config = densityConfig[density];
-
-    if (containerWidth >= 1440) return config[1440];
-    if (containerWidth >= 1024) return config[1024];
-    if (containerWidth >= 768) return config[768];
-    if (containerWidth >= 640) return config[640];
-    if (containerWidth >= 480) return config[480];
-    return 1;
-  }, [containerWidth, density]);
+    // Match Tailwind responsive grid breakpoints
+    if (containerWidth >= 1280) return 6; // xl
+    if (containerWidth >= 1024) return 5; // lg
+    if (containerWidth >= 768) return 4;  // md
+    if (containerWidth >= 640) return 3;  // sm
+    return 2; // default
+  }, [containerWidth]);
 
   // Calculate rows based on items and columns
   const rows = useMemo(() => {
@@ -119,36 +89,11 @@ export function ImageGrid({
     });
   }, [assets, columnCount]);
 
-  // Gap classes based on density
-  const gapClass = useMemo(() => {
-    switch (density) {
-      case 'compact':
-        return 'gap-1'; // 4px
-      case 'dense':
-        return 'gap-2'; // 8px - default
-      case 'comfortable':
-        return 'gap-4'; // 16px
-      default:
-        return 'gap-2';
-    }
-  }, [density]);
+  // Fixed gap for terminal strict grid aesthetic
+  const gapClass = 'gap-2'; // 8px - terminal aesthetic spacing
 
-  // Grid column classes based on density - responsive and animated
-  const gridColsClass = useMemo(() => {
-    switch (density) {
-      case 'compact':
-        // 8 cols on xl+, 6 on lg, 5 on md, 4 on sm, 2 on mobile
-        return 'grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8';
-      case 'dense':
-        // 6 cols on xl+, 5 on lg, 4 on md, 3 on sm, 2 on mobile (default)
-        return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
-      case 'comfortable':
-        // 4 cols on xl+, 3 on lg, 3 on md, 2 on sm, 1 on mobile
-        return 'grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4';
-      default:
-        return 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
-    }
-  }, [density]);
+  // Fixed 6-column grid layout - terminal strict grid aesthetic
+  const gridColsClass = 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
 
   // Virtual scrolling setup - hook must always be called
   const virtualizer = useVirtualizer({
@@ -295,12 +240,7 @@ export function ImageGrid({
           className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <div
-            className={cn("grid", gridColsClass, gapClass, "transition-all duration-200 ease-in-out")}
-            style={{
-              transition: 'grid-template-columns 200ms ease-in-out, gap 200ms ease-in-out'
-            }}
-          >
+          <div className={cn("grid", gridColsClass, gapClass)}>
             {assets.map((asset, index) => (
               <div
                 key={asset.id}
@@ -393,12 +333,7 @@ export function ImageGrid({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div
-                  className={cn("grid", gridColsClass, gapClass, "transition-all duration-200 ease-in-out")}
-                  style={{
-                    transition: 'grid-template-columns 200ms ease-in-out, gap 200ms ease-in-out'
-                  }}
-                >
+                <div className={cn("grid", gridColsClass, gapClass)}>
                   {row.map((asset) => (
                     <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
                       <ImageTile
