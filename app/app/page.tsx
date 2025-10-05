@@ -9,7 +9,7 @@ import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { ImageList } from '@/components/library/image-list';
 import { AssetIntegrityBanner } from '@/components/library/asset-integrity-banner';
-import { SearchBar, SearchLoadingScreen, SimilarityScoreLegend } from '@/components/search';
+import { SearchBar, SearchLoadingScreen, SimilarityScoreLegend, QuerySyntaxIndicator } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
 import { HeartIcon } from '@/components/icons/heart-icon';
@@ -820,6 +820,18 @@ function AppPageClient() {
 
             {isSearching && (
               <div className="space-y-3">
+                {/* Query Syntax Indicator */}
+                {!searchError && !searchLoading && (
+                  <QuerySyntaxIndicator
+                    query={trimmedLibraryQuery}
+                    resultCount={searchHitCount}
+                    filters={{
+                      favorites: favoritesOnly || undefined,
+                      tagName: activeTagName || undefined,
+                    }}
+                  />
+                )}
+
                 {searchError && (
                   <div className="rounded-2xl border border-[#FF4D4D]/30 bg-[#251014] p-4 text-sm text-[#FF8C9B]">
                     {searchError}
