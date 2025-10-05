@@ -90,7 +90,7 @@
 
 - [x] **Add density preference to URL state** - Extend URL params to include `density=compact|dense|comfortable`. Sync with view mode and sort params. Success criteria: Density persists in URL, shareable links preserve density.
 
-- [ ] **Implement smooth transitions between density modes** - When changing density, animate grid reconfiguration over 200ms. Use CSS Grid `transition: grid-template-columns 200ms`. Success criteria: Smooth transition, no jank, 60fps.
+- [x] **Implement smooth transitions between density modes** - When changing density, animate grid reconfiguration over 200ms. Use CSS Grid `transition: grid-template-columns 200ms`. Success criteria: Smooth transition, no jank, 60fps.
 
 ---
 
