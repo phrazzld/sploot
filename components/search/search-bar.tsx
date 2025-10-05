@@ -173,18 +173,16 @@ export function SearchBar({
             placeholder={placeholder || 'search your memes...'}
             autoFocus={autoFocus}
             className={`
-              w-full h-[56px] pl-6 pr-12 text-base
-              bg-[#0F1216] text-[#E6E8EB] placeholder-[#6A6E78]
-              rounded-2xl border-2
-              focus:outline-none focus:ring-2
-              transition-all duration-300
-              ${searchState === 'typing' ? 'border-[#7C5CFF] ring-2 ring-[#7C5CFF]/20' : ''}
-              ${searchState === 'loading' ? 'border-[#7C5CFF] animate-pulse' : ''}
-              ${searchState === 'success' ? 'border-[#22C55E]' : ''}
-              ${searchState === 'no-results' ? 'border-[#FFC107]' : ''}
-              ${searchState === 'error' ? 'border-[#EF4444]' : ''}
-              ${searchState === 'idle' ? 'border-[#1F2328] focus:border-[#7C5CFF] focus:ring-[#7C5CFF]/20' : ''}
-              focus:shadow-[0_0_20px_rgba(124,92,255,0.15)]
+              w-full h-[56px] pl-6 pr-12 text-base font-mono
+              bg-black text-[#E6E8EB] placeholder-[#666666]
+              border-2
+              focus:outline-none
+              ${searchState === 'typing' ? 'border-[var(--color-terminal-green)]' : ''}
+              ${searchState === 'loading' ? 'border-[var(--color-terminal-green)]' : ''}
+              ${searchState === 'success' ? 'border-[var(--color-terminal-green)]' : ''}
+              ${searchState === 'no-results' ? 'border-[var(--color-terminal-yellow)]' : ''}
+              ${searchState === 'error' ? 'border-[var(--color-terminal-red)]' : ''}
+              ${searchState === 'idle' ? 'border-[#333333] focus:border-[var(--color-terminal-green)]' : ''}
             `}
           />
 
@@ -194,10 +192,7 @@ export function SearchBar({
             {query && (
               <button
                 onClick={handleClear}
-                className="
-                  p-1.5 text-[#6A6E78] hover:text-[#B3B7BE]
-                  transition-colors duration-200
-                "
+                className="p-1.5 text-[#666666] hover:text-[var(--color-terminal-red)]"
                 aria-label="clear search"
                 title="clear search (esc)"
               >
@@ -226,20 +221,19 @@ export function SearchBar({
           ref={dropdownRef}
           className="
             absolute top-full mt-2 w-full
-            bg-[#14171A] border border-[#2A2F37] rounded-2xl
-            shadow-xl overflow-hidden z-50
-            animate-in fade-in-0 slide-in-from-top-1 duration-200
+            bg-black border border-[#333333]
+            overflow-hidden z-50
           "
         >
           {/* History header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#2A2F37]">
-            <span className="text-xs text-[#6A6E78] font-medium">Recent Searches</span>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[#333333]">
+            <span className="font-mono text-xs uppercase text-[#888888]">Recent Searches</span>
             <button
               onClick={() => {
                 clearHistory();
                 setShowHistory(false);
               }}
-              className="text-xs text-[#6A6E78] hover:text-[#B3B7BE] transition-colors"
+              className="font-mono text-xs uppercase text-[#666666] hover:text-[var(--color-terminal-red)]"
             >
               Clear history
             </button>
@@ -252,14 +246,14 @@ export function SearchBar({
                 key={item.timestamp}
                 className={`
                   flex items-center justify-between px-4 py-3
-                  hover:bg-[#1F2328] cursor-pointer transition-colors
-                  ${selectedIndex === index ? 'bg-[#1F2328]' : ''}
+                  hover:bg-[#0F1012] cursor-pointer group
+                  ${selectedIndex === index ? 'bg-[#0F1012] border-l-2 border-[var(--color-terminal-green)]' : ''}
                 `}
                 onClick={() => handleHistorySelect(item.query)}
               >
                 <div className="flex items-center gap-3 flex-1">
                   <svg
-                    className="w-4 h-4 text-[#6A6E78] flex-shrink-0"
+                    className="w-4 h-4 text-[#666666] flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -271,14 +265,11 @@ export function SearchBar({
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span className="text-[#E6E8EB] text-sm truncate">{item.query}</span>
+                  <span className="font-mono text-sm text-[#E6E8EB] truncate">{item.query}</span>
                 </div>
                 <button
                   onClick={(e) => handleHistoryRemove(e, item.query)}
-                  className="
-                    p-1 text-[#6A6E78] hover:text-[#B3B7BE]
-                    opacity-0 group-hover:opacity-100 transition-all
-                  "
+                  className="p-1 text-[#666666] hover:text-[var(--color-terminal-red)] opacity-0 group-hover:opacity-100"
                   aria-label="Remove from history"
                 >
                   <svg
