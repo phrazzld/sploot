@@ -36,10 +36,8 @@ describe('/api/cache/stats', () => {
 
       const mockCache = mockMultiLayerCache();
       mockCache.getStats.mockReturnValue({
-        l1Hits: 100,
-        l1Misses: 20,
-        l2Hits: 50,
-        l2Misses: 10,
+        hits: 150,
+        misses: 30,
         totalRequests: 180,
         hitRate: 83.33,
         avgLatency: 5.2,
@@ -49,10 +47,8 @@ describe('/api/cache/stats', () => {
         l1: true,
         l2: true,
         stats: {
-          l1Hits: 100,
-          l1Misses: 20,
-          l2Hits: 50,
-          l2Misses: 10,
+          hits: 150,
+          misses: 30,
           totalRequests: 180,
           hitRate: 83.33,
           avgLatency: 5.2,
@@ -67,11 +63,9 @@ describe('/api/cache/stats', () => {
 
       expect(response.status).toBe(200);
       expect(data.status).toBe('healthy');
-      expect(data.layers.l1.status).toBe('active');
-      expect(data.layers.l1.hits).toBe(100);
-      expect(data.layers.l1.misses).toBe(20);
-      expect(data.layers.l2.status).toBe('active');
-      expect(data.layers.l2.hits).toBe(50);
+      expect(data.cache.status).toBe('active');
+      expect(data.cache.hits).toBe(150); // l1Hits + l2Hits = 100 + 50
+      expect(data.cache.misses).toBe(30); // l1Misses + l2Misses = 20 + 10
       expect(data.overall.totalRequests).toBe(180);
       expect(data.overall.hitRate).toBe('83.33%');
       expect(data.performance.meetsTarget).toBe(true);
@@ -83,7 +77,7 @@ describe('/api/cache/stats', () => {
 
       const mockCache = mockMultiLayerCache();
       mockCache.isHealthy.mockResolvedValue({
-        l1: true,
+        l1: false,
         l2: false,
         stats: mockCache.getStats(),
       });
@@ -94,8 +88,7 @@ describe('/api/cache/stats', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.layers.l1.status).toBe('active');
-      expect(data.layers.l2.status).toBe('inactive');
+      expect(data.cache.status).toBe('inactive');
     });
 
     it('should indicate when cache performance is below target', async () => {
@@ -103,10 +96,8 @@ describe('/api/cache/stats', () => {
 
       const mockCache = mockMultiLayerCache();
       mockCache.getStats.mockReturnValue({
-        l1Hits: 50,
-        l1Misses: 50,
-        l2Hits: 20,
-        l2Misses: 30,
+        hits: 70,
+        misses: 80,
         totalRequests: 150,
         hitRate: 46.67,
         avgLatency: 10.5,

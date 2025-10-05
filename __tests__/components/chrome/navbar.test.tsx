@@ -91,7 +91,7 @@ describe('Navbar', () => {
       render(<Navbar />);
 
       const nav = screen.getByRole('navigation');
-      expect(nav).toHaveClass('bg-[#14171A]', 'border-b', 'border-[#2A2F37]');
+      expect(nav).toHaveClass('bg-black', 'border-b', 'border-[#1A1A1A]');
     });
 
     it('should have backdrop blur effect', () => {

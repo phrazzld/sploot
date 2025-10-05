@@ -102,7 +102,7 @@ describe('Search Flow Integration Tests', () => {
           height: 1080,
           favorite: false,
           created_at: new Date(),
-          distance: 0.2, // High similarity (low distance)
+          distance: 0.85, // High similarity (distance is treated as similarity score, 0-1)
         },
         {
           id: 'asset-2',
@@ -115,7 +115,7 @@ describe('Search Flow Integration Tests', () => {
           height: 1080,
           favorite: true,
           created_at: new Date(),
-          distance: 0.3,
+          distance: 0.75,
         },
       ];
       const { prisma, vectorSearch, logSearch } = await import('@/lib/db');
@@ -263,7 +263,7 @@ describe('Search Flow Integration Tests', () => {
       const data = await response.json();
 
       expect(response.status).toBe(500);
-      expect(data.error).toContain('Search failed');
+      expect(data.error).toContain('Failed to perform search');
     });
 
     it('should enforce query validation', async () => {

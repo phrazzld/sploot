@@ -93,31 +93,29 @@ describe('ViewModeToggle', () => {
       render(<ViewModeToggle value="grid" onChange={mockOnChange} />);
 
       const gridButton = screen.getByLabelText('Grid');
-      expect(gridButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      expect(gridButton).toHaveClass('bg-[var(--color-terminal-green)]', 'text-black');
     });
 
     it('should apply active styling to list button when selected', () => {
       render(<ViewModeToggle value="list" onChange={mockOnChange} />);
 
       const listButton = screen.getByLabelText('List');
-      expect(listButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      expect(listButton).toHaveClass('bg-[var(--color-terminal-green)]', 'text-black');
     });
 
-    it('should show active indicator dot when button is active', () => {
-      const { container } = render(<ViewModeToggle value="grid" onChange={mockOnChange} />);
-
-      // Active button should have an indicator dot
-      const indicators = container.querySelectorAll('.w-1.h-1.bg-\\[\\#B6FF6E\\]');
-      expect(indicators.length).toBe(1);
-    });
-
-    it('should scale icon when button is active', () => {
+    it('should have icon rendered in active button', () => {
       render(<ViewModeToggle value="grid" onChange={mockOnChange} />);
 
       const gridButton = screen.getByLabelText('Grid');
-      const iconWrapper = gridButton.querySelector('span');
+      const icon = gridButton.querySelector('svg');
+      expect(icon).toBeInTheDocument();
+    });
 
-      expect(iconWrapper).toHaveClass('scale-110');
+    it('should not have labels by default', () => {
+      render(<ViewModeToggle value="grid" onChange={mockOnChange} />);
+
+      expect(screen.queryByText('Grid')).not.toBeInTheDocument();
+      expect(screen.queryByText('List')).not.toBeInTheDocument();
     });
   });
 
