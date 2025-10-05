@@ -78,7 +78,7 @@
 
 ### Advanced Filtering & Search
 
-- [ ] **Add search query syntax indicators** - When user searches, show parsed query in terminal syntax: `QUERY: "drake meme" | FILTERS: [favorites] | RESULTS: 23`. Monospace, positioned below search bar. Success criteria: Query breakdown visible, helps users understand search.
+- [x] **Add search query syntax indicators** - When user searches, show parsed query in terminal syntax: `QUERY: "drake meme" | FILTERS: [favorites] | RESULTS: 23`. Monospace, positioned below search bar. Success criteria: Query breakdown visible, helps users understand search.
 
 - [ ] **Implement search performance metrics** - Show search latency in monospace: `Search completed in 0.89s`. Position near search results count. Success criteria: Accurate timing, updates per search, monospace format.
 
