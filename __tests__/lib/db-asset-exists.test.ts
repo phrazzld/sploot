@@ -1,16 +1,45 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { mockPrisma, setupPrismaMock, resetPrismaMocks } from '../mocks/prisma';
-
-// Mock the db module with centralized mock BEFORE any imports from it
-vi.mock('@/lib/db', setupPrismaMock);
-
-// Import the module after mocking
-import { assetExists, findOrCreateAsset } from '@/lib/db';
 import type { ExistingAssetMetadata } from '@/lib/db';
+
+// Create mock storage that will be shared
+let mockAssetFindFirst: ReturnType<typeof vi.fn>;
+let mockAssetCreate: ReturnType<typeof vi.fn>;
+let mockTransaction: ReturnType<typeof vi.fn>;
+
+// Mock PrismaClient at the source
+vi.mock('@prisma/client', async () => {
+  const { vi: vitestImport } = await import('vitest');
+  mockAssetFindFirst = vitestImport.fn();
+  mockAssetCreate = vitestImport.fn();
+  mockTransaction = vitestImport.fn();
+
+  return {
+    PrismaClient: vitestImport.fn().mockImplementation(() => ({
+      asset: {
+        findFirst: mockAssetFindFirst,
+        create: mockAssetCreate,
+      },
+      $transaction: mockTransaction,
+    })),
+    Prisma: {},
+  };
+});
+
+// Import the module - it will create its own PrismaClient using our mock
+import { assetExists, findOrCreateAsset } from '@/lib/db';
+
+// Create a reference object for easy access in tests
+const getMockPrisma = () => ({
+  asset: {
+    findFirst: mockAssetFindFirst,
+    create: mockAssetCreate,
+  },
+  $transaction: mockTransaction,
+});
 
 describe('assetExists', () => {
   beforeEach(() => {
-    resetPrismaMocks();
+    vi.clearAllMocks();
   });
 
   const mockUserId = 'user123';
@@ -31,7 +60,7 @@ describe('assetExists', () => {
 
   describe('when asset exists', () => {
     it('should return typed asset metadata', async () => {
-      mockPrisma.asset.findFirst.mockResolvedValue(mockAsset);
+      mockAssetFindFirst.mockResolvedValue(mockAsset);
 
       const result = await assetExists(mockUserId, mockChecksum);
 
@@ -62,11 +91,11 @@ describe('assetExists', () => {
       await assetExists(mockUserId, mockChecksum, { tx: mockTx as any });
 
       expect(mockTx.asset.findFirst).toHaveBeenCalledTimes(1);
-      expect(mockPrisma.asset.findFirst).not.toHaveBeenCalled();
+      expect(mockAssetFindFirst).not.toHaveBeenCalled();
     });
 
     it('should include embedding flag when requested', async () => {
-      mockPrisma.asset.findFirst.mockResolvedValue({
+      mockAssetFindFirst.mockResolvedValue({
         ...mockAsset,
         embedding: {
           assetId: mockAsset.id,
@@ -81,7 +110,7 @@ describe('assetExists', () => {
 
   describe('when asset does not exist', () => {
     it('should return null', async () => {
-      mockPrisma.asset.findFirst.mockResolvedValue(null);
+      mockAssetFindFirst.mockResolvedValue(null);
 
       const result = await assetExists(mockUserId, mockChecksum);
 
@@ -91,7 +120,7 @@ describe('assetExists', () => {
 
   describe('error handling', () => {
     it('should throw when database error occurs', async () => {
-      mockPrisma.asset.findFirst.mockRejectedValue(new Error('Database error'));
+      mockAssetFindFirst.mockRejectedValue(new Error('Database error'));
 
       await expect(assetExists(mockUserId, mockChecksum)).rejects.toThrow('Database error');
     });
@@ -100,7 +129,7 @@ describe('assetExists', () => {
 
 describe('findOrCreateAsset', () => {
   beforeEach(() => {
-    resetPrismaMocks();
+    vi.clearAllMocks();
   });
 
   const mockUserId = 'user123';
@@ -131,7 +160,7 @@ describe('findOrCreateAsset', () => {
         create: (vi.fn() as vi.MockedFunction<any>).mockResolvedValue(mockCreatedAsset),
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback: any) => {
+      mockTransaction.mockImplementation(async (callback: any) => {
         const mockTx = {
           asset: mockTxAsset,
         };
@@ -170,7 +199,7 @@ describe('findOrCreateAsset', () => {
         create: vi.fn() as vi.MockedFunction<any>,
       };
 
-      mockPrisma.$transaction.mockImplementation(async (callback: any) => {
+      mockTransaction.mockImplementation(async (callback: any) => {
         const mockTx = {
           asset: mockTxAsset,
         };
@@ -193,7 +222,7 @@ describe('findOrCreateAsset', () => {
 
       // Mock transaction - first call for create attempt
       let callCount = 0;
-      mockPrisma.$transaction.mockImplementation(async (callback: any) => {
+      mockTransaction.mockImplementation(async (callback: any) => {
         callCount++;
 
         if (callCount === 1) {
@@ -219,11 +248,11 @@ describe('findOrCreateAsset', () => {
       const result = await findOrCreateAsset(mockUserId, mockAssetData);
 
       expect(result.id).toBe('raceAsset123');
-      expect(mockPrisma.$transaction).toHaveBeenCalledTimes(2);
+      expect(mockTransaction).toHaveBeenCalledTimes(2);
     });
 
     it('should throw on other errors', async () => {
-      mockPrisma.$transaction.mockRejectedValue(new Error('Unexpected error'));
+      mockTransaction.mockRejectedValue(new Error('Unexpected error'));
 
       await expect(findOrCreateAsset(mockUserId, mockAssetData)).rejects.toThrow('Unexpected error');
     });

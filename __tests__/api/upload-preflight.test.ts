@@ -2,12 +2,10 @@ import { NextRequest } from 'next/server';
 import { POST, OPTIONS } from '@/app/api/upload/check/route';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { assetExists } from '@/lib/db';
-import { mockPrisma, setupPrismaMock, resetPrismaMocks } from '../mocks/prisma';
-
 
 // Mock dependencies
 vi.mock('@/lib/auth/server');
-vi.mock('@/lib/db', setupPrismaMock);
+vi.mock('@/lib/db');
 
 const mockRequireUserIdWithSync = requireUserIdWithSync as vi.MockedFunction<typeof requireUserIdWithSync>;
 const mockAssetExists = assetExists as vi.MockedFunction<typeof assetExists>;

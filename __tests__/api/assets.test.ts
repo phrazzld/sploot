@@ -3,22 +3,22 @@ import { createMockRequest, mockEmbeddingService, mockMultiLayerCache } from '..
 import { auth } from '@clerk/nextjs/server';
 import { createEmbeddingService } from '@/lib/embeddings';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
-import { mockPrisma, setupPrismaMock, resetPrismaMocks } from '../mocks/prisma';
+import { prisma } from '@/lib/db';
 
 // Mock dependencies
 vi.mock('@clerk/nextjs/server');
-vi.mock('@/lib/db', setupPrismaMock);
+vi.mock('@/lib/db');
 vi.mock('@/lib/embeddings');
 vi.mock('@/lib/multi-layer-cache');
 
 const mockAuth = vi.mocked(auth);
+const mockPrisma = vi.mocked(prisma);
 const mockCreateEmbeddingService = vi.mocked(createEmbeddingService);
 const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
 const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
 describe('/api/assets', () => {
   beforeEach(() => {
-    resetPrismaMocks();
     vi.clearAllMocks();
     mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService());
     const mockCache = mockMultiLayerCache();
