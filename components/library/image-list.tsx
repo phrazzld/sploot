@@ -121,9 +121,9 @@ function ListRow({
         tabIndex={0}
         onClick={handleRowClick}
         onKeyDown={handleRowKeyDown}
-        className="group flex w-full items-center gap-3 rounded-lg bg-[#0F1012] px-3 py-2 text-left transition-all hover:ring-1 hover:ring-[#7C5CFF] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+        className="group flex w-full items-center gap-3 bg-[#0F1012] px-3 py-2 text-left border border-transparent hover:border-[var(--color-terminal-green)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-green)]"
       >
-        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-md bg-[#0F1012]">
+        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden bg-[#0F1012] border border-[#333333]">
           <Image
             src={asset.thumbnailUrl || asset.blobUrl}
             alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
@@ -132,7 +132,7 @@ function ListRow({
             className="h-full w-full object-cover"
           />
           {asset.favorite && (
-            <span className="absolute -top-2 -right-2 inline-flex items-center justify-center rounded-full bg-[#FF64C5] px-1.5 py-0.5 text-[10px] font-semibold text-black">
+            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center border border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-black">
               fav
             </span>
           )}
@@ -145,12 +145,12 @@ function ListRow({
             {asset.tags && asset.tags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {asset.tags.slice(0, 3).map((tag) => (
-                  <span key={tag.id} className="rounded-full bg-[#1B1F24] px-2 py-0.5 text-[10px] text-[#B3B7BE]">
+                  <span key={tag.id} className="border border-[#333333] bg-black px-2 py-0.5 font-mono text-[10px] text-[#888888]">
                     #{tag.name}
                   </span>
                 ))}
                 {asset.tags.length > 3 && (
-                  <span className="text-[10px] text-[#6E7381]">+{asset.tags.length - 3}</span>
+                  <span className="font-mono text-[10px] text-[#666666]">+{asset.tags.length - 3}</span>
                 )}
               </div>
             )}
@@ -168,10 +168,10 @@ function ListRow({
               onClick={handleFavoriteToggle}
               aria-pressed={asset.favorite}
               className={cn(
-                'inline-flex h-9 w-9 items-center justify-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                'inline-flex h-9 w-9 items-center justify-center border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-green)]',
                 asset.favorite
-                  ? 'bg-[#FF64C5] text-black shadow-[0_8px_18px_-10px_rgba(255,100,197,0.9)]'
-                  : 'bg-[#1B1F24] text-[#B3B7BE] hover:bg-[#262B32] hover:text-white'
+                  ? 'border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] text-black'
+                  : 'border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]'
               )}
               title={asset.favorite ? 'drop from bangers' : 'crown as banger'}
             >
@@ -181,7 +181,7 @@ function ListRow({
             <button
               type="button"
               onClick={handleDeleteClick}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1B1F24] text-[#B3B7BE] transition-colors hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]"
+              className="inline-flex h-9 w-9 items-center justify-center border border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-red)] hover:bg-[var(--color-terminal-red)] hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-red)]"
               title="rage delete"
             >
               <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
@@ -293,8 +293,8 @@ export function ImageList({
           ))}
 
           {loading && (
-            <div className="flex items-center justify-center py-6 text-sm text-[#B3B7BE]">
-              <svg className="h-5 w-5 animate-spin text-[#7C5CFF]" viewBox="0 0 24 24" fill="none">
+            <div className="flex items-center justify-center py-6 font-mono text-sm uppercase text-[#888888]">
+              <svg className="h-5 w-5 animate-spin text-[var(--color-terminal-green)]" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path
                   className="opacity-75"
@@ -311,7 +311,7 @@ export function ImageList({
               <button
                 type="button"
                 onClick={onLoadMore}
-                className="rounded-full bg-[#1B1F24] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:bg-[#242B33] hover:text-[#E6E8EB]"
+                className="border border-[#333333] bg-black px-4 py-2 font-mono text-sm uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
               >
                 load more
               </button>

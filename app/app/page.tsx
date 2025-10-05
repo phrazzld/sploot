@@ -623,7 +623,7 @@ function AppPageClient() {
                   type="button"
                   onClick={() => setShowUploadPanel((prev) => !prev)}
                   className={cn(
-                    'inline-flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase border',
+                    'inline-flex items-center gap-2 px-4 h-10 text-xs font-mono uppercase border',
                     showUploadPanel
                       ? 'bg-[var(--color-terminal-green)] text-black border-[var(--color-terminal-green)]'
                       : 'bg-black text-[var(--color-terminal-green)] border-[var(--color-terminal-green)] hover:bg-[var(--color-terminal-green)] hover:text-black'
@@ -638,7 +638,7 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={handleBulkRetry}
-                    className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-4 py-2 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
+                    className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-4 h-10 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -650,7 +650,7 @@ function AppPageClient() {
                   type="button"
                   onClick={toggleFavoritesOnly}
                   className={cn(
-                    'inline-flex items-center gap-2 border px-4 py-2 text-xs font-mono uppercase',
+                    'inline-flex items-center gap-2 border px-4 h-10 text-xs font-mono uppercase',
                     favoritesOnly
                       ? 'border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] text-black'
                       : 'border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]'
@@ -674,7 +674,7 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={() => setShowSortDropdown((prev) => !prev)}
-                    className="flex items-center gap-2 border border-[#333333] bg-black px-4 py-2 text-xs font-mono uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
+                    className="flex items-center gap-2 border border-[#333333] bg-black px-4 h-10 text-xs font-mono uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
