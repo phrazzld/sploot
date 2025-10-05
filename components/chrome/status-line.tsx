@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 
 interface StatusLineProps {
@@ -13,7 +14,8 @@ interface StatusLineProps {
 
 /**
  * Terminal-style status line showing real-time system metrics
- * Format: 247 ASSETS | 843MB | LAST: 2025-06-17T14:23:45Z | Q:3
+ * Format: VIEW: DENSE GRID | 247 ASSETS | 843MB | LAST: 2m | Q:3
+ * Reads view mode and density from URL params for display
  */
 export function StatusLine({
   assetCount = 0,
@@ -23,6 +25,11 @@ export function StatusLine({
   className,
 }: StatusLineProps) {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const searchParams = useSearchParams();
+
+  // Read view state from URL params
+  const viewMode = (searchParams.get('view') || 'grid') as 'grid' | 'list';
+  const density = (searchParams.get('density') || 'dense') as 'compact' | 'dense' | 'comfortable';
 
   // Update current time every second for relative display
   useEffect(() => {
@@ -59,6 +66,13 @@ export function StatusLine({
 
   const relativeTime = getRelativeTime(lastUploadTime);
 
+  // Format view mode for display
+  const formatViewMode = () => {
+    const densityLabel = density.toUpperCase();
+    const viewLabel = viewMode === 'grid' ? 'GRID' : 'LIST';
+    return `${densityLabel} ${viewLabel}`;
+  };
+
   return (
     <div
       className={cn(
@@ -68,6 +82,13 @@ export function StatusLine({
       )}
       title={`Assets: ${assetCount} | Storage: ${formatStorage(storageUsed)} | Last upload: ${formatTimestamp(lastUploadTime)} | Queue: ${queueDepth}`}
     >
+      {/* View Mode Indicator */}
+      <span className="hidden xl:inline flex items-center gap-1">
+        <span className="text-[#666666]">VIEW:</span>
+        <span className="text-white">{formatViewMode()}</span>
+      </span>
+      <span className="hidden xl:inline text-[#333333]">|</span>
+
       <span className="hidden lg:inline">
         {assetCount} <span className="text-[#666666]">ASSETS</span>
       </span>
