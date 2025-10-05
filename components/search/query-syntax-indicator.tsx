@@ -9,18 +9,20 @@ interface QuerySyntaxIndicatorProps {
     favorites?: boolean;
     tagName?: string;
   };
+  latencyMs?: number;
   className?: string;
 }
 
 /**
  * Terminal-style query syntax breakdown
- * Shows parsed query, active filters, and result count
- * Format: QUERY: "drake meme" | FILTERS: [favorites] | RESULTS: 23
+ * Shows parsed query, active filters, result count, and search latency
+ * Format: QUERY: "drake meme" | FILTERS: [favorites] | RESULTS: 23 | LATENCY: 0.89s
  */
 export function QuerySyntaxIndicator({
   query,
   resultCount,
   filters,
+  latencyMs,
   className,
 }: QuerySyntaxIndicatorProps) {
   const hasFilters = filters?.favorites || filters?.tagName;
@@ -68,6 +70,19 @@ export function QuerySyntaxIndicator({
           {resultCount}
         </span>
       </span>
+
+      {/* Latency */}
+      {latencyMs !== undefined && (
+        <>
+          <span className="text-[#333333]">|</span>
+          <span className="flex items-center gap-2">
+            <span className="text-[#666666]">LATENCY:</span>
+            <span className="text-[#888888]">
+              {(latencyMs / 1000).toFixed(2)}s
+            </span>
+          </span>
+        </>
+      )}
     </div>
   );
 }

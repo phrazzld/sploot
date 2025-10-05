@@ -829,6 +829,7 @@ function AppPageClient() {
                       favorites: favoritesOnly || undefined,
                       tagName: activeTagName || undefined,
                     }}
+                    latencyMs={searchMetadata?.latencyMs}
                   />
                 )}
 

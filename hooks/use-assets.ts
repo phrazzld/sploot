@@ -290,6 +290,7 @@ interface SearchMetadata {
   threshold: number;
   requestedThreshold: number;
   thresholdFallback: boolean;
+  latencyMs?: number;
 }
 
 export function useSearchAssets(query: string, options: { limit?: number; threshold?: number; enabled?: boolean } = {}) {
@@ -337,6 +338,8 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
     setLoading(true);
     setError(null);
 
+    const startTime = performance.now();
+
     try {
       const response = await fetch('/api/search', {
         method: 'POST',
@@ -350,6 +353,8 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
       });
 
       const data = await response.json();
+      const endTime = performance.now();
+      const latencyMs = Math.round(endTime - startTime);
 
       if (!response.ok) {
         // Only update state if this request wasn't aborted
@@ -379,6 +384,7 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
           threshold: data.threshold ?? threshold,
           requestedThreshold: data.requestedThreshold ?? threshold,
           thresholdFallback: Boolean(data.thresholdFallback),
+          latencyMs,
         };
 
         setAssets(results);
