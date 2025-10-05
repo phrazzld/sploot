@@ -636,10 +636,10 @@ function AppPageClient() {
                   type="button"
                   onClick={() => setShowUploadPanel((prev) => !prev)}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                    'inline-flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase border',
                     showUploadPanel
-                      ? 'bg-[#7C5CFF]/20 text-[#CBB8FF] ring-1 ring-[#7C5CFF]/40'
-                      : 'bg-[#7C5CFF] text-white hover:bg-[#6B4FE0]'
+                      ? 'bg-[var(--color-terminal-green)] text-black border-[var(--color-terminal-green)]'
+                      : 'bg-black text-[var(--color-terminal-green)] border-[var(--color-terminal-green)] hover:bg-[var(--color-terminal-green)] hover:text-black'
                   )}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -651,22 +651,22 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={handleBulkRetry}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#FF4D4D]/40 bg-[#251014] px-4 py-2 text-sm font-medium text-[#FF8C9B] transition-colors hover:border-[#FF4D4D]/60 hover:bg-[#351419] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]"
+                    className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-4 py-2 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    retry failed searches ({failedEmbeddings.length} {failedEmbeddings.length === 1 ? 'image' : 'images'})
+                    retry ({failedEmbeddings.length})
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={toggleFavoritesOnly}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                    'inline-flex items-center gap-2 border px-4 py-2 text-xs font-mono uppercase',
                     favoritesOnly
-                      ? 'border-[#FF8AD6]/50 bg-[#FF64C5]/15 text-[#FF8AD6]'
-                      : 'border-[#2A2F37] bg-[#14171A] text-[#B3B7BE] hover:text-[#E6E8EB]'
+                      ? 'border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] text-black'
+                      : 'border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]'
                   )}
                 >
                   <HeartIcon className="h-4 w-4" filled={favoritesOnly} />
@@ -692,7 +692,7 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={() => setShowSortDropdown((prev) => !prev)}
-                    className="flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                    className="flex items-center gap-2 border border-[#333333] bg-black px-4 py-2 text-xs font-mono uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
@@ -704,7 +704,7 @@ function AppPageClient() {
                   </button>
 
                   {showSortDropdown && (
-                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-[#2A2F37] bg-[#0F1216] shadow-2xl">
+                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden border border-[#333333] bg-black">
                       <div className="py-1">
                         <button
                           onClick={() => {
@@ -712,8 +712,8 @@ function AppPageClient() {
                             setShowSortDropdown(false);
                           }}
                           className={cn(
-                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                            sortBy === 'date' || sortBy === 'recent' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
+                            sortBy === 'date' || sortBy === 'recent' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
                           )}
                         >
                           date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
@@ -724,8 +724,8 @@ function AppPageClient() {
                             setShowSortDropdown(false);
                           }}
                           className={cn(
-                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                            sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
+                            sortBy === 'size' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
                           )}
                         >
                           size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
@@ -736,8 +736,8 @@ function AppPageClient() {
                             setShowSortDropdown(false);
                           }}
                           className={cn(
-                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                            sortBy === 'name' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
+                            sortBy === 'name' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
                           )}
                         >
                           name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
@@ -751,13 +751,13 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={clearTagFilter}
-                    className="inline-flex items-center gap-1 rounded-full border border-[#2A2F37] bg-[#14171A] px-3 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                    className="inline-flex items-center gap-1 border border-[var(--color-terminal-yellow)] bg-black px-3 py-2 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     <span className="hidden sm:inline">clear</span>
-                    <span className="text-[#7C5CFF]">#{activeTagName ?? 'tag'}</span>
+                    <span>#{activeTagName ?? 'tag'}</span>
                   </button>
                 )}
               </div>
@@ -765,15 +765,15 @@ function AppPageClient() {
             </div>
 
             {(!isSearching && (favoritesOnly || tagIdParam)) && (
-              <div className="flex flex-wrap items-center gap-2 text-xs text-[#B3B7BE]">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase">
                 {favoritesOnly && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#14151C] px-3 py-1 text-[#FF8AD6]">
+                  <span className="inline-flex items-center gap-1 border border-[var(--color-terminal-green)] bg-black px-3 py-1 text-[var(--color-terminal-green)]">
                     <HeartIcon className="h-3.5 w-3.5" filled />
-                    banger hoard engaged
+                    bangers only
                   </span>
                 )}
                 {tagIdParam && (
-                  <span className="inline-flex items-center gap-2 rounded-full bg-[#14151C] px-3 py-1">
+                  <span className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-3 py-1 text-[var(--color-terminal-yellow)]">
                     filtering tag <span className="font-medium text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>
                   </span>
                 )}
