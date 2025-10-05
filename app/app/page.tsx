@@ -595,15 +595,16 @@ function AppPageClient() {
             <div className="flex items-baseline gap-2 flex-wrap">
               <h1 className="text-2xl font-semibold text-[#E6E8EB]">your library</h1>
               {stats.total > 0 && (
-                <span className="text-sm text-[#6A6E78]">
-                  • {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
+                <span className="text-sm text-[#888888] font-mono flex items-center gap-2">
+                  <span>{stats.total} <span className="text-[#666666]">ASSETS</span></span>
                   {stats.favorites > 0 && (
                     <>
-                      {' '}• {stats.favorites}{' '}
-                      {stats.favorites === 1 ? 'banger' : 'bangers'}
+                      <span className="text-[#333333]">|</span>
+                      <span>{stats.favorites} <span className="text-[#666666]">BANGERS</span></span>
                     </>
                   )}
-                  {' '}• {stats.sizeFormatted}
+                  <span className="text-[#333333]">|</span>
+                  <span>{stats.sizeFormatted}</span>
                 </span>
               )}
             </div>
