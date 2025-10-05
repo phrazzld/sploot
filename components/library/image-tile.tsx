@@ -303,10 +303,10 @@ function ImageTileComponent({
       <div
       onClick={onClick || (() => onSelect?.(asset))}
       className={cn(
-        'group relative bg-[#0F1012] rounded-md overflow-hidden w-full',
-        'transition-all duration-200 cursor-pointer',
-        // Default hover state when not showing similarity scores
-        !showSimilarityScore && 'hover:ring-2 hover:ring-[#7C5CFF] hover:shadow-lg'
+        'group relative bg-[#0F1012] overflow-hidden w-full border border-[#1A1A1A]',
+        'cursor-pointer',
+        // Terminal-style hover state
+        !showSimilarityScore && 'hover:border-[var(--color-terminal-green)]'
       )}
       style={scoreBorderStyle || undefined}
     >
@@ -339,10 +339,9 @@ function ImageTileComponent({
               onClick={handleDelete}
               disabled={isLoading}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                'bg-red-500/10 text-red-400 border border-red-500/30',
-                'hover:bg-red-500/20 hover:border-red-500/50',
-                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500',
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase',
+                'bg-black text-[var(--color-terminal-red)] border border-[var(--color-terminal-red)]',
+                'hover:bg-[var(--color-terminal-red)] hover:text-black',
                 isLoading && 'opacity-50 cursor-wait'
               )}
               title="Delete broken image"
@@ -362,7 +361,7 @@ function ImageTileComponent({
           <>
             {/* Skeleton placeholder shown while loading */}
             {!imageLoaded && (
-              <div aria-hidden className="absolute inset-0 overflow-hidden rounded-2xl">
+              <div aria-hidden className="absolute inset-0 overflow-hidden">
                 <div className="h-full w-full bg-[#1B1F24] animate-pulse" />
               </div>
             )}
@@ -416,10 +415,10 @@ function ImageTileComponent({
             disabled={isLoading}
             aria-pressed={asset.favorite}
             className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm border border-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+              'w-8 h-8 flex items-center justify-center bg-black/80 border',
               asset.favorite
-                ? 'bg-[#FF64C5] text-black shadow-[0_8px_24px_-10px_rgba(255,100,197,0.85)] ring-1 ring-[#FF8AD6]/60'
-                : 'bg-black/60 text-white border border-[#2A2F37] hover:border-transparent hover:bg-[#FF64C5] hover:text-black hover:shadow-[0_6px_20px_-10px_rgba(255,100,197,0.9)]',
+                ? 'border-[var(--color-terminal-green)] text-[var(--color-terminal-green)]'
+                : 'border-[#333333] text-[#666666] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]',
               isLoading && 'opacity-70 cursor-wait'
             )}
             title={asset.favorite ? 'drop from bangers' : 'crown as banger'}
@@ -432,9 +431,9 @@ function ImageTileComponent({
             onClick={handleDelete}
             disabled={isLoading}
             className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm bg-black/60 text-white',
+              'w-8 h-8 flex items-center justify-center bg-black/80 text-[#666666] border border-[#333333]',
               'opacity-0 group-hover:opacity-100',
-              'hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]',
+              'hover:bg-[var(--color-terminal-red)] hover:text-black hover:border-[var(--color-terminal-red)]',
               isLoading && 'pointer-events-none cursor-wait'
             )}
             title="rage delete"
@@ -453,16 +452,16 @@ function ImageTileComponent({
         {/* Similarity score overlay - top right, only during search */}
         {similarityScore !== null && (
           <div className="absolute top-2 right-2 z-10">
-            <div className="px-2 py-1 rounded bg-black/80 backdrop-blur-sm border border-[#2A2F37]">
-              <span className="font-mono text-xs text-white tabular-nums">
+            <div className="px-2 py-1 bg-black border border-[var(--color-terminal-green)]">
+              <span className="font-mono text-xs text-[var(--color-terminal-green)] tabular-nums">
                 {similarityScore}
               </span>
             </div>
           </div>
         )}
 
-        {/* Hover overlay with metadata - optimized for dense grid */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+        {/* Hover overlay with metadata - terminal style */}
+        <div className="absolute inset-0 bg-black/85 opacity-0 group-hover:opacity-100 pointer-events-none">
           {/* Bottom info on hover - terminal-style metadata with pipes */}
           <div className="absolute bottom-0 left-0 right-0 p-1.5">
             <div className="flex flex-col gap-0.5">
