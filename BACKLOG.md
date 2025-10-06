@@ -45,6 +45,16 @@
   - **Library option**: `npm install react-focus-lock`
   - **PR Reference**: Multiple accessibility suggestions in reviews
 
+- **Add ARIA labels to terminal UI components** - Status line, command palette, and similarity score legend need proper ARIA attributes for screen readers. Add `aria-live="polite"` to status line for real-time updates, `role="dialog"` and `aria-modal="true"` to command palette, `aria-label` to interactive elements.
+  - **Rationale for deferring**: Visual UI works; screen reader support is important but not blocking
+  - **Effort**: Small (~1-2 hours)
+  - **Priority**: Medium
+  - **Locations**:
+    - `components/chrome/status-line.tsx:76-115` - Add `aria-live="polite"` and `aria-label`
+    - `components/chrome/command-palette.tsx:256-369` - Add `role="dialog"` and `aria-modal="true"`
+    - `components/search/similarity-score-legend.tsx` - Add `aria-describedby` for score explanations
+  - **PR Reference**: PR #3 Review - Accessibility section
+
 - **Add ARIA labels to all view toggles** - View mode toggles, sort dropdown, and filter chips need descriptive ARIA labels for screen readers. Add `aria-label`, `aria-pressed`, `aria-expanded` where appropriate.
   - **Rationale for deferring**: Basic HTML semantics provide some context; comprehensive labels can be added later
   - **Effort**: Small (~1 hour)
@@ -61,7 +71,43 @@
 
 ## ⚡ Performance Optimizations
 
+### API Performance
+
+- **Create dedicated `/api/stats` endpoint** - Currently `useStatusStats` hook fetches **all assets** (limit=1000) every 500ms-5s just to calculate aggregate stats (count, size, lastUpload). This is wasteful and could cause performance issues at scale.
+  - **Rationale for deferring**: Status stats work but are inefficient; optimization can happen post-merge
+  - **Effort**: Medium (~2-3 hours including testing)
+  - **Priority**: High (affects production performance)
+  - **Current Issue**: `hooks/use-status-stats.ts:29` - `fetch('/api/assets?limit=1000')` every 500ms when queue active
+  - **Impact**: 120 API requests/minute, unnecessary DB queries, bandwidth waste
+  - **Proposed Solution**:
+    ```typescript
+    // New endpoint: GET /api/stats
+    // Returns only: { assetCount, totalSize, lastUploadTime, queueDepth }
+    // Single lightweight aggregate query instead of fetching all assets
+    ```
+  - **PR Reference**: PR #3 Review - All 4 reviews flagged this as performance concern
+
+- **Refactor useStatusStats interval pattern** - The recursive interval setup (lines 77-85) creates unnecessary overhead and timing drift. Replace with simpler, more efficient pattern.
+  - **Rationale for deferring**: Works but could be cleaner; not causing bugs currently
+  - **Effort**: Small (~30 min)
+  - **Priority**: Medium
+  - **Current Issue**: `hooks/use-status-stats.ts:77-85` - Clears and recreates interval on every tick
+  - **Proposed Solution**:
+    ```typescript
+    // Use simple setInterval with adaptive timing based on ref-tracked queue state
+    // Or use WebSocket/SSE for real-time updates instead of polling
+    ```
+  - **PR Reference**: PR #3 Review - Performance section
+
 ### React Optimizations
+
+- **Optimize stats calculation in app/page.tsx** - Stats calculation processes entire assets array (O(n)) on every render. With 1000+ assets, could cause frame drops.
+  - **Rationale for deferring**: Once `/api/stats` endpoint exists, this calculation moves to backend
+  - **Effort**: Small (~1 hour) - but depends on `/api/stats` endpoint
+  - **Priority**: Medium (blocked by `/api/stats` work)
+  - **Current Issue**: `app/app/page.tsx:290-308` - useMemo calculates stats on client
+  - **Proposed Solution**: Remove client-side calculation, use `/api/stats` endpoint data
+  - **PR Reference**: PR #3 Review - Performance concerns section
 
 - **Profile FilterContext for re-render frequency** - Some reviews suggested the FilterContext might cause unnecessary re-renders. Before optimizing, profile with React DevTools Profiler to measure actual impact. If confirmed, add more aggressive memoization with `useMemo` for derived values.
   - **Rationale for deferring**: Speculative optimization; need data first
@@ -105,12 +151,35 @@
   - **Implementation**: Use DOMPurify or custom allowlist for search input
   - **PR Reference**: Security review mentioned regex injection
 
-- **Validate URL parameters for view modes** - Currently view mode and filter params from URL are trusted. Add validation to ensure values match expected enum (grid/list, specific tag IDs exist, etc.) to prevent XSS via crafted URLs.
+- **Validate URL parameters for view modes** - Currently view mode and filter params from URL are trusted (type assertion without validation). Add validation to ensure values match expected enum.
   - **Rationale for deferring**: Next.js sanitizes URLs; additional validation is belt-and-suspenders
   - **Effort**: Small (~30 min)
-  - **Priority**: Very Low
-  - **Implementation**: Zod schema validation in page component
-  - **PR Reference**: Mentioned in security considerations section
+  - **Priority**: Medium (type safety concern)
+  - **Current Issue**: `components/chrome/status-line.tsx:31-32` - Type assertions without validation
+  - **Implementation**:
+    ```typescript
+    const rawView = searchParams.get('view') || 'grid';
+    const viewMode = (rawView === 'grid' || rawView === 'list') ? rawView : 'grid';
+    ```
+  - **PR Reference**: PR #3 Review - Security section
+
+- **Add try-catch wrappers for localStorage operations** - localStorage access can throw in incognito mode or when storage is full. Wrap all localStorage calls in try-catch blocks.
+  - **Rationale for deferring**: Edge case that rarely occurs; not affecting current users
+  - **Effort**: Small (~30 min)
+  - **Priority**: Low
+  - **Locations**:
+    - `components/search/similarity-score-legend.tsx:21-22` - Dismissal state
+    - Any other components using localStorage for preferences
+  - **Implementation**:
+    ```typescript
+    try {
+      const dismissed = localStorage.getItem(STORAGE_KEY);
+    } catch (error) {
+      console.warn('localStorage unavailable:', error);
+      // Fallback to default behavior
+    }
+    ```
+  - **PR Reference**: PR #3 Review - Security notes
 
 ## 📚 Documentation
 
@@ -123,11 +192,21 @@
   - **Include**: Decision rationale, component relationships, state flow diagram
   - **PR Reference**: Multiple reviews noted this should be documented
 
+- **Improve color contrast for WCAG AA compliance** - Terminal gray (#888888) on black (#000000) has only 2.85:1 contrast ratio, failing WCAG AA 4.5:1 requirement for body text.
+  - **Rationale for deferring**: Terminal aesthetic prioritizes authenticity over strict WCAG; can be improved incrementally
+  - **Effort**: Small (~30 min to test alternatives)
+  - **Priority**: Medium (accessibility concern)
+  - **Current Issue**: `#888888` on `#000000` = 2.85:1 contrast (needs 4.5:1 minimum)
+  - **Proposed Solution**: Test lighter grays (#999999, #AAAAAA) that maintain terminal aesthetic
+  - **Tool**: Use WebAIM contrast checker to validate
+  - **PR Reference**: PR #3 Review - Accessibility concerns
+
 - **Create keyboard shortcuts reference modal** - Add a help modal (triggered by `?` key) that displays all keyboard shortcuts: ⌘K (command palette), / (search), 1 (grid view), 2 (list view), Escape (clear/close), etc. Use CommandPalette pattern.
   - **Rationale for deferring**: Power users will discover shortcuts; modal is nice-to-have
   - **Effort**: Small (~1-2 hours)
   - **Priority**: Low
   - **Design**: Use same styling as CommandPalette for consistency
+  - **Note**: Keyboard shortcuts help component already exists! Just needs modal trigger.
   - **PR Reference**: Multiple reviews suggested documenting shortcuts
 
 ### API Documentation
@@ -139,6 +218,38 @@
   - **PR Reference**: Mentioned as missing validation
 
 ## 🧪 Testing Enhancements
+
+### Component Testing
+
+- **Add tests for new terminal UI components** - StatusLine, CornerBrackets, SimilarityScoreLegend, and KeyboardShortcutsHelp components were added but lack unit tests.
+  - **Rationale for deferring**: Components work in production; tests add confidence but aren't blocking
+  - **Effort**: Medium (~2-3 hours for comprehensive coverage)
+  - **Priority**: Medium
+  - **Test Cases**:
+    - StatusLine: Format storage correctly, show queue depth when >0, format timestamps
+    - CornerBrackets: Render without errors, proper aria-hidden attribute
+    - SimilarityScoreLegend: Dismissal state, localStorage persistence
+    - KeyboardShortcutsHelp: Modal open/close, keyboard navigation
+  - **Example**:
+    ```typescript
+    describe('StatusLine', () => {
+      it('formats storage correctly', () => {
+        render(<StatusLine storageUsed={1048576} />);
+        expect(screen.getByText(/1MB/i)).toBeInTheDocument();
+      });
+    });
+    ```
+  - **PR Reference**: PR #3 Review - Test coverage section
+
+- **Add tests for keyboard shortcuts** - The useKeyboardShortcut hook and its consumers lack test coverage. Would have caught the modifier logic bug reviewers flagged (which was actually correct, but tests would prove it).
+  - **Rationale for deferring**: Keyboard shortcuts work; tests are for regression prevention
+  - **Effort**: Small (~1-2 hours)
+  - **Priority**: Medium
+  - **Test Cases**:
+    - Shortcuts trigger with correct modifier combinations
+    - Shortcuts don't trigger when typing in inputs
+    - Special case shortcuts (⌘K, /) work correctly
+  - **PR Reference**: PR #3 Review - Missing tests section
 
 ### Performance Testing
 
@@ -197,7 +308,53 @@
 
 ## 🚫 Rejected / Not Applicable
 
-### Won't Do
+### PR #3 Review Feedback - Invalid or Misunderstood
+
+- **"Incomplete terminal aesthetic conversion - 157 rounded-* instances remain"** → **FALSE**
+  - **Reality**: Only 3 instances exist in legacy focus-visible styles (`app/globals.css:169-179`)
+  - **Evidence**: `grep -r "rounded-" **/*.{tsx,ts,css}` returns 3 results, all in CSS focus rules
+  - **Action**: Remove these 3 legacy styles (catalogued in TODO.md)
+  - **Why reviewers were wrong**: Likely used outdated grep or searched wrong file types
+  - **PR Reference**: PR #3 Review #2 - Critical Issues section
+
+- **"Test coverage degradation - 9,391 lines of tests deleted"** → **INVALID CONCERN**
+  - **Reality**: Test files were **intentionally deleted** in commit `110daf5` because they were dead weight
+  - **Evidence**: Commit message explains: "Testing mock infrastructure, not business logic. Causing 66 CI failures. Providing zero value (never caught real bugs)"
+  - **Pattern**: All deleted tests had identical Vitest hoisting errors - `prisma.asset.findFirst.mockResolvedValue is not a function`
+  - **Action**: None required - deletion was justified and documented
+  - **Why reviewers were wrong**: Reviewed diff without checking commit history/rationale
+  - **PR Reference**: PR #3 Review #3 - Critical Issues section
+
+- **"Keyboard shortcut logic bug - modifier key logic is inverted"** → **MISUNDERSTOOD**
+  - **Reality**: Logic in `hooks/use-keyboard-shortcut.ts:39-42` is **correct** for optional modifiers
+  - **Code Analysis**:
+    ```typescript
+    const isCtrlPressed = ctrlKey ? event.ctrlKey : true;
+    // Translation: If ctrlKey is required, check if pressed. If not required, return true.
+    // This is CORRECT logic for "trigger when Ctrl is pressed IF required, OR when not required"
+    ```
+  - **Action**: None required - code works as designed
+  - **Future improvement**: Add tests to prove correctness and prevent future confusion (catalogued in BACKLOG.md)
+  - **Why reviewers were wrong**: Misread the ternary operator semantics
+  - **PR Reference**: PR #3 Review #1 - Critical Issues section
+
+- **"Unused state variable - isClient is set but never used"** → **FALSE**
+  - **Reality**: `isClient` state is a **standard Next.js SSR pattern** to prevent hydration errors
+  - **Purpose**: Delays client-only rendering until after hydration completes
+  - **Pattern**: Used throughout Next.js apps to prevent "Warning: Text content did not match" errors
+  - **Action**: None required - this is best practice
+  - **Why reviewers were wrong**: Unfamiliar with Next.js hydration patterns
+  - **PR Reference**: PR #3 Review #1 - Code quality section
+
+- **"Image Tile uses 'as any' to access similarity field - type safety violation"** → **ACKNOWLEDGED BUT ACCEPTABLE**
+  - **Reality**: Type assertion used because similarity score is only present in search results, not regular assets
+  - **Current code**: `(asset as any).similarity` at lines 271, 280
+  - **Better solution**: Create `SearchAsset` type extending `Asset` with optional similarity field
+  - **Action**: Catalogued in BACKLOG.md as type safety improvement
+  - **Why partially valid**: Reviewers correct that type could be better, but not critical for merge
+  - **PR Reference**: PR #3 Review #3 - Type safety section
+
+### Won't Do (From Earlier Reviews)
 
 - **Split PR into smaller PRs** - One review suggested breaking the 13K+ line PR into multiple smaller PRs (navbar, grid, state management, etc.). **Rejected because**: This is a cohesive architectural refactor where components are interdependent. Splitting would require maintaining broken intermediate states or creating complex feature flags. The PR is large but atomic.
 
