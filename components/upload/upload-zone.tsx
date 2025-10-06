@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 import { useBackgroundSync } from '@/hooks/use-background-sync';
-import { TagInput } from '@/components/tags/tag-input';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { useEmbeddingStatusSubscription } from '@/contexts/embedding-status-context';
@@ -17,7 +16,7 @@ import { useSSEEmbeddingUpdates } from '@/hooks/use-sse-updates';
 import { getSSEClient } from '@/lib/sse-client';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
-import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
+import type { ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
 import { logger } from '@/lib/logger';
 
@@ -410,7 +409,6 @@ export function UploadZone({
   const fileObjects = useRef(new Map<string, File>());
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [tags, setTags] = useState<string[]>([]);
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(false);
   const [recoveryCount, setRecoveryCount] = useState(0);
   const [uploadStats, setUploadStats] = useState<ProgressStats | null>(null);
@@ -1113,11 +1111,6 @@ export function UploadZone({
       const formData = new FormData();
       formData.append('file', file);
 
-      // Add tags to the form data
-      if (tags.length > 0) {
-        formData.append('tags', JSON.stringify(tags));
-      }
-
       // Track upload progress with XMLHttpRequest for better progress reporting
       const xhr = new XMLHttpRequest();
 
@@ -1573,7 +1566,6 @@ export function UploadZone({
   const handleViewLibrary = () => {
     setFileMetadata(new Map());
     fileObjects.current.clear();
-    setTags([]);
     setUploadStats(null);
     router.push('/app');
   };
@@ -1584,17 +1576,6 @@ export function UploadZone({
       onPaste={handlePaste}
       tabIndex={0}
     >
-      {/* Upload Progress Header - shows when files are being processed */}
-      {uploadStats && uploadStats.totalFiles > 0 && (
-        <div className="mb-4">
-          <UploadProgressHeader
-            stats={uploadStats}
-            onMinimize={() => {}}
-            className="animate-fade-in"
-          />
-        </div>
-      )}
-
       {/* Background sync status (only when enabled) */}
       {showSyncStatus && (
         <div className="mb-4 bg-[#1B1F24] p-3 border border-[#2A2F37]">
@@ -1730,21 +1711,6 @@ export function UploadZone({
         onChange={handleFileSelect}
         className="hidden"
       />
-
-      {/* Tag Input - Only show when files are selected */}
-      {filesArray.length > 0 && (
-        <div className="mt-6">
-          <div className="bg-[#14171A] border border-[#2A2F37] p-4 mb-4">
-            <h3 className="text-[#E6E8EB] font-medium text-sm mb-3">Add Tags</h3>
-            <TagInput
-              tags={tags}
-              onTagsChange={setTags}
-              placeholder="Add tags to these uploads..."
-              maxTags={10}
-            />
-          </div>
-        </div>
-      )}
 
       {/* File list */}
       {filesArray.length > 0 && (

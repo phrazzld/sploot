@@ -46,6 +46,7 @@ function AppPageClient() {
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [showMetadata, setShowMetadata] = useState(false);
 
   // Command palette state
   const { isOpen: isCommandPaletteOpen, openPalette, closePalette } = useCommandPalette();
@@ -572,6 +573,11 @@ function AppPageClient() {
     setSelectedAsset(null);
   }, [trimmedLibraryQuery]);
 
+  // Reset metadata visibility when modal opens/closes
+  useEffect(() => {
+    setShowMetadata(false);
+  }, [selectedAsset]);
+
   return (
     <div className="flex h-[calc(100vh-56px)] flex-col">
       {/* Container with ultra-wide support - max-width at 1920px+ */}
@@ -770,32 +776,17 @@ function AppPageClient() {
                     // Refresh the gallery
                     refresh();
 
-                    // Show success toast
-                    if (stats.uploaded > 0 && stats.duplicates > 0) {
+                    // Show brief success toast
+                    if (stats.uploaded > 0) {
                       showToast(
-                        `[COMPLETE] Uploaded ${stats.uploaded} ${stats.uploaded === 1 ? 'asset' : 'assets'}, ${stats.duplicates} duplicates skipped`,
-                        'complete',
-                        3000,
-                        true
-                      );
-                    } else if (stats.uploaded > 0) {
-                      showToast(
-                        `[COMPLETE] Uploaded ${stats.uploaded} ${stats.uploaded === 1 ? 'asset' : 'assets'}`,
-                        'complete',
-                        3000,
-                        true
-                      );
-                    } else if (stats.duplicates > 0) {
-                      showToast(
-                        `[INFO] ${stats.duplicates} ${stats.duplicates === 1 ? 'duplicate' : 'duplicates'} skipped`,
-                        'info',
-                        3000,
-                        true
+                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'file' : 'files'} uploaded`,
+                        'success',
+                        2000
                       );
                     }
 
-                    // Optionally close the upload panel after a delay
-                    // setTimeout(() => setShowUploadPanel(false), 2000);
+                    // Auto-close upload panel after brief delay
+                    setTimeout(() => setShowUploadPanel(false), 2000);
                   }}
                 />
               </div>
@@ -914,6 +905,8 @@ function AppPageClient() {
           <div
             className="max-w-4xl max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
+            onMouseMove={() => setShowMetadata(true)}
+            onMouseLeave={() => setShowMetadata(false)}
           >
             <div className="relative w-full h-full">
               <Image
@@ -933,7 +926,10 @@ function AppPageClient() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div className="absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4">
+            <div className={cn(
+              "absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300",
+              showMetadata ? 'opacity-100' : 'opacity-0'
+            )}>
               <p className="text-white font-medium">{selectedAsset.filename}</p>
               <p className="text-white/80 text-sm mt-1">
                 {selectedAsset.width}×{selectedAsset.height} • {selectedAsset.mime.split('/')[1].toUpperCase()}
