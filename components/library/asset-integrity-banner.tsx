@@ -36,7 +36,7 @@ export function AssetIntegrityBanner({ onAudit }: AssetIntegrityBannerProps) {
         type="button"
         onClick={onAudit}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium transition-colors',
+          'inline-flex items-center gap-1.5  px-2.5 py-1 text-xs font-medium transition-colors',
           'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
           'hover:bg-yellow-500/30 hover:border-yellow-500/50',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-yellow-500'

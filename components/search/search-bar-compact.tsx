@@ -57,14 +57,7 @@ export function SearchBarCompact({
       {!isExpanded && (
         <button
           onClick={toggleExpanded}
-          className="
-            p-3 rounded-full
-            bg-[#14171A] border border-[#2A2F37]
-            text-[#B3B7BE] hover:text-[#E6E8EB]
-            hover:border-[#7C5CFF]/50 hover:bg-[#1B1F24]
-            transition-all duration-200
-            group
-          "
+          className="p-3 bg-[#14171A] border border-[#2A2F37] text-[#B3B7BE] hover:text-[#E6E8EB] hover:border-[#7C5CFF]/50 hover:bg-[#1B1F24] transition-all duration-200 group"
           aria-label="Open search"
         >
           <svg
@@ -88,7 +81,7 @@ export function SearchBarCompact({
         <div className="flex items-center gap-2 animate-in slide-in-from-left-2 duration-200">
           <div className="relative">
             {/* Left accent stripe */}
-            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[#7C5CFF] rounded-full" />
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-[#7C5CFF]" />
 
             <input
               id="compact-search-input"
@@ -97,15 +90,7 @@ export function SearchBarCompact({
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder={placeholder}
-              className="
-                w-64 h-10 pl-4 pr-10
-                bg-[#14171A] text-[#E6E8EB] placeholder-[#6A6E78]
-                rounded-full border border-[#2A2F37]
-                focus:outline-none focus:border-[#7C5CFF]
-                focus:ring-1 focus:ring-[#7C5CFF]/20
-                transition-all duration-200
-                text-sm
-              "
+              className="w-64 h-10 pl-4 pr-10 bg-[#14171A] text-[#E6E8EB] placeholder-[#6A6E78] border border-[#2A2F37] focus:outline-none focus:border-[#7C5CFF] focus:ring-1 focus:ring-[#7C5CFF]/20 transition-all duration-200 text-sm"
             />
 
             {/* Close button */}
@@ -114,11 +99,7 @@ export function SearchBarCompact({
                 setIsExpanded(false);
                 setQuery('');
               }}
-              className="
-                absolute right-2 top-1/2 -translate-y-1/2
-                p-1 text-[#6A6E78] hover:text-[#B3B7BE]
-                transition-colors duration-200
-              "
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-[#6A6E78] hover:text-[#B3B7BE] transition-colors duration-200"
               aria-label="Close search"
             >
               <svg
@@ -141,13 +122,7 @@ export function SearchBarCompact({
           {query && (
             <button
               onClick={handleSearch}
-              className="
-                p-2 rounded-full
-                bg-[#7C5CFF] text-white
-                hover:bg-[#6B4FE6] active:bg-[#5941CC]
-                transition-all duration-200
-                animate-in fade-in duration-200
-              "
+              className="p-2 bg-[#7C5CFF] text-white hover:bg-[#6B4FE6] active:bg-[#5941CC] transition-all duration-200 animate-in fade-in duration-200"
               aria-label="Search"
             >
               <svg

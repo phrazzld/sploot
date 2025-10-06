@@ -100,7 +100,7 @@ export function SortDropdown({
           // Background
           'bg-[#1B1F24] hover:bg-[#242931]',
           'border border-[#2A2F37]',
-          'rounded-md',
+          '',
           // Transitions
           'transition-all duration-200',
           // Focus states
@@ -124,7 +124,7 @@ export function SortDropdown({
             'mb-1', // 4px gap
             // Styling
             'bg-[#14171A] border border-[#2A2F37]',
-            'rounded-lg shadow-xl',
+            ' shadow-xl',
             'min-w-[140px]',
             // Animation
             'dropdown-animate-in-up',
@@ -194,7 +194,7 @@ export function SortButtonCompact({
         'w-8 h-8',
         'flex items-center justify-center',
         'text-[#B3B7BE] hover:text-[#E6E8EB]',
-        'hover:bg-[#1B1F24] rounded-md',
+        'hover:bg-[#1B1F24] ',
         'transition-colors duration-200',
         className
       )}

@@ -235,7 +235,7 @@ export function SearchTrigger({
     <button
       onClick={onClick}
       className={cn(
-        'p-2.5 rounded-lg',
+        'p-2.5 ',
         'bg-[#1B1F24] hover:bg-[#2A2F37]',
         'text-[#B3B7BE] hover:text-[#7C5CFF]',
         'transition-all duration-200',

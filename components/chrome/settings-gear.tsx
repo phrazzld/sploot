@@ -56,7 +56,7 @@ export function SettingsGear({
         // 90deg rotation on hover
         'hover:rotate-90',
         // Background on hover for better visibility
-        'hover:bg-[#1B1F24] rounded-lg',
+        'hover:bg-[#1B1F24] ',
         // Active state
         'active:scale-95',
         // Focus states

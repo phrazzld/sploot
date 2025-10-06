@@ -83,14 +83,14 @@ export function Toast({ message, type = 'success', duration = 3000, onClose, ter
   return (
     <div
       className={cn(
-        'fixed bottom-8 left-1/2 z-50 flex items-center gap-3 rounded-full border px-4 py-3 shadow-2xl transition-all duration-300 ease-out',
+        'fixed bottom-8 left-1/2 z-50 flex items-center gap-3  border px-4 py-3 shadow-2xl transition-all duration-300 ease-out',
         'border-[#2A2F37] bg-[#14171A] backdrop-blur-md',
         isVisible && !isLeaving
           ? '-translate-x-1/2 translate-y-0 opacity-100 scale-100'
           : '-translate-x-1/2 translate-y-4 opacity-0 scale-95'
       )}
     >
-      <div className={cn('flex h-8 w-8 items-center justify-center rounded-full', colors[type])}>
+      <div className={cn('flex h-8 w-8 items-center justify-center ', colors[type])}>
         {icons[type]}
       </div>
       <p className={cn(

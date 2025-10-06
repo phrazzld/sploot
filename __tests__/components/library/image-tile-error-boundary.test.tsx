@@ -225,7 +225,7 @@ describe('ImageTileErrorBoundary', () => {
       );
 
       const fallbackContainer = container.querySelector('.aspect-square');
-      expect(fallbackContainer).toHaveClass('bg-[#0F1012]', 'rounded-md', 'overflow-hidden');
+      expect(fallbackContainer).toHaveClass('bg-[#0F1012]', 'overflow-hidden');
     });
 
     it('should render retry button with primary styling', () => {

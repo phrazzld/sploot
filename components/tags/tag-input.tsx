@@ -58,7 +58,7 @@ export function TagInput({
       className
     )}>
       <div className={cn(
-        'flex flex-wrap items-center gap-2 p-3 rounded-lg border transition-colors',
+        'flex flex-wrap items-center gap-2 p-3  border transition-colors',
         'bg-[#1B1F24] border-[#2A2F37]',
         'focus-within:border-[#7C5CFF] focus-within:bg-[#1B1F24]/80',
         disabled && 'opacity-50 pointer-events-none'
@@ -67,7 +67,7 @@ export function TagInput({
         {tags.map((tag, index) => (
           <div
             key={`${tag}-${index}`}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#7C5CFF]/10 text-[#7C5CFF] text-sm"
+            className="flex items-center gap-1 px-3 py-1 bg-[#7C5CFF]/10 text-[#7C5CFF] text-sm"
           >
             <span>{tag}</span>
             {!disabled && (

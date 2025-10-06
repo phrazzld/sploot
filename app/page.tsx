@@ -14,7 +14,7 @@ export default async function Home() {
     <div className="min-h-screen bg-[#04060a] bg-[radial-gradient(circle_at_top,_rgba(124,92,255,0.12),_transparent_55%),radial-gradient(circle_at_bottom,_rgba(255,100,197,0.08),_transparent_50%)] text-white">
       <div className="mx-auto flex min-h-screen w-full max-w-5xl flex-col items-center px-6 pb-16 pt-20 md:pt-24">
         <header className="w-full text-center">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white/70">
+          <span className="inline-flex items-center gap-2 border border-white/10 bg-white/5 px-4 py-1 text-xs font-medium uppercase tracking-[0.2em] text-white/70">
             meme brain engaged
           </span>
           <h1 className="mt-6 text-6xl font-semibold lowercase tracking-tight text-white md:text-7xl">
@@ -32,13 +32,13 @@ export default async function Home() {
           <div className="mt-10 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
               href="/sign-up"
-              className="inline-flex w-full items-center justify-center rounded-2xl bg-[#7C5CFF] px-8 py-3 text-base font-semibold lowercase text-white transition-all duration-200 hover:bg-[#6B4FE0] hover:shadow-[0_18px_38px_-20px_rgba(124,92,255,0.9)] sm:w-auto"
+              className="inline-flex w-full items-center justify-center bg-[#7C5CFF] px-8 py-3 text-base font-semibold lowercase text-white transition-all duration-200 hover:bg-[#6B4FE0] hover:shadow-[0_18px_38px_-20px_rgba(124,92,255,0.9)] sm:w-auto"
             >
               start collecting
             </Link>
             <Link
               href="/sign-in"
-              className="inline-flex w-full items-center justify-center rounded-2xl border border-white/15 bg-white/5 px-8 py-3 text-base font-semibold lowercase text-white/80 transition-all duration-200 hover:border-white/25 hover:text-white sm:w-auto"
+              className="inline-flex w-full items-center justify-center border border-white/15 bg-white/5 px-8 py-3 text-base font-semibold lowercase text-white/80 transition-all duration-200 hover:border-white/25 hover:text-white sm:w-auto"
             >
               sign in
             </Link>
@@ -65,7 +65,7 @@ export default async function Home() {
           ].map((card) => (
             <div
               key={card.title}
-              className="rounded-2xl border border-white/8 bg-white/[0.04] p-6 shadow-[0_20px_45px_-30px_rgba(124,92,255,0.6)] backdrop-blur"
+              className="border border-white/8 bg-white/[0.04] p-6 shadow-[0_20px_45px_-30px_rgba(124,92,255,0.6)] backdrop-blur"
             >
               <div className="text-3xl">{card.emoji}</div>
               <h3 className="mt-4 text-lg font-semibold lowercase text-white">{card.title}</h3>

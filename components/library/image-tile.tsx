@@ -512,7 +512,7 @@ function ImageTileComponent({
               disabled={embeddingStatus === 'processing'}
               className={cn(
                 'flex items-center justify-center',
-                isDebugMode ? 'min-w-[20px] h-5 px-1 rounded' : 'w-5 h-5 rounded-full',
+                isDebugMode ? 'min-w-[20px] h-5 px-1 rounded' : 'w-5 h-5 ',
                 'backdrop-blur-sm transition-all duration-200',
                 embeddingStatus === 'pending' && 'bg-yellow-500/70 cursor-default',
                 embeddingStatus === 'processing' && 'bg-blue-500/70 cursor-wait',
@@ -537,8 +537,8 @@ function ImageTileComponent({
                   {embeddingStatus === 'pending' && (
                     <div className="flex items-center gap-1">
                       <div className="relative">
-                        <div className="w-2 h-2 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
-                        <div className="w-2 h-2 bg-yellow-300 rounded-full relative" />
+                        <div className="w-2 h-2 bg-yellow-200 animate-ping absolute inset-0" />
+                        <div className="w-2 h-2 bg-yellow-300 relative" />
                       </div>
                       <span className="text-[10px] font-mono">P</span>
                     </div>
@@ -574,8 +574,8 @@ function ImageTileComponent({
                 <>
                   {embeddingStatus === 'pending' && (
                     <div className="relative">
-                      <div className="w-1.5 h-1.5 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
-                      <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full relative" />
+                      <div className="w-1.5 h-1.5 bg-yellow-200 animate-ping absolute inset-0" />
+                      <div className="w-1.5 h-1.5 bg-yellow-300 relative" />
                     </div>
                   )}
                   {embeddingStatus === 'processing' && (

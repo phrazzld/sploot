@@ -72,7 +72,7 @@ export function ViewModeDropdown({
           'flex items-center gap-2 px-3 py-2',
           'bg-[#1B1F24] hover:bg-[#2A2F37]',
           'text-[#B3B7BE] hover:text-[#E6E8EB]',
-          'rounded-lg transition-all duration-200',
+          ' transition-all duration-200',
           'min-w-[120px]'
         )}
         aria-label="View mode menu"
@@ -98,7 +98,7 @@ export function ViewModeDropdown({
         <div className={cn(
           'absolute top-full mt-1 left-0 right-0',
           'bg-[#1B1F24] border border-[#2A2F37]',
-          'rounded-lg shadow-lg',
+          ' shadow-lg',
           'py-1',
           'z-50',
           'min-w-[150px]',

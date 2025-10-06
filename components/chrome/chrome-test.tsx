@@ -22,7 +22,7 @@ export function ChromeTest() {
   return (
     <div className="min-h-screen bg-[#0B0C0E]">
       {/* Toggle button */}
-      <div className="fixed top-4 right-4 z-[60] bg-[#14171A] p-2 rounded-lg border border-[#2A2F37]">
+      <div className="fixed top-4 right-4 z-[60] bg-[#14171A] p-2 border border-[#2A2F37]">
         <button
           onClick={() => setShowChrome(!showChrome)}
           className={cn(
@@ -56,7 +56,7 @@ export function ChromeTest() {
             <div className="max-w-screen-2xl mx-auto">
               <div className="space-y-8">
                 {/* Chrome info */}
-                <div className="bg-[#14171A] rounded-lg border border-[#2A2F37] p-6">
+                <div className="bg-[#14171A] border border-[#2A2F37] p-6">
                   <h2 className="text-xl font-bold text-[#E6E8EB] mb-4">
                     New Chrome Architecture
                   </h2>
@@ -79,7 +79,7 @@ export function ChromeTest() {
                   {Array.from({ length: 20 }, (_, i) => (
                     <div
                       key={i}
-                      className="aspect-square bg-[#1B1F24] rounded-lg border border-[#2A2F37] flex items-center justify-center text-[#B3B7BE]"
+                      className="aspect-square bg-[#1B1F24] border border-[#2A2F37] flex items-center justify-center text-[#B3B7BE]"
                     >
                       {i + 1}
                     </div>

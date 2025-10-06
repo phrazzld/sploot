@@ -73,7 +73,7 @@ export function UploadButton({
       className={cn(
         // Base styles
         'group relative flex items-center justify-center',
-        'rounded-lg font-medium transition-colors duration-200',
+        ' font-medium transition-colors duration-200',
 
         // Fixed width as specified
         showLabel && 'w-[100px]',
@@ -131,7 +131,7 @@ export function UploadButton({
 
       {/* Pulse animation when active */}
       {isActive && (
-        <div className="absolute inset-0 rounded-lg bg-[#B6FF6E]/10 animate-pulse" />
+        <div className="absolute inset-0 bg-[#B6FF6E]/10 animate-pulse" />
       )}
     </button>
   );
@@ -175,7 +175,7 @@ export function UploadButtonFloating({
       }}
       className={cn(
         'flex items-center justify-center',
-        'w-14 h-14 rounded-full',
+        'w-14 h-14 ',
         'bg-[#B6FF6E] text-[#0B0C0E]',
         'hover:bg-[#C5FF85] active:bg-[#A8F060]',
         'shadow-lg hover:shadow-xl',

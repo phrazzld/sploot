@@ -32,7 +32,7 @@ export function SimilarityScoreLegend({ className }: SimilarityScoreLegendProps)
   return (
     <div
       className={cn(
-        'flex items-center justify-between gap-4 rounded-lg border border-[#2A2F37] bg-[#0F1216] p-3',
+        'flex items-center justify-between gap-4  border border-[#2A2F37] bg-[#0F1216] p-3',
         'text-xs font-mono',
         className
       )}
@@ -40,21 +40,21 @@ export function SimilarityScoreLegend({ className }: SimilarityScoreLegendProps)
       <div className="flex items-center gap-4 flex-wrap">
         <span className="text-[#888888]">CONFIDENCE:</span>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm border-2 border-[var(--color-terminal-green)]" />
+          <div className="w-3 h-3 border-2 border-[var(--color-terminal-green)]" />
           <span className="text-[#B3B7BE]">
             High match <span className="text-[#6A6E78]">(≥85%)</span>
           </span>
         </div>
         <span className="text-[#464C55]">•</span>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm border-2 border-[var(--color-terminal-yellow)]" />
+          <div className="w-3 h-3 border-2 border-[var(--color-terminal-yellow)]" />
           <span className="text-[#B3B7BE]">
             Medium <span className="text-[#6A6E78]">(70-85%)</span>
           </span>
         </div>
         <span className="text-[#464C55]">•</span>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-sm border-2 border-[#464C55]" />
+          <div className="w-3 h-3 border-2 border-[#464C55]" />
           <span className="text-[#B3B7BE]">
             Standard <span className="text-[#6A6E78]">(&lt;70%)</span>
           </span>

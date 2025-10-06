@@ -33,7 +33,7 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      <section className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-5 space-y-4">
+      <section className="bg-[#14171A] border border-[#2A2F37] p-5 space-y-4">
         <div>
           <h2 className="text-lg font-semibold text-[#E6E8EB]">Account lore</h2>
           <p className="text-[#B3B7BE] text-sm mt-1">
@@ -46,7 +46,7 @@ export default function SettingsPage() {
             onClick={handleSignOut}
             disabled={signOutLoading}
             className={cn(
-              'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+              'inline-flex items-center gap-2  px-4 py-2 text-sm font-medium transition-colors',
               'bg-[#FF4D4D]/20 text-[#FF8686] hover:bg-[#FF4D4D]/30',
               signOutLoading && 'opacity-60 cursor-not-allowed'
             )}
@@ -59,7 +59,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-5 space-y-3">
+      <section className="bg-[#14171A] border border-[#2A2F37] p-5 space-y-3">
         <div>
           <h2 className="text-lg font-semibold text-[#E6E8EB]">Install as app</h2>
           <p className="text-[#B3B7BE] text-sm mt-1">
@@ -72,7 +72,7 @@ export default function SettingsPage() {
             onClick={handleInstall}
             disabled={!installable}
             className={cn(
-              'inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors',
+              'inline-flex items-center gap-2  px-4 py-2 text-sm font-medium transition-colors',
               installable
                 ? 'bg-[#7C5CFF] text-white hover:bg-[#6B4FE6]'
                 : 'bg-[#1B1F24] text-[#6A6E78] cursor-not-allowed'
@@ -98,7 +98,7 @@ export default function SettingsPage() {
         </div>
       </section>
 
-      <section className="bg-[#14171A] border border-[#2A2F37] rounded-2xl p-5 space-y-3">
+      <section className="bg-[#14171A] border border-[#2A2F37] p-5 space-y-3">
         <h2 className="text-lg font-semibold text-[#E6E8EB]">Coming soon™</h2>
         <p className="text-[#B3B7BE] text-sm">
           Theme switching, notification spam, and squad-sharing are on the roadmap. Ping us with your wildest feature dreams.

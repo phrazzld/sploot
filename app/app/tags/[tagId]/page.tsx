@@ -129,7 +129,7 @@ export default function TagPage({
               </h1>
               {tag.color && (
                 <span
-                  className="w-4 h-4 rounded-full"
+                  className="w-4 h-4"
                   style={{ backgroundColor: tag.color }}
                 />
               )}

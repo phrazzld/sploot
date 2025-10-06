@@ -124,7 +124,7 @@ export function GridDensityToggle({
       className={cn(
         'flex items-center',
         config.gap,
-        'bg-[#1B1F24] rounded-lg p-0.5',
+        'bg-[#1B1F24]  p-0.5',
         className
       )}
       role="radiogroup"
@@ -140,7 +140,7 @@ export function GridDensityToggle({
             className={cn(
               // Base styles
               'flex items-center justify-center',
-              'rounded-md transition-all duration-200',
+              ' transition-all duration-200',
               'group relative',
 
               // Size
@@ -172,7 +172,7 @@ export function GridDensityToggle({
             {/* Active indicator dot */}
             {isActive && (
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
-                <div className="w-1 h-1 bg-[var(--color-terminal-green)] rounded-full" />
+                <div className="w-1 h-1 bg-[var(--color-terminal-green)]" />
               </div>
             )}
           </button>

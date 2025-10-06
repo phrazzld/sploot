@@ -763,7 +763,7 @@ function AppPageClient() {
             )}
 
             {showUploadPanel && (
-              <div className="rounded-3xl border border-dashed border-[#2A2F37] bg-[#111419] p-5">
+              <div className="border border-dashed border-[#2A2F37] bg-[#111419] p-5">
                 <UploadZone
                   isOnDashboard={true}
                   onUploadComplete={(stats) => {
@@ -921,19 +921,19 @@ function AppPageClient() {
                 alt={selectedAsset.filename}
                 width={1920}
                 height={1080}
-                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                className="max-w-full max-h-[90vh] object-contain"
                 priority
               />
             </div>
             <button
               onClick={() => setSelectedAsset(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+              className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div className="absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-4">
+            <div className="absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4">
               <p className="text-white font-medium">{selectedAsset.filename}</p>
               <p className="text-white/80 text-sm mt-1">
                 {selectedAsset.width}×{selectedAsset.height} • {selectedAsset.mime.split('/')[1].toUpperCase()}
@@ -946,7 +946,7 @@ function AppPageClient() {
       {/* Retry Progress Modal */}
       {showRetryModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#14171A] border border-[#2A2F37] rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-[#14171A] border border-[#2A2F37] p-6 max-w-sm w-full shadow-2xl">
             <h3 className="text-lg font-semibold text-[#E6E8EB] mb-4">
               regenerating embeddings
             </h3>
@@ -990,9 +990,9 @@ function AppPageClient() {
                     {Math.round((retryProgress.current / retryProgress.total) * 100)}%
                   </span>
                 </div>
-                <div className="w-full bg-[#1F2328] rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-[#1F2328] h-2 overflow-hidden">
                   <div
-                    className="bg-[var(--color-terminal-green)] h-full rounded-full transition-all duration-500 ease-out"
+                    className="bg-[var(--color-terminal-green)] h-full transition-all duration-500 ease-out"
                     style={{ width: `${(retryProgress.current / retryProgress.total) * 100}%` }}
                   />
                 </div>

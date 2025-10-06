@@ -22,7 +22,7 @@ export function ImageGridErrorBoundary({
         <div className="flex items-center justify-center min-h-[600px] p-8">
           <div className="text-center max-w-md">
             {/* Error Icon */}
-            <div className="w-24 h-24 mx-auto mb-6 bg-[#1B1F24] rounded-2xl flex items-center justify-center">
+            <div className="w-24 h-24 mx-auto mb-6 bg-[#1B1F24] flex items-center justify-center">
               <span className="text-4xl">⚠️</span>
             </div>
 
@@ -47,7 +47,7 @@ export function ImageGridErrorBoundary({
               <summary className="text-xs text-[#6A6E78] cursor-pointer hover:text-[#B3B7BE] transition-colors">
                 Technical details
               </summary>
-              <pre className="mt-2 p-3 bg-[#14171A] rounded-lg text-xs text-[#6A6E78] overflow-x-auto">
+              <pre className="mt-2 p-3 bg-[#14171A] text-xs text-[#6A6E78] overflow-x-auto">
                 {error.name}: {error.message}
                 {error.stack && '\n\nStack trace:\n' + error.stack}
               </pre>
@@ -60,14 +60,7 @@ export function ImageGridErrorBoundary({
                   reset();
                   onRetry?.();
                 }}
-                className="
-                  px-6 py-2.5
-                  bg-[#7C5CFF] text-white text-sm font-medium
-                  rounded-full
-                  hover:bg-[#6B4FE6] active:bg-[#5941CC]
-                  transition-all duration-200
-                  flex items-center gap-2
-                "
+                className="px-6 py-2.5 bg-[#7C5CFF] text-white text-sm font-medium hover:bg-[#6B4FE6] active:bg-[#5941CC] transition-all duration-200 flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -87,13 +80,7 @@ export function ImageGridErrorBoundary({
 
               <button
                 onClick={() => window.location.reload()}
-                className="
-                  px-6 py-2.5
-                  bg-[#1B1F24] text-[#B3B7BE] text-sm font-medium
-                  rounded-full border border-[#2A2F37]
-                  hover:bg-[#2A2F37] hover:text-[#E6E8EB]
-                  transition-all duration-200
-                "
+                className="px-6 py-2.5 bg-[#1B1F24] text-[#B3B7BE] text-sm font-medium border border-[#2A2F37] hover:bg-[#2A2F37] hover:text-[#E6E8EB] transition-all duration-200"
               >
                 Refresh Page
               </button>
