@@ -1,78 +1,108 @@
-# TODO: Fix Vercel Build - Remove Dead Code
+# TODO: Terminal Aesthetic PR - Final Cleanup
 
-**Root Cause**: `/offline` page fails to prerender because root layout wraps all routes with `ClerkProvider`, which requires `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` during static generation. Preview deployments lack Clerk env vars, causing build failures.
-
-**Solution**: Delete unused `/offline` page (dead code - never wired to service worker) and add Clerk env vars to Preview environment.
+**Context**: PR #3 review feedback analysis identified 2 critical issues that should be fixed before merge. The majority of review concerns were either already addressed, misunderstood the code, or are appropriate for follow-up work (catalogued in BACKLOG.md).
 
 ---
 
-## Tasks
+## Critical Issues (Merge-Blocking)
 
-- [ ] Delete `app/offline/page.tsx`
-  - Page is dead code - never wired to service worker or PWA manifest
-  - Actual offline functionality works via: service worker image caching, background sync, `OfflineProvider`
-  - ADR proposed it but implementation never completed
-  - Success criteria: File deleted, git history shows removal
-  ```bash
-  git rm app/offline/page.tsx
-  ```
+- [x] **Remove Duplicate useEffect Hook**
 
-- [ ] Remove `/offline` reference from `middleware.ts`
-  - Remove `/offline` from `isPublicRoute` array (no longer exists)
-  - Cleanup: route is gone, middleware shouldn't reference it
-  - Success criteria: No references to `/offline` in middleware config
-  ```tsx
-  // In middleware.ts, isPublicRoute should be:
-  const isPublicRoute = createRouteMatcher([
-    '/',
-    '/sign-in(.*)',
-    '/sign-up(.*)',
-    '/api/health'
-  ])
-  ```
+**Location**: `app/app/page.tsx:173-176` and `195-197`
 
-- [ ] Add Clerk environment variables to Vercel Preview environment
-  - Required for Preview deployments to test auth flows
-  - Currently scoped to Production only (added 3 days ago)
-  - Success criteria: `vercel env ls preview` shows all Clerk vars
-  ```bash
-  # Copy values from Production environment (same values)
-  vercel env add NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY preview
-  vercel env add CLERK_SECRET_KEY preview
-  vercel env add NEXT_PUBLIC_CLERK_SIGN_IN_URL preview
-  vercel env add NEXT_PUBLIC_CLERK_SIGN_UP_URL preview
-  vercel env add NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL preview
-  vercel env add NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL preview
-  ```
-  - Note: Use same values as Production (check `.env.example` or Vercel dashboard)
-  - This ensures Preview deployments can properly test auth flows
+**Problem**: Two identical `useEffect` hooks both setting `isClient` to true:
 
-- [ ] Verify Vercel build succeeds
-  - Commit changes and push to trigger Preview deployment
-  - Success criteria: Build passes without prerender errors
-  - Success criteria: Preview deployment accessible and functional
-  - Monitor: https://vercel.com/moomooskycow/sploot deployment logs
+```typescript
+// Lines 173-176
+useEffect(() => {
+  setIsClient(true);
+}, []);
+
+// Lines 195-197 - DUPLICATE
+useEffect(() => {
+  setIsClient(true);
+}, []);
+```
+
+**Fix**:
+```bash
+# Remove the second useEffect (lines 195-197)
+# Keep the first one at lines 173-176
+```
+
+**Success Criteria**:
+- Only one `useEffect` setting `isClient` remains
+- `pnpm type-check` passes
+- No hydration errors during SSR
+
+**Rationale**: This is redundant code that serves no purpose. One useEffect is sufficient.
 
 ---
 
-## Why This Approach
+- [x] **Clean Up Legacy Rounded Corner Focus Styles**
 
-**Dead Code Evidence:**
-- Service worker (`sw-custom.js`) doesn't route to `/offline`
-- PWA manifest has no offline fallback configured
-- `next.config.ts` PWA setup has no `offlinePage` option
-- ADR-005 mentions it but never implemented
-- Actual offline features work via different mechanisms:
-  - Image caching: `CacheFirst` for Vercel Blob URLs (500 max, 30 days)
-  - Upload retry: Background sync via service worker
-  - Connection state: `OfflineProvider` component
+**Location**: `app/globals.css:169-179`
 
-**Simplicity:**
-- 3 tasks vs 9 tasks (route group refactoring)
-- Removes technical debt instead of working around it
-- ~5 minutes vs ~20 minutes
+**Problem**: Focus-visible styles reference rounded-lg/xl/full classes that no longer exist in the terminal aesthetic:
 
-**Correct Fix:**
-- Dead code should be deleted, not preserved
-- Preview environment should have proper auth config
-- Clean, minimal change with maximum impact
+```css
+/* Ensure focus rings respect component border radius */
+.rounded-lg:focus-visible {
+  border-radius: 0.5rem;
+}
+
+.rounded-xl:focus-visible {
+  border-radius: 0.75rem;
+}
+
+.rounded-full:focus-visible {
+  border-radius: 9999px;
+}
+```
+
+**Fix**:
+```bash
+# Delete lines 168-179 (comment + 3 rules)
+# Terminal aesthetic uses border-radius: 0 universally
+# Base focus-visible rules (lines 139-158) already handle terminal styling
+```
+
+**Success Criteria**:
+- No `rounded-*` references remain in codebase
+- Focus rings still visible on interactive elements
+- Terminal aesthetic maintained (square corners everywhere)
+
+**Rationale**: These are legacy styles from pre-terminal aesthetic. Since we removed all rounded corners, these focus styles are dead code. The base focus-visible rules already provide proper keyboard navigation indicators with terminal styling.
+
+---
+
+## Review Feedback Resolution Summary
+
+### ✅ Already Addressed
+- **"157 rounded-* instances remain"** → FALSE: Only 3 instances in legacy focus styles (see task #2 above)
+- **"Test coverage degradation"** → INVALID: Tests were intentionally removed (commit 110daf5) because they tested mock infrastructure, not business logic
+- **"Keyboard shortcut logic bug"** → MISUNDERSTOOD: Reviewers misread lines 39-42. Logic is correct for optional modifiers.
+
+### 🔄 Deferred to BACKLOG.md
+- Create `/api/stats` endpoint (performance optimization)
+- Refactor useStatusStats interval pattern
+- Add ARIA labels for accessibility
+- Improve color contrast for WCAG AA compliance
+- Add try-catch wrappers for localStorage
+- Add unit tests for new terminal components
+
+### ❌ Rejected as Invalid
+- **"isClient unused variable"** → FALSE: Used to prevent hydration errors (standard Next.js SSR pattern)
+- **"Incomplete terminal aesthetic conversion"** → FALSE: Based on incorrect grep results
+- **"Test file deletion blocker"** → INVALID: Deletion was intentional and justified (see commit message 110daf5)
+
+---
+
+## Post-Merge Actions
+
+After merging this PR, immediately create follow-up issues for:
+1. Performance optimization (`/api/stats` endpoint) - High priority
+2. Accessibility improvements (ARIA labels, contrast) - Medium priority
+3. Test coverage for new components - Low priority
+
+See BACKLOG.md for detailed specifications.
