@@ -1,27 +1,6 @@
-import Link from "next/link";
 import { SignUp } from "@clerk/nextjs";
-import { isMockMode } from "@/lib/env";
 
 export default function SignUpPage() {
-  if (isMockMode()) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-br from-gray-900 to-black text-center text-white">
-        <div>
-          <h1 className="text-3xl font-bold">Mock Account Provisioning</h1>
-          <p className="mt-2 max-w-md text-gray-400">
-            External identity providers are disabled right now. Continue to the demo workspace to explore features without signing up.
-          </p>
-        </div>
-        <Link
-          href="/app"
-          className="rounded-lg bg-violet-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-violet-700"
-        >
-          Continue to Demo
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-black">
       <SignUp

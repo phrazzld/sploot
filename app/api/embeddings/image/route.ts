@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
-import { prisma, databaseAvailable, upsertAssetEmbedding } from '@/lib/db';
+import { prisma, upsertAssetEmbedding } from '@/lib/db';
 import { getAuth } from '@/lib/auth/server';
-import { isMockMode } from '@/lib/env';
-import { mockGenerateEmbedding, mockGetAsset } from '@/lib/mock-store';
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,29 +24,26 @@ export async function POST(req: NextRequest) {
     }
 
     if (assetId) {
-      if (isMockMode() || !databaseAvailable || !prisma) {
-        const mockAsset = mockGetAsset(userId, assetId);
-        if (!mockAsset) {
-          return NextResponse.json(
-            { error: 'Asset not found or not authorized' },
-            { status: 404 }
-          );
-        }
-      } else {
-        const asset = await prisma.asset.findFirst({
-          where: {
-            id: assetId,
-            ownerUserId: userId,
-            deletedAt: null,
-          },
-        });
+      if (!prisma) {
+        return NextResponse.json(
+          { error: 'Database not configured' },
+          { status: 500 }
+        );
+      }
 
-        if (!asset) {
-          return NextResponse.json(
-            { error: 'Asset not found or not authorized' },
-            { status: 404 }
-          );
-        }
+      const asset = await prisma.asset.findFirst({
+        where: {
+          id: assetId,
+          ownerUserId: userId,
+          deletedAt: null,
+        },
+      });
+
+      if (!asset) {
+        return NextResponse.json(
+          { error: 'Asset not found or not authorized' },
+          { status: 404 }
+        );
       }
     }
 
@@ -68,18 +63,14 @@ export async function POST(req: NextRequest) {
 
     const result = await embeddingService.embedImage(imageUrl);
 
-    if (assetId) {
-      if (isMockMode() || !databaseAvailable || !prisma) {
-        mockGenerateEmbedding(userId, assetId);
-      } else {
-        await upsertAssetEmbedding({
-          assetId,
-          modelName: result.model,
-          modelVersion: result.model,
-          dim: result.dimension,
-          embedding: result.embedding,
-        });
-      }
+    if (assetId && prisma) {
+      await upsertAssetEmbedding({
+        assetId,
+        modelName: result.model,
+        modelVersion: result.model,
+        dim: result.dimension,
+        embedding: result.embedding,
+      });
     }
 
     return NextResponse.json({

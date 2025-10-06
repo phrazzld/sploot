@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuth } from '@/lib/auth/server';
-import { isMockMode } from '@/lib/env';
-import { mockLogSearch, mockSearchAssets } from '@/lib/mock-store';
 
 interface SearchFilters {
   favorites?: boolean;
@@ -51,25 +49,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const useMock = isMockMode() || !databaseAvailable || !prisma;
-
-    if (useMock) {
-      const results = mockSearchAssets(userId, query, { limit: limit + offset });
-      const filtered = applyMockFilters(results, filters, sortBy);
-      const paginated = filtered.slice(offset, offset + limit);
-
-      mockLogSearch(userId, query, paginated.length);
-
-      return NextResponse.json({
-        results: paginated,
-        query,
-        total: filtered.length,
-        limit,
-        offset,
-        processingTime: Date.now() - startTime,
-        searchType: 'mock-metadata',
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     // Initialize multi-layer cache

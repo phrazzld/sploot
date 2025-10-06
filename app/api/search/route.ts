@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, databaseAvailable, vectorSearch, logSearch } from '@/lib/db';
+import { prisma, vectorSearch, logSearch } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuthWithUser } from '@/lib/auth/server';
-import { isMockMode } from '@/lib/env';
-import { mockLogSearch, mockPopularSearches, mockRecentSearches, mockSearchAssets } from '@/lib/mock-store';
 
 const MIN_SIMILAR_RESULTS = 10;
 
@@ -42,10 +40,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const useMock = isMockMode() || !databaseAvailable || !prisma;
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
+    }
 
     // Initialize multi-layer cache
-    const multiCache = useMock ? null : (getMultiLayerCache() || createMultiLayerCache());
+    const multiCache = getMultiLayerCache() || createMultiLayerCache();
 
     let cachedResults: any[] | null = null;
     if (multiCache) {
@@ -70,25 +73,6 @@ export async function POST(req: NextRequest) {
         thresholdFallback: cachedFallbackUsed,
         processingTime: Date.now() - startTime,
         cached: true,
-      });
-    }
-
-    if (useMock) {
-      const results = mockSearchAssets(userId, query, { limit: effectiveLimit });
-      mockLogSearch(userId, query, results.length);
-      return NextResponse.json({
-        results,
-        query,
-        total: results.length,
-        limit: effectiveLimit,
-        requestedLimit: limit,
-        threshold,
-        requestedThreshold: threshold,
-        thresholdFallback: false,
-        processingTime: Date.now() - startTime,
-        embeddingModel: 'mock/sploot-embedding:local',
-        cached: false,
-        mock: true,
       });
     }
 
@@ -267,22 +251,15 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const type = searchParams.get('type') || 'recent';
 
-    const useMock = isMockMode() || !databaseAvailable || !prisma;
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
+    }
 
     if (type === 'recent') {
-      if (useMock) {
-        const searches = mockRecentSearches(userId);
-        return NextResponse.json({
-          searches: searches.map((log) => ({
-            query: log.query,
-            resultCount: log.resultCount,
-            timestamp: log.createdAt,
-          })),
-          mock: true,
-        });
-      }
-
-      const recentSearches = await prisma!.searchLog.findMany({
+      const recentSearches = await prisma.searchLog.findMany({
         where: { userId },
         orderBy: { createdAt: 'desc' },
         take: 10,
@@ -299,18 +276,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (type === 'popular') {
-      if (useMock) {
-        const popular = mockPopularSearches();
-        return NextResponse.json({
-          searches: popular.map(item => ({
-            query: item.query,
-            count: item.count,
-          })),
-          mock: true,
-        });
-      }
-
-      const popularSearches = await prisma!.searchLog.groupBy({
+      const popularSearches = await prisma.searchLog.groupBy({
         by: ['query'],
         _count: {
           query: true,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma } from '@/lib/db';
 import { del as deleteBlob } from '@vercel/blob';
 import { headers } from 'next/headers';
 
@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }

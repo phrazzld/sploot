@@ -1,5 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
-import { databaseConfigured, isMockMode } from './env';
+import { databaseConfigured } from './env';
 import logger from './logger';
 
 // Declare global type for PrismaClient to prevent multiple instances in development
@@ -10,7 +10,7 @@ declare global {
 
 let prismaClient: PrismaClient | null = null;
 
-if (!isMockMode() && databaseConfigured) {
+if (databaseConfigured) {
   prismaClient = global.prisma || new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
   });
@@ -18,13 +18,9 @@ if (!isMockMode() && databaseConfigured) {
   if (process.env.NODE_ENV !== 'production') {
     global.prisma = prismaClient;
   }
-} else {
-  // Database configuration not detected. Using in-memory mocks.
 }
 
 export const prisma = prismaClient;
-
-export const databaseAvailable = !!prismaClient;
 
 /**
  * Sync user data from Clerk to database.

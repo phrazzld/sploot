@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 /**
  * GET /api/assets/[id]/tags - Get tags for a specific asset
@@ -13,7 +13,7 @@ export async function GET(
     const userId = await requireUserIdWithSync();
     const { id } = await params;
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }
@@ -72,7 +72,7 @@ export async function POST(
     const { id } = await params;
     const { tagIds, tagNames } = await req.json();
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }
@@ -212,7 +212,7 @@ export async function DELETE(
       );
     }
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }

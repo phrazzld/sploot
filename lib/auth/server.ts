@@ -1,4 +1,3 @@
-import { isMockMode } from '../env';
 import { getOrCreateUser } from '../db';
 
 interface AuthResult {
@@ -11,34 +10,14 @@ interface AuthWithUserResult extends AuthResult {
   userEmail?: string;
 }
 
-const MOCK_AUTH_RESULT: AuthWithUserResult = {
-  userId: 'mock-user-id',
-  sessionId: 'mock-session-id',
-  userEmail: 'mock@sploot.dev',
-  async getToken() {
-    return null;
-  },
-};
-
 export async function getAuth(): Promise<AuthResult> {
-  if (isMockMode()) {
-    return MOCK_AUTH_RESULT;
-  }
-
-  try {
-    const clerk = await import('@clerk/nextjs/server');
-    const auth = await clerk.auth();
-    return {
-      userId: auth.userId,
-      sessionId: auth.sessionId,
-      getToken: auth.getToken as any,
-    };
-  } catch (error) {
-    if (isMockMode()) {
-      return MOCK_AUTH_RESULT;
-    }
-    throw error;
-  }
+  const clerk = await import('@clerk/nextjs/server');
+  const auth = await clerk.auth();
+  return {
+    userId: auth.userId,
+    sessionId: auth.sessionId,
+    getToken: auth.getToken as any,
+  };
 }
 
 /**
@@ -46,49 +25,38 @@ export async function getAuth(): Promise<AuthResult> {
  * This automatically syncs Clerk users with our database
  */
 export async function getAuthWithUser(): Promise<AuthWithUserResult> {
-  if (isMockMode()) {
-    return MOCK_AUTH_RESULT;
-  }
+  const clerk = await import('@clerk/nextjs/server');
+  const authResult = await clerk.auth();
 
-  try {
-    const clerk = await import('@clerk/nextjs/server');
-    const authResult = await clerk.auth();
-
-    if (!authResult.userId) {
-      return {
-        userId: authResult.userId,
-        sessionId: authResult.sessionId,
-        getToken: authResult.getToken as any,
-      };
-    }
-
-    // Get the full user details from Clerk
-    const user = await clerk.currentUser();
-    if (user) {
-      const email = user.emailAddresses[0]?.emailAddress || `${authResult.userId}@clerk.local`;
-
-      // Ensure user exists in database
-      await getOrCreateUser(authResult.userId, email);
-
-      return {
-        userId: authResult.userId,
-        sessionId: authResult.sessionId,
-        getToken: authResult.getToken as any,
-        userEmail: email,
-      };
-    }
-
+  if (!authResult.userId) {
     return {
       userId: authResult.userId,
       sessionId: authResult.sessionId,
       getToken: authResult.getToken as any,
     };
-  } catch (error) {
-    if (isMockMode()) {
-      return MOCK_AUTH_RESULT;
-    }
-    throw error;
   }
+
+  // Get the full user details from Clerk
+  const user = await clerk.currentUser();
+  if (user) {
+    const email = user.emailAddresses[0]?.emailAddress || `${authResult.userId}@clerk.local`;
+
+    // Ensure user exists in database
+    await getOrCreateUser(authResult.userId, email);
+
+    return {
+      userId: authResult.userId,
+      sessionId: authResult.sessionId,
+      getToken: authResult.getToken as any,
+      userEmail: email,
+    };
+  }
+
+  return {
+    userId: authResult.userId,
+    sessionId: authResult.sessionId,
+    getToken: authResult.getToken as any,
+  };
 }
 
 export async function requireUserId(): Promise<string> {

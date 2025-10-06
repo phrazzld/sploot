@@ -4,12 +4,7 @@ import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';
 import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable, upsertAssetEmbedding } from '@/lib/db';
-import { isMockMode } from '@/lib/env';
-import {
-  mockCreateAsset,
-  mockListAssets,
-} from '@/lib/mock-store';
+import { prisma, upsertAssetEmbedding } from '@/lib/db';
 
 export async function POST(req: NextRequest) {
   try {
@@ -50,32 +45,11 @@ export async function POST(req: NextRequest) {
 
     const checksumSha256 = checksum || crypto.randomBytes(32).toString('hex');
 
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const mockResult = mockCreateAsset(userId, {
-        blobUrl: blobUrl || `https://mock-blob-storage.local/${pathname}`,
-        pathname,
-        filename: filename || pathname,
-        mime: mimeType,
-        size,
-        checksumSha256,
-        width: width ?? null,
-        height: height ?? null,
-      });
-
-      if (mockResult.duplicate) {
-        return NextResponse.json({
-          asset: mockResult.asset,
-          message: 'Asset already exists',
-          duplicate: true,
-          mock: true,
-        });
-      }
-
-      return NextResponse.json({
-        asset: mockResult.asset,
-        message: 'Asset created successfully',
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const existingAsset = await prisma.asset.findFirst({
@@ -213,25 +187,11 @@ export async function GET(req: NextRequest) {
       }),
     };
 
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const result = mockListAssets(userId, {
-        limit,
-        offset,
-        favorite: favorite !== null ? favorite === 'true' : undefined,
-        sortBy,
-        sortOrder: sortOrder as 'asc' | 'desc',
-      });
-
-      return NextResponse.json({
-        assets: result.assets,
-        pagination: {
-          limit,
-          offset,
-          total: result.total,
-          hasMore: result.hasMore,
-        },
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const [assets, total] = await Promise.all([
@@ -297,7 +257,7 @@ async function generateEmbeddingAsync(
   checksum: string,
   embeddingService: any
 ): Promise<void> {
-  if (!prisma || isMockMode()) {
+  if (!prisma) {
     return;
   }
 

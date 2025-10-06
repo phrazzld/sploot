@@ -1,12 +1,7 @@
 import type { NextConfig } from "next";
 import withPWA from "@ducanh2912/next-pwa";
-import { mockServicesEnabled } from "./lib/env";
 
 const nextConfig: NextConfig = {
-  env: {
-    NEXT_PUBLIC_ENABLE_MOCK_SERVICES:
-      process.env.NEXT_PUBLIC_ENABLE_MOCK_SERVICES ?? (mockServicesEnabled ? "true" : "false"),
-  },
   eslint: {
     // Allow production builds to succeed even if there are ESLint errors
     ignoreDuringBuilds: true,

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 /**
  * PATCH /api/tags/[tagId] - Update a tag
@@ -14,7 +14,7 @@ export async function PATCH(
     const userId = await requireUserIdWithSync();
     const { name, color } = await req.json();
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }
@@ -95,7 +95,7 @@ export async function DELETE(
     const { tagId } = await params;
     const userId = await requireUserIdWithSync();
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }

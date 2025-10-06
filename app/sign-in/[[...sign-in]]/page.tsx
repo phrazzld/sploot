@@ -1,27 +1,6 @@
-import Link from "next/link";
 import { SignIn } from "@clerk/nextjs";
-import { isMockMode } from "@/lib/env";
 
 export default function SignInPage() {
-  if (isMockMode()) {
-    return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gradient-to-br from-gray-900 to-black text-center text-white">
-        <div>
-          <h1 className="text-3xl font-bold">Mock Sign In</h1>
-          <p className="mt-2 max-w-md text-gray-400">
-            Third-party auth is disabled in mock mode. Use the button below to explore the app with a sample account.
-          </p>
-        </div>
-        <Link
-          href="/app"
-          className="rounded-lg bg-violet-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-violet-700"
-        >
-          Enter Demo Workspace
-        </Link>
-      </div>
-    );
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-black">
       <SignIn
