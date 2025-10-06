@@ -191,11 +191,6 @@ function AppPageClient() {
   // Also add "/" key shortcut to focus search
   useSlashSearchShortcut(focusSearchBar);
 
-  // Mark as client-side mounted
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
-
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
