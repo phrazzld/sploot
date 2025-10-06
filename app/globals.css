@@ -165,19 +165,6 @@ select:focus-visible {
   outline-offset: 0; /* No offset for form fields to avoid layout shift */
 }
 
-/* Ensure focus rings respect component border radius */
-.rounded-lg:focus-visible {
-  border-radius: 0.5rem;
-}
-
-.rounded-xl:focus-visible {
-  border-radius: 0.75rem;
-}
-
-.rounded-full:focus-visible {
-  border-radius: 9999px;
-}
-
 /* Dropdown menu animations */
 @keyframes dropdownFadeIn {
   from {
