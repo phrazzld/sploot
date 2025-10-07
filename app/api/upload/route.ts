@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server';
+import { unstable_rethrow } from 'next/dist/client/components/navigation';
 import { put } from '@vercel/blob';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
@@ -545,6 +546,7 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Upload endpoint error:', error);
     console.log(`[perf] Upload failed - unexpected error (${Date.now() - startTime}ms)`);
 
@@ -649,6 +651,7 @@ export async function GET(req: NextRequest) {
   try {
     const userId = await requireUserIdWithSync();
   } catch (error) {
+    unstable_rethrow(error);
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
