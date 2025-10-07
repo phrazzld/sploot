@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/dist/client/components/navigation';
 import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/db';
@@ -69,6 +70,7 @@ export async function GET(
       },
     });
   } catch (error) {
+    unstable_rethrow(error);
     // Error fetching asset
     return NextResponse.json(
       { error: 'Failed to fetch asset' },
@@ -203,6 +205,7 @@ export async function PATCH(
       message: 'Asset updated successfully',
     });
   } catch (error) {
+    unstable_rethrow(error);
     // Error updating asset
     return NextResponse.json(
       { error: 'Failed to update asset' },
@@ -290,6 +293,7 @@ export async function DELETE(
       });
     }
   } catch (error) {
+    unstable_rethrow(error);
     // Error deleting asset
     return NextResponse.json(
       { error: 'Failed to delete asset' },

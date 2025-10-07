@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/dist/client/components/navigation';
 import { prisma, upsertAssetEmbedding } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { getAuth } from '@/lib/auth/server';
@@ -221,6 +222,7 @@ export async function POST(
       throw error;
     }
   } catch (error) {
+    unstable_rethrow(error);
     const processingTime = Date.now() - startTime;
     console.error(`[error] Failed to generate embedding for asset (${processingTime}ms):`, error);
 

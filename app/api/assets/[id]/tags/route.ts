@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/dist/client/components/navigation';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma } from '@/lib/db';
 
@@ -52,6 +53,7 @@ export async function GET(
       })),
     });
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error fetching asset tags:', error);
     return NextResponse.json(
       { error: 'Failed to fetch asset tags' },
@@ -185,6 +187,7 @@ export async function POST(
       })),
     });
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error adding tags to asset:', error);
     return NextResponse.json(
       { error: 'Failed to add tags to asset' },
@@ -250,6 +253,7 @@ export async function DELETE(
       message: 'Tags removed from asset',
     });
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error removing tags from asset:', error);
     return NextResponse.json(
       { error: 'Failed to remove tags from asset' },
