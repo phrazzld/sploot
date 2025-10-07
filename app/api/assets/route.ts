@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/dist/client/components/navigation';
 import { isValidFileType, isValidFileSize } from '@/lib/blob';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';
@@ -153,6 +154,7 @@ export async function POST(req: NextRequest) {
       message: 'Asset created successfully',
     });
   } catch (error) {
+    unstable_rethrow(error);
     logError('POST /api/assets', error, { requestId });
     return createErrorResponse(
       'Failed to create asset',
@@ -270,6 +272,7 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
+    unstable_rethrow(error);
     logError('GET /api/assets', error, {
       requestId,
       params: { limit, offset, sortBy, sortOrder, favorite, tagId },
