@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/dist/client/components/navigation';
 import { prisma, vectorSearch, logSearch } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
@@ -211,6 +212,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
+    unstable_rethrow(error);
     // Error performing search
 
     if (error instanceof EmbeddingError) {
