@@ -6,8 +6,12 @@ import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cac
 import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, upsertAssetEmbedding } from '@/lib/db';
 import logger from '@/lib/logger';
+import { logError } from '@/lib/vercel-logger';
+import { createErrorResponse } from '@/lib/error-response';
 
 export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+
   try {
     const userId = await requireUserIdWithSync();
 
@@ -149,41 +153,47 @@ export async function POST(req: NextRequest) {
       message: 'Asset created successfully',
     });
   } catch (error) {
-    logger.error('Failed to create asset', {
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
-    });
-    return NextResponse.json(
-      {
-        error: 'Failed to create asset',
-        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
-      },
-      { status: 500 }
+    logError('POST /api/assets', error, { requestId });
+    return createErrorResponse(
+      'Failed to create asset',
+      requestId,
+      req,
+      error instanceof Error ? error.message : undefined
     );
   }
 }
 
 export async function GET(req: NextRequest) {
-  // Parse query params outside try block for error logging
-  const { searchParams } = new URL(req.url);
-  const limit = parseInt(searchParams.get('limit') || '50', 10);
-  const offset = parseInt(searchParams.get('offset') || '0', 10);
+  const requestId = crypto.randomUUID();
 
-  // Validate and type-cast sortBy to valid Prisma field names
-  const sortByParam = searchParams.get('sortBy') || 'createdAt';
-  const validSortFields = ['createdAt', 'updatedAt'] as const;
-  const sortBy: 'createdAt' | 'updatedAt' = validSortFields.includes(sortByParam as any)
-    ? (sortByParam as 'createdAt' | 'updatedAt')
-    : 'createdAt';
-
-  // Validate and type-cast sortOrder to Prisma's expected literal type
-  const sortOrderParam = searchParams.get('sortOrder') || 'desc';
-  const sortOrder: 'asc' | 'desc' = sortOrderParam === 'asc' ? 'asc' : 'desc';
-
-  const favorite = searchParams.get('favorite');
-  const tagId = searchParams.get('tagId');
+  // Declare params outside try block so they're accessible in catch for logging
+  let limit = 50;
+  let offset = 0;
+  let sortBy: 'createdAt' | 'updatedAt' = 'createdAt';
+  let sortOrder: 'asc' | 'desc' = 'desc';
+  let favorite: string | null = null;
+  let tagId: string | null = null;
 
   try {
+    // Parse query params INSIDE try block to catch URL parsing errors
+    const { searchParams } = new URL(req.url);
+    limit = parseInt(searchParams.get('limit') || '50', 10);
+    offset = parseInt(searchParams.get('offset') || '0', 10);
+
+    // Validate and type-cast sortBy to valid Prisma field names
+    const sortByParam = searchParams.get('sortBy') || 'createdAt';
+    const validSortFields = ['createdAt', 'updatedAt'] as const;
+    sortBy = validSortFields.includes(sortByParam as any)
+      ? (sortByParam as 'createdAt' | 'updatedAt')
+      : 'createdAt';
+
+    // Validate and type-cast sortOrder to Prisma's expected literal type
+    const sortOrderParam = searchParams.get('sortOrder') || 'desc';
+    sortOrder = sortOrderParam === 'asc' ? 'asc' : 'desc';
+
+    favorite = searchParams.get('favorite');
+    tagId = searchParams.get('tagId');
+
     const { userId } = await getAuthWithUser();
     if (!userId) {
       return NextResponse.json(
@@ -260,17 +270,15 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    logger.error('Failed to fetch assets', {
+    logError('GET /api/assets', error, {
+      requestId,
       params: { limit, offset, sortBy, sortOrder, favorite, tagId },
-      error: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined,
     });
-    return NextResponse.json(
-      {
-        error: 'Failed to fetch assets',
-        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.message : undefined
-      },
-      { status: 500 }
+    return createErrorResponse(
+      'Failed to fetch assets',
+      requestId,
+      req,
+      error instanceof Error ? error.message : undefined
     );
   }
 }
