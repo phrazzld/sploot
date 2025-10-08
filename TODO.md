@@ -30,7 +30,7 @@
   - Commit: e9879ff
   ```
 
-- [ ] **Create `POST /api/upload-complete` endpoint for post-upload metadata**
+- [x] **Create `POST /api/upload-complete` endpoint for post-upload metadata**
   - Accepts `{ assetId: string, blobUrl: string, filename: string, size: number, mimeType: string }`
   - Calculate checksum from blob (fetch blob, hash in chunks to avoid memory overflow)
   - Check for duplicate via `assetExists(userId, checksum)` - return existing asset if found
@@ -40,6 +40,15 @@
   - Return `{ success: true, asset: { id, blobUrl, isDuplicate, needsProcessing } }`
   - Success criteria: Asset saved to DB in <200ms, no Sharp processing, no Replicate calls
   - File: `app/api/upload-complete/route.ts` (new file)
+  ```
+  Work Log:
+  - Client sends checksum (calculated during upload) to avoid server fetch
+  - Validates checksum format (64 hex chars for SHA-256)
+  - Duplicate detection + blob cleanup if found
+  - Creates asset with processed=false, embedded=false flags
+  - Fast path: <200ms (no Sharp, no Replicate, metadata-only)
+  - Commit: 3d75cab
+  ```
 
 ### Database Schema Changes
 
