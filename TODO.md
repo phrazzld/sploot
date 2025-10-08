@@ -90,13 +90,22 @@
   - Commit: d588428
   ```
 
-- [ ] **Add retry logic for presigned URL failures**
+- [x] **Add retry logic for presigned URL failures**
   - Retry on 403 (expired presigned URL) by fetching new URL and resuming
   - Retry on 5xx errors with exponential backoff (1s, 2s, 4s)
   - Detect network failures vs. server errors via `xhr.status === 0`
   - Maximum 3 retries for presigned URL generation, 5 retries for PUT operations
   - Success criteria: Transient network failures auto-recover without user intervention
   - File: `components/upload/upload-zone.tsx:1085-1333`
+  ```
+  Work Log:
+  - Generic retry helper with exponential backoff (1s, 2s, 4s)
+  - Retry on credentials fetch (3 max): 5xx, 429, network failures
+  - Retry on upload-complete (3 max): 5xx, network failures
+  - Blob PUT relies on existing batch-level retry (complex w/ progress)
+  - Smart retry conditions: skip 4xx client errors, retry transient
+  - Commit: d74469c
+  ```
 
 ### Rate Limiting (Server-Side Protection)
 
