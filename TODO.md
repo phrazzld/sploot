@@ -14,7 +14,7 @@
 
 ### API Endpoints
 
-- [ ] **Create `GET /api/upload-url` endpoint for presigned URL generation**
+- [x] **Create `GET /api/upload-url` endpoint for presigned URL generation**
   - Returns `{ uploadUrl: string, assetId: string, pathname: string }` for direct Blob uploads
   - Generate unique asset ID server-side (UUID v4)
   - Use `@vercel/blob` `createPresignedUrl()` or equivalent for signed PUT URLs
@@ -22,6 +22,13 @@
   - Validate user authentication via `requireUserIdWithSync()`
   - Success criteria: Returns valid presigned URL that accepts PUT requests from browser
   - File: `app/api/upload-url/route.ts` (already exists, modify to return presigned URL instead of accepting upload)
+  ```
+  Work Log:
+  - Simplified to return blob token + pathname (client uses @vercel/blob put())
+  - Returns assetId for tracking, expiresAt for 5min TTL
+  - Fast metadata-only endpoint (<100ms, no file processing)
+  - Commit: e9879ff
+  ```
 
 - [ ] **Create `POST /api/upload-complete` endpoint for post-upload metadata**
   - Accepts `{ assetId: string, blobUrl: string, filename: string, size: number, mimeType: string }`
