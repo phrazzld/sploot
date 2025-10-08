@@ -1093,36 +1093,53 @@ export function UploadZone({
       throw new Error(`File ${fileId} not found`);
     }
 
-    // Record upload start in metrics
-
     setFileMetadata((prev) => {
       const newMap = new Map(prev);
       const meta = newMap.get(fileId);
       if (meta) {
-        newMap.set(fileId, { ...meta, status: 'uploading', progress: 10 });
+        newMap.set(fileId, { ...meta, status: 'uploading', progress: 5 });
       }
       return newMap;
     });
 
-    const apiStartTime = performance.now(); // Define here so it's accessible in catch block
+    const apiStartTime = performance.now();
 
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('file', file);
+      // Step 1: Get upload credentials from server
+      const credentialsUrl = `/api/upload-url?filename=${encodeURIComponent(file.name)}&mimeType=${encodeURIComponent(file.type)}&size=${file.size}`;
+      const credentialsResponse = await fetch(credentialsUrl);
 
-      // Track upload progress with XMLHttpRequest for better progress reporting
+      if (!credentialsResponse.ok) {
+        const error = await credentialsResponse.json();
+        throw new Error(error.error || 'Failed to get upload URL');
+      }
+
+      const { assetId, pathname, token } = await credentialsResponse.json();
+
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const meta = newMap.get(fileId);
+        if (meta) {
+          newMap.set(fileId, { ...meta, progress: 10 });
+        }
+        return newMap;
+      });
+
+      // Step 2: Upload directly to Blob storage
+      // We use XMLHttpRequest for progress tracking
+      const buffer = await file.arrayBuffer();
+
+      // Calculate checksum for duplicate detection and integrity
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
       const xhr = new XMLHttpRequest();
-
-      // Create a promise to handle the XHR request
-      const uploadPromise = new Promise<any>((resolve, reject) => {
+      const uploadPromise = new Promise<string>((resolve, reject) => {
         xhr.upload.addEventListener('progress', (event) => {
           if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
+            const percentComplete = Math.round((event.loaded / event.total) * 85); // Reserve 15% for finalization
 
-            // Record upload progress in metrics
-
-            // Throttle progress updates to reduce re-renders
             const throttleInfo = progressThrottleMap.current.get(fileId) || {
               lastUpdate: 0,
               lastPercent: 0
@@ -1131,20 +1148,18 @@ export function UploadZone({
             const percentDiff = Math.abs(percentComplete - throttleInfo.lastPercent);
             const timeDiff = now - throttleInfo.lastUpdate;
 
-            // Only update if: progress changed significantly OR enough time passed OR it's complete
             if (percentDiff >= PROGRESS_UPDATE_THRESHOLD ||
                 timeDiff >= PROGRESS_UPDATE_INTERVAL ||
-                percentComplete >= 90) {
+                percentComplete >= 80) {
               setFileMetadata((prev) => {
                 const newMap = new Map(prev);
                 const meta = newMap.get(fileId);
                 if (meta) {
-                  newMap.set(fileId, { ...meta, progress: Math.min(90, percentComplete) });
+                  newMap.set(fileId, { ...meta, progress: 10 + percentComplete });
                 }
                 return newMap;
               });
 
-              // Update throttle map
               progressThrottleMap.current.set(fileId, {
                 lastUpdate: now,
                 lastPercent: percentComplete
@@ -1157,67 +1172,71 @@ export function UploadZone({
           if (xhr.status >= 200 && xhr.status < 300) {
             try {
               const response = JSON.parse(xhr.responseText);
-              resolve(response);
+              resolve(response.url); // Blob URL
             } catch {
-              reject(new Error('Invalid response from server'));
+              reject(new Error('Invalid response from Blob storage'));
             }
           } else {
-            // Create error with status code included
-            let errorMessage: string;
-            try {
-              const error = JSON.parse(xhr.responseText);
-              errorMessage = error.error || `Upload failed with status ${xhr.status}`;
-            } catch {
-              errorMessage = `Upload failed with status ${xhr.status}`;
-            }
-
-            // Include status code in error for better error handling
-            const uploadError = new Error(errorMessage);
+            const uploadError = new Error(`Blob upload failed with status ${xhr.status}`);
             (uploadError as any).statusCode = xhr.status;
             reject(uploadError);
           }
         });
 
-        xhr.addEventListener('error', () => {
-          reject(new Error('Network error during upload'));
-        });
+        xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
+        xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
 
-        xhr.addEventListener('abort', () => {
-          reject(new Error('Upload cancelled'));
-        });
-
-        xhr.addEventListener('timeout', () => {
-          reject(new Error('Upload timeout - file too large or slow connection'));
-        });
-
-        // Upload without blocking on embedding generation for faster response
-        xhr.open('POST', '/api/upload');
-        xhr.timeout = 10000; // 10 second timeout per file
-        xhr.send(formData);
+        // Upload to Vercel Blob
+        xhr.open('PUT', `https://blob.vercel-storage.com/${pathname}`);
+        xhr.setRequestHeader('authorization', `Bearer ${token}`);
+        xhr.setRequestHeader('x-content-type', file.type);
+        xhr.setRequestHeader('access', 'public');
+        xhr.timeout = 30000; // 30 second timeout for large files
+        xhr.send(buffer);
       });
 
-      const result = await uploadPromise;
-      const apiDuration = performance.now() - apiStartTime;
+      const blobUrl = await uploadPromise;
 
-      // Record API call metrics
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const meta = newMap.get(fileId);
+        if (meta) {
+          newMap.set(fileId, { ...meta, progress: 95 });
+        }
+        return newMap;
+      });
+
+      // Step 3: Finalize upload by creating asset record
+      const completeResponse = await fetch('/api/upload-complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          assetId,
+          blobUrl,
+          pathname,
+          filename: file.name,
+          size: file.size,
+          mimeType: file.type,
+          checksum,
+        }),
+      });
+
+      if (!completeResponse.ok) {
+        const error = await completeResponse.json();
+        throw new Error(error.error || 'Failed to complete upload');
+      }
+
+      const result = await completeResponse.json();
+      const apiDuration = performance.now() - apiStartTime;
 
       if (!result.success) {
         throw new Error(result.error || 'Upload failed');
       }
 
-      // Track client upload time
-
-      // Record successful upload completion in metrics
-
-      // End the initial upload start timer if this is the first successful upload
-
       // Handle duplicate detection as a special success case
       const isDuplicate = result.isDuplicate === true;
-      const needsEmbedding = result.asset?.needsEmbedding === true;
-
-      // Track time to searchable if embedding is not needed
-      if (!needsEmbedding && result.asset?.id) {
-      }
+      const needsProcessing = result.asset?.needsProcessing === true;
 
       setFileMetadata((prev) => {
         const newMap = new Map(prev);
@@ -1230,8 +1249,8 @@ export function UploadZone({
             assetId: result.asset?.id,
             blobUrl: result.asset?.blobUrl,
             isDuplicate,
-            needsEmbedding,
-            embeddingStatus: (needsEmbedding ? 'pending' : 'ready') as 'pending' | 'ready'
+            needsEmbedding: needsProcessing,
+            embeddingStatus: (needsProcessing ? 'pending' : 'ready') as 'pending' | 'ready'
           });
         }
         return newMap;
@@ -1246,7 +1265,6 @@ export function UploadZone({
       // Clean up progress throttle map entry
       progressThrottleMap.current.delete(fileId);
 
-      // Log memory cleanup for monitoring during development
       logger.debug(`[UploadZone] Cleared file blob for ${metadata.name}, kept metadata only`);
 
       // Remove from persisted queue on success
@@ -1258,12 +1276,8 @@ export function UploadZone({
         }
       }
 
-      // Stats will be automatically updated by the effect that watches fileMetadata changes
-      // No need to manually update uploadStats here
-
       // Trigger a refresh of the asset list if there's a callback
       if (window.location.pathname === '/app') {
-        // Dispatch a custom event that the library page can listen to
         window.dispatchEvent(new CustomEvent('assetUploaded', { detail: result.asset }));
       }
 
