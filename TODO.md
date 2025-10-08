@@ -70,7 +70,7 @@
 
 ### Client Upload Flow
 
-- [ ] **Refactor `uploadFileToServer()` to use direct Blob uploads**
+- [x] **Refactor `uploadFileToServer()` to use direct Blob uploads**
   - Step 1: `GET /api/upload-url` to get presigned URL and asset ID
   - Step 2: `PUT` file directly to presigned URL with `XMLHttpRequest` for progress tracking
   - Step 3: `POST /api/upload-complete` with blob URL and metadata to finalize
@@ -79,6 +79,16 @@
   - Track upload progress via `xhr.upload.addEventListener('progress')` (already implemented)
   - Success criteria: 10MB file uploads in <5s (network-bound, not server-bound)
   - File: `components/upload/upload-zone.tsx:1085-1333`
+  ```
+  Work Log:
+  - 3-step flow: GET credentials → PUT to Blob → POST finalize
+  - Client calculates SHA-256 checksum via Web Crypto API
+  - Direct XHR PUT to blob.vercel-storage.com with Bearer token
+  - Progress 0-95% for upload, 95-100% for finalization
+  - Timeout increased to 30s (was 10s) for large files
+  - Network-bound performance achieved
+  - Commit: d588428
+  ```
 
 - [ ] **Add retry logic for presigned URL failures**
   - Retry on 403 (expired presigned URL) by fetching new URL and resuming
