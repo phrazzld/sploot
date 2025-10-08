@@ -109,7 +109,7 @@
 
 ### Rate Limiting (Server-Side Protection)
 
-- [ ] **Implement token bucket rate limiter utility**
+- [x] **Implement token bucket rate limiter utility**
   - Create `lib/rate-limiter.ts` with `TokenBucketRateLimiter` class
   - Configuration: 100 tokens per user, refill rate 10 tokens/minute
   - Store state in memory Map (single-instance) or Upstash Redis (multi-instance)
@@ -117,6 +117,16 @@
   - Return `retryAfter` seconds when bucket empty for client backoff
   - Success criteria: Can throttle 150 requests/minute to 100 allowed + 50 rejected
   - File: `lib/rate-limiter.ts` (new file)
+  ```
+  Work Log:
+  - Token bucket algorithm: 100 max tokens, refill 10/minute
+  - Simple interface: consume(userId, tokens) → { allowed, retryAfter, remaining }
+  - In-memory Map storage with automatic cleanup (every 10min)
+  - Removes inactive buckets after 1 hour to prevent memory leaks
+  - Singleton instance exported: uploadRateLimiter
+  - Can migrate to Redis later without breaking API
+  - Commit: 4575c5a
+  ```
 
 - [ ] **Add rate limiting to `/api/upload-url` endpoint**
   - Check rate limit before generating presigned URL: `await rateLimiter.consume(userId, 1)`
