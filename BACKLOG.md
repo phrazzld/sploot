@@ -624,9 +624,134 @@
 
 ---
 
+## 📤 Bulk Upload System Enhancements
+
+**Context**: After implementing direct-to-Blob uploads with background processing (TODO.md), these enhancements would further improve scalability, performance, and user experience for bulk operations. Deferred because the core architecture solves the immediate problem (2000+ file uploads), but these would optimize for even larger scale.
+
+### Scalability Improvements
+
+- **Batch upload API endpoint** - New `/api/upload/batch` endpoint accepting multiple files in single request, reducing network overhead from N requests to 1 request with N files. Process files with controlled internal concurrency (10 at a time).
+  - **Rationale for deferring**: Direct-to-Blob uploads (TODO.md) solve the concurrency problem; batch API is optimization
+  - **Effort**: Medium (~3-4 hours for endpoint implementation, multipart parsing, batch processing)
+  - **Priority**: Medium
+  - **Benefits**: Reduces network RTT overhead (~100ms × 2000 files = 3min saved), simpler client code
+  - **Trade-offs**: Larger request payload (need timeout >60s for 100MB batches), more complex error handling
+  - **Implementation**: Accept `multipart/form-data` with multiple files, create batch upload session, process with queue
+
+- **Vercel Queue integration for background processing** - Replace cron-based processing with `@vercel/queue` for proper distributed background job processing. Enables horizontal scaling, better retry semantics, and automatic concurrency management.
+  - **Rationale for deferring**: Cron jobs (TODO.md Phase 2) work for single-region deployment; queue needed for multi-region
+  - **Effort**: Large (~6-8 hours for queue setup, migration from cron, deployment config)
+  - **Priority**: High (for production scale >10K assets/day)
+  - **Benefits**: Automatic retry, DLQ, horizontal scaling, better observability
+  - **Migration path**: Keep cron jobs initially, add queue as alternative, measure performance, deprecate cron
+  - **Cost**: Vercel Queue has usage-based pricing, estimate $10-20/month for moderate use
+
+- **Parallel image processing with worker threads** - Process multiple images concurrently within single cron invocation using `worker_threads`. Currently processes 10 images sequentially (10 × 2s = 20s), could do 10 in parallel (max 5s).
+  - **Rationale for deferring**: Sequential processing works and stays within 60s timeout; parallel is optimization
+  - **Effort**: Medium (~4-5 hours for worker thread setup, message passing, error handling)
+  - **Priority**: Medium
+  - **Benefits**: 4x faster processing (20s → 5s per batch), better CPU utilization
+  - **Trade-offs**: More complex code, higher memory usage (10 Sharp instances × 100MB = 1GB peak)
+  - **Serverless constraint**: Vercel functions limited to 1GB memory (Hobby) / 3GB (Pro)
+
+### Database Optimizations
+
+- **Batch INSERT statements for assets** - Use Prisma `createMany()` to insert multiple assets in single transaction. Currently inserts 1 asset per upload completion, could batch 100 assets every 5 seconds.
+  - **Rationale for deferring**: Individual inserts work fine; batching is optimization for extreme scale
+  - **Effort**: Small (~1-2 hours for batch logic, transaction handling)
+  - **Priority**: Low
+  - **Benefits**: Reduces DB round trips (1 vs 100), lower connection pool usage
+  - **Trade-offs**: Delayed visibility (5s batch window), more complex error handling (partial batch failures)
+  - **Implementation**: Queue assets in memory, flush every 5s or when 100 queued, use `createMany()`
+
+- **Connection pooling optimization** - Tune Prisma connection pool settings for high-concurrency scenarios. Default pool size is 10, could increase to 20-30 for Pro tier with more DB capacity.
+  - **Rationale for deferring**: Current pool size (10) handles typical load; tuning needed for >100 concurrent uploads
+  - **Effort**: Small (~1 hour for config changes, load testing, monitoring)
+  - **Priority**: Low
+  - **Configuration**: Adjust `connection_limit` in `DATABASE_URL`, monitor connection usage with Prisma metrics
+  - **Prerequisite**: Neon Postgres plan upgrade to support more connections (Hobby = 100 connections, Pro = 1000)
+
+- **Database indexes for queue queries** - Add compound indexes on `(processed, embedded, createdAt)` for efficient queue processing queries. Currently has single-column indexes, compound would be faster.
+  - **Rationale for deferring**: Existing indexes work for <10K assets; compound index optimizes for >100K assets
+  - **Effort**: Small (~30 min for migration, index creation)
+  - **Priority**: Low
+  - **Index design**: `CREATE INDEX idx_processing_queue ON assets(processed, embedded, createdAt DESC)`
+  - **Impact**: Reduces queue query time from ~50ms to ~5ms at 100K assets
+
+### User Experience Enhancements
+
+- **Upload session management** - Track bulk uploads as sessions with pause/resume capability. User can pause 2000-file upload, close browser, resume later from where they left off.
+  - **Rationale for deferring**: Current IndexedDB recovery (UploadQueueManager) handles interrupted uploads; sessions add explicit control
+  - **Effort**: Medium (~3-4 hours for session model, UI controls, resume logic)
+  - **Priority**: Medium
+  - **Features**: Pause/resume button, session history (last 10 sessions), automatic resume on return
+  - **Schema**: New `UploadSession` model with `{ id, userId, totalFiles, completedFiles, status, createdAt }`
+
+- **WebSocket progress updates** - Replace SSE with WebSocket for bi-directional communication. Enables server to push updates without polling, client to request progress on demand.
+  - **Rationale for deferring**: SSE (TODO.md Phase 2) works well for server→client updates; WebSocket adds client→server control
+  - **Effort**: Medium (~4-5 hours for WebSocket setup, fallback to SSE, reconnection logic)
+  - **Priority**: Low
+  - **Benefits**: Lower latency, bi-directional control (client can request specific asset status)
+  - **Trade-offs**: More complex protocol, need to handle connection state, Vercel WebSocket support varies by plan
+
+- **Smart retry with error classification** - Automatically retry uploads based on error type: retry network errors immediately, rate limits after delay, never retry invalid files. Show clear UI for each category.
+  - **Rationale for deferring**: Manual retry button works; automatic retry is convenience
+  - **Effort**: Small (~2 hours for error classification, retry logic, UI updates)
+  - **Priority**: Medium
+  - **Error categories**: Network (auto-retry 3x), Rate Limit (auto-retry after backoff), Invalid (never retry), Server (retry 1x)
+  - **UI**: Show "Retrying automatically (2/3)..." vs "Retry failed - click to retry manually" vs "Cannot retry - invalid file"
+
+- **Adaptive rate limiting based on system load** - Dynamically adjust upload concurrency based on current system load (CPU, memory, DB connections). Reduce concurrency when system stressed, increase when idle.
+  - **Rationale for deferring**: Fixed concurrency (2-3 parallel) works for most cases; adaptive is optimization
+  - **Effort**: Medium (~3-4 hours for load monitoring, concurrency adjustment algorithm)
+  - **Priority**: Low
+  - **Metrics**: Monitor via `/api/health/services` endpoint (DB pool usage, Blob API latency, memory pressure)
+  - **Algorithm**: Increase concurrency by 1 when load <30%, decrease by 1 when load >70%, check every 10s
+
+### Advanced Features
+
+- **Resume interrupted uploads from partial state** - Store upload progress in IndexedDB (bytes uploaded per file), resume from exact byte offset on reconnect. Requires multipart upload support from Blob storage.
+  - **Rationale for deferring**: Current system re-uploads entire file on failure; resumable uploads optimize for flaky networks
+  - **Effort**: Large (~6-8 hours for multipart upload logic, checkpoint storage, resume logic)
+  - **Priority**: Low
+  - **Constraint**: Vercel Blob doesn't natively support multipart upload resumption; would need custom chunking
+  - **Value**: Saves bandwidth on large file failures (10MB file 90% uploaded → resume from 9MB, not 0MB)
+
+- **Client-side image compression before upload** - Compress images in browser using Canvas API or WASM library before uploading. Reduces upload time and bandwidth for large images.
+  - **Rationale for deferring**: Server-side Sharp processing handles optimization; client-side is redundant
+  - **Effort**: Medium (~3-4 hours for compression logic, quality presets, UI toggle)
+  - **Priority**: Very Low
+  - **Trade-offs**: Uses client CPU (battery drain on mobile), inconsistent quality across devices
+  - **Use case**: Only valuable for very slow upload connections (<1Mbps)
+
+- **Grafana dashboard for upload metrics** - Visualize upload queue depth, processing throughput, error rates, P95 latencies over time. Enables data-driven optimization and capacity planning.
+  - **Rationale for deferring**: Console logs and `/api/telemetry` provide basic visibility; dashboard is ops enhancement
+  - **Effort**: Large (~6-8 hours for metrics export, Grafana setup, dashboard creation)
+  - **Priority**: Medium (high value for production operations)
+  - **Metrics**: Upload queue depth, processing queue depth, embedding queue depth, throughput (files/min), error rate (%), P95 latency (ms)
+  - **Prerequisite**: Set up Prometheus exporter or Grafana Cloud integration
+
+### Testing & Validation
+
+- **Load testing suite for extreme scenarios** - Test 5000, 10000, 50000 file uploads to identify breaking points. Measure memory usage, timeout rates, database connection pool exhaustion.
+  - **Rationale for deferring**: 2000-file upload (TODO.md success criteria) is sufficient for initial release; extreme scale is future-proofing
+  - **Effort**: Medium (~4-5 hours for test scripts, scenario design, metric collection)
+  - **Priority**: Medium
+  - **Tool**: k6 or Artillery for load generation, Datadog for monitoring
+  - **Scenarios**: Gradual ramp (0→10K over 10min), spike (0→10K instantly), sustained (5K/hour for 2 hours)
+
+- **Chaos engineering for resilience testing** - Simulate failures: kill database connections mid-upload, rate limit Blob API, timeout Replicate API. Verify system degrades gracefully.
+  - **Rationale for deferring**: Basic error handling (TODO.md) handles common failures; chaos tests edge cases
+  - **Effort**: Medium (~3-4 hours for failure injection, recovery validation)
+  - **Priority**: Low
+  - **Tool**: Toxiproxy for network failures, manual kill for database, rate limit simulation via proxy
+  - **Validation**: No data loss, clear error messages, automatic retry succeeds
+
+---
+
 ## 📊 Backlog Statistics
 
-**Total Items**: 40
+**Total Items**: 53
 - Infrastructure & Tooling: 3 items
 - Accessibility: 3 items
 - Performance: 3 items
@@ -635,7 +760,14 @@
 - Testing: 3 items
 - UX Enhancements: 3 items
 - Terminal Aesthetic: 9 items
+- Bulk Upload System: 13 items
 - Rejected: 4 items
 
-**Estimated Total Effort**: ~45-50 hours
-**Highest Priority Items**: Memory leak detection, rate limiting, architecture documentation, multi-column list view
+**Estimated Total Effort**: ~75-85 hours
+**Highest Priority Items**:
+- Memory leak detection
+- Vercel Queue integration
+- Architecture documentation
+- Multi-column list view
+- Upload session management
+- Grafana dashboard
