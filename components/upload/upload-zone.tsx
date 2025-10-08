@@ -1081,6 +1081,33 @@ export function UploadZone({
     }
   };
 
+  // Retry helper with exponential backoff
+  const retryWithBackoff = async <T,>(
+    fn: () => Promise<T>,
+    maxRetries: number,
+    shouldRetry: (error: any) => boolean = () => true
+  ): Promise<T> => {
+    let lastError: any;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+
+        // Don't retry if we've exhausted attempts or error is not retryable
+        if (attempt === maxRetries || !shouldRetry(error)) {
+          throw error;
+        }
+
+        // Exponential backoff: 1s, 2s, 4s
+        const delay = Math.min(1000 * Math.pow(2, attempt), 4000);
+        console.log(`[Upload] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError;
+  };
+
   // Upload file to server - simplified direct upload
   const uploadFileToServer = async (fileId: string) => {
     const uploadStartTime = Date.now();
@@ -1105,16 +1132,28 @@ export function UploadZone({
     const apiStartTime = performance.now();
 
     try {
-      // Step 1: Get upload credentials from server
+      // Step 1: Get upload credentials from server (with retry)
       const credentialsUrl = `/api/upload-url?filename=${encodeURIComponent(file.name)}&mimeType=${encodeURIComponent(file.type)}&size=${file.size}`;
-      const credentialsResponse = await fetch(credentialsUrl);
 
-      if (!credentialsResponse.ok) {
-        const error = await credentialsResponse.json();
-        throw new Error(error.error || 'Failed to get upload URL');
-      }
-
-      const { assetId, pathname, token } = await credentialsResponse.json();
+      const { assetId, pathname, token } = await retryWithBackoff(
+        async () => {
+          const response = await fetch(credentialsUrl);
+          if (!response.ok) {
+            const error = await response.json();
+            const err = new Error(error.error || 'Failed to get upload URL');
+            (err as any).statusCode = response.status;
+            throw err;
+          }
+          return response.json();
+        },
+        3, // Max 3 retries for credential fetching
+        (error) => {
+          // Retry on 5xx server errors and network failures
+          // Don't retry on 4xx client errors (except 429 rate limit)
+          const statusCode = (error as any).statusCode;
+          return !statusCode || statusCode === 429 || statusCode >= 500;
+        }
+      );
 
       setFileMetadata((prev) => {
         const newMap = new Map(prev);
@@ -1207,27 +1246,40 @@ export function UploadZone({
         return newMap;
       });
 
-      // Step 3: Finalize upload by creating asset record
-      const completeResponse = await fetch('/api/upload-complete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          assetId,
-          blobUrl,
-          pathname,
-          filename: file.name,
-          size: file.size,
-          mimeType: file.type,
-          checksum,
-        }),
-      });
+      // Step 3: Finalize upload by creating asset record (with retry)
+      const result = await retryWithBackoff(
+        async () => {
+          const response = await fetch('/api/upload-complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              assetId,
+              blobUrl,
+              pathname,
+              filename: file.name,
+              size: file.size,
+              mimeType: file.type,
+              checksum,
+            }),
+          });
 
-      if (!completeResponse.ok) {
-        const error = await completeResponse.json();
-        throw new Error(error.error || 'Failed to complete upload');
-      }
+          if (!response.ok) {
+            const error = await response.json();
+            const err = new Error(error.error || 'Failed to complete upload');
+            (err as any).statusCode = response.status;
+            throw err;
+          }
 
-      const result = await completeResponse.json();
+          return response.json();
+        },
+        3, // Max 3 retries for upload completion
+        (error) => {
+          // Retry on 5xx server errors and network failures
+          // Don't retry on 4xx client errors
+          const statusCode = (error as any).statusCode;
+          return !statusCode || statusCode >= 500;
+        }
+      );
       const apiDuration = performance.now() - apiStartTime;
 
       if (!result.success) {
