@@ -3,6 +3,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { blobConfigured } from '@/lib/env';
+import { uploadRateLimiter } from '@/lib/rate-limiter';
 
 /**
  * Generates upload credentials for direct client-to-Blob uploads.
@@ -21,6 +22,26 @@ export async function GET(req: NextRequest) {
   try {
     // Validate authentication
     const userId = await requireUserIdWithSync();
+
+    // Check rate limit before processing request
+    const rateLimitResult = await uploadRateLimiter.consume(userId, 1);
+    if (!rateLimitResult.allowed) {
+      console.warn(`[RateLimit] User ${userId} exceeded upload limit. Retry after ${rateLimitResult.retryAfter}s`);
+
+      return NextResponse.json(
+        {
+          error: `Too many uploads. Please wait ${rateLimitResult.retryAfter} seconds and try again.`,
+          retryAfter: rateLimitResult.retryAfter,
+          errorType: 'rate_limited',
+        },
+        {
+          status: 429,
+          headers: {
+            'Retry-After': String(rateLimitResult.retryAfter),
+          },
+        }
+      );
+    }
 
     // Parse query parameters
     const { searchParams } = new URL(req.url);

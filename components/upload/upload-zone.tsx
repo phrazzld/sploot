@@ -1081,7 +1081,7 @@ export function UploadZone({
     }
   };
 
-  // Retry helper with exponential backoff
+  // Retry helper with exponential backoff and server-specified delays
   const retryWithBackoff = async <T,>(
     fn: () => Promise<T>,
     maxRetries: number,
@@ -1099,9 +1099,23 @@ export function UploadZone({
           throw error;
         }
 
-        // Exponential backoff: 1s, 2s, 4s
-        const delay = Math.min(1000 * Math.pow(2, attempt), 4000);
-        console.log(`[Upload] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+        // Check if server specified a retry delay (rate limiting)
+        const serverRetryAfter = (error as any).retryAfter;
+        let delay: number;
+
+        if (serverRetryAfter && typeof serverRetryAfter === 'number') {
+          // Use server-specified delay for rate limiting (convert seconds to ms)
+          delay = serverRetryAfter * 1000;
+          // Add small jitter to prevent thundering herd (±10%)
+          const jitter = delay * 0.1 * (Math.random() - 0.5) * 2;
+          delay = Math.floor(delay + jitter);
+          console.log(`[Upload] Rate limited. Retry attempt ${attempt + 1}/${maxRetries} after ${Math.round(delay / 1000)}s`);
+        } else {
+          // Use exponential backoff for other errors: 1s, 2s, 4s
+          delay = Math.min(1000 * Math.pow(2, attempt), 4000);
+          console.log(`[Upload] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+        }
+
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     }
@@ -1142,6 +1156,8 @@ export function UploadZone({
             const error = await response.json();
             const err = new Error(error.error || 'Failed to get upload URL');
             (err as any).statusCode = response.status;
+            (err as any).retryAfter = error.retryAfter; // Server-specified retry delay
+            (err as any).errorType = error.errorType;
             throw err;
           }
           return response.json();
