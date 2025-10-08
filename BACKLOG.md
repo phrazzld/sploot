@@ -306,6 +306,193 @@
 
 ---
 
+## 🔍 Observability & Error Handling
+
+**Context**: After fixing immediate silent 500 error issues (see TODO.md for critical path), these enhancements would further improve production debugging, monitoring, and incident response. Deferred because basic structured logging solves the immediate problem, but these would provide defense-in-depth.
+
+### Error Tracking & APM
+
+- **Integrate Sentry for production error tracking** - Add Sentry SDK for automatic error aggregation, stack trace deobfuscation, release tracking, and user impact analysis. Provides proactive error detection before users report issues.
+  - **Rationale for deferring**: Vercel-compatible structured logging (TODO.md Phase 1) provides immediate visibility; Sentry adds richer context but isn't blocking
+  - **Effort**: Medium (~2-3 hours for SDK setup, environment config, source map upload)
+  - **Priority**: High (significant production value once basic logging works)
+  - **Implementation**: `@sentry/nextjs` with Next.js integration, environment-specific DSNs
+  - **Configuration**: Set up error grouping rules, ignore known benign errors, configure sample rates
+  - **Value**: Error trends, affected user counts, breadcrumbs showing user actions before error
+
+- **Add OpenTelemetry distributed tracing** - Instrument API calls to track request flow through multiple services (Vercel → Postgres → Blob Storage → Replicate API). Identify slow database queries, external API latency, and bottlenecks.
+  - **Rationale for deferring**: Request ID tracking (TODO.md Phase 2) provides basic tracing; OpenTelemetry adds deeper visibility
+  - **Effort**: Medium (~4-6 hours for instrumentation, exporter config, dashboard setup)
+  - **Priority**: Medium
+  - **Implementation**: `@opentelemetry/api` with Vercel exporter or Honeycomb/Datadog backend
+  - **Traces**: Database queries, Blob operations, embedding generation, search requests
+  - **Value**: Visualize full request lifecycle, identify cascade failures, optimize slow paths
+
+### Performance Monitoring
+
+- **Create endpoint performance wrapper** - Automatic duration tracking for all API routes with p50/p95/p99 latency metrics. Identify slow endpoints, track performance over time, detect regressions.
+  - **Rationale for deferring**: Manual testing shows acceptable performance; automated metrics are optimization aid
+  - **Effort**: Small (~2 hours for wrapper function, metric emission, basic aggregation)
+  - **Priority**: Medium
+  - **Implementation**: Higher-order function wrapping API handlers, emit JSON metrics to console
+  - **Output format**: `{ type: 'metric', endpoint, status, duration, timestamp }`
+  - **Value**: Data-driven performance optimization, SLO monitoring, regression detection
+
+- **Add Prisma query performance tracking** - Track database query performance using Prisma middleware. Log slow queries (>100ms), identify missing indexes, detect N+1 query patterns before they impact production.
+  - **Rationale for deferring**: No known performance issues currently; this enables proactive optimization
+  - **Effort**: Medium (~3 hours for Prisma middleware, metric collection, analysis tooling)
+  - **Priority**: Medium
+  - **Implementation**: Prisma query middleware logging duration/SQL, aggregate by model/operation
+  - **Alerts**: Log warning for queries >100ms, error for queries >500ms
+  - **Value**: Proactive database optimization, prevent performance degradation at scale
+
+### Distributed Request Tracing
+
+- **Propagate correlation ID to external services** - Pass request ID from middleware to Prisma, Blob SDK, and Replicate API calls. Enables end-to-end request tracing across service boundaries.
+  - **Rationale for deferring**: Request ID in logs (TODO.md Phase 2) provides basic tracing; this extends to external services
+  - **Effort**: Medium (~2-3 hours to modify service clients, add headers/metadata)
+  - **Priority**: Medium
+  - **Implementation**:
+    - Add `x-request-id` header to Replicate API calls
+    - Add correlation ID to Blob SDK operations via metadata
+    - Add request ID to Prisma context for query logging
+  - **Value**: Trace errors through full stack including external dependencies
+
+### Advanced Logging
+
+- **Add structured log levels with environment-based filtering** - Extend vercel-logger with debug/info/warn levels, controllable via `LOG_LEVEL` env var. Reduce log noise in production while preserving detail for debugging.
+  - **Rationale for deferring**: Error logging (TODO.md Phase 1) is critical path; log levels are optimization
+  - **Effort**: Small (~1-2 hours for level filtering, environment config)
+  - **Priority**: Low
+  - **Implementation**:
+    - `LOG_LEVEL=error` in production (errors only)
+    - `LOG_LEVEL=debug` in development (all logs)
+    - Conditional logging based on level threshold
+  - **Value**: Cleaner production logs, easier to find critical errors in high-traffic periods
+
+- **Create log aggregation dashboard** - Set up Vercel Log Drains to export logs to visualization tool (Datadog, Honeycomb, Grafana). Build dashboards for error rates, endpoint latency, request volume.
+  - **Rationale for deferring**: Vercel console provides basic log viewing; dashboard is operational enhancement
+  - **Effort**: Medium (~3-4 hours for log drain setup, dashboard creation)
+  - **Priority**: Medium
+  - **Implementation**: Configure Vercel Log Drains → external service → dashboard templates
+  - **Dashboards**: Error rate by endpoint, latency percentiles, request volume over time
+  - **Value**: At-a-glance system health, historical trend analysis
+
+### Code Architecture Improvements
+
+- **Refactor auth checks outside try-catch blocks** - Move Clerk `auth()` calls outside try-catch to follow best practices and eliminate need for `unstable_rethrow`. Provides cleaner separation between authentication and business logic error handling.
+  - **Rationale for deferring**: `unstable_rethrow` (TODO.md Phase 0) solves the immediate issue; this refactor improves maintainability but isn't urgent
+  - **Effort**: Medium (~2-3 hours for all 8 routes + testing)
+  - **Priority**: Medium
+  - **Current pattern** (with `unstable_rethrow`):
+    ```typescript
+    try {
+      const { userId } = await getAuthWithUser();
+      // business logic
+    } catch (error) {
+      unstable_rethrow(error); // Required to prevent catching Next.js internal errors
+      logError(...)
+    }
+    ```
+  - **Cleaner pattern** (auth outside try-catch):
+    ```typescript
+    const { userId } = await getAuthWithUser();
+    if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    try {
+      // Only business logic in try-catch
+    } catch (error) {
+      logError(...) // No unstable_rethrow needed
+    }
+    ```
+  - **Benefits**:
+    - Removes reliance on "unstable" Next.js API
+    - Explicit auth failure handling (401 responses)
+    - Clearer error boundaries: auth vs business logic
+    - Aligns with Clerk documentation patterns
+  - **Routes to update**: All 8 routes using `getAuthWithUser()` or `requireUserIdWithSync()`
+  - **Testing**: Verify auth failures return 401, business logic errors return 500
+  - **Value**: Better code organization, less coupling to Next.js internals, clearer intent
+
+### Reliability Patterns
+
+- **Implement automatic retry logic for transient failures** - Wrap Prisma and Blob operations with retry logic using exponential backoff. Improve reliability for transient network/database timeouts without user intervention.
+  - **Rationale for deferring**: Not experiencing transient failures currently; adds complexity
+  - **Effort**: Medium (~3-4 hours for retry wrapper, exponential backoff, idempotency checks)
+  - **Priority**: Low
+  - **Implementation**: Retry wrapper with max 3 attempts, exponential backoff (100ms, 200ms, 400ms)
+  - **Idempotency**: Use asset checksums to prevent duplicate uploads on retry
+  - **Trade-off**: Reduces error rate but increases latency for failing requests
+  - **Note**: Only retry idempotent operations (GET, PUT with checksum)
+
+- **Add circuit breaker for external service calls** - Prevent cascading failures when Replicate API or other dependencies are down. Open circuit after failure threshold, attempt recovery with exponential backoff.
+  - **Rationale for deferring**: No cascading failure issues observed; defensive pattern for scale
+  - **Effort**: Medium (~4-6 hours for circuit breaker implementation, state management, monitoring)
+  - **Priority**: Low
+  - **Implementation**: Track failure rate per service, open circuit after 50% failure over 1min, half-open retry after 30s
+  - **Fallback**: Return cached embeddings or gracefully degrade search to recency-only
+  - **Value**: Prevent cascading failures, maintain core functionality when dependencies fail
+
+### Developer Tools
+
+- **Create production error replay tool** - CLI tool that reads Vercel logs, extracts request data, and replays against local dev server to reproduce production-only errors.
+  - **Rationale for deferring**: Nice developer experience but not blocking debugging capability
+  - **Effort**: Medium (~4-5 hours for log parser, request replayer, mock data generation)
+  - **Priority**: Low
+  - **Implementation**: Parse JSON logs → extract request body/headers/params → replay via curl/fetch
+  - **Value**: Faster debugging cycle, reproduce production-only issues locally
+
+- **Add error simulation query parameter** - In development mode, support `?__simulateError=500` query param to trigger test errors without writing temporary throw statements.
+  - **Rationale for deferring**: Can manually throw errors for testing; this is convenience feature
+  - **Effort**: Small (~1 hour for error trigger implementation)
+  - **Priority**: Very Low
+  - **Implementation**: Check query param in dev mode, throw specific error types on demand
+  - **Example**: `?__simulateError=database` → throw Prisma connection error
+  - **Value**: Easier to test error handling without modifying code
+
+### Production Operations
+
+- **Configure error rate alerting** - Set up alerts for spike in 500 errors or error rate >1% of requests. Get notified before issue impacts many users.
+  - **Rationale for deferring**: Requires log aggregation infrastructure; manual monitoring works for now
+  - **Effort**: Small (~2-3 hours to configure alerts after log drain setup)
+  - **Priority**: Medium
+  - **Requirements**: Vercel Log Drains → Datadog/Honeycomb → threshold alerts
+  - **Thresholds**: Alert on >10 errors/min OR error rate >1% over 5min window
+  - **Notification**: Slack/PagerDuty/Email based on severity
+
+- **Create endpoint health dashboard** - Real-time dashboard showing API endpoint health: error rates, latency percentiles, request volume, database connection status.
+  - **Rationale for deferring**: Health check endpoint (TODO.md Phase 2.2) provides programmatic health; dashboard is visibility enhancement
+  - **Effort**: Medium (~4-6 hours for metrics export, dashboard creation, visualization)
+  - **Priority**: Low
+  - **Implementation**: Vercel Analytics + custom dashboard OR Grafana + Prometheus
+  - **Metrics**: Request rate, error rate, p50/p95/p99 latency, database connection pool
+  - **Value**: Quick status check during incidents, historical performance analysis
+
+### Documentation
+
+- **Write debugging runbook** - Step-by-step guide for debugging production errors: accessing Vercel logs, tracing requests, checking database health, common error patterns and fixes.
+  - **Rationale for deferring**: Error logging improvements make debugging more straightforward; runbook codifies best practices
+  - **Effort**: Medium (~3-4 hours to write comprehensive runbook, validate steps)
+  - **Priority**: Medium
+  - **Contents**:
+    - How to access Vercel logs and filter by request ID
+    - How to trace requests from middleware → handler → database
+    - Common error patterns and their fixes
+    - Database connection debugging steps
+    - Rollback procedures
+  - **Location**: `docs/debugging-runbook.md`
+  - **Value**: Faster incident resolution, less reliance on tribal knowledge
+
+- **Document all API error responses** - Catalog all possible error responses from each endpoint: status codes, error messages, retry guidance, common causes.
+  - **Rationale for deferring**: Frontend developers can inspect network tab; catalog improves DX
+  - **Effort**: Medium (~2-3 hours to audit all routes, document errors, review)
+  - **Priority**: Low
+  - **Format**: Markdown table with columns: Endpoint, Status, Error Type, Message, Cause, Retry?
+  - **Location**: `docs/api-errors.md`
+  - **Value**: Frontend developers know what errors to handle, less guesswork
+
+---
+
 ## 🚫 Rejected / Not Applicable
 
 ### PR #3 Review Feedback - Invalid or Misunderstood
