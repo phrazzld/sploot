@@ -1,25 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/navigation';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
-import { getAuth } from '@/lib/auth/server';
-import { put } from '@vercel/blob';
+import { requireUserIdWithSync } from '@/lib/auth/server';
 import { blobConfigured } from '@/lib/env';
 
-export async function POST(req: NextRequest) {
+/**
+ * Generates upload credentials for direct client-to-Blob uploads.
+ *
+ * Returns metadata needed for client to upload directly to Vercel Blob:
+ * - assetId: Unique identifier to track this upload
+ * - pathname: Unique path in blob storage
+ * - token: Blob storage token for uploading
+ *
+ * This decouples upload from processing:
+ * - Client uploads file bytes directly to Blob (network-bound, fast)
+ * - Server only handles metadata (no Sharp processing, no timeouts)
+ * - Processing happens async in background cron jobs
+ */
+export async function GET(req: NextRequest) {
   try {
-    // Check authentication
-    const { userId } = await getAuth();
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
+    // Validate authentication
+    const userId = await requireUserIdWithSync();
 
-    // Parse request body
-    const body = await req.json();
-    const { filename, mimeType, size } = body;
+    // Parse query parameters
+    const { searchParams } = new URL(req.url);
+    const filename = searchParams.get('filename');
+    const mimeType = searchParams.get('mimeType');
+    const size = searchParams.get('size');
 
-    // Validate request parameters
+    // Validate required parameters
     if (!filename || !mimeType || !size) {
       return NextResponse.json(
         { error: 'Missing required parameters: filename, mimeType, size' },
@@ -27,96 +36,76 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const sizeNum = parseInt(size, 10);
+    if (isNaN(sizeNum)) {
+      return NextResponse.json(
+        { error: 'Invalid size parameter' },
+        { status: 400 }
+      );
+    }
+
     // Validate file type
     if (!isValidFileType(mimeType)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed.' },
+        {
+          error: 'Invalid file type. Only JPEG, PNG, WebP, and GIF images are allowed.',
+          errorType: 'invalid_type',
+        },
         { status: 400 }
       );
     }
 
     // Validate file size
-    if (!isValidFileSize(size)) {
+    if (!isValidFileSize(sizeNum)) {
       return NextResponse.json(
-        { error: 'File size must be between 1 byte and 10MB' },
+        {
+          error: 'File size must be between 1 byte and 10MB',
+          errorType: 'file_too_large',
+        },
         { status: 400 }
       );
     }
 
-    // Generate unique filename for storage
-    const uniqueFilename = generateUniqueFilename(userId, filename);
-
-    // For client-side uploads, we return the upload configuration
-    // The actual upload will happen directly from the client to Vercel Blob
-    const { uploadUrl, downloadUrl } = await generateUploadUrl(uniqueFilename);
-
-    return NextResponse.json({
-      uploadUrl,
-      downloadUrl,
-      pathname: uniqueFilename,
-      method: 'PUT',
-      headers: {
-        'content-type': mimeType,
-      }
-    });
-
-  } catch (error) {
-    // Provide detailed error information for debugging
-    console.error('Upload URL generation error:', error);
-
-    // Return user-friendly error message
-    const errorMessage = error instanceof Error
-      ? error.message
-      : 'Failed to generate upload URL';
-
-    return NextResponse.json(
-      { error: errorMessage },
-      { status: 500 }
-    );
-  }
-}
-
-/**
- * Generates a pre-signed upload URL for client-side uploads
- * Uses Vercel Blob's put() method to create proper upload URLs
- */
-async function generateUploadUrl(pathname: string): Promise<{ uploadUrl: string; downloadUrl: string }> {
-  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
-
-  // Check if blob storage is properly configured
-  if (!blobConfigured || !blobToken) {
-    throw new Error('Blob storage is not configured. Please set BLOB_READ_WRITE_TOKEN in your environment variables.');
-  }
-
-  try {
-    // Generate a proper upload URL using Vercel Blob
-    // Note: For client uploads, we need to use the multipart upload approach
-    // For now, we'll use server-side upload with a placeholder
-    const blob = await put(pathname, new Blob([]), {
-      access: 'public',
-      addRandomSuffix: false,
-      token: blobToken,
-    });
-
-    // Return both upload and download URLs
-    return {
-      uploadUrl: blob.url,
-      downloadUrl: blob.downloadUrl || blob.url,
-    };
-  } catch (error) {
-    // Log the actual error for debugging
-    console.error('Vercel Blob error:', error);
-
-    // Provide helpful error message based on error type
-    if (error instanceof Error) {
-      if (error.message.includes('Invalid token')) {
-        throw new Error('Invalid Vercel Blob token. Please check your BLOB_READ_WRITE_TOKEN.');
-      }
-      if (error.message.includes('Network')) {
-        throw new Error('Network error connecting to Vercel Blob storage. Please try again.');
-      }
+    // Check blob storage configuration
+    if (!blobConfigured) {
+      return NextResponse.json(
+        { error: 'Blob storage not configured' },
+        { status: 500 }
+      );
     }
 
-    throw new Error('Failed to generate upload URL. Please check your Vercel Blob configuration.');
+    const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+    if (!blobToken) {
+      return NextResponse.json(
+        { error: 'Blob storage token not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Generate unique pathname for storage
+    const pathname = generateUniqueFilename(userId, filename);
+
+    // Generate unique asset ID (client will use this to identify upload)
+    const assetId = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    // Return upload credentials
+    // Client will use Vercel Blob SDK's put() method with these
+    return NextResponse.json({
+      assetId,
+      pathname,
+      token: blobToken,
+      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+    });
+
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error('[upload-url] Error generating upload URL:', error);
+
+    return NextResponse.json(
+      {
+        error: error instanceof Error ? error.message : 'Failed to generate upload URL',
+      },
+      { status: 500 }
+    );
   }
 }
