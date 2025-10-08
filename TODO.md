@@ -36,7 +36,7 @@
 
 ### Database Schema Changes
 
-- [ ] **Add processing state flags to Asset model**
+- [x] **Add processing state flags to Asset model**
   - Add `processed: boolean @default(false)` to track image processing completion (resize/thumbnail)
   - Add `embedded: boolean @default(false)` to track embedding generation completion
   - Add `processingError: string?` to store processing failure reasons
@@ -45,6 +45,12 @@
   - Run migration: `pnpm db:migrate` after schema changes
   - Success criteria: Can query unprocessed/unembedded assets efficiently via `WHERE processed=false`
   - File: `prisma/schema.prisma`
+  ```
+  Work Log:
+  - Used 'prisma db push' instead of migrate due to shadow DB issues
+  - Added compound index (processed, embedded, createdAt) for queue queries
+  - Schema validated and applied successfully (commit: 92fd38f)
+  ```
 
 ### Client Upload Flow
 
