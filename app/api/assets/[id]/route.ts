@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { unstable_rethrow } from 'next/dist/client/components/navigation';
+import { unstable_rethrow } from 'next/navigation';
 import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/db';

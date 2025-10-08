@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { unstable_rethrow } from 'next/dist/client/components/navigation';
+import { unstable_rethrow } from 'next/navigation';
 import { isValidFileType, isValidFileSize } from '@/lib/blob';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';

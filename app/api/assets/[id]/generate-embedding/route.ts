@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { unstable_rethrow } from 'next/dist/client/components/navigation';
+import { unstable_rethrow } from 'next/navigation';
 import { prisma, upsertAssetEmbedding } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { getAuth } from '@/lib/auth/server';

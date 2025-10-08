@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse, after } from 'next/server';
-import { unstable_rethrow } from 'next/dist/client/components/navigation';
+import { unstable_rethrow } from 'next/navigation';
 import { put } from '@vercel/blob';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
