@@ -128,15 +128,24 @@
   - Commit: 4575c5a
   ```
 
-- [ ] **Add rate limiting to `/api/upload-url` endpoint**
+- [x] **Add rate limiting to `/api/upload-url` endpoint**
   - Check rate limit before generating presigned URL: `await rateLimiter.consume(userId, 1)`
   - Return 429 with `Retry-After: <seconds>` header if rate limited
   - Response body: `{ error: 'Too many uploads. Please wait ${retryAfter}s and try again', retryAfter }`
   - Log rate limit violations for monitoring: `console.warn('[RateLimit] User ${userId} exceeded limit')`
   - Success criteria: Endpoint rejects >100 requests/minute from single user with proper 429 response
   - File: `app/api/upload-url/route.ts`
+  ```
+  Work Log:
+  - Import uploadRateLimiter singleton
+  - Check rate limit before processing request
+  - Return 429 with retryAfter in body and Retry-After header
+  - Include errorType: 'rate_limited' for client classification
+  - Log violations for monitoring
+  - Commit: 3958ad4
+  ```
 
-- [ ] **Handle 429 rate limit responses in client**
+- [x] **Handle 429 rate limit responses in client**
   - Detect 429 status code in upload error handler
   - Parse `retryAfter` from response body or `Retry-After` header
   - Show user-friendly message: "Upload rate limited. Retrying in ${retryAfter}s..."
@@ -144,6 +153,16 @@
   - Add rate limit errors to `UploadErrorType.RATE_LIMITED` classification (already exists)
   - Success criteria: Client gracefully handles rate limiting with automatic retry
   - File: `components/upload/upload-zone.tsx:1270-1333` (error handler)
+  ```
+  Work Log:
+  - Enhanced retry helper to check error.retryAfter
+  - Use server delay (convert s→ms) when rate limited
+  - Add ±10% jitter to prevent thundering herd
+  - Fallback to exponential backoff for other errors
+  - Parse retryAfter from error response body
+  - Automatic retry transparent to user
+  - Commit: 3958ad4
+  ```
 
 ---
 
