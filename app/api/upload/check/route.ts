@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable, assetExists } from '@/lib/db';
+import { prisma, assetExists } from '@/lib/db';
 
 /**
  * Upload Preflight Check Endpoint
@@ -79,7 +79,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if database is available
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable. Cannot perform preflight check.' },
         { status: 503 }

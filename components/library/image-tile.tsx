@@ -20,6 +20,7 @@ interface ImageTileProps {
   preserveAspectRatio?: boolean;
   onClick?: () => void;
   onAssetUpdate?: (id: string, updates: Partial<Asset>) => void;
+  showSimilarityScore?: boolean;
 }
 
 type EmbeddingStatusType = 'pending' | 'processing' | 'ready' | 'failed';
@@ -32,7 +33,8 @@ function ImageTileComponent({
   onToggleFavorite,
   preserveAspectRatio = false,
   onClick,
-  onAssetUpdate
+  onAssetUpdate,
+  showSimilarityScore = false,
 }: ImageTileProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -262,14 +264,51 @@ function ImageTileComponent({
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
   };
 
+  // Extract similarity score from search results
+  // Similarity is 0-1, display as 0.00 format
+  const similarityScore = useMemo(() => {
+    if (!showSimilarityScore) return null;
+    const score = (asset as any).similarity;
+    if (typeof score !== 'number') return null;
+    return score.toFixed(2);
+  }, [showSimilarityScore, asset]);
+
+  // Determine border color based on similarity score
+  // High (>0.85) = terminal green, Medium (0.7-0.85) = terminal yellow, Low (<0.7) = default
+  const scoreBorderStyle = useMemo(() => {
+    if (!showSimilarityScore) return null;
+    const score = (asset as any).similarity;
+    if (typeof score !== 'number') return null;
+
+    if (score > 0.85) {
+      return {
+        borderColor: 'var(--color-terminal-green)',
+        boxShadow: '0 0 0 2px var(--color-terminal-green), 0 0 12px rgba(74, 222, 128, 0.3)',
+      };
+    } else if (score >= 0.7) {
+      return {
+        borderColor: 'var(--color-terminal-yellow)',
+        boxShadow: '0 0 0 2px var(--color-terminal-yellow), 0 0 12px rgba(251, 191, 36, 0.3)',
+      };
+    }
+    // Low scores get default border (subtle white/gray)
+    return {
+      borderColor: '#464C55',
+      boxShadow: '0 0 0 2px #464C55',
+    };
+  }, [showSimilarityScore, asset]);
+
   return (
     <>
       <div
       onClick={onClick || (() => onSelect?.(asset))}
       className={cn(
-        'group relative bg-[#0F1012] rounded-md overflow-hidden w-full',
-        'hover:ring-2 hover:ring-[#7C5CFF] hover:shadow-lg transition-all duration-200 cursor-pointer'
+        'group relative bg-[#0F1012] overflow-hidden w-full border border-[#1A1A1A]',
+        'cursor-pointer',
+        // Terminal-style hover state
+        !showSimilarityScore && 'hover:border-[var(--color-terminal-green)]'
       )}
+      style={scoreBorderStyle || undefined}
     >
       {/* Image container */}
       <div
@@ -300,10 +339,9 @@ function ImageTileComponent({
               onClick={handleDelete}
               disabled={isLoading}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
-                'bg-red-500/10 text-red-400 border border-red-500/30',
-                'hover:bg-red-500/20 hover:border-red-500/50',
-                'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500',
+                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase',
+                'bg-black text-[var(--color-terminal-red)] border border-[var(--color-terminal-red)]',
+                'hover:bg-[var(--color-terminal-red)] hover:text-black',
                 isLoading && 'opacity-50 cursor-wait'
               )}
               title="Delete broken image"
@@ -323,7 +361,7 @@ function ImageTileComponent({
           <>
             {/* Skeleton placeholder shown while loading */}
             {!imageLoaded && (
-              <div aria-hidden className="absolute inset-0 overflow-hidden rounded-2xl">
+              <div aria-hidden className="absolute inset-0 overflow-hidden">
                 <div className="h-full w-full bg-[#1B1F24] animate-pulse" />
               </div>
             )}
@@ -377,10 +415,10 @@ function ImageTileComponent({
             disabled={isLoading}
             aria-pressed={asset.favorite}
             className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm border border-transparent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+              'w-8 h-8 flex items-center justify-center bg-black/80 border',
               asset.favorite
-                ? 'bg-[#FF64C5] text-black shadow-[0_8px_24px_-10px_rgba(255,100,197,0.85)] ring-1 ring-[#FF8AD6]/60'
-                : 'bg-black/60 text-white border border-[#2A2F37] hover:border-transparent hover:bg-[#FF64C5] hover:text-black hover:shadow-[0_6px_20px_-10px_rgba(255,100,197,0.9)]',
+                ? 'border-[var(--color-terminal-green)] text-[var(--color-terminal-green)]'
+                : 'border-[#333333] text-[#666666] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]',
               isLoading && 'opacity-70 cursor-wait'
             )}
             title={asset.favorite ? 'drop from bangers' : 'crown as banger'}
@@ -393,9 +431,9 @@ function ImageTileComponent({
             onClick={handleDelete}
             disabled={isLoading}
             className={cn(
-              'w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 backdrop-blur-sm bg-black/60 text-white',
+              'w-8 h-8 flex items-center justify-center bg-black/80 text-[#666666] border border-[#333333]',
               'opacity-0 group-hover:opacity-100',
-              'hover:bg-red-500 hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]',
+              'hover:bg-[var(--color-terminal-red)] hover:text-black hover:border-[var(--color-terminal-red)]',
               isLoading && 'pointer-events-none cursor-wait'
             )}
             title="rage delete"
@@ -411,24 +449,57 @@ function ImageTileComponent({
           </button>
         </div>
 
-        {/* Hover overlay with metadata */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
-          {/* Bottom info on hover */}
-          <div className="absolute bottom-0 left-0 right-0 p-2">
-            <div className="flex items-center justify-between text-white/90 text-xs">
-              <span className="truncate max-w-[60%]">
-                {asset.width}×{asset.height} • {formatFileSize(asset.size || 0)}
+        {/* Similarity score overlay - top right, only during search */}
+        {similarityScore !== null && (
+          <div className="absolute top-2 right-2 z-10">
+            <div className="px-2 py-1 bg-black border border-[var(--color-terminal-green)]">
+              <span className="font-mono text-xs text-[var(--color-terminal-green)] tabular-nums">
+                {similarityScore}
               </span>
-              {typeof asset.relevance === 'number' && (
-                <span
-                  className={cn(
-                    'font-semibold',
-                    asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
+            </div>
+          </div>
+        )}
+
+        {/* Hover overlay with metadata - terminal style */}
+        <div className="absolute inset-0 bg-black/85 opacity-0 group-hover:opacity-100 pointer-events-none">
+          {/* Bottom info on hover - terminal-style metadata with pipes */}
+          <div className="absolute bottom-0 left-0 right-0 p-1.5">
+            <div className="flex flex-col gap-0.5">
+              <div className="flex items-center justify-between">
+                <div className="text-white/90 text-xs font-mono truncate">
+                  {asset.filename}
+                </div>
+                {/* Terminal-style embedding status */}
+                <div className="text-xs font-mono ml-2 shrink-0">
+                  {embeddingStatus === 'ready' && (
+                    <span className="text-[var(--color-terminal-green)]">[✓] EMBEDDED</span>
                   )}
-                >
-                  {Math.round(asset.relevance)}%
+                  {embeddingStatus === 'processing' && (
+                    <span className="text-[var(--color-terminal-yellow)]">[⏳] PROCESSING</span>
+                  )}
+                  {embeddingStatus === 'pending' && (
+                    <span className="text-[var(--color-terminal-yellow)]">[⏳] QUEUED</span>
+                  )}
+                  {embeddingStatus === 'failed' && (
+                    <span className="text-[var(--color-terminal-red)]">[✗] FAILED</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center justify-between text-white/70 text-xs font-mono">
+                <span className="truncate">
+                  {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
                 </span>
-              )}
+                {typeof asset.relevance === 'number' && (
+                  <span
+                    className={cn(
+                      'font-semibold tabular-nums ml-2',
+                      asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
+                    )}
+                  >
+                    {Math.round(asset.relevance)}%
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -441,7 +512,7 @@ function ImageTileComponent({
               disabled={embeddingStatus === 'processing'}
               className={cn(
                 'flex items-center justify-center',
-                isDebugMode ? 'min-w-[20px] h-5 px-1 rounded' : 'w-5 h-5 rounded-full',
+                isDebugMode ? 'min-w-[20px] h-5 px-1 rounded' : 'w-5 h-5 ',
                 'backdrop-blur-sm transition-all duration-200',
                 embeddingStatus === 'pending' && 'bg-yellow-500/70 cursor-default',
                 embeddingStatus === 'processing' && 'bg-blue-500/70 cursor-wait',
@@ -466,8 +537,8 @@ function ImageTileComponent({
                   {embeddingStatus === 'pending' && (
                     <div className="flex items-center gap-1">
                       <div className="relative">
-                        <div className="w-2 h-2 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
-                        <div className="w-2 h-2 bg-yellow-300 rounded-full relative" />
+                        <div className="w-2 h-2 bg-yellow-200 animate-ping absolute inset-0" />
+                        <div className="w-2 h-2 bg-yellow-300 relative" />
                       </div>
                       <span className="text-[10px] font-mono">P</span>
                     </div>
@@ -503,8 +574,8 @@ function ImageTileComponent({
                 <>
                   {embeddingStatus === 'pending' && (
                     <div className="relative">
-                      <div className="w-1.5 h-1.5 bg-yellow-200 rounded-full animate-ping absolute inset-0" />
-                      <div className="w-1.5 h-1.5 bg-yellow-300 rounded-full relative" />
+                      <div className="w-1.5 h-1.5 bg-yellow-200 animate-ping absolute inset-0" />
+                      <div className="w-1.5 h-1.5 bg-yellow-300 relative" />
                     </div>
                   )}
                   {embeddingStatus === 'processing' && (
@@ -625,6 +696,14 @@ function arePropsEqual(prevProps: ImageTileProps, nextProps: ImageTileProps) {
 
   // Re-render if preserveAspectRatio prop changed
   if (prevProps.preserveAspectRatio !== nextProps.preserveAspectRatio) return false;
+
+  // Re-render if showSimilarityScore prop changed
+  if (prevProps.showSimilarityScore !== nextProps.showSimilarityScore) return false;
+
+  // Re-render if similarity score changed (for search results)
+  const prevSimilarity = (prevProps.asset as any).similarity;
+  const nextSimilarity = (nextProps.asset as any).similarity;
+  if (prevSimilarity !== nextSimilarity) return false;
 
   // Ignore function prop changes - they're stable via useCallback (see JSDoc above)
   // This prevents unnecessary re-renders when parent re-renders

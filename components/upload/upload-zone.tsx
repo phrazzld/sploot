@@ -9,7 +9,6 @@ import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 import { useBackgroundSync } from '@/hooks/use-background-sync';
-import { TagInput } from '@/components/tags/tag-input';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { useEmbeddingStatusSubscription } from '@/contexts/embedding-status-context';
@@ -17,7 +16,7 @@ import { useSSEEmbeddingUpdates } from '@/hooks/use-sse-updates';
 import { getSSEClient } from '@/lib/sse-client';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
-import { UploadProgressHeader, ProgressStats } from './upload-progress-header';
+import type { ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
 import { logger } from '@/lib/logger';
 
@@ -262,10 +261,10 @@ function VirtualizedFileList({
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              <div className="bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37] h-[60px] flex items-center">
+              <div className="bg-[#1B1F24] p-3 border border-[#2A2F37] h-[60px] flex items-center">
                 <div className="flex items-center gap-3 w-full">
                   {/* File icon/preview */}
-                  <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-12 h-12 bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
                     {file.blobUrl ? (
                       <Image
                         src={file.blobUrl}
@@ -293,7 +292,7 @@ function VirtualizedFileList({
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {file.status === 'uploading' && (
                       <>
-                        <div className="w-24 h-1 bg-[#2A2F37] rounded-full overflow-hidden">
+                        <div className="w-24 h-1 bg-[#2A2F37] overflow-hidden">
                           <div
                             className="h-full bg-[#7C5CFF] transition-all duration-300"
                             style={{ width: `${file.progress}%` }}
@@ -410,7 +409,6 @@ export function UploadZone({
   const fileObjects = useRef(new Map<string, File>());
   const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
-  const [tags, setTags] = useState<string[]>([]);
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(false);
   const [recoveryCount, setRecoveryCount] = useState(0);
   const [uploadStats, setUploadStats] = useState<ProgressStats | null>(null);
@@ -1113,11 +1111,6 @@ export function UploadZone({
       const formData = new FormData();
       formData.append('file', file);
 
-      // Add tags to the form data
-      if (tags.length > 0) {
-        formData.append('tags', JSON.stringify(tags));
-      }
-
       // Track upload progress with XMLHttpRequest for better progress reporting
       const xhr = new XMLHttpRequest();
 
@@ -1573,7 +1566,6 @@ export function UploadZone({
   const handleViewLibrary = () => {
     setFileMetadata(new Map());
     fileObjects.current.clear();
-    setTags([]);
     setUploadStats(null);
     router.push('/app');
   };
@@ -1584,20 +1576,9 @@ export function UploadZone({
       onPaste={handlePaste}
       tabIndex={0}
     >
-      {/* Upload Progress Header - shows when files are being processed */}
-      {uploadStats && uploadStats.totalFiles > 0 && (
-        <div className="mb-4">
-          <UploadProgressHeader
-            stats={uploadStats}
-            onMinimize={() => {}}
-            className="animate-fade-in"
-          />
-        </div>
-      )}
-
       {/* Background sync status (only when enabled) */}
       {showSyncStatus && (
-        <div className="mb-4 bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]">
+        <div className="mb-4 bg-[#1B1F24] p-3 border border-[#2A2F37]">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4 text-sm">
               {pendingCount > 0 && (
@@ -1630,7 +1611,7 @@ export function UploadZone({
 
       {/* Recovery notification */}
       {showRecoveryNotification && (
-        <div className="mb-4 rounded-xl border border-[#7C5CFF]/30 bg-[#7C5CFF]/10 p-3 animate-fade-in">
+        <div className="mb-4 border border-[#7C5CFF]/30 bg-[#7C5CFF]/10 p-3 animate-fade-in">
           <div className="flex items-center gap-2">
             <svg className="h-4 w-4 text-[#7C5CFF] animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -1651,7 +1632,7 @@ export function UploadZone({
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          'relative rounded-2xl border-2 border-dashed transition-all duration-200 cursor-pointer',
+          'relative  border-2 border-dashed transition-all duration-200 cursor-pointer',
           'hover:border-[#7C5CFF] hover:bg-[#7C5CFF]/5',
           isDragging
             ? 'border-[#7C5CFF] bg-[#7C5CFF]/10 scale-[1.02]'
@@ -1661,7 +1642,7 @@ export function UploadZone({
       >
         {/* Preparing overlay */}
         {isPreparing && (
-          <div className="absolute inset-0 z-10 bg-[#1B1F24]/95 rounded-2xl flex flex-col items-center justify-center animate-fade-in">
+          <div className="absolute inset-0 z-10 bg-[#1B1F24]/95 flex flex-col items-center justify-center animate-fade-in">
             <svg className="h-8 w-8 text-[#7C5CFF] animate-spin mb-3" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
@@ -1678,7 +1659,7 @@ export function UploadZone({
         )}
         <div className="flex flex-col items-center justify-center py-12 px-6">
           <div className={cn(
-            'w-16 h-16 mb-4 rounded-full flex items-center justify-center transition-all duration-200',
+            'w-16 h-16 mb-4  flex items-center justify-center transition-all duration-200',
             isDragging ? 'bg-[#7C5CFF]/20 scale-110' : 'bg-[#1B1F24]'
           )}>
             <svg
@@ -1714,9 +1695,9 @@ export function UploadZone({
 
         {/* Accent stripe when dragging */}
         {isDragging && (
-          <div className="absolute inset-0 rounded-2xl pointer-events-none">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#7C5CFF] rounded-l-2xl" />
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#B6FF6E] rounded-r-2xl" />
+          <div className="absolute inset-0 pointer-events-none">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#7C5CFF]" />
+            <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#B6FF6E]" />
           </div>
         )}
       </div>
@@ -1731,26 +1712,11 @@ export function UploadZone({
         className="hidden"
       />
 
-      {/* Tag Input - Only show when files are selected */}
-      {filesArray.length > 0 && (
-        <div className="mt-6">
-          <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4 mb-4">
-            <h3 className="text-[#E6E8EB] font-medium text-sm mb-3">Add Tags</h3>
-            <TagInput
-              tags={tags}
-              onTagsChange={setTags}
-              placeholder="Add tags to these uploads..."
-              maxTags={10}
-            />
-          </div>
-        </div>
-      )}
-
       {/* File list */}
       {filesArray.length > 0 && (
         <div className="mt-6 space-y-4">
           {/* Batch Upload Progress Header */}
-          <div className="bg-[#14171A] border border-[#2A2F37] rounded-xl p-4">
+          <div className="bg-[#14171A] border border-[#2A2F37] p-4">
             <div className="flex items-center justify-between mb-3">
               <div>
                 <h3 className="text-[#E6E8EB] font-medium text-sm">upload progress</h3>
@@ -1793,7 +1759,7 @@ export function UploadZone({
 
             {/* Overall progress bar */}
             <div className="relative">
-              <div className="w-full h-2 bg-[#1B1F24] rounded-full overflow-hidden">
+              <div className="w-full h-2 bg-[#1B1F24] overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-[#7C5CFF] to-[#9B7FFF] transition-all duration-500 ease-out"
                   style={{ width: `${calculateOverallProgress()}%` }}
@@ -1861,11 +1827,11 @@ export function UploadZone({
               {filesArray.map((file) => (
               <div
                 key={file.id}
-                className="bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37]"
+                className="bg-[#1B1F24] p-3 border border-[#2A2F37]"
               >
                 <div className="flex items-center gap-3">
                   {/* File icon/preview */}
-                  <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden">
+                  <div className="w-12 h-12 bg-[#14171A] flex items-center justify-center overflow-hidden">
                     {file.blobUrl ? (
                       <Image
                         src={file.blobUrl}
@@ -1893,7 +1859,7 @@ export function UploadZone({
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {file.status === 'uploading' && (
                       <>
-                        <div className="w-24 h-1 bg-[#2A2F37] rounded-full overflow-hidden">
+                        <div className="w-24 h-1 bg-[#2A2F37] overflow-hidden">
                           <div
                             className="h-full bg-[#7C5CFF] transition-all duration-300"
                             style={{ width: `${file.progress}%` }}
@@ -1988,9 +1954,9 @@ export function UploadZone({
           )}
 
           {hasSuccessfulUploads && (
-            <div className="flex flex-col gap-3 rounded-xl border border-[#2A2F37] bg-[#14171A] p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-3 border border-[#2A2F37] bg-[#14171A] p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#B6FF6E]/10 text-[#B6FF6E]">
+                <div className="flex h-10 w-10 items-center justify-center bg-[#B6FF6E]/10 text-[#B6FF6E]">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <path
                       d="M5 13l4 4L19 7"
@@ -2034,7 +2000,7 @@ export function UploadZone({
               {!isOnDashboard && (
                 <button
                   onClick={handleViewLibrary}
-                  className="inline-flex items-center justify-center rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0] disabled:cursor-not-allowed disabled:bg-[#2A2F37] disabled:text-[#6A6E78]"
+                  className="inline-flex items-center justify-center bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0] disabled:cursor-not-allowed disabled:bg-[#2A2F37] disabled:text-[#6A6E78]"
                   disabled={hasActiveUploads}
                 >
                   view in library

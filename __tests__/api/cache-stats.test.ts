@@ -1,13 +1,13 @@
 import { GET, POST } from '@/app/api/cache/stats/route';
 import { createMockRequest, mockMultiLayerCache } from '../utils/test-helpers';
-import { auth } from '@clerk/nextjs/server';
+import { getAuth } from '@/lib/auth/server';
 import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
 
 // Mock dependencies
-vi.mock('@clerk/nextjs/server');
+vi.mock('@/lib/auth/server');
 vi.mock('@/lib/multi-layer-cache');
 
-const mockAuth = vi.mocked(auth);
+const mockGetAuth = vi.mocked(getAuth);
 const mockCreateMultiLayerCache = vi.mocked(createMultiLayerCache);
 const mockGetMultiLayerCache = vi.mocked(getMultiLayerCache);
 
@@ -21,7 +21,7 @@ describe('/api/cache/stats', () => {
 
   describe('GET', () => {
     it('should return 401 if user is not authenticated', async () => {
-      mockAuth.mockResolvedValue({ userId: null });
+      mockGetAuth.mockResolvedValue({ userId: null, sessionId: null, async getToken() { return null; } });
 
       const request = createMockRequest('GET');
       const response = await GET(request);
@@ -32,14 +32,12 @@ describe('/api/cache/stats', () => {
     });
 
     it('should return cache statistics', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       mockCache.getStats.mockReturnValue({
-        l1Hits: 100,
-        l1Misses: 20,
-        l2Hits: 50,
-        l2Misses: 10,
+        hits: 150,
+        misses: 30,
         totalRequests: 180,
         hitRate: 83.33,
         avgLatency: 5.2,
@@ -49,10 +47,8 @@ describe('/api/cache/stats', () => {
         l1: true,
         l2: true,
         stats: {
-          l1Hits: 100,
-          l1Misses: 20,
-          l2Hits: 50,
-          l2Misses: 10,
+          hits: 150,
+          misses: 30,
           totalRequests: 180,
           hitRate: 83.33,
           avgLatency: 5.2,
@@ -67,11 +63,9 @@ describe('/api/cache/stats', () => {
 
       expect(response.status).toBe(200);
       expect(data.status).toBe('healthy');
-      expect(data.layers.l1.status).toBe('active');
-      expect(data.layers.l1.hits).toBe(100);
-      expect(data.layers.l1.misses).toBe(20);
-      expect(data.layers.l2.status).toBe('active');
-      expect(data.layers.l2.hits).toBe(50);
+      expect(data.cache.status).toBe('active');
+      expect(data.cache.hits).toBe(150); // l1Hits + l2Hits = 100 + 50
+      expect(data.cache.misses).toBe(30); // l1Misses + l2Misses = 20 + 10
       expect(data.overall.totalRequests).toBe(180);
       expect(data.overall.hitRate).toBe('83.33%');
       expect(data.performance.meetsTarget).toBe(true);
@@ -79,11 +73,11 @@ describe('/api/cache/stats', () => {
     });
 
     it('should handle inactive cache layers', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       mockCache.isHealthy.mockResolvedValue({
-        l1: true,
+        l1: false,
         l2: false,
         stats: mockCache.getStats(),
       });
@@ -94,19 +88,16 @@ describe('/api/cache/stats', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.layers.l1.status).toBe('active');
-      expect(data.layers.l2.status).toBe('inactive');
+      expect(data.cache.status).toBe('inactive');
     });
 
     it('should indicate when cache performance is below target', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       mockCache.getStats.mockReturnValue({
-        l1Hits: 50,
-        l1Misses: 50,
-        l2Hits: 20,
-        l2Misses: 30,
+        hits: 70,
+        misses: 80,
         totalRequests: 150,
         hitRate: 46.67,
         avgLatency: 10.5,
@@ -131,7 +122,7 @@ describe('/api/cache/stats', () => {
 
   describe('POST', () => {
     it('should return 401 if user is not authenticated', async () => {
-      mockAuth.mockResolvedValue({ userId: null });
+      mockGetAuth.mockResolvedValue({ userId: null, sessionId: null, async getToken() { return null; } });
 
       const request = createMockRequest('POST', null, {}, {
         action: 'reset-stats',
@@ -145,7 +136,7 @@ describe('/api/cache/stats', () => {
     });
 
     it('should reset cache statistics', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       getMultiLayerCache.mockReturnValue(mockCache);
@@ -163,7 +154,7 @@ describe('/api/cache/stats', () => {
     });
 
     it('should clear L1 cache', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       getMultiLayerCache.mockReturnValue(mockCache);
@@ -181,7 +172,7 @@ describe('/api/cache/stats', () => {
     });
 
     it('should clear L2 cache', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       getMultiLayerCache.mockReturnValue(mockCache);
@@ -199,7 +190,7 @@ describe('/api/cache/stats', () => {
     });
 
     it('should clear all caches', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       getMultiLayerCache.mockReturnValue(mockCache);
@@ -217,7 +208,7 @@ describe('/api/cache/stats', () => {
     });
 
     it('should start cache warming', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       getMultiLayerCache.mockReturnValue(mockCache);
@@ -236,7 +227,7 @@ describe('/api/cache/stats', () => {
     });
 
     it('should invalidate user cache', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const mockCache = mockMultiLayerCache();
       getMultiLayerCache.mockReturnValue(mockCache);
@@ -255,7 +246,7 @@ describe('/api/cache/stats', () => {
     });
 
     it('should return 400 for invalid action', async () => {
-      mockAuth.mockResolvedValue({ userId: 'test-user-id' });
+      mockGetAuth.mockResolvedValue({ userId: 'test-user-id', sessionId: 'test-session', async getToken() { return null; } });
 
       const request = createMockRequest('POST', null, {}, {
         action: 'invalid-action',

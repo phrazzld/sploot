@@ -211,8 +211,8 @@ class EmbeddingStatusManager {
                 'Content-Type': 'application/json',
               },
               body: JSON.stringify({ assetIds: chunk }),
-              priority: 'normal',
-            } as RequestInit & { priority: 'normal' });
+              priority: 'low',
+            } as RequestInit & { priority: 'low' });
 
             if (!response.ok) {
               console.error(`Batch status check failed: ${response.status}`);

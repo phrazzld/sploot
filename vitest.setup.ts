@@ -192,14 +192,14 @@ if (!global.FormData) {
   } as any;
 }
 
-// Mock environment variables
-process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_mock';
-process.env.CLERK_SECRET_KEY = 'sk_test_mock';
-process.env.BLOB_READ_WRITE_TOKEN = 'mock_blob_token';
-process.env.POSTGRES_URL = 'postgresql://mock:mock@localhost:5432/mock';
-process.env.POSTGRES_URL_NON_POOLING = 'postgresql://mock:mock@localhost:5432/mock';
-process.env.REPLICATE_API_TOKEN = 'r8_mock_token';
-// Redis removed - using in-memory cache only
+// Mock environment variables for testing
+// These provide valid-looking values so tests don't fail on env checks
+process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = 'pk_test_mock_12345678901234567890';
+process.env.CLERK_SECRET_KEY = 'sk_test_mock_12345678901234567890';
+process.env.BLOB_READ_WRITE_TOKEN = 'vercel_blob_test_mock_token_12345678901234567890';
+process.env.POSTGRES_URL = 'postgresql://test:test@localhost:5432/test_db';
+process.env.POSTGRES_URL_NON_POOLING = 'postgresql://test:test@localhost:5432/test_db';
+process.env.REPLICATE_API_TOKEN = 'r8_test_mock_token_12345678901234567890';
 
 // Mock fetch globally
 global.fetch = vi.fn((url: string, options?: RequestInit) => {

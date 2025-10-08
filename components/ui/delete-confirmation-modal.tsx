@@ -72,7 +72,7 @@ export function DeleteConfirmationModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
         <div
           className={cn(
-            'bg-[#14171A] border border-[#2A2F37] rounded-2xl max-w-md w-full',
+            'bg-[#14171A] border border-[#2A2F37]  max-w-md w-full',
             'shadow-xl animate-scale-in'
           )}
           onClick={(e) => e.stopPropagation()}
@@ -90,7 +90,7 @@ export function DeleteConfirmationModal({
           {/* Image Preview */}
           {imageUrl && (
             <div className="px-6 py-4">
-              <div className="relative bg-[#1B1F24] rounded-lg overflow-hidden border border-[#2A2F37]">
+              <div className="relative bg-[#1B1F24] overflow-hidden border border-[#2A2F37]">
                 <Image
                   src={imageUrl}
                   alt={imageName || 'Image to delete'}
@@ -153,7 +153,7 @@ export function DeleteConfirmationModal({
               onClick={onClose}
               disabled={loading}
               className={cn(
-                'flex-1 px-4 py-2 rounded-lg font-medium text-sm',
+                'flex-1 px-4 py-2  font-medium text-sm',
                 'bg-[#1B1F24] text-[#E6E8EB] border border-[#2A2F37]',
                 'hover:bg-[#2A2F37] hover:border-[#7C5CFF]/30',
                 'transition-all duration-200',
@@ -166,7 +166,7 @@ export function DeleteConfirmationModal({
               onClick={handleConfirm}
               disabled={loading}
               className={cn(
-                'flex-1 px-4 py-2 rounded-lg font-medium text-sm',
+                'flex-1 px-4 py-2  font-medium text-sm',
                 'bg-[#FF4D4D] text-white',
                 'hover:bg-[#FF6B6B]',
                 'transition-all duration-200',

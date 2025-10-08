@@ -1,6 +1,5 @@
 import Replicate from 'replicate';
 import { createMultiLayerCache, getMultiLayerCache } from './multi-layer-cache';
-import { isMockMode } from './env';
 
 // Updated to working CLIP model (SigLIP model was deprecated)
 export const CLIP_MODEL = 'krthr/clip-embeddings:1c0371070cb827ec3c7f2f28adcdde54b50dcd239aa6faea0bc98b174ef03fb4';
@@ -30,51 +29,6 @@ export class EmbeddingError extends Error {
   ) {
     super(message);
     this.name = 'EmbeddingError';
-  }
-}
-
-class MockEmbeddingService {
-  private model = 'mock/sploot-embedding:local';
-
-  async embedText(query: string): Promise<EmbeddingResult> {
-    const embedding = this.buildVector(query);
-    return {
-      embedding,
-      model: this.model,
-      dimension: embedding.length,
-      processingTime: 1,
-    };
-  }
-
-  async embedImage(imageUrl: string): Promise<EmbeddingResult> {
-    const embedding = this.buildVector(imageUrl);
-    return {
-      embedding,
-      model: this.model,
-      dimension: embedding.length,
-      processingTime: 1,
-    };
-  }
-
-  async embedBatch(items: Array<{ type: 'text' | 'image'; content: string }>): Promise<EmbeddingResult[]> {
-    return Promise.all(
-      items.map(item =>
-        item.type === 'text'
-          ? this.embedText(item.content)
-          : this.embedImage(item.content)
-      )
-    );
-  }
-
-  private buildVector(seed: string): number[] {
-    const vectorLength = 32;
-    const vector = new Array(vectorLength).fill(0);
-    for (let i = 0; i < seed.length; i++) {
-      const charCode = seed.charCodeAt(i);
-      vector[i % vectorLength] += (charCode % 97) / 97;
-    }
-    const max = Math.max(...vector, 1);
-    return vector.map(v => Number((v / max).toFixed(4)));
   }
 }
 
@@ -273,18 +227,12 @@ export class ReplicateEmbeddingService {
 
 /**
  * Factory function to create embedding service instance.
- * Returns mock service in development when Replicate API not configured.
- * @throws {EmbeddingError} If API token not configured and not in mock mode
+ * @throws {EmbeddingError} If API token not configured
  */
 export function createEmbeddingService(): ReplicateEmbeddingService {
-  if (isMockMode()) {
-    return new MockEmbeddingService() as unknown as ReplicateEmbeddingService;
-  }
-
   const apiToken = process.env.REPLICATE_API_TOKEN;
 
   if (!apiToken || apiToken === 'your_replicate_token_here') {
-    // Replicate API token not configured
     throw new EmbeddingError('Replicate API token not configured');
   }
 

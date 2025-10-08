@@ -17,7 +17,7 @@ export function CacheStatus() {
 
   if (!isSupported) {
     return (
-      <div className="bg-lab-surface border border-lab-border rounded-xl p-6">
+      <div className="bg-lab-surface border border-lab-border p-6">
         <p className="text-sm text-lab-text-secondary">
           Cache management is not supported in your browser.
         </p>
@@ -36,7 +36,7 @@ export function CacheStatus() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-lab-surface border border-lab-border rounded-xl p-6">
+      <div className="bg-lab-surface border border-lab-border p-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h3 className="text-lg font-semibold text-lab-text">
@@ -50,7 +50,7 @@ export function CacheStatus() {
             onClick={getCacheStatus}
             disabled={isLoading}
             className={cn(
-              'px-4 py-2 text-sm bg-lab-surface-secondary text-lab-text rounded-lg',
+              'px-4 py-2 text-sm bg-lab-surface-secondary text-lab-text ',
               'hover:bg-lab-border transition-colors',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
@@ -61,25 +61,25 @@ export function CacheStatus() {
 
         {/* Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-lab-bg p-3 rounded-lg">
+          <div className="bg-lab-bg p-3">
             <p className="text-xs text-lab-text-secondary mb-1">Total Entries</p>
             <p className="text-xl font-semibold text-lab-text">
               {cacheStats.totalEntries.toLocaleString()}
             </p>
           </div>
-          <div className="bg-lab-bg p-3 rounded-lg">
+          <div className="bg-lab-bg p-3">
             <p className="text-xs text-lab-text-secondary mb-1">Estimated Size</p>
             <p className="text-xl font-semibold text-lab-text">
               {formatBytes(cacheStats.totalSize)}
             </p>
           </div>
-          <div className="bg-lab-bg p-3 rounded-lg">
+          <div className="bg-lab-bg p-3">
             <p className="text-xs text-lab-text-secondary mb-1">Cache Groups</p>
             <p className="text-xl font-semibold text-lab-text">
               {Object.keys(cacheStatus).length}
             </p>
           </div>
-          <div className="bg-lab-bg p-3 rounded-lg">
+          <div className="bg-lab-bg p-3">
             <p className="text-xs text-lab-text-secondary mb-1">Status</p>
             <p className="text-xl font-semibold text-green-500">
               Active
@@ -89,14 +89,14 @@ export function CacheStatus() {
 
         {/* Error Display */}
         {error && (
-          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+          <div className="mt-4 p-3 bg-red-500/10 border border-red-500/20">
             <p className="text-sm text-red-500">{error}</p>
           </div>
         )}
       </div>
 
       {/* Cache Details */}
-      <div className="bg-lab-surface border border-lab-border rounded-xl p-6">
+      <div className="bg-lab-surface border border-lab-border p-6">
         <h4 className="text-sm font-semibold text-lab-text mb-4 uppercase tracking-wider">
           Cache Details
         </h4>
@@ -110,7 +110,7 @@ export function CacheStatus() {
             {Object.entries(cacheStatus).map(([cacheName, cache]) => (
               <div
                 key={cacheName}
-                className="bg-lab-bg border border-lab-border rounded-lg p-4"
+                className="bg-lab-bg border border-lab-border p-4"
               >
                 <div className="flex items-center justify-between mb-2">
                   <h5 className="text-sm font-medium text-lab-text">
@@ -122,7 +122,7 @@ export function CacheStatus() {
                 </div>
 
                 {/* Progress bar showing cache usage */}
-                <div className="w-full h-2 bg-lab-surface-secondary rounded-full overflow-hidden mb-3">
+                <div className="w-full h-2 bg-lab-surface-secondary overflow-hidden mb-3">
                   <div
                     className={cn(
                       'h-full transition-all duration-300',
@@ -160,7 +160,7 @@ export function CacheStatus() {
       </div>
 
       {/* Actions */}
-      <div className="bg-lab-surface border border-lab-border rounded-xl p-6">
+      <div className="bg-lab-surface border border-lab-border p-6">
         <h4 className="text-sm font-semibold text-lab-text mb-4 uppercase tracking-wider">
           Cache Management
         </h4>
@@ -170,7 +170,7 @@ export function CacheStatus() {
             onClick={cleanCache}
             disabled={isLoading}
             className={cn(
-              'px-4 py-2 text-sm bg-lab-primary text-white rounded-lg',
+              'px-4 py-2 text-sm bg-lab-primary text-white ',
               'hover:opacity-90 transition-opacity',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
@@ -186,7 +186,7 @@ export function CacheStatus() {
             }}
             disabled={isLoading}
             className={cn(
-              'px-4 py-2 text-sm bg-red-500 text-white rounded-lg',
+              'px-4 py-2 text-sm bg-red-500 text-white ',
               'hover:opacity-90 transition-opacity',
               'disabled:opacity-50 disabled:cursor-not-allowed'
             )}
@@ -195,7 +195,7 @@ export function CacheStatus() {
           </button>
         </div>
 
-        <div className="mt-4 p-3 bg-lab-bg rounded-lg">
+        <div className="mt-4 p-3 bg-lab-bg">
           <p className="text-xs text-lab-text-secondary">
             <strong>Clean Old Entries:</strong> Removes the oldest 30% of cached items to free up space.
           </p>
@@ -206,7 +206,7 @@ export function CacheStatus() {
       </div>
 
       {/* Tips */}
-      <div className="bg-lab-surface border border-lab-border rounded-xl p-6">
+      <div className="bg-lab-surface border border-lab-border p-6">
         <h4 className="text-sm font-semibold text-lab-text mb-3 uppercase tracking-wider">
           Optimization Tips
         </h4>

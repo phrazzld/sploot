@@ -114,7 +114,7 @@ export function SearchOverlay({
             onClick={onClose}
             className={cn(
               'absolute -top-12 right-0',
-              'p-2 rounded-lg',
+              'p-2 ',
               'text-[#B3B7BE] hover:text-[#E6E8EB]',
               'hover:bg-[#2A2F37]',
               'transition-colors'
@@ -156,7 +156,7 @@ export function SearchOverlay({
               'bg-[#1B1F24] text-[#E6E8EB]',
               'text-lg',
               'border-2 border-[#7C5CFF]/50',
-              'rounded-xl',
+              '',
               'placeholder:text-[#B3B7BE]/60',
               'focus:outline-none focus:border-[#7C5CFF]',
               'transition-all duration-200',
@@ -174,7 +174,7 @@ export function SearchOverlay({
               onClick={clearSearch}
               className={cn(
                 'absolute right-4 top-1/2 -translate-y-1/2',
-                'p-2 rounded-lg',
+                'p-2 ',
                 'text-[#B3B7BE] hover:text-[#E6E8EB]',
                 'hover:bg-[#2A2F37]',
                 'transition-colors'
@@ -195,7 +195,7 @@ export function SearchOverlay({
           className={cn(
             'mt-4 px-6 py-3',
             'bg-[#7C5CFF] text-white',
-            'rounded-lg font-medium',
+            ' font-medium',
             'transition-all duration-200',
             query.trim()
               ? 'hover:bg-[#6B4FE6] active:scale-95'
@@ -220,7 +220,7 @@ export function SearchOverlay({
                   'px-3 py-1.5',
                   'bg-[#1B1F24] hover:bg-[#2A2F37]',
                   'text-[#B3B7BE] hover:text-[#E6E8EB]',
-                  'rounded-full text-sm',
+                  ' text-sm',
                   'transition-colors'
                 )}
               >

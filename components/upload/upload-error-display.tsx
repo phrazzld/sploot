@@ -122,7 +122,7 @@ export function UploadErrorDisplay({
   return (
     <div
       className={cn(
-        'rounded-lg border p-3',
+        ' border p-3',
         getErrorColor(),
         className
       )}
@@ -145,7 +145,7 @@ export function UploadErrorDisplay({
               <button
                 onClick={handleAction}
                 className={cn(
-                  'text-xs font-medium px-3 py-1 rounded-full transition-colors',
+                  'text-xs font-medium px-3 py-1  transition-colors',
                   'bg-white/10 hover:bg-white/20'
                 )}
               >
@@ -156,7 +156,7 @@ export function UploadErrorDisplay({
             {error.retryable && onRetry && !error.action && (
               <button
                 onClick={onRetry}
-                className="text-xs font-medium px-3 py-1 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="text-xs font-medium px-3 py-1 bg-white/10 hover:bg-white/20 transition-colors"
               >
                 Retry
               </button>

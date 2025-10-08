@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/navigation';
 import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuth } from '@/lib/auth/server';
-import { prisma, databaseAvailable } from '@/lib/db';
-import { isMockMode } from '@/lib/env';
-import { mockDeleteAsset, mockGetAsset, mockUpdateAsset } from '@/lib/mock-store';
+import { prisma } from '@/lib/db';
 
 export async function GET(
   req: NextRequest,
@@ -19,17 +18,12 @@ export async function GET(
     }
 
     const { id } = await params;
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const asset = mockGetAsset(userId, id);
 
-      if (!asset) {
-        return NextResponse.json(
-          { error: 'Asset not found' },
-          { status: 404 }
-        );
-      }
-
-      return NextResponse.json({ asset, mock: true });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const asset = await prisma.asset.findFirst({
@@ -76,6 +70,7 @@ export async function GET(
       },
     });
   } catch (error) {
+    unstable_rethrow(error);
     // Error fetching asset
     return NextResponse.json(
       { error: 'Failed to fetch asset' },
@@ -101,24 +96,11 @@ export async function PATCH(
     const body = await req.json();
     const { favorite, tags } = body;
 
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const updated = mockUpdateAsset(userId, id, {
-        favorite,
-        tags: Array.isArray(tags) ? tags : undefined,
-      });
-
-      if (!updated) {
-        return NextResponse.json(
-          { error: 'Asset not found' },
-          { status: 404 }
-        );
-      }
-
-      return NextResponse.json({
-        asset: updated,
-        message: 'Asset updated successfully',
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const existingAsset = await prisma.asset.findFirst({
@@ -223,6 +205,7 @@ export async function PATCH(
       message: 'Asset updated successfully',
     });
   } catch (error) {
+    unstable_rethrow(error);
     // Error updating asset
     return NextResponse.json(
       { error: 'Failed to update asset' },
@@ -248,20 +231,11 @@ export async function DELETE(
     const { searchParams } = new URL(req.url);
     const permanent = searchParams.get('permanent') === 'true';
 
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const asset = mockGetAsset(userId, id);
-      if (!asset) {
-        return NextResponse.json(
-          { error: 'Asset not found' },
-          { status: 404 }
-        );
-      }
-
-      mockDeleteAsset(userId, id, permanent);
-      return NextResponse.json({
-        message: permanent ? 'Asset permanently deleted' : 'Asset soft deleted',
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const existingAsset = await prisma.asset.findFirst({
@@ -319,6 +293,7 @@ export async function DELETE(
       });
     }
   } catch (error) {
+    unstable_rethrow(error);
     // Error deleting asset
     return NextResponse.json(
       { error: 'Failed to delete asset' },

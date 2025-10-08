@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, databaseAvailable, upsertAssetEmbedding } from '@/lib/db';
+import { unstable_rethrow } from 'next/navigation';
+import { prisma, upsertAssetEmbedding } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import { getAuth } from '@/lib/auth/server';
-import { isMockMode } from '@/lib/env';
-import { mockGenerateEmbedding } from '@/lib/mock-store';
 import { broadcastEmbeddingUpdate } from '@/lib/sse-broadcaster';
 
 // Request deduplication: Track in-flight requests
@@ -84,26 +83,11 @@ export async function POST(
       return NextResponse.json(result);
     }
 
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const asset = mockGenerateEmbedding(userId, id);
-      if (!asset) {
-        return NextResponse.json(
-          { error: 'Asset not found' },
-          { status: 404 }
-        );
-      }
-
-      return NextResponse.json({
-        success: true,
-        message: 'Embedding generated successfully',
-        embedding: {
-          modelName: 'mock/sploot-embedding:local',
-          dimension: asset.embedding?.length ?? 32,
-          processingTime: 1,
-          createdAt: asset.updatedAt,
-        },
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const asset = await prisma.asset.findFirst({
@@ -238,6 +222,7 @@ export async function POST(
       throw error;
     }
   } catch (error) {
+    unstable_rethrow(error);
     const processingTime = Date.now() - startTime;
     console.error(`[error] Failed to generate embedding for asset (${processingTime}ms):`, error);
 

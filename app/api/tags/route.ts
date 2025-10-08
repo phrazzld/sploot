@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 /**
  * GET /api/tags - Get all tags for the current user
@@ -9,7 +9,7 @@ export async function GET(req: NextRequest) {
   try {
     const userId = await requireUserIdWithSync();
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }
@@ -67,7 +67,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }

@@ -1,17 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/navigation';
 import { isValidFileType, isValidFileSize } from '@/lib/blob';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';
 import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
 import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable, upsertAssetEmbedding } from '@/lib/db';
-import { isMockMode } from '@/lib/env';
-import {
-  mockCreateAsset,
-  mockListAssets,
-} from '@/lib/mock-store';
+import { prisma, upsertAssetEmbedding } from '@/lib/db';
+import logger from '@/lib/logger';
+import { logError } from '@/lib/vercel-logger';
+import { createErrorResponse } from '@/lib/error-response';
 
 export async function POST(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+
   try {
     const userId = await requireUserIdWithSync();
 
@@ -50,32 +51,11 @@ export async function POST(req: NextRequest) {
 
     const checksumSha256 = checksum || crypto.randomBytes(32).toString('hex');
 
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const mockResult = mockCreateAsset(userId, {
-        blobUrl: blobUrl || `https://mock-blob-storage.local/${pathname}`,
-        pathname,
-        filename: filename || pathname,
-        mime: mimeType,
-        size,
-        checksumSha256,
-        width: width ?? null,
-        height: height ?? null,
-      });
-
-      if (mockResult.duplicate) {
-        return NextResponse.json({
-          asset: mockResult.asset,
-          message: 'Asset already exists',
-          duplicate: true,
-          mock: true,
-        });
-      }
-
-      return NextResponse.json({
-        asset: mockResult.asset,
-        message: 'Asset created successfully',
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const existingAsset = await prisma.asset.findFirst({
@@ -174,16 +154,48 @@ export async function POST(req: NextRequest) {
       message: 'Asset created successfully',
     });
   } catch (error) {
-    // Error creating asset
-    return NextResponse.json(
-      { error: 'Failed to create asset' },
-      { status: 500 }
+    unstable_rethrow(error);
+    logError('POST /api/assets', error, { requestId });
+    return createErrorResponse(
+      'Failed to create asset',
+      requestId,
+      req,
+      error instanceof Error ? error.message : undefined
     );
   }
 }
 
 export async function GET(req: NextRequest) {
+  const requestId = crypto.randomUUID();
+
+  // Declare params outside try block so they're accessible in catch for logging
+  let limit = 50;
+  let offset = 0;
+  let sortBy: 'createdAt' | 'updatedAt' = 'createdAt';
+  let sortOrder: 'asc' | 'desc' = 'desc';
+  let favorite: string | null = null;
+  let tagId: string | null = null;
+
   try {
+    // Parse query params INSIDE try block to catch URL parsing errors
+    const { searchParams } = new URL(req.url);
+    limit = parseInt(searchParams.get('limit') || '50', 10);
+    offset = parseInt(searchParams.get('offset') || '0', 10);
+
+    // Validate and type-cast sortBy to valid Prisma field names
+    const sortByParam = searchParams.get('sortBy') || 'createdAt';
+    const validSortFields = ['createdAt', 'updatedAt'] as const;
+    sortBy = validSortFields.includes(sortByParam as any)
+      ? (sortByParam as 'createdAt' | 'updatedAt')
+      : 'createdAt';
+
+    // Validate and type-cast sortOrder to Prisma's expected literal type
+    const sortOrderParam = searchParams.get('sortOrder') || 'desc';
+    sortOrder = sortOrderParam === 'asc' ? 'asc' : 'desc';
+
+    favorite = searchParams.get('favorite');
+    tagId = searchParams.get('tagId');
+
     const { userId } = await getAuthWithUser();
     if (!userId) {
       return NextResponse.json(
@@ -191,14 +203,6 @@ export async function GET(req: NextRequest) {
         { status: 401 }
       );
     }
-
-    const { searchParams } = new URL(req.url);
-    const limit = parseInt(searchParams.get('limit') || '50', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const sortOrder = searchParams.get('sortOrder') || 'desc';
-    const favorite = searchParams.get('favorite');
-    const tagId = searchParams.get('tagId');
 
     const where = {
       ownerUserId: userId,
@@ -213,25 +217,11 @@ export async function GET(req: NextRequest) {
       }),
     };
 
-    if (isMockMode() || !databaseAvailable || !prisma) {
-      const result = mockListAssets(userId, {
-        limit,
-        offset,
-        favorite: favorite !== null ? favorite === 'true' : undefined,
-        sortBy,
-        sortOrder: sortOrder as 'asc' | 'desc',
-      });
-
-      return NextResponse.json({
-        assets: result.assets,
-        pagination: {
-          limit,
-          offset,
-          total: result.total,
-          hasMore: result.hasMore,
-        },
-        mock: true,
-      });
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database not configured' },
+        { status: 500 }
+      );
     }
 
     const [assets, total] = await Promise.all([
@@ -239,9 +229,9 @@ export async function GET(req: NextRequest) {
         where,
         take: limit,
         skip: offset,
-        orderBy: {
-          [sortBy]: sortOrder,
-        },
+        orderBy: sortBy === 'createdAt'
+          ? { createdAt: sortOrder }
+          : { updatedAt: sortOrder },
         include: {
           embedding: true,
           tags: {
@@ -282,10 +272,16 @@ export async function GET(req: NextRequest) {
       },
     });
   } catch (error) {
-    // Error fetching assets
-    return NextResponse.json(
-      { error: 'Failed to fetch assets' },
-      { status: 500 }
+    unstable_rethrow(error);
+    logError('GET /api/assets', error, {
+      requestId,
+      params: { limit, offset, sortBy, sortOrder, favorite, tagId },
+    });
+    return createErrorResponse(
+      'Failed to fetch assets',
+      requestId,
+      req,
+      error instanceof Error ? error.message : undefined
     );
   }
 }
@@ -297,7 +293,7 @@ async function generateEmbeddingAsync(
   checksum: string,
   embeddingService: any
 ): Promise<void> {
-  if (!prisma || isMockMode()) {
+  if (!prisma) {
     return;
   }
 

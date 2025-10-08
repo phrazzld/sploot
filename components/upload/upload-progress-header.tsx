@@ -116,7 +116,7 @@ export function UploadProgressHeader({
   return (
     <div
       className={cn(
-        'fixed top-4 right-4 z-50 w-96 rounded-2xl border border-[#2A2F37] bg-[#14171A] shadow-2xl transition-all duration-300',
+        'fixed top-4 right-4 z-50 w-96  border border-[#2A2F37] bg-[#14171A] shadow-2xl transition-all duration-300',
         isCollapsed && 'w-auto',
         className
       )}
@@ -161,7 +161,7 @@ export function UploadProgressHeader({
           {isComplete && (
             <div
               className={cn(
-                'flex h-6 w-6 items-center justify-center rounded-full',
+                'flex h-6 w-6 items-center justify-center ',
                 hasFailures ? 'bg-[#FF4D4D]' : 'bg-[#B6FF6E]'
               )}
             >
@@ -193,7 +193,7 @@ export function UploadProgressHeader({
 
         <button
           type="button"
-          className="rounded-lg p-1 text-[#B3B7BE] transition-colors hover:bg-[#1B1F24] hover:text-[#E6E8EB]"
+          className="p-1 text-[#B3B7BE] transition-colors hover:bg-[#1B1F24] hover:text-[#E6E8EB]"
         >
           <svg
             className={cn('h-4 w-4 transition-transform', isCollapsed && 'rotate-180')}
@@ -236,9 +236,9 @@ export function UploadProgressHeader({
                 <span className="text-[#B3B7BE]">Upload Progress</span>
                 <span className="font-semibold text-[#E6E8EB]">{uploadProgress}%</span>
               </div>
-              <div className="relative h-2 overflow-hidden rounded-full bg-[#1B1F24]">
+              <div className="relative h-2 overflow-hidden bg-[#1B1F24]">
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#7C5CFF] to-[#9B7DFF] transition-all duration-300"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#7C5CFF] to-[#9B7DFF] transition-all duration-300"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
@@ -249,9 +249,9 @@ export function UploadProgressHeader({
                 <span className="text-[#B3B7BE]">Embedding Progress</span>
                 <span className="font-semibold text-[#E6E8EB]">{embeddingProgress}%</span>
               </div>
-              <div className="relative h-2 overflow-hidden rounded-full bg-[#1B1F24]">
+              <div className="relative h-2 overflow-hidden bg-[#1B1F24]">
                 <div
-                  className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-[#B6FF6E] to-[#8FFF3B] transition-all duration-300"
+                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#B6FF6E] to-[#8FFF3B] transition-all duration-300"
                   style={{ width: `${embeddingProgress}%` }}
                 />
               </div>
@@ -263,7 +263,7 @@ export function UploadProgressHeader({
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
-                className="flex-1 rounded-lg bg-[#1B1F24] px-3 py-1.5 text-xs font-medium text-[#B3B7BE] transition-colors hover:bg-[#2A2F37] hover:text-[#E6E8EB]"
+                className="flex-1 bg-[#1B1F24] px-3 py-1.5 text-xs font-medium text-[#B3B7BE] transition-colors hover:bg-[#2A2F37] hover:text-[#E6E8EB]"
                 onClick={() => window.location.href = '/app'}
               >
                 View Library
@@ -271,7 +271,7 @@ export function UploadProgressHeader({
               {hasFailures && (
                 <button
                   type="button"
-                  className="flex-1 rounded-lg bg-[#FF4D4D]/10 px-3 py-1.5 text-xs font-medium text-[#FF4D4D] transition-colors hover:bg-[#FF4D4D]/20"
+                  className="flex-1 bg-[#FF4D4D]/10 px-3 py-1.5 text-xs font-medium text-[#FF4D4D] transition-colors hover:bg-[#FF4D4D]/20"
                   onClick={() => {
                     // Trigger retry for failed items
                     console.log('Retrying failed uploads...');

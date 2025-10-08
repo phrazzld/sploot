@@ -21,6 +21,7 @@ interface ImageGridProps {
   containerClassName?: string;
   onScrollContainerReady?: (node: HTMLDivElement | null) => void;
   onUploadClick?: () => void;
+  showSimilarityScores?: boolean;
 }
 
 export function ImageGrid({
@@ -34,6 +35,7 @@ export function ImageGrid({
   containerClassName,
   onScrollContainerReady,
   onUploadClick,
+  showSimilarityScores = false,
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
@@ -65,19 +67,17 @@ export function ImageGrid({
   const USE_VIRTUAL_SCROLLING_THRESHOLD = 500;
   const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
 
-  // Calculate columns based on container width
+  // Fixed column count matching Tailwind breakpoints
+  // grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6
   const columnCount = useMemo(() => {
     if (!containerWidth) return 1;
 
-    const ITEM_WIDTH = 280;
-    const GAP = 4;
-    const MIN_COLUMNS = 1;
-    const MAX_COLUMNS = 5;
-
-    const availableWidth = containerWidth;
-    const columns = Math.floor((availableWidth + GAP) / (ITEM_WIDTH + GAP));
-
-    return Math.max(MIN_COLUMNS, Math.min(MAX_COLUMNS, columns));
+    // Match Tailwind responsive grid breakpoints
+    if (containerWidth >= 1280) return 6; // xl
+    if (containerWidth >= 1024) return 5; // lg
+    if (containerWidth >= 768) return 4;  // md
+    if (containerWidth >= 640) return 3;  // sm
+    return 2; // default
   }, [containerWidth]);
 
   // Calculate rows based on items and columns
@@ -88,6 +88,12 @@ export function ImageGrid({
       return assets.slice(start, start + columnCount);
     });
   }, [assets, columnCount]);
+
+  // Fixed gap for terminal strict grid aesthetic
+  const gapClass = 'gap-2'; // 8px - terminal aesthetic spacing
+
+  // Fixed 6-column grid layout - terminal strict grid aesthetic
+  const gridColsClass = 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
 
   // Virtual scrolling setup - hook must always be called
   const virtualizer = useVirtualizer({
@@ -234,7 +240,7 @@ export function ImageGrid({
           className={cn('h-full overflow-auto', containerClassName)}
           style={{ scrollbarGutter: 'stable' }}
         >
-          <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
+          <div className={cn("grid", gridColsClass, gapClass)}>
             {assets.map((asset, index) => (
               <div
                 key={asset.id}
@@ -251,6 +257,7 @@ export function ImageGrid({
                     onDelete={onAssetDelete}
                     onSelect={onAssetSelect}
                     onAssetUpdate={onAssetUpdate}
+                    showSimilarityScore={showSimilarityScores}
                   />
                 </ImageTileErrorBoundary>
               </div>
@@ -260,7 +267,7 @@ export function ImageGrid({
           {/* Loading indicator */}
           {loading && (
             <div className="py-8 text-center">
-              <div className="inline-flex items-center gap-2 text-[#7C5CFF]">
+              <div className="inline-flex items-center gap-2 text-[var(--color-terminal-green)]">
                 <svg
                   className="animate-spin h-5 w-5"
                   fill="none"
@@ -280,14 +287,14 @@ export function ImageGrid({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                <span className="text-sm font-medium">Loading more...</span>
+                <span className="font-mono text-sm uppercase">Loading more...</span>
               </div>
             </div>
           )}
 
           {/* End of list indicator */}
           {!hasMore && assets.length > 0 && (
-            <div className="py-6 text-center text-xs uppercase tracking-wide text-[#474C58]">
+            <div className="py-6 text-center font-mono text-xs uppercase tracking-wide text-[#666666]">
               no more memes in this view
             </div>
           )}
@@ -326,7 +333,7 @@ export function ImageGrid({
                   transform: `translateY(${virtualRow.start}px)`,
                 }}
               >
-                <div className="grid grid-cols-1 gap-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4 2xl:grid-cols-5">
+                <div className={cn("grid", gridColsClass, gapClass)}>
                   {row.map((asset) => (
                     <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
                       <ImageTile
@@ -335,6 +342,7 @@ export function ImageGrid({
                         onDelete={onAssetDelete}
                         onSelect={onAssetSelect}
                         onAssetUpdate={onAssetUpdate}
+                        showSimilarityScore={showSimilarityScores}
                       />
                     </ImageTileErrorBoundary>
                   ))}
@@ -347,7 +355,7 @@ export function ImageGrid({
         {/* Loading indicator */}
         {loading && (
           <div className="py-8 text-center">
-            <div className="inline-flex items-center gap-2 text-[#7C5CFF]">
+            <div className="inline-flex items-center gap-2 text-[var(--color-terminal-green)]">
               <svg
                 className="animate-spin h-5 w-5"
                 fill="none"
@@ -367,7 +375,7 @@ export function ImageGrid({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span className="text-sm font-medium">Loading more...</span>
+              <span className="font-mono text-sm uppercase">Loading more...</span>
             </div>
           </div>
         )}
@@ -375,8 +383,8 @@ export function ImageGrid({
         {/* End of list indicator */}
         {!hasMore && assets.length > 0 && (
           <div className="py-8 text-center">
-            <p className="text-[#B3B7BE] text-sm">
-              That&apos;s all your memes • {assets.length} total
+            <p className="font-mono text-sm uppercase text-[#666666]">
+              That&apos;s all your memes | {assets.length} total
             </p>
           </div>
         )}

@@ -11,7 +11,7 @@ export function ImageSkeleton({ className, variant = 'tile' }: ImageSkeletonProp
   if (variant === 'list') {
     return (
       <div className={cn('flex items-center gap-4 p-4', className)}>
-        <div className="h-16 w-16 flex-shrink-0 animate-pulse rounded-xl bg-[#1B1F24]" />
+        <div className="h-16 w-16 flex-shrink-0 animate-pulse bg-[#1B1F24]" />
         <div className="flex-1 space-y-2">
           <div className="h-4 w-3/4 animate-pulse rounded bg-[#1B1F24]" />
           <div className="h-3 w-1/2 animate-pulse rounded bg-[#1B1F24]/70" />
@@ -22,7 +22,7 @@ export function ImageSkeleton({ className, variant = 'tile' }: ImageSkeletonProp
 
   // Default tile variant
   return (
-    <div className={cn('group relative overflow-hidden rounded-2xl bg-[#1B1F24] animate-pulse', className)}>
+    <div className={cn('group relative overflow-hidden  bg-[#1B1F24] animate-pulse', className)}>
       <div className="aspect-square w-full">
         <div className="absolute inset-0 bg-gradient-to-t from-[#0F1216]/60 to-transparent opacity-0" />
       </div>
@@ -84,7 +84,7 @@ export function OptimizedImageSkeleton({
   if (variant === 'list') {
     return (
       <div className={cn('flex items-center gap-4 p-4', baseClasses)}>
-        <div className="h-16 w-16 flex-shrink-0 rounded-xl bg-[#1B1F24] skeleton-shimmer" />
+        <div className="h-16 w-16 flex-shrink-0 bg-[#1B1F24] skeleton-shimmer" />
         <div className="flex-1 space-y-2">
           <div className="h-4 w-3/4 rounded bg-[#1B1F24] skeleton-shimmer" />
           <div className="h-3 w-1/2 rounded bg-[#1B1F24]/70 skeleton-shimmer" />
@@ -96,7 +96,7 @@ export function OptimizedImageSkeleton({
   // Default tile variant with optimized shimmer
   return (
     <div className={cn(
-      'group relative overflow-hidden rounded-2xl bg-[#1B1F24] skeleton-shimmer',
+      'group relative overflow-hidden  bg-[#1B1F24] skeleton-shimmer',
       baseClasses
     )}>
       <div className="aspect-square w-full" />

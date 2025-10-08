@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma } from '@/lib/db';
 import { headers } from 'next/headers';
 
 interface AuditStats {
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }

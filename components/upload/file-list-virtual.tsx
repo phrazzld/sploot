@@ -55,14 +55,14 @@ function FileRow({
     >
       <div
         className={cn(
-          "bg-[#1B1F24] rounded-lg p-3 border border-[#2A2F37] flex items-center transition-all",
+          "bg-[#1B1F24]  p-3 border border-[#2A2F37] flex items-center transition-all",
           hasError && "border-red-500/30"
         )}
         style={{ minHeight: `${baseHeight + errorHeight}px` }}
       >
         <div className="flex items-center gap-3 w-full">
           {/* File icon/preview */}
-          <div className="w-12 h-12 rounded-lg bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="w-12 h-12 bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
             {file.blobUrl ? (
               <Image
                 src={file.blobUrl}
@@ -90,7 +90,7 @@ function FileRow({
           <div className="flex items-center gap-2 flex-shrink-0">
             {file.status === 'uploading' && (
               <>
-                <div className="w-24 h-1 bg-[#2A2F37] rounded-full overflow-hidden">
+                <div className="w-24 h-1 bg-[#2A2F37] overflow-hidden">
                   <div
                     className="h-full bg-[#7C5CFF] transition-all duration-300"
                     style={{ width: `${file.progress}%` }}

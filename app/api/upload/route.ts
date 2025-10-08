@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse, after } from 'next/server';
+import { unstable_rethrow } from 'next/navigation';
 import { put } from '@vercel/blob';
 import { generateUniqueFilename, isValidFileType, isValidFileSize } from '@/lib/blob';
 import { requireUserIdWithSync } from '@/lib/auth/server';
-import { blobConfigured, isMockMode } from '@/lib/env';
-import { prisma, databaseAvailable, assetExists, findOrCreateAsset, ExistingAssetMetadata, upsertAssetEmbedding } from '@/lib/db';
+import { blobConfigured } from '@/lib/env';
+import { prisma, assetExists, findOrCreateAsset, ExistingAssetMetadata, upsertAssetEmbedding } from '@/lib/db';
 import crypto from 'crypto';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
@@ -117,7 +118,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Check if asset already exists with this checksum
-    if (databaseAvailable && prisma) {
+    if ( prisma) {
       const existingAsset = await assetExists(userId, checksum, {
         includeEmbedding: true,
       });
@@ -207,26 +208,11 @@ export async function POST(req: NextRequest) {
     const uniqueFilename = generateUniqueFilename(userId, file.name);
     const thumbnailFilename = uniqueFilename.replace(/\.(\w+)$/, '-thumb.$1');
 
-    // Handle mock mode for development
-    if (isMockMode() || !blobConfigured) {
-      console.log('Mock mode: Simulating file upload');
-
-      // Create mock asset record
-      const mockAsset = {
-        id: crypto.randomUUID(),
-        blobUrl: `https://mock-storage.local/${uniqueFilename}`,
-        pathname: uniqueFilename,
-        filename: file.name,
-        mimeType: file.type,
-        size: file.size,
-        createdAt: new Date().toISOString(),
-      };
-
-      return NextResponse.json({
-        success: true,
-        asset: mockAsset,
-        message: 'File uploaded successfully (mock mode)'
-      });
+    if (!blobConfigured) {
+      return NextResponse.json(
+        { error: 'Blob storage not configured' },
+        { status: 500 }
+      );
     }
 
     // Upload to Vercel Blob storage
@@ -254,7 +240,7 @@ export async function POST(req: NextRequest) {
 
       // Create asset record in database (required for the asset to be visible)
       const dbStartTime = Date.now();
-      if (!databaseAvailable || !prisma) {
+      if ( !prisma) {
         // Clean up uploaded file if database is not available
         const cleanupErrors: string[] = [];
         try {
@@ -560,6 +546,7 @@ export async function POST(req: NextRequest) {
     }
 
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Upload endpoint error:', error);
     console.log(`[perf] Upload failed - unexpected error (${Date.now() - startTime}ms)`);
 
@@ -587,7 +574,7 @@ async function generateEmbeddingAsync(
   console.log(`[after] Starting async embedding generation for asset ${assetId}`);
   try {
     // Skip if database not available
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return;
     }
 
@@ -636,7 +623,7 @@ async function generateEmbeddingAsync(
 
     // Update embedding status to 'failed' so UI can show error state
     try {
-      if (databaseAvailable && prisma) {
+      if ( prisma) {
         await prisma.assetEmbedding.upsert({
           where: { assetId },
           create: {
@@ -664,6 +651,7 @@ export async function GET(req: NextRequest) {
   try {
     const userId = await requireUserIdWithSync();
   } catch (error) {
+    unstable_rethrow(error);
     return NextResponse.json(
       { error: 'Unauthorized' },
       { status: 401 }
@@ -673,8 +661,6 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     status: 'ready',
     blobConfigured,
-    databaseAvailable,
-    mockMode: isMockMode(),
     limits: {
       maxFileSize: '10MB',
       allowedTypes: ['image/jpeg', 'image/png', 'image/webp', 'image/gif'],

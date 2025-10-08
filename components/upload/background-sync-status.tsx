@@ -36,7 +36,7 @@ export function BackgroundSyncStatus() {
       {/* Collapsed View */}
       <div
         className={cn(
-          'bg-lab-surface border border-lab-border rounded-xl shadow-xl transition-all duration-300',
+          'bg-lab-surface border border-lab-border  shadow-xl transition-all duration-300',
           isExpanded ? 'w-96' : 'w-64'
         )}
       >
@@ -65,7 +65,7 @@ export function BackgroundSyncStatus() {
                   />
                 </svg>
                 {uploadingCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full animate-pulse" />
+                  <div className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 animate-pulse" />
                 )}
               </div>
               <span className="text-sm font-medium text-lab-text">
@@ -98,7 +98,7 @@ export function BackgroundSyncStatus() {
               </span>
               <span>{Math.round(progressPercentage)}%</span>
             </div>
-            <div className="w-full h-1.5 bg-lab-surface-secondary rounded-full overflow-hidden">
+            <div className="w-full h-1.5 bg-lab-surface-secondary overflow-hidden">
               <div
                 className={cn(
                   'h-full transition-all duration-300',
@@ -142,7 +142,7 @@ export function BackgroundSyncStatus() {
               {queue.map((item) => (
                 <div
                   key={item.id}
-                  className="flex items-center justify-between p-2 bg-lab-surface-secondary rounded-lg"
+                  className="flex items-center justify-between p-2 bg-lab-surface-secondary"
                 >
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium text-lab-text truncate">
@@ -175,7 +175,7 @@ export function BackgroundSyncStatus() {
               {errorCount > 0 && (
                 <button
                   onClick={retryFailedUploads}
-                  className="flex-1 px-3 py-1.5 text-xs bg-lab-primary text-white rounded-lg hover:opacity-90 transition-opacity"
+                  className="flex-1 px-3 py-1.5 text-xs bg-lab-primary text-white hover:opacity-90 transition-opacity"
                 >
                   Retry Failed ({errorCount})
                 </button>
@@ -183,7 +183,7 @@ export function BackgroundSyncStatus() {
               {completedCount > 0 && (
                 <button
                   onClick={clearCompleted}
-                  className="flex-1 px-3 py-1.5 text-xs bg-lab-surface-secondary text-lab-text rounded-lg hover:opacity-90 transition-opacity"
+                  className="flex-1 px-3 py-1.5 text-xs bg-lab-surface-secondary text-lab-text hover:opacity-90 transition-opacity"
                 >
                   Clear Completed
                 </button>
@@ -195,7 +195,7 @@ export function BackgroundSyncStatus() {
 
       {/* Toast Notification for Completion */}
       {completedCount === totalCount && totalCount > 0 && (
-        <div className="absolute top-0 left-0 right-0 -mt-12 bg-green-500 text-white px-3 py-2 rounded-lg shadow-lg animate-slideDown">
+        <div className="absolute top-0 left-0 right-0 -mt-12 bg-green-500 text-white px-3 py-2 shadow-lg animate-slideDown">
           <p className="text-xs font-medium">
             All uploads completed successfully!
           </p>

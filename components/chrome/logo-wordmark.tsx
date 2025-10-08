@@ -50,12 +50,12 @@ export function LogoWordmark({
   const LogoIcon = () => (
     <div
       className={cn(
-        'flex items-center justify-center rounded-lg',
-        'bg-gradient-to-br from-[#7C5CFF] to-[#B6FF6E]',
+        'flex items-center justify-center',
+        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
         config.icon
       )}
     >
-      <span className="text-white font-bold text-xs">S</span>
+      <span className="font-mono font-bold text-black text-xs">S</span>
     </div>
   );
 
@@ -75,7 +75,7 @@ export function LogoWordmark({
             <LogoIcon />
             <span
               className={cn(
-                'font-bold text-[#E6E8EB] tracking-wider lowercase',
+                'font-mono font-bold uppercase text-[#E6E8EB] tracking-wider',
                 config.text
               )}
             >
@@ -91,15 +91,15 @@ export function LogoWordmark({
             <div className="flex flex-col">
               <span
                 className={cn(
-                  'font-bold text-[#E6E8EB] tracking-wider lowercase leading-tight',
+                  'font-mono font-bold uppercase text-[#E6E8EB] tracking-wider leading-tight',
                   config.text,
-                  'hover:text-[#7C5CFF] transition-colors'
+                  'hover:text-[var(--color-terminal-green)]'
                 )}
               >
                 sploot
               </span>
               {showTagline && (
-                <span className={cn('text-[#B3B7BE] mt-0.5', config.tagline)}>
+                <span className={cn('font-mono text-[#888888] mt-0.5 uppercase', config.tagline)}>
                   Your meme library
                 </span>
               )}
@@ -114,8 +114,6 @@ export function LogoWordmark({
       href="/app"
       className={cn(
         'inline-flex items-center group',
-        'transition-all duration-200',
-        'hover:opacity-90',
         linkClassName
       )}
       aria-label="Sploot - Home"
@@ -133,14 +131,14 @@ export function LogoIcon({ className, size = 32 }: { className?: string; size?: 
   return (
     <div
       className={cn(
-        'flex items-center justify-center rounded-lg',
-        'bg-gradient-to-br from-[#7C5CFF] to-[#B6FF6E]',
+        'flex items-center justify-center',
+        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
         className
       )}
       style={{ width: size, height: size }}
     >
       <span
-        className="text-white font-bold"
+        className="font-mono font-bold text-black"
         style={{ fontSize: size * 0.4 }}
       >
         S

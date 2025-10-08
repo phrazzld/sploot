@@ -51,7 +51,7 @@ export class ImageTileErrorBoundary extends Component<Props, State> {
       const { asset } = this.props;
 
       return (
-        <div className="group relative bg-[#0F1012] rounded-md overflow-hidden w-full aspect-square">
+        <div className="group relative bg-[#0F1012] overflow-hidden w-full aspect-square">
           <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-4 bg-[#14171A]">
             {/* Tombstone icon */}
             <div className="flex flex-col items-center gap-2 text-[#B3B7BE]/60">
@@ -71,7 +71,7 @@ export class ImageTileErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleRetry}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors bg-[#7C5CFF]/10 text-[#7C5CFF] border border-[#7C5CFF]/30 hover:bg-[#7C5CFF]/20 hover:border-[#7C5CFF]/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors bg-[#7C5CFF]/10 text-[#7C5CFF] border border-[#7C5CFF]/30 hover:bg-[#7C5CFF]/20 hover:border-[#7C5CFF]/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
                 title="Retry loading image"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -89,7 +89,7 @@ export class ImageTileErrorBoundary extends Component<Props, State> {
                 <button
                   type="button"
                   onClick={this.handleDelete}
-                  className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors bg-red-500/10 text-red-400 border border-red-500/30 hover:bg-red-500/20 hover:border-red-500/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500"
                   title="Delete broken image"
                 >
                   <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

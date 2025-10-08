@@ -80,15 +80,12 @@ export function UserAvatar({
         ref={buttonRef}
         onClick={() => showDropdown && setIsOpen(!isOpen)}
         className={cn(
-          // Avatar circle
-          'rounded-full bg-gradient-to-br from-[#7C5CFF] to-[#B6FF6E]',
+          // Avatar square
+          'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
           'flex items-center justify-center',
-          'text-white font-medium',
-          'transition-all duration-200',
-          'hover:scale-105 active:scale-95',
-          'hover:shadow-lg hover:shadow-[#7C5CFF]/20',
+          'font-mono text-black font-bold',
           'focus-visible:outline focus-visible:outline-2',
-          'focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+          'focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-green)]',
           sizeConfig[avatarSize],
           showDropdown && 'cursor-pointer'
         )}
@@ -104,19 +101,17 @@ export function UserAvatar({
           ref={dropdownRef}
           className={cn(
             'absolute right-0 z-50',
-            'mt-1', // 4px gap as specified
-            'bg-[#14171A] border border-[#2A2F37]',
-            'rounded-lg shadow-xl',
-            'min-w-[200px]',
-            'dropdown-animate-in'
+            'mt-1', // 4px gap
+            'bg-black border border-[#333333]',
+            'min-w-[200px]'
           )}
         >
           {/* User info header */}
-          <div className="p-3 border-b border-[#2A2F37]">
-            <p className="text-[#E6E8EB] text-sm font-medium">
+          <div className="p-3 border-b border-[#333333]">
+            <p className="font-mono text-sm uppercase text-[#E6E8EB]">
               {getUserDisplay()}
             </p>
-            <p className="text-[#B3B7BE] text-xs truncate">
+            <p className="font-mono text-xs text-[#888888] truncate">
               {getUserEmail()}
             </p>
           </div>
@@ -133,9 +128,8 @@ export function UserAvatar({
               className={cn(
                 'w-full flex items-center gap-3',
                 'px-3 py-2',
-                'text-[#B3B7BE] hover:text-[#E6E8EB]',
-                'hover:bg-[#1B1F24]',
-                'transition-colors'
+                'font-mono text-xs uppercase text-[#888888]',
+                'hover:text-[var(--color-terminal-green)] hover:bg-[#0F1012]'
               )}
             >
               <svg
@@ -157,7 +151,7 @@ export function UserAvatar({
                   d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
                 />
               </svg>
-              <span className="text-sm">Settings</span>
+              <span>Settings</span>
             </button>
 
             {/* Sign out */}
@@ -166,9 +160,8 @@ export function UserAvatar({
               className={cn(
                 'w-full flex items-center gap-3',
                 'px-3 py-2',
-                'text-[#B3B7BE] hover:text-[#E6E8EB]',
-                'hover:bg-[#1B1F24]',
-                'transition-colors'
+                'font-mono text-xs uppercase text-[#888888]',
+                'hover:text-[var(--color-terminal-red)] hover:bg-[#0F1012]'
               )}
             >
               <svg
@@ -184,7 +177,7 @@ export function UserAvatar({
                   d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
                 />
               </svg>
-              <span className="text-sm">Sign out</span>
+              <span>Sign out</span>
             </button>
           </div>
         </div>
@@ -219,9 +212,9 @@ export function AvatarDisplay({
   return (
     <div
       className={cn(
-        'rounded-full bg-gradient-to-br from-[#7C5CFF] to-[#B6FF6E]',
+        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
         'flex items-center justify-center',
-        'text-white font-medium',
+        'font-mono text-black font-bold',
         sizeConfig[size],
         className
       )}

@@ -34,7 +34,7 @@ export function BlobErrorBanner() {
         type="button"
         onClick={reset}
         className={cn(
-          'inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors',
+          'inline-flex items-center gap-1.5  px-3 py-1.5 text-xs font-medium transition-colors',
           'bg-[#7C5CFF]/20 text-[#7C5CFF] border border-[#7C5CFF]/40',
           'hover:bg-[#7C5CFF]/30 hover:border-[#7C5CFF]/60',
           'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]'

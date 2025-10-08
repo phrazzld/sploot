@@ -115,7 +115,7 @@ export function FilterChips({
             className={cn(
               // Base styles
               'flex items-center justify-center',
-              'rounded-full transition-all duration-200',
+              ' transition-all duration-200',
               'font-medium',
 
               // Size
@@ -191,7 +191,7 @@ export function FilterChip({
       onClick={onClick}
       className={cn(
         'inline-flex items-center justify-center',
-        'rounded-full font-medium',
+        ' font-medium',
         'transition-all duration-200',
         sizeConfig[size],
         isActive

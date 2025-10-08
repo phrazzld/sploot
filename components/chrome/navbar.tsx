@@ -10,6 +10,7 @@ interface NavbarProps {
   className?: string;
   showUserAvatar?: boolean;
   onSignOut?: () => void;
+  statusLine?: ReactNode;
 }
 
 /**
@@ -23,6 +24,7 @@ export function Navbar({
   className,
   showUserAvatar = true,
   onSignOut,
+  statusLine,
 }: NavbarProps) {
 
   return (
@@ -35,8 +37,8 @@ export function Navbar({
         'z-50',
         // Height: 56px
         'h-14',
-        // Background and border
-        'bg-[#14171A] border-b border-[#2A2F37]',
+        // Background and border - pure black with ultra-subtle separation
+        'bg-black border-b border-[#1A1A1A]',
         // Backdrop for glass effect
         'backdrop-blur-sm',
         // Layout
@@ -73,8 +75,11 @@ export function Navbar({
         {/* Spacer to push user menu to the right */}
         <div className="flex-1" />
 
-        {/* Right section: User menu */}
-        <div className="flex items-center gap-3">
+        {/* Right section: Status line and user menu */}
+        <div className="flex items-center gap-4">
+          {/* Terminal-style status line */}
+          {statusLine}
+
           {/* User avatar - 32px circle with 8px margin from right edge */}
           {showUserAvatar && (
             <UserAvatar

@@ -9,7 +9,7 @@ import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
 import { ImageList } from '@/components/library/image-list';
 import { AssetIntegrityBanner } from '@/components/library/asset-integrity-banner';
-import { SearchBar, SearchLoadingScreen } from '@/components/search';
+import { SearchBar, SearchLoadingScreen, SimilarityScoreLegend, QuerySyntaxIndicator } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
 import { HeartIcon } from '@/components/icons/heart-icon';
@@ -18,6 +18,7 @@ import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 import { CommandPalette, useCommandPalette } from '@/components/chrome/command-palette';
+import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from '@/components/chrome/keyboard-shortcuts-help';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
@@ -45,9 +46,13 @@ function AppPageClient() {
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
   const [showSortDropdown, setShowSortDropdown] = useState(false);
+  const [showMetadata, setShowMetadata] = useState(false);
 
   // Command palette state
   const { isOpen: isCommandPaletteOpen, openPalette, closePalette } = useCommandPalette();
+
+  // Keyboard shortcuts help state
+  const { isOpen: isHelpOpen, openHelp, closeHelp } = useKeyboardShortcutsHelp();
 
   // Use sort preferences hook with localStorage persistence and debouncing
   const { sortBy, direction: sortOrder, handleSortChange, getSortColumn } = useSortPreferences();
@@ -143,7 +148,7 @@ function AppPageClient() {
 
       // Show a subtle notification that library was refreshed
       if (event.detail?.filename) {
-        showToast(`${event.detail.filename} added to library`, 'success');
+        showToast(`[COMPLETE] Indexed: ${event.detail.filename}`, 'complete', 3000, true);
       }
     };
 
@@ -185,11 +190,6 @@ function AppPageClient() {
 
   // Also add "/" key shortcut to focus search
   useSlashSearchShortcut(focusSearchBar);
-
-  // Mark as client-side mounted
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -256,8 +256,10 @@ function AppPageClient() {
             setShowRetryModal(false);
             setRetryProgress({ current: 0, total: 0, processing: false });
             showToast(
-              `✓ Retried ${completed} ${completed === 1 ? 'meme' : 'memes'}`,
-              'success'
+              `[COMPLETE] Retried ${completed} ${completed === 1 ? 'meme' : 'memes'}`,
+              'complete',
+              3000,
+              true
             );
           }, 1000);
         }
@@ -432,6 +434,13 @@ function AppPageClient() {
     enabled: true,
   });
 
+  // ? for keyboard shortcuts help
+  useKeyboardShortcut({
+    key: '?',
+    callback: openHelp,
+    enabled: true,
+  });
+
   // Cleanup debounce timeout on unmount
   useEffect(() => {
     return () => {
@@ -559,6 +568,11 @@ function AppPageClient() {
     setSelectedAsset(null);
   }, [trimmedLibraryQuery]);
 
+  // Reset metadata visibility when modal opens/closes
+  useEffect(() => {
+    setShowMetadata(false);
+  }, [selectedAsset]);
+
   return (
     <div className="flex h-[calc(100vh-56px)] flex-col">
       {/* Container with ultra-wide support - max-width at 1920px+ */}
@@ -567,17 +581,18 @@ function AppPageClient() {
           <header className="flex flex-col gap-4">
             {/* Title bar with inline stats */}
             <div className="flex items-baseline gap-2 flex-wrap">
-              <h1 className="text-2xl font-semibold text-[#E6E8EB]">your library</h1>
+              <h1 className="font-mono text-2xl uppercase text-[#E6E8EB]">your library</h1>
               {stats.total > 0 && (
-                <span className="text-sm text-[#6A6E78]">
-                  • {stats.total} {stats.total === 1 ? 'meme' : 'memes'}
+                <span className="text-sm text-[#888888] font-mono flex items-center gap-2">
+                  <span>{stats.total} <span className="text-[#666666]">ASSETS</span></span>
                   {stats.favorites > 0 && (
                     <>
-                      {' '}• {stats.favorites}{' '}
-                      {stats.favorites === 1 ? 'banger' : 'bangers'}
+                      <span className="text-[#333333]">|</span>
+                      <span>{stats.favorites} <span className="text-[#666666]">BANGERS</span></span>
                     </>
                   )}
-                  {' '}• {stats.sizeFormatted}
+                  <span className="text-[#333333]">|</span>
+                  <span>{stats.sizeFormatted}</span>
                 </span>
               )}
             </div>
@@ -609,10 +624,10 @@ function AppPageClient() {
                   type="button"
                   onClick={() => setShowUploadPanel((prev) => !prev)}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                    'inline-flex items-center gap-2 px-4 h-10 text-xs font-mono uppercase border',
                     showUploadPanel
-                      ? 'bg-[#7C5CFF]/20 text-[#CBB8FF] ring-1 ring-[#7C5CFF]/40'
-                      : 'bg-[#7C5CFF] text-white hover:bg-[#6B4FE0]'
+                      ? 'bg-[var(--color-terminal-green)] text-black border-[var(--color-terminal-green)]'
+                      : 'bg-black text-[var(--color-terminal-green)] border-[var(--color-terminal-green)] hover:bg-[var(--color-terminal-green)] hover:text-black'
                   )}
                 >
                   <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
@@ -624,22 +639,22 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={handleBulkRetry}
-                    className="inline-flex items-center gap-2 rounded-full border border-[#FF4D4D]/40 bg-[#251014] px-4 py-2 text-sm font-medium text-[#FF8C9B] transition-colors hover:border-[#FF4D4D]/60 hover:bg-[#351419] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#FF4D4D]"
+                    className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-4 h-10 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                     </svg>
-                    retry failed searches ({failedEmbeddings.length} {failedEmbeddings.length === 1 ? 'image' : 'images'})
+                    retry ({failedEmbeddings.length})
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={toggleFavoritesOnly}
                   className={cn(
-                    'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]',
+                    'inline-flex items-center gap-2 border px-4 h-10 text-xs font-mono uppercase',
                     favoritesOnly
-                      ? 'border-[#FF8AD6]/50 bg-[#FF64C5]/15 text-[#FF8AD6]'
-                      : 'border-[#2A2F37] bg-[#14171A] text-[#B3B7BE] hover:text-[#E6E8EB]'
+                      ? 'border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] text-black'
+                      : 'border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]'
                   )}
                 >
                   <HeartIcon className="h-4 w-4" filled={favoritesOnly} />
@@ -660,7 +675,7 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={() => setShowSortDropdown((prev) => !prev)}
-                    className="flex items-center gap-2 rounded-full border border-[#2A2F37] bg-[#14171A] px-4 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                    className="flex items-center gap-2 border border-[#333333] bg-black px-4 h-10 text-xs font-mono uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
@@ -672,7 +687,7 @@ function AppPageClient() {
                   </button>
 
                   {showSortDropdown && (
-                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden rounded-2xl border border-[#2A2F37] bg-[#0F1216] shadow-2xl">
+                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden border border-[#333333] bg-black">
                       <div className="py-1">
                         <button
                           onClick={() => {
@@ -680,8 +695,8 @@ function AppPageClient() {
                             setShowSortDropdown(false);
                           }}
                           className={cn(
-                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                            sortBy === 'date' || sortBy === 'recent' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
+                            sortBy === 'date' || sortBy === 'recent' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
                           )}
                         >
                           date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
@@ -692,8 +707,8 @@ function AppPageClient() {
                             setShowSortDropdown(false);
                           }}
                           className={cn(
-                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                            sortBy === 'size' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
+                            sortBy === 'size' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
                           )}
                         >
                           size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
@@ -704,8 +719,8 @@ function AppPageClient() {
                             setShowSortDropdown(false);
                           }}
                           className={cn(
-                            'block w-full px-4 py-2 text-left text-sm transition-colors hover:bg-[#1B1F24]',
-                            sortBy === 'name' ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]'
+                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
+                            sortBy === 'name' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
                           )}
                         >
                           name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
@@ -719,13 +734,13 @@ function AppPageClient() {
                   <button
                     type="button"
                     onClick={clearTagFilter}
-                    className="inline-flex items-center gap-1 rounded-full border border-[#2A2F37] bg-[#14171A] px-3 py-2 text-sm text-[#B3B7BE] transition-colors hover:border-[#464C55] hover:text-[#E6E8EB] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                    className="inline-flex items-center gap-1 border border-[var(--color-terminal-yellow)] bg-black px-3 py-2 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
                   >
                     <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                     <span className="hidden sm:inline">clear</span>
-                    <span className="text-[#7C5CFF]">#{activeTagName ?? 'tag'}</span>
+                    <span>#{activeTagName ?? 'tag'}</span>
                   </button>
                 )}
               </div>
@@ -733,15 +748,15 @@ function AppPageClient() {
             </div>
 
             {(!isSearching && (favoritesOnly || tagIdParam)) && (
-              <div className="flex flex-wrap items-center gap-2 text-xs text-[#B3B7BE]">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase">
                 {favoritesOnly && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#14151C] px-3 py-1 text-[#FF8AD6]">
+                  <span className="inline-flex items-center gap-1 border border-[var(--color-terminal-green)] bg-black px-3 py-1 text-[var(--color-terminal-green)]">
                     <HeartIcon className="h-3.5 w-3.5" filled />
-                    banger hoard engaged
+                    bangers only
                   </span>
                 )}
                 {tagIdParam && (
-                  <span className="inline-flex items-center gap-2 rounded-full bg-[#14151C] px-3 py-1">
+                  <span className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-3 py-1 text-[var(--color-terminal-yellow)]">
                     filtering tag <span className="font-medium text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>
                   </span>
                 )}
@@ -749,33 +764,24 @@ function AppPageClient() {
             )}
 
             {showUploadPanel && (
-              <div className="rounded-3xl border border-dashed border-[#2A2F37] bg-[#111419] p-5">
+              <div className="border border-dashed border-[#2A2F37] bg-[#111419] p-5">
                 <UploadZone
                   isOnDashboard={true}
                   onUploadComplete={(stats) => {
                     // Refresh the gallery
                     refresh();
 
-                    // Show success toast
-                    if (stats.uploaded > 0 && stats.duplicates > 0) {
+                    // Show brief success toast
+                    if (stats.uploaded > 0) {
                       showToast(
-                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'meme' : 'memes'} added, ${stats.duplicates} already existed`,
-                        'success'
-                      );
-                    } else if (stats.uploaded > 0) {
-                      showToast(
-                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'meme' : 'memes'} added to your vault`,
-                        'success'
-                      );
-                    } else if (stats.duplicates > 0) {
-                      showToast(
-                        `${stats.duplicates} ${stats.duplicates === 1 ? 'image' : 'images'} already in your vault`,
-                        'info'
+                        `✓ ${stats.uploaded} ${stats.uploaded === 1 ? 'file' : 'files'} uploaded`,
+                        'success',
+                        2000
                       );
                     }
 
-                    // Optionally close the upload panel after a delay
-                    // setTimeout(() => setShowUploadPanel(false), 2000);
+                    // Auto-close upload panel after brief delay
+                    setTimeout(() => setShowUploadPanel(false), 2000);
                   }}
                 />
               </div>
@@ -783,30 +789,46 @@ function AppPageClient() {
 
             {isSearching && (
               <div className="space-y-3">
+                {/* Query Syntax Indicator */}
+                {!searchError && !searchLoading && (
+                  <QuerySyntaxIndicator
+                    query={trimmedLibraryQuery}
+                    resultCount={searchHitCount}
+                    filters={{
+                      favorites: favoritesOnly || undefined,
+                      tagName: activeTagName || undefined,
+                    }}
+                    latencyMs={searchMetadata?.latencyMs}
+                  />
+                )}
+
                 {searchError && (
-                  <div className="rounded-2xl border border-[#FF4D4D]/30 bg-[#251014] p-4 text-sm text-[#FF8C9B]">
+                  <div className="border border-[var(--color-terminal-red)] bg-black p-4 font-mono text-sm uppercase text-[var(--color-terminal-red)]">
                     {searchError}
                   </div>
                 )}
 
                 {!searchError && !searchLoading && filteredSearchAssets.length > 0 && (
-                  <div className="rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
-                    <span className="flex flex-col gap-1">
-                      <span>
-                        showing <span className="font-semibold text-[#B6FF6E]">{searchHitCount}</span> matches for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
-                      </span>
-                      {searchMetadata?.thresholdFallback && (
-                        <span className="text-xs text-[#FFAA5C]">
-                          pulled a few low-sim homies so your vibes aren&apos;t empty.
+                  <>
+                    <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
+                      <span className="flex flex-col gap-1">
+                        <span>
+                          showing <span className="text-[var(--color-terminal-green)]">{searchHitCount}</span> matches for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
                         </span>
-                      )}
-                    </span>
-                  </div>
+                        {searchMetadata?.thresholdFallback && (
+                          <span className="text-xs text-[var(--color-terminal-yellow)]">
+                            pulled a few low-sim homies so your vibes aren&apos;t empty.
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    <SimilarityScoreLegend />
+                  </>
                 )}
 
                 {!searchError && !searchLoading && searchHitCount === 0 && (
-                  <div className="rounded-2xl border border-[#2A2F37] bg-[#14171A] p-4 text-sm text-[#B3B7BE]">
-                    no matches yet for &quot;<span className="font-medium text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;. remix the prompt and try again.
+                  <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
+                    no matches yet for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;. remix the prompt and try again.
                   </div>
                 )}
               </div>
@@ -860,6 +882,7 @@ function AppPageClient() {
                     containerClassName={cn(gridContainerClassName, 'w-full')}
                     onScrollContainerReady={handleScrollContainerReady}
                     onUploadClick={() => setShowUploadPanel(true)}
+                    showSimilarityScores={isSearching}
                   />
                 </ImageGridErrorBoundary>
               )}
@@ -877,6 +900,8 @@ function AppPageClient() {
           <div
             className="max-w-4xl max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
+            onMouseMove={() => setShowMetadata(true)}
+            onMouseLeave={() => setShowMetadata(false)}
           >
             <div className="relative w-full h-full">
               <Image
@@ -884,19 +909,22 @@ function AppPageClient() {
                 alt={selectedAsset.filename}
                 width={1920}
                 height={1080}
-                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+                className="max-w-full max-h-[90vh] object-contain"
                 priority
               />
             </div>
             <button
               onClick={() => setSelectedAsset(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm rounded-full flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+              className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
-            <div className="absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm rounded-lg p-4">
+            <div className={cn(
+              "absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300",
+              showMetadata ? 'opacity-100' : 'opacity-0'
+            )}>
               <p className="text-white font-medium">{selectedAsset.filename}</p>
               <p className="text-white/80 text-sm mt-1">
                 {selectedAsset.width}×{selectedAsset.height} • {selectedAsset.mime.split('/')[1].toUpperCase()}
@@ -909,7 +937,7 @@ function AppPageClient() {
       {/* Retry Progress Modal */}
       {showRetryModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#14171A] border border-[#2A2F37] rounded-3xl p-6 max-w-sm w-full shadow-2xl">
+          <div className="bg-[#14171A] border border-[#2A2F37] p-6 max-w-sm w-full shadow-2xl">
             <h3 className="text-lg font-semibold text-[#E6E8EB] mb-4">
               regenerating embeddings
             </h3>
@@ -953,9 +981,9 @@ function AppPageClient() {
                     {Math.round((retryProgress.current / retryProgress.total) * 100)}%
                   </span>
                 </div>
-                <div className="w-full bg-[#1F2328] rounded-full h-2 overflow-hidden">
+                <div className="w-full bg-[#1F2328] h-2 overflow-hidden">
                   <div
-                    className="bg-gradient-to-r from-[#7C5CFF] to-[#BAFF39] h-full rounded-full transition-all duration-500 ease-out"
+                    className="bg-[var(--color-terminal-green)] h-full transition-all duration-500 ease-out"
                     style={{ width: `${(retryProgress.current / retryProgress.total) * 100}%` }}
                   />
                 </div>
@@ -983,6 +1011,12 @@ function AppPageClient() {
         onClose={closePalette}
         onUpload={() => router.push('/app/upload')}
         onSignOut={() => window.location.href = '/api/auth/signout'}
+      />
+
+      {/* Keyboard Shortcuts Help */}
+      <KeyboardShortcutsHelp
+        isOpen={isHelpOpen}
+        onClose={closeHelp}
       />
     </div>
   );

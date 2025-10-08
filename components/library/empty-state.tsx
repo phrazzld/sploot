@@ -135,14 +135,14 @@ export function EmptyState({
         // Drag feedback: border + scale
         isDragging && enableDragDrop && [
           'scale-[1.02]',
-          'rounded-2xl border-2 border-[#7C5CFF] border-dashed',
-          'bg-[#7C5CFF]/5 p-8'
+          'border-2 border-[var(--color-terminal-green)] border-dashed',
+          'bg-black p-8'
         ]
       )}>
         {/* Minimal icon - 16x16 size */}
-        <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-[#1B1F24]">
+        <div className="flex h-16 w-16 items-center justify-center bg-black border border-[#333333]">
           <svg
-            className="h-8 w-8 text-[#7C5CFF]/80"
+            className="h-8 w-8 text-[var(--color-terminal-green)]"
             viewBox="0 0 64 64"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -172,26 +172,26 @@ export function EmptyState({
 
         {/* Compact message */}
         <div className="space-y-1">
-          <h3 className="text-base font-medium text-[#E6E8EB]">{message.title}</h3>
+          <h3 className="font-mono text-base uppercase text-[#E6E8EB]">{message.title}</h3>
           {message.description && (
-            <p className="text-sm text-[#B3B7BE]/80">{message.description}</p>
+            <p className="font-mono text-sm text-[#888888]">{message.description}</p>
           )}
         </div>
 
         {/* Keyboard hint for first-use */}
         {shouldShowUploadButton && (
           <div className="mt-2 flex flex-col items-center gap-3">
-            <div className="flex items-center gap-2 text-xs text-[#7C5CFF]/70">
-              <kbd className="rounded bg-[#1B1F24] px-1.5 py-0.5 font-mono text-[#7C5CFF]">⌘V</kbd>
+            <div className="flex items-center gap-2 font-mono text-xs text-[#888888]">
+              <kbd className="border border-[#333333] bg-black px-1.5 py-0.5 font-mono text-[var(--color-terminal-green)]">⌘V</kbd>
               <span>to paste</span>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="text-xs text-[#474C58]">or</span>
+              <span className="font-mono text-xs text-[#666666]">or</span>
               {onUploadClick ? (
                 <button
                   onClick={onUploadClick}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
+                  className="inline-flex items-center gap-1.5 border border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] px-4 py-2 font-mono text-sm uppercase text-black hover:bg-black hover:text-[var(--color-terminal-green)]"
                   aria-label="Upload images"
                 >
                   <svg
@@ -214,7 +214,7 @@ export function EmptyState({
               ) : (
                 <Link
                   href="/app?upload=1"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0]"
+                  className="inline-flex items-center gap-1.5 border border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] px-4 py-2 font-mono text-sm uppercase text-black hover:bg-black hover:text-[var(--color-terminal-green)]"
                   aria-label="Upload images"
                 >
                   <svg

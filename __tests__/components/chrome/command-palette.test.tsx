@@ -49,7 +49,7 @@ describe('CommandPalette', () => {
         <CommandPalette isOpen={true} onClose={mockOnClose} />
       );
 
-      const backdrop = container.querySelector('.fixed.inset-0.bg-black\\/60');
+      const backdrop = container.querySelector('.fixed.inset-0.bg-black\\/80');
       expect(backdrop).toBeInTheDocument();
     });
 
@@ -74,9 +74,9 @@ describe('CommandPalette', () => {
     it('should render help text in footer', () => {
       render(<CommandPalette isOpen={true} onClose={mockOnClose} />);
 
-      expect(screen.getByText('to navigate')).toBeInTheDocument();
-      expect(screen.getByText('to select')).toBeInTheDocument();
-      expect(screen.getByText('to close')).toBeInTheDocument();
+      expect(screen.getByText('navigate')).toBeInTheDocument();
+      expect(screen.getByText('select')).toBeInTheDocument();
+      expect(screen.getByText('close')).toBeInTheDocument();
     });
   });
 
@@ -150,13 +150,13 @@ describe('CommandPalette', () => {
       );
 
       // First command should be selected initially
-      expect(commands[0]).toHaveClass('bg-[#7C5CFF]/10');
+      expect(commands[0]).toHaveClass('bg-[var(--color-terminal-green)]/10');
 
       // Press ArrowDown
       fireEvent.keyDown(document, { key: 'ArrowDown' });
 
       // Second command should now be selected
-      expect(commands[1]).toHaveClass('bg-[#7C5CFF]/10');
+      expect(commands[1]).toHaveClass('bg-[var(--color-terminal-green)]/10');
     });
 
     it('should navigate up with ArrowUp key', () => {
@@ -168,7 +168,7 @@ describe('CommandPalette', () => {
       const commands = screen.getAllByRole('button').filter(btn =>
         btn.textContent?.includes('Sign Out')
       );
-      expect(commands[0]).toHaveClass('bg-[#7C5CFF]/10');
+      expect(commands[0]).toHaveClass('bg-[var(--color-terminal-green)]/10');
     });
 
     it('should wrap to first when navigating down from last item', () => {
@@ -178,13 +178,13 @@ describe('CommandPalette', () => {
         btn.textContent?.includes('Upload')
       );
 
-      // Navigate to last item then one more down
-      for (let i = 0; i < 5; i++) {
+      // Navigate to last item then one more down (8 commands total)
+      for (let i = 0; i < 8; i++) {
         fireEvent.keyDown(document, { key: 'ArrowDown' });
       }
 
       // Should wrap back to first
-      expect(commands[0]).toHaveClass('bg-[#7C5CFF]/10');
+      expect(commands[0]).toHaveClass('bg-[var(--color-terminal-green)]/10');
     });
 
     it('should execute selected command when Enter is pressed', () => {
@@ -218,7 +218,7 @@ describe('CommandPalette', () => {
 
       await user.hover(settingsButton);
 
-      expect(settingsButton).toHaveClass('bg-[#7C5CFF]/10');
+      expect(settingsButton).toHaveClass('bg-[var(--color-terminal-green)]/10');
     });
   });
 
@@ -300,7 +300,7 @@ describe('CommandPalette', () => {
         <CommandPalette isOpen={true} onClose={mockOnClose} />
       );
 
-      const backdrop = container.querySelector('.fixed.inset-0.bg-black\\/60');
+      const backdrop = container.querySelector('.fixed.inset-0.bg-black\\/80');
       fireEvent.click(backdrop!);
 
       expect(mockOnClose).toHaveBeenCalledTimes(1);

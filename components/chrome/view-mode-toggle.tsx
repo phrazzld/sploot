@@ -99,7 +99,7 @@ export function ViewModeToggle({
       className={cn(
         'flex items-center',
         config.gap,
-        'bg-[#1B1F24] rounded-lg p-0.5',
+        'bg-black border border-[#333333] p-0.5',
         className
       )}
       role="radiogroup"
@@ -115,7 +115,6 @@ export function ViewModeToggle({
             className={cn(
               // Base styles
               'flex items-center justify-center',
-              'rounded-md transition-all duration-200',
               'group relative',
 
               // Size
@@ -123,8 +122,8 @@ export function ViewModeToggle({
 
               // Colors and states
               isActive
-                ? 'bg-[#7C5CFF] text-white shadow-lg shadow-[#7C5CFF]/20'
-                : 'text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37]',
+                ? 'bg-[var(--color-terminal-green)] text-black'
+                : 'text-[#888888] hover:text-[var(--color-terminal-green)] hover:bg-[#0F1012]',
 
               // Touch target optimization
               'touch-manipulation',
@@ -137,24 +136,12 @@ export function ViewModeToggle({
             aria-label={mode.label}
             title={mode.label}
           >
-            <span className={cn(
-              'transition-transform duration-200',
-              isActive && 'scale-110'
-            )}>
-              {mode.icon}
-            </span>
+            {mode.icon}
 
             {showLabels && (
-              <span className={cn('ml-1.5', config.fontSize)}>
+              <span className={cn('ml-1.5 font-mono uppercase', config.fontSize)}>
                 {mode.label}
               </span>
-            )}
-
-            {/* Active indicator dot */}
-            {isActive && (
-              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
-                <div className="w-1 h-1 bg-[#B6FF6E] rounded-full" />
-              </div>
             )}
           </button>
         );
@@ -215,9 +202,8 @@ export function ViewModeCycle({
       onClick={handleClick}
       className={cn(
         'flex items-center justify-center',
-        'bg-[#1B1F24] hover:bg-[#2A2F37]',
-        'text-[#B3B7BE] hover:text-[#7C5CFF]',
-        'rounded-lg transition-all duration-200',
+        'bg-black border border-[#333333]',
+        'text-[#888888] hover:text-[var(--color-terminal-green)] hover:bg-[#0F1012]',
         'group',
         sizeConfig[size],
         className
@@ -225,9 +211,7 @@ export function ViewModeCycle({
       aria-label={`View mode: ${value}`}
       title={`View mode: ${value} (click to cycle)`}
     >
-      <span className="transition-transform duration-200 group-hover:scale-110">
-        {icons[value]}
-      </span>
+      {icons[value]}
     </button>
   );
 }

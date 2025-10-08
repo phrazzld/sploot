@@ -445,11 +445,6 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 5000));
   }
 
-  // Check if we're in mock mode
-  if (process.env.ENABLE_MOCK_SERVICES === 'true') {
-    console.log('ℹ️  Running in MOCK mode - using simulated services');
-  }
-
   const config: LoadTestConfig = {
     concurrentUsers,
     imagesPerUser,

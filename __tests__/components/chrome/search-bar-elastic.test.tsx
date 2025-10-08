@@ -291,20 +291,24 @@ describe('SearchBarElastic', () => {
       const input = screen.getByPlaceholderText('Search memes...');
       const icon = container.querySelector('svg');
 
-      expect(icon).toHaveClass('text-[#B3B7BE]');
+      expect(icon).toHaveClass('text-[#666666]');
 
       await user.click(input);
 
-      expect(icon).toHaveClass('text-[#7C5CFF]');
+      expect(icon).toHaveClass('text-[var(--color-terminal-green)]');
     });
 
-    it('should apply focus ring to input when focused', async () => {
+    it('should change border color when focused', async () => {
       const user = userEvent.setup();
       render(<SearchBarElastic />);
 
       const input = screen.getByPlaceholderText('Search memes...');
 
-      expect(input).toHaveClass('focus:ring-2', 'focus:ring-[#7C5CFF]/50');
+      expect(input).toHaveClass('border-[#333333]');
+
+      await user.click(input);
+
+      expect(input).toHaveClass('border-[var(--color-terminal-green)]');
     });
   });
 

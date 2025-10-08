@@ -70,17 +70,26 @@ pnpm test:e2e            # Run end-to-end tests
 
 ## Design System
 
-### Theme Configuration
-- **Primary**: Neon Violet (#7C5CFF)
-- **Accent**: Lime Pop (#BAFF39)
-- **Background**: Deep Lab (#0A0B0D → #0F1012)
-- **Typography**: Geist Sans font family
+### Theme Configuration - Bloomberg Terminal × Linear Aesthetic
+- **Primary**: Neon Violet (#7C5CFF) - used sparingly for interactive elements
+- **Background**: Pure Black (#000000) - terminal aesthetic foundation
+- **Terminal Colors**:
+  - Success/High Confidence: Terminal Green (#4ADE80)
+  - Error/Failed: Terminal Red (#EF4444)
+  - Warning/Medium: Terminal Yellow (#FBBF24)
+  - Metadata/Secondary: Terminal Gray (#888888)
+- **Typography**:
+  - UI Text: Geist Sans
+  - Metadata/Technical: JetBrains Mono (monospace for timestamps, file info, scores)
 - **Spacing**: 4px base unit system
 
 ### Component Patterns
-- Use shadcn/ui component patterns when applicable
-- Follow "Crisp Lab Minimal" aesthetic from AESTHETIC.md
-- Dark mode first with high contrast
+- Bloomberg Terminal-inspired information density
+- Linear's minimal visual language
+- Corner brackets for viewport framing
+- Monospace typography for all technical/metadata displays
+- Color-coded data based on confidence/state
+- Dark mode only with pure black backgrounds
 - Subtle animations (200-300ms transitions)
 
 ## Performance Requirements

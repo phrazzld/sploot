@@ -160,9 +160,9 @@ const FileRow = memo(({ item, index, style, onRemove, onRetry }: FileRowProps) =
 
       <div className="flex items-center gap-3">
         {item.status === 'uploading' && item.progress !== undefined && (
-          <div className="w-20 bg-gray-800 rounded-full h-1.5">
+          <div className="w-20 bg-gray-800 h-1.5">
             <div
-              className="bg-blue-500 h-1.5 rounded-full transition-all"
+              className="bg-blue-500 h-1.5 transition-all"
               style={{ width: `${item.progress}%` }}
             />
           </div>

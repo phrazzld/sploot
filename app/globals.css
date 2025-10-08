@@ -1,22 +1,22 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Force pure black terminal aesthetic (Bloomberg Terminal style) */
+  --background: #000000;
+  --foreground: #ededed;
+
+  /* Terminal color system */
+  --color-terminal-green: #4ADE80;
+  --color-terminal-red: #EF4444;
+  --color-terminal-yellow: #FBBF24;
+  --color-terminal-gray: #888888;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-mono: var(--font-jetbrains-mono);
 }
 
 body {
@@ -163,19 +163,6 @@ textarea:focus-visible,
 select:focus-visible {
   outline: 2px solid #7C5CFF;
   outline-offset: 0; /* No offset for form fields to avoid layout shift */
-}
-
-/* Ensure focus rings respect component border radius */
-.rounded-lg:focus-visible {
-  border-radius: 0.5rem;
-}
-
-.rounded-xl:focus-visible {
-  border-radius: 0.75rem;
-}
-
-.rounded-full:focus-visible {
-  border-radius: 9999px;
 }
 
 /* Dropdown menu animations */

@@ -69,7 +69,7 @@ export function UploadTest() {
   };
 
   return (
-    <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
+    <div className="bg-gray-800/50 p-6 border border-gray-700">
       <h3 className="text-xl font-semibold mb-4 text-violet-400">
         Blob Storage Test
       </h3>
@@ -85,13 +85,7 @@ export function UploadTest() {
             accept={ALLOWED_FILE_TYPES.join(',')}
             onChange={handleFileChange}
             disabled={uploading}
-            className="block w-full text-sm text-gray-400
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-lg file:border-0
-              file:text-sm file:font-semibold
-              file:bg-violet-600 file:text-white
-              hover:file:bg-violet-700
-              disabled:opacity-50 disabled:cursor-not-allowed"
+            className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file: file:border-0 file:text-sm file:font-semibold file:bg-violet-600 file:text-white hover:file:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed"
           />
         </div>
 
@@ -103,13 +97,13 @@ export function UploadTest() {
         )}
 
         {error && (
-          <div className="bg-red-900/20 border border-red-800 rounded-lg p-3">
+          <div className="bg-red-900/20 border border-red-800 p-3">
             <p className="text-red-400 text-sm">{error}</p>
           </div>
         )}
 
         {uploadResult && (
-          <div className="bg-green-900/20 border border-green-800 rounded-lg p-3">
+          <div className="bg-green-900/20 border border-green-800 p-3">
             <p className="text-green-400 text-sm font-semibold mb-2">
               ✅ Upload URL Generated Successfully!
             </p>

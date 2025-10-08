@@ -1,18 +1,12 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
-import { NextResponse } from 'next/server'
-import { isMockMode } from './lib/env'
 
 // Define protected routes that require authentication
-const mockMode = isMockMode()
-
-const isProtectedRoute = mockMode
-  ? null
-  : createRouteMatcher([
-      '/app(.*)',
-      '/api/upload-url(.*)',
-      '/api/assets(.*)',
-      '/api/search(.*)'
-    ])
+const isProtectedRoute = createRouteMatcher([
+  '/app(.*)',
+  '/api/upload-url(.*)',
+  '/api/assets(.*)',
+  '/api/search(.*)'
+])
 
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -22,15 +16,11 @@ const isPublicRoute = createRouteMatcher([
   '/api/health'
 ])
 
-export default mockMode
-  ? function middleware() {
-      return NextResponse.next()
-    }
-  : clerkMiddleware(async (auth, req) => {
-      if (isProtectedRoute && isProtectedRoute(req)) {
-        await auth.protect()
-      }
-    })
+export default clerkMiddleware(async (auth, req) => {
+  if (isProtectedRoute(req)) {
+    await auth.protect()
+  }
+})
 
 export const config = {
   matcher: [

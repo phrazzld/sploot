@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { unstable_rethrow } from 'next/navigation';
 import { requireUserIdWithSync } from '@/lib/auth/server';
-import { prisma, databaseAvailable } from '@/lib/db';
+import { prisma } from '@/lib/db';
 
 /**
  * GET /api/assets/[id]/tags - Get tags for a specific asset
@@ -13,7 +14,7 @@ export async function GET(
     const userId = await requireUserIdWithSync();
     const { id } = await params;
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }
@@ -52,6 +53,7 @@ export async function GET(
       })),
     });
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error fetching asset tags:', error);
     return NextResponse.json(
       { error: 'Failed to fetch asset tags' },
@@ -72,7 +74,7 @@ export async function POST(
     const { id } = await params;
     const { tagIds, tagNames } = await req.json();
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }
@@ -185,6 +187,7 @@ export async function POST(
       })),
     });
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error adding tags to asset:', error);
     return NextResponse.json(
       { error: 'Failed to add tags to asset' },
@@ -212,7 +215,7 @@ export async function DELETE(
       );
     }
 
-    if (!databaseAvailable || !prisma) {
+    if ( !prisma) {
       return NextResponse.json(
         { error: 'Database unavailable' },
         { status: 503 }
@@ -250,6 +253,7 @@ export async function DELETE(
       message: 'Tags removed from asset',
     });
   } catch (error) {
+    unstable_rethrow(error);
     console.error('Error removing tags from asset:', error);
     return NextResponse.json(
       { error: 'Failed to remove tags from asset' },

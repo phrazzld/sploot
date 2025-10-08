@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { clerkConfigured, blobConfigured, databaseConfigured, replicateConfigured, isMockMode } from '@/lib/env';
+import { clerkConfigured, blobConfigured, databaseConfigured, replicateConfigured } from '@/lib/env';
 import { prisma } from '@/lib/db';
 import { currentUser } from '@clerk/nextjs/server';
 
@@ -16,9 +16,6 @@ export async function GET(req: NextRequest) {
     details?: any;
   }> = {};
 
-  // Check if we're in mock mode
-  const mockMode = isMockMode();
-
   // Check Clerk Authentication
   try {
     if (clerkConfigured) {
@@ -32,9 +29,9 @@ export async function GET(req: NextRequest) {
     } else {
       services.clerk = {
         name: 'Authentication (Clerk)',
-        status: mockMode ? 'healthy' : 'not_configured',
+        status: 'not_configured',
         configured: false,
-        message: mockMode ? 'Using mock authentication' : 'Missing CLERK_SECRET_KEY',
+        message: 'Missing CLERK_SECRET_KEY',
       };
     }
   } catch (error) {
@@ -72,9 +69,9 @@ export async function GET(req: NextRequest) {
     } else {
       services.database = {
         name: 'Database (Postgres)',
-        status: mockMode ? 'healthy' : 'not_configured',
+        status: 'not_configured',
         configured: false,
-        message: mockMode ? 'Using in-memory mock database' : 'Missing POSTGRES_URL',
+        message: 'Missing POSTGRES_URL',
       };
     }
   } catch (error) {
@@ -104,9 +101,9 @@ export async function GET(req: NextRequest) {
     } else {
       services.blobStorage = {
         name: 'Storage (Vercel Blob)',
-        status: mockMode ? 'healthy' : 'not_configured',
+        status: 'not_configured',
         configured: false,
-        message: mockMode ? 'Using mock storage' : 'Missing BLOB_READ_WRITE_TOKEN',
+        message: 'Missing BLOB_READ_WRITE_TOKEN',
       };
     }
   } catch (error) {
@@ -134,9 +131,9 @@ export async function GET(req: NextRequest) {
     } else {
       services.embeddings = {
         name: 'Embeddings (Replicate)',
-        status: mockMode ? 'healthy' : 'not_configured',
+        status: 'not_configured',
         configured: false,
-        message: mockMode ? 'Using mock embeddings' : 'Missing REPLICATE_API_TOKEN',
+        message: 'Missing REPLICATE_API_TOKEN',
       };
     }
   } catch (error) {
@@ -161,7 +158,6 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     status: overallHealth,
-    mockMode,
     allServicesConfigured: allConfigured,
     timestamp: new Date().toISOString(),
     services,
@@ -171,11 +167,9 @@ export async function GET(req: NextRequest) {
       canStore: services.database?.status === 'healthy',
       canSearch: services.embeddings?.status === 'healthy' && services.database?.status === 'healthy',
     },
-    message: mockMode && !allConfigured
-      ? 'Running in mock mode. Some services not configured.'
-      : allConfigured
-        ? 'All services configured'
-        : 'Some services are not configured. Check individual service status.'
+    message: allConfigured
+      ? 'All services configured'
+      : 'Some services are not configured. Check individual service status.'
   });
 }
 
