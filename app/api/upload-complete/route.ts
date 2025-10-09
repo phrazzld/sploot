@@ -3,7 +3,6 @@ import { unstable_rethrow } from 'next/navigation';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, assetExists } from '@/lib/db';
 import { del } from '@vercel/blob';
-import crypto from 'crypto';
 
 /**
  * Finalizes a client-side upload by creating the asset record in database.

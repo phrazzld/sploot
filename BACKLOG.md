@@ -749,9 +749,200 @@
 
 ---
 
+## 🔐 PR #4 Review Feedback - Deferred Items
+
+**Context**: PR #4 reviews identified 22 feedback items total. 7 critical/high-priority items moved to TODO.md Phase 2.5. The remaining 15 items are catalogued here as valid but lower-priority improvements.
+
+**Source**: PR #4 Code Reviews by @claude (2 comprehensive reviews)
+
+### Security Enhancements
+
+- **Server-Side Checksum Validation** (app/api/upload-complete/route.ts:42-47)
+  - **Current**: Client sends SHA-256 checksum, server trusts it for duplicate detection
+  - **Enhancement**: Re-download blob server-side and recalculate checksum to verify integrity
+  - **Rationale for deferring**: Trust-the-client approach is acceptable for duplicate detection (not security-critical). Server-side verification adds ~200ms latency and ~10MB memory overhead per upload.
+  - **Trade-off**: Security vs performance - current approach optimizes for speed
+  - **Effort**: Small (~1-2 hours to implement conditional verification)
+  - **Priority**: Medium
+  - **Implementation**:
+    ```typescript
+    // Optional server-side verification:
+    if (process.env.STRICT_CHECKSUM_VALIDATION === 'true') {
+      const response = await fetch(blobUrl);
+      const buffer = await response.arrayBuffer();
+      const serverChecksum = crypto.createHash('sha256')
+        .update(Buffer.from(buffer))
+        .digest('hex');
+
+      if (serverChecksum !== checksum) {
+        await del(blobUrl);  // Clean up invalid upload
+        return NextResponse.json(
+          { error: 'Checksum mismatch - file corrupted' },
+          { status: 400 }
+        );
+      }
+    }
+    ```
+  - **When to revisit**: If duplicate detection is bypassed by attackers, or for high-security deployments
+  - **PR Reference**: PR #4 Review #2 - Checksum Validation section
+
+### Testing & Quality Assurance
+
+- **Add Test Coverage for New Endpoints** (Missing tests for 5 new endpoints)
+  - **Missing tests**:
+    - `app/api/cron/process-images/route.ts` (207 lines, 0% coverage)
+    - `app/api/upload-url/route.ts` (133 lines, 0% coverage)
+    - `app/api/upload-complete/route.ts` (120 lines, 0% coverage)
+    - `app/api/processing-stats/route.ts` (174 lines, 0% coverage)
+    - `lib/rate-limiter.ts` (165 lines, 0% coverage - **SECURITY-CRITICAL**)
+  - **Rationale for deferring**: Manual testing confirms functionality. `process-embeddings` has excellent test coverage (616 lines, 19 tests) proving the pattern works. Can add tests incrementally.
+  - **Recommendation**: Prioritize rate limiter tests first (security-critical), then upload flow tests
+  - **Effort**: Medium (~6-8 hours for comprehensive coverage)
+  - **Priority**: High (especially rate limiter tests)
+  - **Test patterns to copy**: `__tests__/api/cron/process-embeddings.test.ts` provides excellent template
+  - **PR Reference**: PR #4 Review #2 - Test Coverage section
+
+- **Add Integration Tests for Direct-to-Blob Upload Flow** (3-step flow test)
+  - **Test sequence**: GET /api/upload-url → PUT to blob → POST /api/upload-complete
+  - **Verify**: Asset created with `processed=false, embedded=false`, presigned URL expiration, duplicate detection
+  - **Rationale for deferring**: End-to-end flow works in production, integration test is confidence-building but not blocking
+  - **Effort**: Medium (~2-3 hours)
+  - **Priority**: Medium
+  - **File**: `__tests__/api/upload-direct.test.ts` (new file)
+  - **PR Reference**: TODO.md Phase 4 testing section
+
+- **Add Unit Tests for Rate Limiter** (Token bucket algorithm verification)
+  - **Test cases**: Token consumption/refill, burst handling, concurrent users, retry-after calculation
+  - **Rationale for deferring**: Algorithm is well-understood, manual testing confirms behavior
+  - **Security risk**: Rate limiter bugs could allow abuse - HIGH priority to test
+  - **Effort**: Small (~2 hours)
+  - **Priority**: High (security-critical component)
+  - **File**: `__tests__/lib/rate-limiter.test.ts` (new file)
+  - **PR Reference**: TODO.md Phase 4 testing section
+
+### Logging & Observability
+
+- **Enhanced Structured Logging** (app/api/cron/*.ts, all endpoints)
+  - **Current**: Basic console.log/error with inconsistent formats
+  - **Enhancement**: Structured JSON logging with context (userId, assetId, timestamp, duration)
+  - **Example**:
+    ```typescript
+    console.error({
+      level: 'error',
+      context: '[cron/process-images]',
+      assetId: asset.id,
+      userId: asset.ownerUserId,
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      duration: Date.now() - startTime,
+    });
+    ```
+  - **Rationale for deferring**: Current logs are functional for debugging. Structured logging improves observability at scale but isn't blocking.
+  - **Effort**: Medium (~3-4 hours to add consistently across all endpoints)
+  - **Priority**: Medium
+  - **Prerequisite**: Define logging interface/utility in `lib/logger.ts`
+  - **PR Reference**: PR #4 Review #2 - Error Logging Lacks Context section
+
+- **Extract Magic Numbers to Named Constants** (Multiple files)
+  - **Examples**:
+    - `lib/rate-limiter.ts:40` - `refillPerMinute / 60` (should be `SECONDS_PER_MINUTE`)
+    - `app/api/cron/process-embeddings/route.ts:16-22` - Retry delay array
+    - `app/api/processing-stats/route.ts:22` - `5000` milliseconds cache TTL
+  - **Rationale for deferring**: Code is clear enough with inline comments. Named constants improve maintainability but not urgent.
+  - **Effort**: Small (~1 hour)
+  - **Priority**: Low
+  - **Example**:
+    ```typescript
+    const SECONDS_PER_MINUTE = 60;
+    const CACHE_TTL_MS = 5_000; // 5 seconds
+    const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+    ```
+  - **PR Reference**: PR #4 Review #2 - Type Safety section
+
+### Performance & Optimization
+
+- **Monitor Memory Usage for Image Processing** (app/api/cron/process-images/route.ts:99-106)
+  - **Current**: Loads entire image into memory (10MB × 10 images = 100MB peak)
+  - **Observation**: Acceptable for Vercel Hobby 1GB memory limit, but could be optimized with streaming
+  - **Rationale for deferring**: Current approach works within limits. Only optimize if hitting memory constraints.
+  - **Streaming approach**:
+    ```typescript
+    // Instead of buffering entire file:
+    const response = await fetch(asset.blobUrl);
+    const result = await processUploadedImage(response.body, asset.mime);  // Stream
+    ```
+  - **Effort**: Medium (~2-3 hours to refactor Sharp for streaming)
+  - **Priority**: Low (monitor first, optimize if needed)
+  - **When to revisit**: If max file size increases beyond 10MB or batch size increases beyond 10
+  - **PR Reference**: PR #4 Review #1 - Image Processing Memory Usage section
+
+- **Optimize Stats Cache Cleanup** (app/api/processing-stats/route.ts:26-33)
+  - **Current**: `setInterval` cleanup every 60 seconds (may not run in serverless)
+  - **Enhancement**: Add inline cleanup on cache access (similar to rate limiter fix)
+  - **Rationale for deferring**: Cache has small memory footprint (~100 bytes per user). Cleanup is nice-to-have but not critical.
+  - **Effort**: Small (~30 minutes)
+  - **Priority**: Low
+  - **Implementation**: Add cleanup logic before cache lookup, remove setInterval
+  - **PR Reference**: PR #4 Review #1 - Cache Cleanup Timing section
+
+- **Database Connection Pool Tuning** (prisma configuration)
+  - **Current**: Default pool size (10 connections)
+  - **Observation**: Sufficient for current load (<100 concurrent requests)
+  - **Rationale for deferring**: No connection pool exhaustion observed. Tune when load increases.
+  - **Configuration**: Adjust `connection_limit` in `DATABASE_URL` query param
+  - **Effort**: Small (~1 hour for load testing + config tuning)
+  - **Priority**: Low
+  - **Prerequisite**: Neon Postgres plan upgrade (Hobby = 100 connections, Pro = 1000)
+  - **When to revisit**: When concurrent uploads exceed 50 or queue processing slows
+  - **PR Reference**: PR #4 Review #2 - Database Connection Pool section
+
+### Edge Cases & Reliability
+
+- **Cron Dev Mode Fallback** (app/api/cron/*.ts:37-51)
+  - **Issue**: `CRON_SECRET` only set in production, not preview deployments. Cron auth fails in Vercel preview.
+  - **Enhancement**: Allow fallback auth in development/preview
+  - **Implementation**:
+    ```typescript
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isPreview = process.env.VERCEL_ENV === 'preview';
+    const skipAuth = (isDevelopment || isPreview) && !cronSecret;
+
+    if (!skipAuth && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    ```
+  - **Rationale for deferring**: Cron jobs are production-only feature. Preview testing can use manual API calls.
+  - **Effort**: Small (~30 minutes)
+  - **Priority**: Low
+  - **Security note**: Only allow in preview/dev, never in production without secret
+  - **PR Reference**: PR #4 Review #2 - Cron Secret Validation Edge Case section
+
+### Code Architecture
+
+- **Centralize Database Availability Checks** (Multiple endpoints)
+  - **Current**: Inconsistent null checks (`if (!prisma)` in some endpoints, missing in others)
+  - **Enhancement**: Centralize in middleware or shared helper
+  - **Example**:
+    ```typescript
+    // lib/db-middleware.ts
+    export async function requireDatabase() {
+      if (!prisma) {
+        throw new DatabaseUnavailableError('Database connection unavailable');
+      }
+      return prisma;
+    }
+    ```
+  - **Rationale for deferring**: Current approach works. Centralization improves consistency but isn't urgent.
+  - **Effort**: Medium (~2 hours to refactor all endpoints)
+  - **Priority**: Low
+  - **PR Reference**: PR #4 Review #2 - Inconsistent Null Checks section
+
+---
+
 ## 📊 Backlog Statistics
 
-**Total Items**: 53
+**Total Items**: 61 (+8 from PR #4 review feedback)
 - Infrastructure & Tooling: 3 items
 - Accessibility: 3 items
 - Performance: 3 items
@@ -761,13 +952,15 @@
 - UX Enhancements: 3 items
 - Terminal Aesthetic: 9 items
 - Bulk Upload System: 13 items
+- **PR #4 Review Feedback**: 8 items (added)
 - Rejected: 4 items
 
-**Estimated Total Effort**: ~75-85 hours
+**Estimated Total Effort**: ~90-100 hours (+15 hours from PR feedback)
+
 **Highest Priority Items**:
-- Memory leak detection
-- Vercel Queue integration
-- Architecture documentation
-- Multi-column list view
-- Upload session management
-- Grafana dashboard
+- Rate limiter unit tests (security-critical)
+- Test coverage for new endpoints
+- Server-side checksum validation
+- Structured logging
+- Memory leak detection (previous)
+- Vercel Queue integration (previous)

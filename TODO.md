@@ -294,6 +294,256 @@
 
 ---
 
+## Phase 2.5: Pre-Merge Hardening (PR Review Feedback)
+
+**Goal**: Address critical security and reliability issues identified in PR #4 reviews before merging to production.
+
+**Context**: Two comprehensive PR reviews identified 22 feedback items. This phase addresses the 7 highest-priority issues that should be resolved before merge. Medium/low priority items catalogued in BACKLOG.md.
+
+### Critical Security Fixes (Merge-Blocking)
+
+- [ ] **CRITICAL: Fix Blob Token Security Vulnerability** (app/api/upload-url/route.ts:98-118)
+  - **Problem**: Currently exposing raw `BLOB_READ_WRITE_TOKEN` to client grants full read/write access to **entire blob storage**, not just user's files. Malicious user could:
+    - Upload unlimited files to arbitrary paths
+    - Read/delete any blob in storage
+    - Bypass rate limiting entirely
+  - **Current code**:
+    ```typescript
+    return NextResponse.json({
+      token: process.env.BLOB_READ_WRITE_TOKEN,  // ❌ Full storage access
+      ...
+    });
+    ```
+  - **Solution**: Research and implement Vercel Blob's proper client upload API with scoped tokens:
+    - Option 1: `handleUpload` pattern with server-generated tokens
+    - Option 2: Scoped presigned URLs with pathname/size/content-type limits
+    - Option 3: `createClientUploadToken()` if available
+  - **Implementation steps**:
+    1. Review [Vercel Blob SDK docs](https://vercel.com/docs/storage/vercel-blob/using-blob-sdk#generate-client-upload-urls) for recommended client upload pattern
+    2. Test alternative: Generate proper presigned PUT URL with AWS SDK pattern
+    3. Update `/api/upload-url` to return scoped token with:
+       - Limited to specific `pathname` only
+       - Expires after 5 minutes
+       - Restricts `contentType` and `maximumSizeInBytes`
+    4. Update client code in `components/upload/upload-zone.tsx` to use new token format
+    5. Test: Verify token can't be used to access other users' files
+  - **Success criteria**: Client token only works for specific pathname, expires properly, can't access other blobs
+  - **Priority**: CRITICAL - Must fix before production deployment
+  - **PR Reference**: PR #4 Review #1 and #2 - Critical Security Issues section
+
+- [ ] **HIGH: Add Cron Job Concurrency Protection** (app/api/cron/*.ts)
+  - **Problem**: Vercel Cron can invoke functions multiple times concurrently if previous execution hasn't finished (especially if processing takes >1 minute). This causes:
+    - Same asset processed multiple times
+    - Wasted Replicate API calls ($$$)
+    - Potential database conflicts
+  - **Affected endpoints**:
+    - `app/api/cron/process-images/route.ts:62-80` - No locking before query
+    - `app/api/cron/process-embeddings/route.ts:85-110` - No locking before query
+  - **Solution**: Add optimistic locking using timestamp-based claims
+  - **Implementation pattern**:
+    ```typescript
+    // For process-images:
+    const claimTime = new Date();
+    const assets = await prisma.asset.findMany({
+      where: {
+        processed: false,
+        processingError: null,
+        OR: [
+          { processingClaimedAt: null },  // Unclaimed
+          { processingClaimedAt: { lt: new Date(Date.now() - 10 * 60 * 1000) } }  // Stale claims (>10min)
+        ]
+      },
+      take: 10,
+    });
+
+    // Claim assets before processing
+    const assetIds = assets.map(a => a.id);
+    await prisma.asset.updateMany({
+      where: { id: { in: assetIds }, processingClaimedAt: null },  // Only claim if still unclaimed
+      data: { processingClaimedAt: claimTime },
+    });
+
+    // Only process assets we successfully claimed
+    // (Check claimTime matches after update)
+    ```
+  - **Schema changes needed**:
+    ```prisma
+    // Add to Asset model:
+    processingClaimedAt DateTime? @map("processing_claimed_at")
+    embeddingClaimedAt  DateTime? @map("embedding_claimed_at")
+    ```
+  - **Success criteria**: Multiple cron invocations can run simultaneously without processing same assets
+  - **Priority**: HIGH - Should fix before merge for production safety
+  - **PR Reference**: PR #4 Review #2 - Race Condition section
+
+### High-Priority Improvements (Should Fix)
+
+- [ ] **Add Image Processing Retry Logic** (app/api/cron/process-images/route.ts:153-160)
+  - **Problem**: Assets with `processingError` are never retried. Unlike embeddings (which have exponential backoff), image processing failures are permanent. Transient Sharp errors (memory, timeout) should be retried.
+  - **Solution**: Mirror embedding retry pattern with exponential backoff
+  - **Schema changes**:
+    ```prisma
+    // Add to Asset model:
+    processingRetryCount Int       @default(0) @map("processing_retry_count")
+    processingNextRetry  DateTime? @map("processing_next_retry")
+    ```
+  - **Implementation**:
+    ```typescript
+    // In process-images cron:
+    const RETRY_DELAYS_MS = [
+      60 * 1000,        // 1 minute
+      5 * 60 * 1000,    // 5 minutes
+      15 * 60 * 1000,   // 15 minutes
+    ];
+    const MAX_RETRIES = 3; // Less than embeddings (5) - Sharp failures more likely permanent
+
+    // Update query to include retry logic:
+    where: {
+      processed: false,
+      processingRetryCount: { lt: MAX_RETRIES },
+      OR: [
+        { processingError: null },  // Never failed
+        { processingNextRetry: { lt: now } },  // Retry time passed
+      ]
+    }
+
+    // On failure:
+    const newRetryCount = asset.processingRetryCount + 1;
+    const nextRetry = newRetryCount < MAX_RETRIES
+      ? new Date(Date.now() + RETRY_DELAYS_MS[newRetryCount - 1])
+      : null;
+
+    await prisma.asset.update({
+      where: { id: asset.id },
+      data: {
+        processingError: error.message,
+        processingRetryCount: newRetryCount,
+        processingNextRetry: nextRetry,
+      },
+    });
+    ```
+  - **Success criteria**: Transient Sharp failures auto-retry up to 3 times, permanent failures marked after max retries
+  - **Priority**: HIGH - Consistency with embedding retry logic
+  - **PR Reference**: PR #4 Review #2 - Missing Error Recovery section
+
+- [ ] **Improve Rate Limiter Memory Management** (lib/rate-limiter.ts:100-114)
+  - **Problem**: `setInterval` cleanup may not run reliably in serverless environments. Function might terminate before cleanup, and `unref()` doesn't prevent memory accumulation between cleanups.
+  - **Solution**: Add inline cleanup on every `consume()` call + max bucket size guard
+  - **Implementation**:
+    ```typescript
+    // In TokenBucketRateLimiter class:
+
+    async consume(userId: string, tokens: number = 1): Promise<RateLimitResult> {
+      // Inline cleanup every consume() call (serverless-friendly)
+      this.cleanupOldBuckets();
+
+      // Add defensive guard against unbounded growth
+      if (this.buckets.size > 10000) {
+        console.warn(`[RateLimiter] Bucket count exceeded 10,000. Clearing oldest entries.`);
+        this.clearOldestBuckets(5000);  // Keep newest 5000
+      }
+
+      // ... rest of consume logic
+    }
+
+    private cleanupOldBuckets(): void {
+      const now = Date.now();
+      const oneHourMs = 60 * 60 * 1000;
+
+      for (const [userId, bucket] of this.buckets.entries()) {
+        if (now - bucket.lastRefill > oneHourMs) {
+          this.buckets.delete(userId);
+        }
+      }
+    }
+
+    private clearOldestBuckets(keepCount: number): void {
+      const sorted = Array.from(this.buckets.entries())
+        .sort((a, b) => b[1].lastRefill - a[1].lastRefill);  // Sort by lastRefill desc
+      this.buckets = new Map(sorted.slice(0, keepCount));
+    }
+    ```
+  - **Remove**: Delete `startCleanup()`, `stop()` methods and `cleanupInterval` field (no longer needed)
+  - **Success criteria**: Memory usage stays bounded even with 10K+ unique users, cleanup happens reliably
+  - **Priority**: MEDIUM-HIGH - Good defensive practice for serverless
+  - **PR Reference**: PR #4 Review #2 - Rate Limiter Memory Leak section
+
+- [ ] **Add Standard Rate Limit Headers** (app/api/upload-url/route.ts:31-43)
+  - **Problem**: Missing industry-standard `X-RateLimit-*` headers. Currently only returns `Retry-After` on 429.
+  - **Solution**: Add full rate limit header suite
+  - **Implementation**:
+    ```typescript
+    // On successful request (not rate limited):
+    return NextResponse.json(
+      { assetId, pathname, token, expiresAt },
+      {
+        headers: {
+          'X-RateLimit-Limit': '100',
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining || 0),
+          'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + 60),  // Next minute
+        },
+      }
+    );
+
+    // On rate limited request (429):
+    return NextResponse.json(
+      { error, retryAfter, errorType },
+      {
+        status: 429,
+        headers: {
+          'Retry-After': String(rateLimitResult.retryAfter),
+          'X-RateLimit-Limit': '100',
+          'X-RateLimit-Remaining': '0',
+          'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + rateLimitResult.retryAfter),
+        },
+      }
+    );
+    ```
+  - **Success criteria**: Client can inspect headers to see limit/remaining/reset times
+  - **Priority**: MEDIUM - Industry standard practice, improves client DX
+  - **PR Reference**: PR #4 Review #2 - Missing Rate Limit Headers section
+
+### Database & Code Quality
+
+- [ ] **Verify Database Index Creation** (prisma/schema.prisma:70)
+  - **Problem**: Compound index `@@index([processed, embedded, createdAt])` defined in schema but may not exist in database. `prisma db push` doesn't always create indexes reliably.
+  - **Verification steps**:
+    ```sql
+    -- Check if index exists:
+    SELECT indexname, indexdef
+    FROM pg_indexes
+    WHERE tablename = 'assets'
+      AND indexname LIKE '%processed%';
+    ```
+  - **If missing, create migration**:
+    ```bash
+    pnpm prisma migrate dev --name add_processing_queue_index
+    ```
+  - **Performance test**:
+    ```sql
+    EXPLAIN ANALYZE
+    SELECT id, blob_url, pathname, mime
+    FROM assets
+    WHERE processed = false
+      AND embedded = false
+      AND processing_error IS NULL
+    ORDER BY created_at ASC
+    LIMIT 10;
+    -- Should use index, not full table scan
+    ```
+  - **Success criteria**: Index exists, query uses index scan (not sequential scan), query time <5ms at 10K assets
+  - **Priority**: MEDIUM - Performance optimization, more critical at scale
+  - **PR Reference**: PR #4 Review #2 - Database Index Not Applied section
+
+- [ ] **Remove Unused Crypto Import** (app/api/upload-complete/route.ts:6)
+  - **Problem**: `import crypto from 'crypto'` but never used (client sends checksum, server doesn't recalculate)
+  - **Solution**: Remove line 6: `import crypto from 'crypto';`
+  - **Success criteria**: Build succeeds, linting passes
+  - **Priority**: LOW - Code cleanliness, easy fix
+  - **PR Reference**: PR #4 Review #1 - Nitpicks section
+
+---
+
 ## Phase 3: Client UX Improvements
 
 **Goal**: Provide clear visibility into three-stage processing (upload → process → embed) and handle errors gracefully.
