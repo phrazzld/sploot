@@ -251,7 +251,7 @@
 
 ### Progress Monitoring
 
-- [ ] **Create `/api/processing-stats` endpoint for queue metrics**
+- [x] **Create `/api/processing-stats` endpoint for queue metrics**
   - Return aggregated statistics without fetching all assets (efficient)
   - Query counts: `uploading`, `processing`, `embedding`, `ready`, `failed`
   - Use aggregation queries: `COUNT(*) WHERE processed=false`, `COUNT(*) WHERE embedded=false`, etc.
@@ -259,6 +259,17 @@
   - Cache results for 5 seconds to reduce DB load (use in-memory cache or Upstash)
   - Success criteria: Returns stats in <100ms, called by client every 5s during uploads
   - File: `app/api/processing-stats/route.ts` (new file)
+  ```
+  Work Log:
+  - Created endpoint with 6 parallel COUNT queries for efficiency
+  - Stats categories: total, uploaded, processing, embedding, ready, failed
+  - Simple Map-based cache with 5s TTL (no external dependency needed)
+  - Automatic cache cleanup every 60s (removes entries >1min old)
+  - Returns cached flag to indicate cache hit/miss
+  - Auth via requireUserIdWithSync (per-user stats)
+  - Logs query duration for monitoring (<100ms target)
+  - Commit: e1eb806
+  ```
 
 - [ ] **Create SSE endpoint `/api/sse/processing-updates` for real-time progress**
   - Establish Server-Sent Events connection for live progress updates
