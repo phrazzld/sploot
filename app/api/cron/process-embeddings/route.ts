@@ -57,17 +57,14 @@ export async function GET(request: NextRequest) {
     }
 
     // Find assets that need embeddings
-    // 1. Assets older than 1 hour with no embeddings
-    // 2. Assets with failed status (if we track this in the future)
-    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
-
+    // Only process assets that have been image-processed (processed=true)
+    // This ensures we don't try to embed unprocessed images
     const assetsNeedingEmbeddings = await prisma.asset.findMany({
       where: {
         deletedAt: null,
-        embedding: null,
-        createdAt: {
-          lt: oneHourAgo,
-        },
+        processed: true, // Wait for image processing to complete
+        embedded: false, // Not yet embedded
+        embeddingError: null, // No previous errors (retry logic handled separately)
       },
       select: {
         id: true,
@@ -76,7 +73,7 @@ export async function GET(request: NextRequest) {
         ownerUserId: true,
         createdAt: true,
       },
-      take: 10, // Process in batches of 10
+      take: 5, // Process max 5 per invocation to respect Replicate rate limits
       orderBy: {
         createdAt: 'asc', // Process oldest first
       },
@@ -126,14 +123,23 @@ export async function GET(request: NextRequest) {
           embedding: result.embedding,
         });
 
-        if (embedding) {
-          stats.successCount++;
-          const assetProcessingTime = Date.now() - assetStartTime;
-          stats.totalProcessingTime += assetProcessingTime;
-          console.log(`[cron] Successfully generated embedding for asset ${asset.id} (${assetProcessingTime}ms)`);
-        } else {
+        if (!embedding) {
           throw new Error('Failed to persist embedding');
         }
+
+        // Mark asset as embedded
+        await prisma.asset.update({
+          where: { id: asset.id },
+          data: {
+            embedded: true,
+            embeddingError: null,
+          },
+        });
+
+        stats.successCount++;
+        const assetProcessingTime = Date.now() - assetStartTime;
+        stats.totalProcessingTime += assetProcessingTime;
+        console.log(`[cron] Successfully generated embedding for asset ${asset.id} (${assetProcessingTime}ms)`);
       } catch (error) {
         stats.failureCount++;
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -141,6 +147,19 @@ export async function GET(request: NextRequest) {
           assetId: asset.id,
           error: errorMessage,
         });
+
+        // Update asset with error message for debugging
+        try {
+          await prisma.asset.update({
+            where: { id: asset.id },
+            data: {
+              embeddingError: errorMessage,
+            },
+          });
+        } catch (dbError) {
+          console.error(`[cron] Failed to update error for asset ${asset.id}:`, dbError);
+        }
+
         console.error(`[cron] Failed to process asset ${asset.id}:`, error);
 
         // Continue processing other assets even if one fails
