@@ -47,13 +47,15 @@ model Asset {
   phash           String?   // Perceptual hash for near-duplicate detection
   favorite        Boolean   @default(false)
   // Background processing state
-  processed       Boolean   @default(false) // Image has been resized/optimized
-  embedded        Boolean   @default(false) // Embedding has been generated
-  processingError String?   @map("processing_error") // Error during image processing
-  embeddingError  String?   @map("embedding_error") // Error during embedding generation
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime? @map("deleted_at")
+  processed            Boolean   @default(false) // Image has been resized/optimized
+  embedded             Boolean   @default(false) // Embedding has been generated
+  processingError      String?   @map("processing_error") // Error during image processing
+  embeddingError       String?   @map("embedding_error") // Error during embedding generation
+  embeddingRetryCount  Int       @default(0) @map("embedding_retry_count") // Number of embedding retry attempts
+  embeddingNextRetry   DateTime? @map("embedding_next_retry") // When to retry embedding generation
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  deletedAt            DateTime? @map("deleted_at")
 
   // Relations
   owner     User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)

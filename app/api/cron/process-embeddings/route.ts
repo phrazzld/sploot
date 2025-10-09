@@ -12,6 +12,28 @@ interface ProcessingStats {
   errors: Array<{ assetId: string; error: string }>;
 }
 
+// Exponential backoff schedule: 1min, 5min, 15min, 1hr, 6hr (max 5 retries)
+const RETRY_DELAYS_MS = [
+  60 * 1000,        // 1 minute
+  5 * 60 * 1000,    // 5 minutes
+  15 * 60 * 1000,   // 15 minutes
+  60 * 60 * 1000,   // 1 hour
+  6 * 60 * 60 * 1000, // 6 hours
+];
+const MAX_RETRIES = 5;
+
+/**
+ * Calculate next retry time based on retry count.
+ * Returns null if max retries exceeded.
+ */
+function calculateNextRetry(retryCount: number): Date | null {
+  if (retryCount >= MAX_RETRIES) {
+    return null; // Max retries exceeded, no more retries
+  }
+  const delay = RETRY_DELAYS_MS[retryCount] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
+  return new Date(Date.now() + delay);
+}
+
 /**
  * GET /api/cron/process-embeddings
  *
@@ -59,12 +81,19 @@ export async function GET(request: NextRequest) {
     // Find assets that need embeddings
     // Only process assets that have been image-processed (processed=true)
     // This ensures we don't try to embed unprocessed images
+    const now = new Date();
     const assetsNeedingEmbeddings = await prisma.asset.findMany({
       where: {
         deletedAt: null,
         processed: true, // Wait for image processing to complete
         embedded: false, // Not yet embedded
-        embeddingError: null, // No previous errors (retry logic handled separately)
+        embeddingRetryCount: {
+          lt: MAX_RETRIES, // Skip assets that hit max retries
+        },
+        OR: [
+          { embeddingNextRetry: null }, // First attempt
+          { embeddingNextRetry: { lt: now } }, // Retry time has passed
+        ],
       },
       select: {
         id: true,
@@ -72,6 +101,7 @@ export async function GET(request: NextRequest) {
         checksumSha256: true,
         ownerUserId: true,
         createdAt: true,
+        embeddingRetryCount: true,
       },
       take: 5, // Process max 5 per invocation to respect Replicate rate limits
       orderBy: {
@@ -127,12 +157,14 @@ export async function GET(request: NextRequest) {
           throw new Error('Failed to persist embedding');
         }
 
-        // Mark asset as embedded
+        // Mark asset as embedded and reset retry counters
         await prisma.asset.update({
           where: { id: asset.id },
           data: {
             embedded: true,
             embeddingError: null,
+            embeddingRetryCount: 0,
+            embeddingNextRetry: null,
           },
         });
 
@@ -148,14 +180,35 @@ export async function GET(request: NextRequest) {
           error: errorMessage,
         });
 
-        // Update asset with error message for debugging
+        // Increment retry count and calculate next retry time
+        const newRetryCount = asset.embeddingRetryCount + 1;
+        const nextRetry = calculateNextRetry(newRetryCount);
+
+        // Update asset with error and retry info
         try {
-          await prisma.asset.update({
-            where: { id: asset.id },
-            data: {
-              embeddingError: errorMessage,
-            },
-          });
+          if (nextRetry === null) {
+            // Max retries exceeded - mark as permanently failed
+            await prisma.asset.update({
+              where: { id: asset.id },
+              data: {
+                embeddingError: `Max retries exceeded (${MAX_RETRIES}). Last error: ${errorMessage}`,
+                embeddingRetryCount: newRetryCount,
+                embeddingNextRetry: null,
+              },
+            });
+            console.log(`[cron] Asset ${asset.id} permanently failed after ${MAX_RETRIES} retries`);
+          } else {
+            // Schedule retry with exponential backoff
+            await prisma.asset.update({
+              where: { id: asset.id },
+              data: {
+                embeddingError: errorMessage,
+                embeddingRetryCount: newRetryCount,
+                embeddingNextRetry: nextRetry,
+              },
+            });
+            console.log(`[cron] Asset ${asset.id} will retry at ${nextRetry.toISOString()} (attempt ${newRetryCount}/${MAX_RETRIES})`);
+          }
         } catch (dbError) {
           console.error(`[cron] Failed to update error for asset ${asset.id}:`, dbError);
         }
