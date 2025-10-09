@@ -172,7 +172,7 @@
 
 ### Image Processing Queue
 
-- [ ] **Create `/api/cron/process-images` cron endpoint**
+- [x] **Create `/api/cron/process-images` cron endpoint**
   - Query unprocessed assets: `SELECT * FROM assets WHERE processed=false AND processingError IS NULL ORDER BY createdAt ASC LIMIT 10`
   - For each asset: download from Blob, process with Sharp (resize + thumbnail), upload processed versions
   - Use existing `processUploadedImage(buffer, mimeType)` function from `lib/image-processing.ts`
@@ -182,13 +182,30 @@
   - Process max 10 images per cron invocation to avoid timeout (10 × 2s processing = 20s < 60s limit)
   - Success criteria: Processes 10 images/minute, completes within 60s timeout
   - File: `app/api/cron/process-images/route.ts` (new file)
+  ```
+  Work Log:
+  - Implemented endpoint following process-embeddings pattern
+  - Downloads image from blob via fetch, processes with Sharp
+  - Replaces original blob with processed version (overwrite pathname)
+  - Creates thumbnail with -thumb suffix (e.g., foo.jpg → foo-thumb.jpg)
+  - Updates asset with thumbnailUrl, thumbnailPath, width, height, size
+  - Errors stored in processingError for debugging (asset remains unprocessed)
+  - Also fixed: Added missing prisma null check in upload-complete route
+  - Commit: 326e788
+  ```
 
-- [ ] **Add Vercel Cron configuration for image processing**
+- [x] **Add Vercel Cron configuration for image processing**
   - Add cron job to `vercel.json`: `{ "path": "/api/cron/process-images", "schedule": "* * * * *" }` (every minute)
   - Verify cron authentication via `CRON_SECRET` header (Vercel adds this automatically)
   - Log cron execution: `console.log('[Cron] Processing ${count} images')`
   - Success criteria: Cron job runs every 60 seconds in production
   - File: `vercel.json`
+  ```
+  Work Log:
+  - Added cron job as first entry (runs every minute)
+  - Follows existing pattern: CRON_SECRET auth, console logging
+  - Commit: 326e788
+  ```
 
 ### Embedding Generation Queue
 
