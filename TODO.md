@@ -228,7 +228,7 @@
   - Commit: 505b2a0
   ```
 
-- [ ] **Add exponential backoff for embedding failures**
+- [x] **Add exponential backoff for embedding failures**
   - Add `embeddingRetryCount: number @default(0)` and `embeddingNextRetry: DateTime?` to Asset model
   - On embedding failure: increment retry count, calculate next retry time via exponential backoff
   - Backoff schedule: 1min, 5min, 15min, 1hr, 6hr (max 5 retries)
@@ -236,6 +236,18 @@
   - Permanent failure after 5 retries: set `embeddingError='Max retries exceeded'` and stop retrying
   - Success criteria: Transient Replicate failures auto-retry, permanent failures don't block queue
   - File: `app/api/cron/process-embeddings/route.ts` and `prisma/schema.prisma`
+  ```
+  Work Log:
+  - Added embeddingRetryCount and embeddingNextRetry fields to schema
+  - Applied schema changes with 'pnpm db:push'
+  - Implemented calculateNextRetry() with exponential backoff schedule
+  - Updated query: retryCount < 5 AND (nextRetry IS NULL OR nextRetry < NOW())
+  - On failure: increment count, calculate next retry, update DB
+  - After 5 retries: set error to "Max retries exceeded" with last error
+  - On success: reset retry counters to 0
+  - Logs retry attempts and permanent failures for monitoring
+  - Commit: a4e054f
+  ```
 
 ### Progress Monitoring
 
