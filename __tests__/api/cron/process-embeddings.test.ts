@@ -12,6 +12,7 @@ vi.mock('next/headers', () => ({
 const mockPrisma = {
   asset: {
     findMany: vi.fn(),
+    update: vi.fn(),
   },
 };
 
@@ -84,6 +85,15 @@ describe('/api/cron/process-embeddings', () => {
       imageEmbedding: Array(1152).fill(0.1),
       createdAt: new Date(),
     });
+
+    // Default: asset update succeeds
+    mockPrisma.asset.update.mockResolvedValue({
+      id: 'asset-123',
+      embedded: true,
+      embeddingError: null,
+      embeddingRetryCount: 0,
+      embeddingNextRetry: null,
+    });
   });
 
   afterEach(() => {
@@ -153,31 +163,32 @@ describe('/api/cron/process-embeddings', () => {
       expect(data.stats.failureCount).toBe(0);
     });
 
-    it('should find assets older than 1 hour with no embedding', async () => {
+    it('should find processed assets that need embeddings', async () => {
       mockPrisma.asset.findMany.mockResolvedValue([]);
 
       await GET({} as NextRequest);
 
-      // Verify the query includes correct filtering
+      // Verify the query includes correct filtering for new implementation
       const callArgs = mockPrisma.asset.findMany.mock.calls[0][0];
       expect(callArgs.where.deletedAt).toBe(null);
-      expect(callArgs.where.embedding).toBe(null);
-      expect(callArgs.where.createdAt.lt).toBeInstanceOf(Date);
+      expect(callArgs.where.processed).toBe(true); // Only process after image processing
+      expect(callArgs.where.embedded).toBe(false); // Not yet embedded
+      expect(callArgs.where.embeddingRetryCount.lt).toBe(5); // Skip max retries
 
-      // Verify the cutoff is approximately 1 hour ago (within 1 second tolerance)
-      const oneHourAgo = Date.now() - ONE_HOUR_MS;
-      const cutoffTime = callArgs.where.createdAt.lt.getTime();
-      expect(Math.abs(cutoffTime - oneHourAgo)).toBeLessThan(1000);
+      // Verify OR clause for retry logic
+      expect(callArgs.where.OR).toHaveLength(2);
+      expect(callArgs.where.OR[0]).toEqual({ embeddingNextRetry: null }); // First attempt
+      expect(callArgs.where.OR[1]).toHaveProperty('embeddingNextRetry'); // Retry time check
     });
 
-    it('should process batch of 10 assets maximum', async () => {
+    it('should process batch of 5 assets maximum for rate limiting', async () => {
       mockPrisma.asset.findMany.mockResolvedValue([]);
 
       await GET({} as NextRequest);
 
-      // Verify the query includes batch size limit
+      // Verify the query includes reduced batch size for Replicate rate limits
       const callArgs = mockPrisma.asset.findMany.mock.calls[0][0];
-      expect(callArgs.take).toBe(10);
+      expect(callArgs.take).toBe(5); // Reduced from 10 to respect rate limits
     });
 
     it('should process oldest assets first', async () => {
@@ -200,6 +211,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-1',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
         {
           id: 'asset-2',
@@ -207,6 +219,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-2',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(3),
+          embeddingRetryCount: 0,
         },
       ];
 
@@ -233,6 +246,18 @@ describe('/api/cron/process-embeddings', () => {
 
       // Verify embeddings were stored
       expect(mockUpsertAssetEmbedding).toHaveBeenCalledTimes(2);
+
+      // Verify assets were updated with embedded=true
+      expect(mockPrisma.asset.update).toHaveBeenCalledTimes(2);
+      expect(mockPrisma.asset.update).toHaveBeenCalledWith({
+        where: { id: 'asset-1' },
+        data: {
+          embedded: true,
+          embeddingError: null,
+          embeddingRetryCount: 0,
+          embeddingNextRetry: null,
+        },
+      });
     });
 
     it('should call upsertAssetEmbedding with correct parameters', async () => {
@@ -243,6 +268,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'test-checksum',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
@@ -252,9 +278,20 @@ describe('/api/cron/process-embeddings', () => {
 
       // Verify upsertAssetEmbedding was called
       expect(mockUpsertAssetEmbedding).toHaveBeenCalledTimes(1);
+
+      // Verify asset was updated after successful embedding
+      expect(mockPrisma.asset.update).toHaveBeenCalledWith({
+        where: { id: 'asset-123' },
+        data: {
+          embedded: true,
+          embeddingError: null,
+          embeddingRetryCount: 0,
+          embeddingNextRetry: null,
+        },
+      });
     });
 
-    it('should handle embedding generation failure', async () => {
+    it('should handle embedding generation failure with retry logic', async () => {
       const mockAssets = [
         {
           id: 'asset-fail',
@@ -262,14 +299,16 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-fail',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
       mockEmbedImage.mockRejectedValue(new Error('Embedding generation failed'));
 
-      // Suppress console.error
+      // Suppress console.error and console.log
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const response = await GET({} as NextRequest);
       const data = await response.json();
@@ -283,7 +322,20 @@ describe('/api/cron/process-embeddings', () => {
         error: 'Embedding generation failed',
       });
 
+      // Verify asset was updated with error and retry info
+      expect(mockPrisma.asset.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'asset-fail' },
+          data: expect.objectContaining({
+            embeddingError: 'Embedding generation failed',
+            embeddingRetryCount: 1, // Incremented from 0
+            embeddingNextRetry: expect.any(Date), // Scheduled retry
+          }),
+        })
+      );
+
       consoleErrorSpy.mockRestore();
+      consoleLogSpy.mockRestore();
     });
 
     it('should continue processing after single asset failure', async () => {
@@ -294,6 +346,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-fail',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(3),
+          embeddingRetryCount: 0,
         },
         {
           id: 'asset-success',
@@ -301,6 +354,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-success',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
@@ -316,8 +370,9 @@ describe('/api/cron/process-embeddings', () => {
           processingTime: 100,
         });
 
-      // Suppress console.error
+      // Suppress console.error and console.log
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const response = await GET({} as NextRequest);
       const data = await response.json();
@@ -329,7 +384,11 @@ describe('/api/cron/process-embeddings', () => {
       // Both should have been attempted
       expect(mockEmbedImage).toHaveBeenCalledTimes(2);
 
+      // Verify both assets were updated (one with error, one with success)
+      expect(mockPrisma.asset.update).toHaveBeenCalledTimes(2);
+
       consoleErrorSpy.mockRestore();
+      consoleLogSpy.mockRestore();
     });
 
     it('should handle upsert failure', async () => {
@@ -340,14 +399,16 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
       mockUpsertAssetEmbedding.mockResolvedValue(null); // Upsert returns null on failure
 
-      // Suppress console.error
+      // Suppress console.error and console.log
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleLogSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
 
       const response = await GET({} as NextRequest);
       const data = await response.json();
@@ -357,7 +418,18 @@ describe('/api/cron/process-embeddings', () => {
       expect(data.stats.failureCount).toBe(1);
       expect(data.stats.errors[0].error).toBe('Failed to persist embedding');
 
+      // Verify asset was updated with error
+      expect(mockPrisma.asset.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'asset-upsert-fail' },
+          data: expect.objectContaining({
+            embeddingError: 'Failed to persist embedding',
+          }),
+        })
+      );
+
       consoleErrorSpy.mockRestore();
+      consoleLogSpy.mockRestore();
     });
   });
 
@@ -371,6 +443,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
@@ -404,6 +477,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-1',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
         {
           id: 'asset-2',
@@ -411,6 +485,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-2',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
@@ -438,6 +513,7 @@ describe('/api/cron/process-embeddings', () => {
         checksumSha256: `checksum-${i}`,
         ownerUserId: 'user-1',
         createdAt: hoursAgo(2),
+        embeddingRetryCount: 0,
       }));
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
@@ -477,6 +553,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum-1',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
@@ -498,6 +575,7 @@ describe('/api/cron/process-embeddings', () => {
           checksumSha256: 'checksum',
           ownerUserId: 'user-1',
           createdAt: hoursAgo(2),
+          embeddingRetryCount: 0,
         },
       ];
 
