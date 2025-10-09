@@ -209,7 +209,7 @@
 
 ### Embedding Generation Queue
 
-- [ ] **Enhance `/api/cron/process-embeddings` to process queue**
+- [x] **Enhance `/api/cron/process-embeddings` to process queue**
   - Already exists at `app/api/cron/process-embeddings/route.ts`
   - Modify to query: `SELECT * FROM assets WHERE embedded=false AND embeddingError IS NULL AND processed=true ORDER BY createdAt ASC LIMIT 5`
   - Add dependency: only process embeddings AFTER image processing completes (`processed=true`)
@@ -217,6 +217,16 @@
   - Set `embedded=true` on success, `embeddingError=<message>` on failure
   - Success criteria: Processes 5 embeddings/minute without hitting Replicate rate limits
   - File: `app/api/cron/process-embeddings/route.ts`
+  ```
+  Work Log:
+  - Updated query: WHERE processed=true AND embedded=false AND embeddingError IS NULL
+  - Reduced batch size from 10 → 5 for Replicate rate limiting
+  - Added asset.embedded=true after successful embedding creation
+  - Added asset.embeddingError=<message> on failure for debugging
+  - Removed stale 1-hour delay logic (now processes immediately when ready)
+  - Ensures embeddings only generated after image processing completes
+  - Commit: 505b2a0
+  ```
 
 - [ ] **Add exponential backoff for embedding failures**
   - Add `embeddingRetryCount: number @default(0)` and `embeddingNextRetry: DateTime?` to Asset model
