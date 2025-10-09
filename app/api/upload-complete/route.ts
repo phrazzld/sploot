@@ -48,6 +48,13 @@ export async function POST(req: NextRequest) {
 
     console.log(`[upload-complete] Processing upload with checksum: ${checksum} (${Date.now() - startTime}ms)`);
 
+    if (!prisma) {
+      return NextResponse.json(
+        { error: 'Database unavailable' },
+        { status: 503 }
+      );
+    }
+
     // Check for duplicate via checksum
     const existingAsset = await assetExists(userId, checksum, {
       includeEmbedding: true,

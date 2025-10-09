@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/process-images",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/process-embeddings",
       "schedule": "*/5 * * * *"
     },
