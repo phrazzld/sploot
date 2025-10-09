@@ -271,7 +271,7 @@
   - Commit: e1eb806
   ```
 
-- [ ] **Create SSE endpoint `/api/sse/processing-updates` for real-time progress**
+- [x] **Create SSE endpoint `/api/sse/processing-updates` for real-time progress**
   - Establish Server-Sent Events connection for live progress updates
   - Poll `/api/processing-stats` every 5 seconds and stream to connected clients
   - Send events: `data: {"type":"progress","stats":{...}}\n\n`
@@ -279,6 +279,18 @@
   - Support reconnection via `Last-Event-ID` header for recovery
   - Success criteria: Client receives progress updates every 5s, reconnects on disconnect
   - File: `app/api/sse/processing-updates/route.ts` (new file)
+  ```
+  Work Log:
+  - Followed existing embedding-updates SSE pattern
+  - Polls /api/processing-stats every 5s (benefits from cache)
+  - Sends 'progress' events with full stats object
+  - 30s heartbeat to maintain connection
+  - 5min timeout prevents hanging connections
+  - Graceful cleanup on client disconnect
+  - Clerk auth via auth() (consistent with other SSE endpoints)
+  - Logs connection duration and timeout events
+  - Commit: 6413354
+  ```
 
 ---
 
