@@ -935,9 +935,10 @@ export function UploadZone({
   );
 
   // Batch upload files with adaptive concurrency control
-  const BASE_CONCURRENT_UPLOADS = 6;
-  const MIN_CONCURRENT_UPLOADS = 2;
-  const MAX_CONCURRENT_UPLOADS = 8;
+  // Reduced limits for Vercel Hobby tier and serverless function concurrency
+  const BASE_CONCURRENT_UPLOADS = 2;
+  const MIN_CONCURRENT_UPLOADS = 1;
+  const MAX_CONCURRENT_UPLOADS = 3;
 
   const uploadBatch = async (fileIds: string[]) => {
     // Reset stats for this batch
