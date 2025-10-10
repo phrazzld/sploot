@@ -8,6 +8,22 @@
 
 ---
 
+## ⚠️ BRANCH SCOPE - READ THIS FIRST
+
+**THIS BRANCH COMPLETES ALL PHASES IN THIS FILE**
+
+The `feature/bulk-upload-optimization` branch implements the complete bulk upload system from infrastructure through testing. All phases (1-4) are part of this single feature branch:
+
+- ✅ **Phase 1**: Direct-to-Blob Upload Infrastructure (COMPLETE)
+- ✅ **Phase 2**: Background Processing Queues (COMPLETE)
+- ✅ **Phase 2.5**: Pre-Merge Hardening (COMPLETE)
+- 🚧 **Phase 3**: Client UX Improvements (IN PROGRESS)
+- 🚧 **Phase 4**: Testing & Validation (IN PROGRESS)
+
+**Do NOT merge until all phases are complete.** Phase 2.5 resolved critical security issues, but Phases 3-4 are required for production readiness (UX, testing, monitoring).
+
+---
+
 ## Phase 1: Direct-to-Blob Upload Infrastructure
 
 **Goal**: Bypass server processing during upload by allowing direct client-to-Blob transfers with presigned URLs.
