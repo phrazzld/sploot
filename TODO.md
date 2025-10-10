@@ -630,7 +630,7 @@ The `feature/bulk-upload-optimization` branch implements the complete bulk uploa
 
 ### Progress Tracking UI
 
-- [ ] **Add three-phase progress indicator to UploadZone**
+- [x] **Add three-phase progress indicator to UploadZone**
   - Replace single progress bar with three stages: "Uploading", "Processing", "Searchable"
   - Uploading: tracked by `uploadFileToServer()` progress (already implemented)
   - Processing: tracked by SSE updates from `/api/sse/processing-updates`
@@ -638,6 +638,17 @@ The `feature/bulk-upload-optimization` branch implements the complete bulk uploa
   - Show counts: "Uploading: 1500/2000", "Processing: 450/2000", "Searchable: 120/2000"
   - Success criteria: User sees clear progress through all three stages
   - File: `components/upload/upload-zone.tsx:1719-1813` (replace existing progress header)
+  ```
+  Work Log:
+  - Integrated useProcessingProgress hook into UploadZone
+  - Replaced 4-column upload stats with 3-phase pipeline cards
+  - Phase 1 (Uploading): Shows active uploads + completion ratio
+  - Phase 2 (Processing): Shows processingStats.processing from SSE
+  - Phase 3 (Searchable): Shows processingStats.ready from SSE
+  - Bloomberg Terminal aesthetic: monospace font, status dots, color-coded
+  - SSE enabled when filesArray.length > 0
+  - Commit: f9f2d78
+  ```
 
 - [x] **Connect to SSE endpoint for real-time processing updates**
   - Create `useProcessingProgress()` hook to consume SSE endpoint
