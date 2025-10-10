@@ -302,7 +302,7 @@
 
 ### Critical Security Fixes (Merge-Blocking)
 
-- [ ] **CRITICAL: Fix Blob Token Security Vulnerability** (app/api/upload-url/route.ts:98-118)
+- [x] **CRITICAL: Fix Blob Token Security Vulnerability** (app/api/upload-url/route.ts:98-118)
   - **Problem**: Currently exposing raw `BLOB_READ_WRITE_TOKEN` to client grants full read/write access to **entire blob storage**, not just user's files. Malicious user could:
     - Upload unlimited files to arbitrary paths
     - Read/delete any blob in storage
@@ -330,6 +330,22 @@
   - **Success criteria**: Client token only works for specific pathname, expires properly, can't access other blobs
   - **Priority**: CRITICAL - Must fix before production deployment
   - **PR Reference**: PR #4 Review #1 and #2 - Critical Security Issues section
+  ```
+  Work Log:
+  - Researched Vercel Blob SDK docs - handleUpload pattern recommended
+  - Created new /api/upload/handle endpoint using handleUpload()
+  - Tokens now scoped with: allowedContentTypes, maximumSizeInBytes, pathname
+  - Client updated to use upload() from @vercel/blob/client (replaces manual XHR)
+  - Rate limiting preserved with X-RateLimit-* headers
+  - Old /api/upload-url endpoint deprecated (still used by upload-test.tsx and use-background-sync.ts)
+  - TypeScript compilation passes
+  - Security improvements:
+    * No raw BLOB_READ_WRITE_TOKEN exposure
+    * Tokens are single-use, pathname-specific
+    * Server validates all parameters (file type, size)
+    * Tokens expire (server-controlled)
+  - Commit: [pending]
+  ```
 
 - [ ] **HIGH: Add Cron Job Concurrency Protection** (app/api/cron/*.ts)
   - **Problem**: Vercel Cron can invoke functions multiple times concurrently if previous execution hasn't finished (especially if processing takes >1 minute). This causes:

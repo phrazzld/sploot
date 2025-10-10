@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo, DragEvent, Clipboard
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { upload } from '@vercel/blob/client';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
@@ -1147,30 +1148,11 @@ export function UploadZone({
     const apiStartTime = performance.now();
 
     try {
-      // Step 1: Get upload credentials from server (with retry)
-      const credentialsUrl = `/api/upload-url?filename=${encodeURIComponent(file.name)}&mimeType=${encodeURIComponent(file.type)}&size=${file.size}`;
-
-      const { assetId, pathname, token } = await retryWithBackoff(
-        async () => {
-          const response = await fetch(credentialsUrl);
-          if (!response.ok) {
-            const error = await response.json();
-            const err = new Error(error.error || 'Failed to get upload URL');
-            (err as any).statusCode = response.status;
-            (err as any).retryAfter = error.retryAfter; // Server-specified retry delay
-            (err as any).errorType = error.errorType;
-            throw err;
-          }
-          return response.json();
-        },
-        3, // Max 3 retries for credential fetching
-        (error) => {
-          // Retry on 5xx server errors and network failures
-          // Don't retry on 4xx client errors (except 429 rate limit)
-          const statusCode = (error as any).statusCode;
-          return !statusCode || statusCode === 429 || statusCode >= 500;
-        }
-      );
+      // Calculate checksum before upload for duplicate detection
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
       setFileMetadata((prev) => {
         const newMap = new Map(prev);
@@ -1181,78 +1163,54 @@ export function UploadZone({
         return newMap;
       });
 
-      // Step 2: Upload directly to Blob storage
-      // We use XMLHttpRequest for progress tracking
-      const buffer = await file.arrayBuffer();
+      // Step 1 & 2: Secure upload using Vercel Blob SDK
+      // This uses handleUpload pattern with scoped, time-limited tokens
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload/handle',
+        clientPayload: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          size: file.size,
+        }),
+        onUploadProgress: ({ percentage }) => {
+          // Map SDK percentage (0-100) to our range (10-95, reserve 5% for finalization)
+          const mappedProgress = 10 + Math.round(percentage * 0.85);
 
-      // Calculate checksum for duplicate detection and integrity
-      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+          const throttleInfo = progressThrottleMap.current.get(fileId) || {
+            lastUpdate: 0,
+            lastPercent: 0
+          };
+          const now = Date.now();
+          const percentDiff = Math.abs(mappedProgress - throttleInfo.lastPercent);
+          const timeDiff = now - throttleInfo.lastUpdate;
 
-      const xhr = new XMLHttpRequest();
-      const uploadPromise = new Promise<string>((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 85); // Reserve 15% for finalization
+          if (percentDiff >= PROGRESS_UPDATE_THRESHOLD ||
+              timeDiff >= PROGRESS_UPDATE_INTERVAL ||
+              mappedProgress >= 80) {
+            setFileMetadata((prev) => {
+              const newMap = new Map(prev);
+              const meta = newMap.get(fileId);
+              if (meta) {
+                newMap.set(fileId, { ...meta, progress: mappedProgress });
+              }
+              return newMap;
+            });
 
-            const throttleInfo = progressThrottleMap.current.get(fileId) || {
-              lastUpdate: 0,
-              lastPercent: 0
-            };
-            const now = Date.now();
-            const percentDiff = Math.abs(percentComplete - throttleInfo.lastPercent);
-            const timeDiff = now - throttleInfo.lastUpdate;
-
-            if (percentDiff >= PROGRESS_UPDATE_THRESHOLD ||
-                timeDiff >= PROGRESS_UPDATE_INTERVAL ||
-                percentComplete >= 80) {
-              setFileMetadata((prev) => {
-                const newMap = new Map(prev);
-                const meta = newMap.get(fileId);
-                if (meta) {
-                  newMap.set(fileId, { ...meta, progress: 10 + percentComplete });
-                }
-                return newMap;
-              });
-
-              progressThrottleMap.current.set(fileId, {
-                lastUpdate: now,
-                lastPercent: percentComplete
-              });
-            }
+            progressThrottleMap.current.set(fileId, {
+              lastUpdate: now,
+              lastPercent: mappedProgress
+            });
           }
-        });
-
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              resolve(response.url); // Blob URL
-            } catch {
-              reject(new Error('Invalid response from Blob storage'));
-            }
-          } else {
-            const uploadError = new Error(`Blob upload failed with status ${xhr.status}`);
-            (uploadError as any).statusCode = xhr.status;
-            reject(uploadError);
-          }
-        });
-
-        xhr.addEventListener('error', () => reject(new Error('Network error during upload')));
-        xhr.addEventListener('abort', () => reject(new Error('Upload cancelled')));
-        xhr.addEventListener('timeout', () => reject(new Error('Upload timeout')));
-
-        // Upload to Vercel Blob
-        xhr.open('PUT', `https://blob.vercel-storage.com/${pathname}`);
-        xhr.setRequestHeader('authorization', `Bearer ${token}`);
-        xhr.setRequestHeader('x-content-type', file.type);
-        xhr.setRequestHeader('access', 'public');
-        xhr.timeout = 30000; // 30 second timeout for large files
-        xhr.send(buffer);
+        },
       });
 
-      const blobUrl = await uploadPromise;
+      const blobUrl = blob.url;
+      const pathname = blob.pathname;
+
+      // Generate assetId for tracking (server includes this in response metadata)
+      // The server's handleUpload can pass data through the response
+      const assetId = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
       setFileMetadata((prev) => {
         const newMap = new Map(prev);
