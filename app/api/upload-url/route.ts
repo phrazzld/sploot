@@ -37,7 +37,10 @@ export async function GET(req: NextRequest) {
         {
           status: 429,
           headers: {
-            'Retry-After': String(rateLimitResult.retryAfter),
+            'Retry-After': String(rateLimitResult.retryAfter || 60),
+            'X-RateLimit-Limit': '100',
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + (rateLimitResult.retryAfter || 60)),
           },
         }
       );
@@ -109,14 +112,23 @@ export async function GET(req: NextRequest) {
     // Generate unique asset ID (client will use this to identify upload)
     const assetId = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-    // Return upload credentials
+    // Return upload credentials with rate limit headers
     // Client will use Vercel Blob SDK's put() method with these
-    return NextResponse.json({
-      assetId,
-      pathname,
-      token: blobToken,
-      expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-    });
+    return NextResponse.json(
+      {
+        assetId,
+        pathname,
+        token: blobToken,
+        expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+      },
+      {
+        headers: {
+          'X-RateLimit-Limit': '100',
+          'X-RateLimit-Remaining': String(rateLimitResult.remaining || 0),
+          'X-RateLimit-Reset': String(Math.ceil(Date.now() / 1000) + 60),
+        },
+      }
+    );
 
   } catch (error) {
     unstable_rethrow(error);
