@@ -347,7 +347,7 @@
   - Commit: [pending]
   ```
 
-- [ ] **HIGH: Add Cron Job Concurrency Protection** (app/api/cron/*.ts)
+- [x] **HIGH: Add Cron Job Concurrency Protection** (app/api/cron/*.ts)
   - **Problem**: Vercel Cron can invoke functions multiple times concurrently if previous execution hasn't finished (especially if processing takes >1 minute). This causes:
     - Same asset processed multiple times
     - Wasted Replicate API calls ($$$)
@@ -391,10 +391,19 @@
   - **Success criteria**: Multiple cron invocations can run simultaneously without processing same assets
   - **Priority**: HIGH - Should fix before merge for production safety
   - **PR Reference**: PR #4 Review #2 - Race Condition section
+  ```
+  Work Log:
+  - Added processingClaimedAt and embeddingClaimedAt timestamp fields to schema
+  - Implemented optimistic locking: query unclaimed/stale → claim atomically → verify → process
+  - Stale claim threshold: 10 minutes (handles crashes/timeouts)
+  - Claims released on success, failure, or permanent failure
+  - Prevents duplicate processing across concurrent cron invocations
+  - Commit: 8494e6f
+  ```
 
 ### High-Priority Improvements (Should Fix)
 
-- [ ] **Add Image Processing Retry Logic** (app/api/cron/process-images/route.ts:153-160)
+- [x] **Add Image Processing Retry Logic** (app/api/cron/process-images/route.ts:153-160)
   - **Problem**: Assets with `processingError` are never retried. Unlike embeddings (which have exponential backoff), image processing failures are permanent. Transient Sharp errors (memory, timeout) should be retried.
   - **Solution**: Mirror embedding retry pattern with exponential backoff
   - **Schema changes**:
@@ -441,8 +450,17 @@
   - **Success criteria**: Transient Sharp failures auto-retry up to 3 times, permanent failures marked after max retries
   - **Priority**: HIGH - Consistency with embedding retry logic
   - **PR Reference**: PR #4 Review #2 - Missing Error Recovery section
+  ```
+  Work Log:
+  - Added processingRetryCount and processingNextRetry fields to schema
+  - 3 max retries (fewer than embeddings since Sharp failures more likely permanent)
+  - Backoff schedule: 1min, 5min, 15min
+  - Query includes retry time check and retry count filter
+  - Errors stored in processingError, retry state cleared on success
+  - Commit: b64b0b8
+  ```
 
-- [ ] **Improve Rate Limiter Memory Management** (lib/rate-limiter.ts:100-114)
+- [x] **Improve Rate Limiter Memory Management** (lib/rate-limiter.ts:100-114)
   - **Problem**: `setInterval` cleanup may not run reliably in serverless environments. Function might terminate before cleanup, and `unref()` doesn't prevent memory accumulation between cleanups.
   - **Solution**: Add inline cleanup on every `consume()` call + max bucket size guard
   - **Implementation**:
@@ -483,8 +501,17 @@
   - **Success criteria**: Memory usage stays bounded even with 10K+ unique users, cleanup happens reliably
   - **Priority**: MEDIUM-HIGH - Good defensive practice for serverless
   - **PR Reference**: PR #4 Review #2 - Rate Limiter Memory Leak section
+  ```
+  Work Log:
+  - Removed setInterval-based cleanup (unreliable in serverless)
+  - Added inline cleanupOldBuckets() on every consume() call
+  - Added MAX_BUCKETS guard (10k limit) with clearOldestBuckets() fallback
+  - Simplified code: removed cleanupInterval field, startCleanup(), stop() methods
+  - Memory stays bounded, cleanup guaranteed to run
+  - Commit: fb8f60c
+  ```
 
-- [ ] **Add Standard Rate Limit Headers** (app/api/upload-url/route.ts:31-43)
+- [x] **Add Standard Rate Limit Headers** (app/api/upload-url/route.ts:31-43)
   - **Problem**: Missing industry-standard `X-RateLimit-*` headers. Currently only returns `Retry-After` on 429.
   - **Solution**: Add full rate limit header suite
   - **Implementation**:
@@ -518,10 +545,18 @@
   - **Success criteria**: Client can inspect headers to see limit/remaining/reset times
   - **Priority**: MEDIUM - Industry standard practice, improves client DX
   - **PR Reference**: PR #4 Review #2 - Missing Rate Limit Headers section
+  ```
+  Work Log:
+  - Added X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset headers
+  - Applied to both success (200) and rate limited (429) responses
+  - Consistent with /api/upload/handle endpoint implementation
+  - Clients can now inspect headers to avoid hitting limits
+  - Commit: 126a159
+  ```
 
 ### Database & Code Quality
 
-- [ ] **Verify Database Index Creation** (prisma/schema.prisma:70)
+- [x] **Verify Database Index Creation** (prisma/schema.prisma:70)
   - **Problem**: Compound index `@@index([processed, embedded, createdAt])` defined in schema but may not exist in database. `prisma db push` doesn't always create indexes reliably.
   - **Verification steps**:
     ```sql
@@ -550,13 +585,26 @@
   - **Success criteria**: Index exists, query uses index scan (not sequential scan), query time <5ms at 10K assets
   - **Priority**: MEDIUM - Performance optimization, more critical at scale
   - **PR Reference**: PR #4 Review #2 - Database Index Not Applied section
+  ```
+  Work Log:
+  - Verified index exists: assets_processed_embedded_createdAt_idx
+  - Query planner uses assets_createdAt_idx for queue queries (~3ms execution)
+  - Sequential scan for stats queries (correct choice at 2644 rows)
+  - Will auto-switch to index scan at ~10K+ rows when beneficial
+  - No action needed - Postgres optimizing correctly
+  ```
 
-- [ ] **Remove Unused Crypto Import** (app/api/upload-complete/route.ts:6)
+- [x] **Remove Unused Crypto Import** (app/api/upload-complete/route.ts:6)
   - **Problem**: `import crypto from 'crypto'` but never used (client sends checksum, server doesn't recalculate)
   - **Solution**: Remove line 6: `import crypto from 'crypto';`
   - **Success criteria**: Build succeeds, linting passes
   - **Priority**: LOW - Code cleanliness, easy fix
   - **PR Reference**: PR #4 Review #1 - Nitpicks section
+  ```
+  Work Log:
+  - Already removed in commit 1865908 (PR review feedback categorization)
+  - No action needed
+  ```
 
 ---
 
