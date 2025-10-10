@@ -51,6 +51,8 @@ model Asset {
   embedded             Boolean   @default(false) // Embedding has been generated
   processingError      String?   @map("processing_error") // Error during image processing
   embeddingError       String?   @map("embedding_error") // Error during embedding generation
+  processingRetryCount Int       @default(0) @map("processing_retry_count") // Number of image processing retry attempts
+  processingNextRetry  DateTime? @map("processing_next_retry") // When to retry image processing
   embeddingRetryCount  Int       @default(0) @map("embedding_retry_count") // Number of embedding retry attempts
   embeddingNextRetry   DateTime? @map("embedding_next_retry") // When to retry embedding generation
   processingClaimedAt  DateTime? @map("processing_claimed_at") // Timestamp when claimed for image processing

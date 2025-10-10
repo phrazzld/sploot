@@ -13,6 +13,27 @@ interface ProcessingStats {
   errors: Array<{ assetId: string; error: string }>;
 }
 
+// Exponential backoff schedule: 1min, 5min, 15min (max 3 retries)
+// Shorter than embeddings since Sharp failures are more likely permanent
+const RETRY_DELAYS_MS = [
+  60 * 1000,        // 1 minute
+  5 * 60 * 1000,    // 5 minutes
+  15 * 60 * 1000,   // 15 minutes
+];
+const MAX_RETRIES = 3;
+
+/**
+ * Calculate next retry time based on retry count.
+ * Returns null if max retries exceeded.
+ */
+function calculateNextRetry(retryCount: number): Date | null {
+  if (retryCount >= MAX_RETRIES) {
+    return null; // Max retries exceeded, no more retries
+  }
+  const delay = RETRY_DELAYS_MS[retryCount] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
+  return new Date(Date.now() + delay);
+}
+
 /**
  * GET /api/cron/process-images
  *
@@ -60,6 +81,7 @@ export async function GET(request: NextRequest) {
 
     // Find unprocessed assets that are unclaimed or have stale claims (>10min old)
     const STALE_CLAIM_MINUTES = 10;
+    const now = new Date();
     const staleClaimThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000);
     const claimTime = new Date();
 
@@ -67,10 +89,21 @@ export async function GET(request: NextRequest) {
       where: {
         deletedAt: null,
         processed: false,
-        processingError: null,
+        processingRetryCount: {
+          lt: MAX_RETRIES, // Skip assets that hit max retries
+        },
         OR: [
-          { processingClaimedAt: null }, // Unclaimed
-          { processingClaimedAt: { lt: staleClaimThreshold } }, // Stale claims
+          {
+            processingError: null, // Never failed
+            processingClaimedAt: null, // Unclaimed
+          },
+          {
+            processingNextRetry: { lt: now }, // Retry time has passed
+            processingClaimedAt: null, // Unclaimed
+          },
+          {
+            processingClaimedAt: { lt: staleClaimThreshold }, // Stale claims
+          },
         ],
       },
       select: {
@@ -81,6 +114,7 @@ export async function GET(request: NextRequest) {
         ownerUserId: true,
         createdAt: true,
         processingClaimedAt: true,
+        processingRetryCount: true,
       },
       take: 10, // Process max 10 per invocation to avoid timeout
       orderBy: {
@@ -128,6 +162,7 @@ export async function GET(request: NextRequest) {
         mime: true,
         ownerUserId: true,
         createdAt: true,
+        processingRetryCount: true,
       },
     });
 
@@ -177,7 +212,7 @@ export async function GET(request: NextRequest) {
           contentType: `image/${result.thumbnail.format}`,
         });
 
-        // Update asset record with processed data and clear claim
+        // Update asset record with processed data, clear error and retry state, release claim
         await prisma.asset.update({
           where: { id: asset.id },
           data: {
@@ -188,6 +223,8 @@ export async function GET(request: NextRequest) {
             height: result.main.height,
             size: result.main.size,
             processingError: null,
+            processingRetryCount: 0,
+            processingNextRetry: null,
             processingClaimedAt: null, // Release claim
           },
         });
@@ -204,14 +241,37 @@ export async function GET(request: NextRequest) {
           error: errorMessage,
         });
 
-        // Update asset with error message for retry/debugging
+        // Increment retry count and calculate next retry time
+        const newRetryCount = asset.processingRetryCount + 1;
+        const nextRetry = calculateNextRetry(newRetryCount);
+
+        // Update asset with error and retry info
         try {
-          await prisma.asset.update({
-            where: { id: asset.id },
-            data: {
-              processingError: errorMessage,
-            },
-          });
+          if (nextRetry === null) {
+            // Max retries exceeded - mark as permanently failed and clear claim
+            await prisma.asset.update({
+              where: { id: asset.id },
+              data: {
+                processingError: `Max retries exceeded (${MAX_RETRIES}). Last error: ${errorMessage}`,
+                processingRetryCount: newRetryCount,
+                processingNextRetry: null,
+                processingClaimedAt: null, // Release claim for permanent failures
+              },
+            });
+            console.log(`[cron] Asset ${asset.id} permanently failed after ${MAX_RETRIES} retries`);
+          } else {
+            // Schedule retry with exponential backoff, clear claim so it can be retried
+            await prisma.asset.update({
+              where: { id: asset.id },
+              data: {
+                processingError: errorMessage,
+                processingRetryCount: newRetryCount,
+                processingNextRetry: nextRetry,
+                processingClaimedAt: null, // Clear claim so it can be picked up again after delay
+              },
+            });
+            console.log(`[cron] Asset ${asset.id} will retry at ${nextRetry.toISOString()} (attempt ${newRetryCount}/${MAX_RETRIES})`);
+          }
         } catch (dbError) {
           console.error(`[cron] Failed to update error for asset ${asset.id}:`, dbError);
         }
