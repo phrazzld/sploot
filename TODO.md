@@ -639,7 +639,7 @@ The `feature/bulk-upload-optimization` branch implements the complete bulk uploa
   - Success criteria: User sees clear progress through all three stages
   - File: `components/upload/upload-zone.tsx:1719-1813` (replace existing progress header)
 
-- [ ] **Connect to SSE endpoint for real-time processing updates**
+- [x] **Connect to SSE endpoint for real-time processing updates**
   - Create `useProcessingProgress()` hook to consume SSE endpoint
   - Connect to `/api/sse/processing-updates` when uploads complete
   - Update UI state with progress events: `{ uploaded, processing, searchable }`
@@ -647,6 +647,15 @@ The `feature/bulk-upload-optimization` branch implements the complete bulk uploa
   - Disconnect SSE when all processing completes (`processed=embedded=true` for all assets)
   - Success criteria: UI updates every 5s with latest processing progress
   - File: `hooks/use-processing-progress.ts` (new file) and `components/upload/upload-zone.tsx`
+  ```
+  Work Log:
+  - Created hooks/use-processing-progress.ts with EventSource-based SSE connection
+  - Auto-reconnect built into EventSource API
+  - Returns ProcessingStats: {total, uploaded, processing, embedding, ready, failed}
+  - Connection state tracking: isConnected, error, lastUpdate
+  - Optional onUpdate callback for custom handling
+  - Commit: 9b588cc
+  ```
 
 - [ ] **Add processing status to individual file items**
   - Update `FileMetadata` interface with `processingStatus: 'pending' | 'processing' | 'complete' | 'failed'`
