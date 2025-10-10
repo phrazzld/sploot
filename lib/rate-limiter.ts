@@ -28,7 +28,8 @@ export class TokenBucketRateLimiter {
   private buckets: Map<string, TokenBucket>;
   private maxTokens: number;
   private refillRate: number; // Tokens per second
-  private cleanupInterval: NodeJS.Timeout | null;
+  private static readonly MAX_BUCKETS = 10000; // Defensive limit for serverless
+  private static readonly BUCKET_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
 
   /**
    * @param maxTokens - Maximum tokens in bucket (burst capacity)
@@ -38,10 +39,6 @@ export class TokenBucketRateLimiter {
     this.buckets = new Map();
     this.maxTokens = maxTokens;
     this.refillRate = refillPerMinute / 60; // Convert to tokens per second
-    this.cleanupInterval = null;
-
-    // Clean up old buckets every 10 minutes to prevent memory leaks
-    this.startCleanup();
   }
 
   /**
@@ -53,6 +50,16 @@ export class TokenBucketRateLimiter {
    */
   async consume(userId: string, tokens: number = 1): Promise<RateLimitResult> {
     const now = Date.now();
+
+    // Inline cleanup on every consume() - serverless-friendly
+    this.cleanupOldBuckets(now);
+
+    // Defensive guard against unbounded growth
+    if (this.buckets.size >= TokenBucketRateLimiter.MAX_BUCKETS) {
+      console.warn(`[RateLimiter] Bucket count exceeded ${TokenBucketRateLimiter.MAX_BUCKETS}. Clearing oldest entries.`);
+      this.clearOldestBuckets(5000); // Keep newest 5000
+    }
+
     let bucket = this.buckets.get(userId);
 
     // Initialize bucket if it doesn't exist
@@ -93,35 +100,26 @@ export class TokenBucketRateLimiter {
   }
 
   /**
-   * Start periodic cleanup of old buckets to prevent memory leaks
+   * Clean up old buckets inline (serverless-friendly)
    * Removes buckets that haven't been used in 1 hour
    */
-  private startCleanup(): void {
-    this.cleanupInterval = setInterval(() => {
-      const now = Date.now();
-      const oneHourMs = 60 * 60 * 1000;
-
-      for (const [userId, bucket] of this.buckets.entries()) {
-        if (now - bucket.lastRefill > oneHourMs) {
-          this.buckets.delete(userId);
-        }
+  private cleanupOldBuckets(now: number): void {
+    for (const [userId, bucket] of this.buckets.entries()) {
+      if (now - bucket.lastRefill > TokenBucketRateLimiter.BUCKET_EXPIRY_MS) {
+        this.buckets.delete(userId);
       }
-    }, 10 * 60 * 1000); // Run every 10 minutes
-
-    // Don't keep process alive for cleanup interval
-    if (this.cleanupInterval.unref) {
-      this.cleanupInterval.unref();
     }
   }
 
   /**
-   * Stop cleanup interval (for testing or shutdown)
+   * Clear oldest buckets to prevent unbounded memory growth
+   * Keeps only the newest N buckets by lastRefill timestamp
    */
-  stop(): void {
-    if (this.cleanupInterval) {
-      clearInterval(this.cleanupInterval);
-      this.cleanupInterval = null;
-    }
+  private clearOldestBuckets(keepCount: number): void {
+    const sorted = Array.from(this.buckets.entries())
+      .sort((a, b) => b[1].lastRefill - a[1].lastRefill); // Sort by lastRefill desc
+
+    this.buckets = new Map(sorted.slice(0, keepCount));
   }
 
   /**
