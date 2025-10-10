@@ -20,6 +20,7 @@ import { showToast } from '@/components/ui/toast';
 import type { ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
 import { logger } from '@/lib/logger';
+import { useProcessingProgress } from '@/hooks/use-processing-progress';
 
 // Lightweight metadata for display - only ~300 bytes per file vs 5MB for File object
 interface FileMetadata {
@@ -436,6 +437,11 @@ export function UploadZone({
     Array.from(fileMetadata.values()).sort((a, b) => a.addedAt - b.addedAt),
     [fileMetadata]
   );
+
+  // Real-time processing progress from SSE (enable when files uploaded)
+  const { stats: processingStats } = useProcessingProgress({
+    enabled: filesArray.length > 0,
+  });
 
   // Initialize IndexedDB on mount
   useEffect(() => {
@@ -1816,23 +1822,48 @@ export function UploadZone({
               </div>
             </div>
 
-            {/* Quick stats */}
-            <div className="grid grid-cols-4 gap-2 mt-3">
-              <div className="text-center">
-                <p className="text-[#B6FF6E] text-lg font-semibold">{getUploadStats().completed}</p>
-                <p className="text-[#B3B7BE] text-xs">complete</p>
+            {/* Three-phase processing pipeline */}
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              {/* Phase 1: Uploading */}
+              <div className="bg-[#1B1F24] border border-[#2A2F37] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#B3B7BE] text-xs uppercase tracking-wider font-mono">uploading</p>
+                  <div className="w-2 h-2 rounded-full bg-[#7C5CFF]" />
+                </div>
+                <p className="text-[#7C5CFF] text-2xl font-semibold font-mono">
+                  {getUploadStats().uploading}
+                </p>
+                <p className="text-[#B3B7BE] text-xs mt-1 font-mono">
+                  {getUploadStats().completed} / {filesArray.length} uploaded
+                </p>
               </div>
-              <div className="text-center">
-                <p className="text-[#7C5CFF] text-lg font-semibold">{getUploadStats().uploading}</p>
-                <p className="text-[#B3B7BE] text-xs">uploading</p>
+
+              {/* Phase 2: Processing */}
+              <div className="bg-[#1B1F24] border border-[#2A2F37] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#B3B7BE] text-xs uppercase tracking-wider font-mono">processing</p>
+                  <div className="w-2 h-2 rounded-full bg-[#FBBF24]" />
+                </div>
+                <p className="text-[#FBBF24] text-2xl font-semibold font-mono">
+                  {processingStats?.processing || 0}
+                </p>
+                <p className="text-[#B3B7BE] text-xs mt-1 font-mono">
+                  sharp optimization
+                </p>
               </div>
-              <div className="text-center">
-                <p className="text-[#B3B7BE] text-lg font-semibold">{getUploadStats().pending}</p>
-                <p className="text-[#B3B7BE] text-xs">pending</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[#FF4D4D] text-lg font-semibold">{getUploadStats().failed}</p>
-                <p className="text-[#B3B7BE] text-xs">failed</p>
+
+              {/* Phase 3: Searchable */}
+              <div className="bg-[#1B1F24] border border-[#2A2F37] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#B3B7BE] text-xs uppercase tracking-wider font-mono">searchable</p>
+                  <div className="w-2 h-2 rounded-full bg-[#4ADE80]" />
+                </div>
+                <p className="text-[#4ADE80] text-2xl font-semibold font-mono">
+                  {processingStats?.ready || 0}
+                </p>
+                <p className="text-[#B3B7BE] text-xs mt-1 font-mono">
+                  embeddings ready
+                </p>
               </div>
             </div>
 
