@@ -58,12 +58,20 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find unprocessed assets
+    // Find unprocessed assets that are unclaimed or have stale claims (>10min old)
+    const STALE_CLAIM_MINUTES = 10;
+    const staleClaimThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000);
+    const claimTime = new Date();
+
     const assetsNeedingProcessing = await prisma.asset.findMany({
       where: {
         deletedAt: null,
         processed: false,
         processingError: null,
+        OR: [
+          { processingClaimedAt: null }, // Unclaimed
+          { processingClaimedAt: { lt: staleClaimThreshold } }, // Stale claims
+        ],
       },
       select: {
         id: true,
@@ -72,6 +80,7 @@ export async function GET(request: NextRequest) {
         mime: true,
         ownerUserId: true,
         createdAt: true,
+        processingClaimedAt: true,
       },
       take: 10, // Process max 10 per invocation to avoid timeout
       orderBy: {
@@ -88,8 +97,52 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Process each asset
-    for (const asset of assetsNeedingProcessing) {
+    // Claim assets atomically using updateMany with WHERE condition
+    // Only claim if still unclaimed (prevents race condition)
+    const assetIds = assetsNeedingProcessing.map(a => a.id);
+    const claimResult = await prisma.asset.updateMany({
+      where: {
+        id: { in: assetIds },
+        OR: [
+          { processingClaimedAt: null },
+          { processingClaimedAt: { lt: staleClaimThreshold } },
+        ],
+      },
+      data: {
+        processingClaimedAt: claimTime,
+      },
+    });
+
+    console.log(`[cron] Claimed ${claimResult.count} assets for processing`);
+
+    // Verify which assets we successfully claimed by re-querying
+    const claimedAssets = await prisma.asset.findMany({
+      where: {
+        id: { in: assetIds },
+        processingClaimedAt: claimTime,
+      },
+      select: {
+        id: true,
+        blobUrl: true,
+        pathname: true,
+        mime: true,
+        ownerUserId: true,
+        createdAt: true,
+      },
+    });
+
+    if (claimedAssets.length === 0) {
+      console.log(`[cron] Failed to claim any assets (lost race to another cron instance)`);
+      return NextResponse.json({
+        message: 'No assets claimed (concurrent execution)',
+        stats,
+      });
+    }
+
+    console.log(`[cron] Successfully claimed ${claimedAssets.length} assets`);
+
+    // Process only the assets we successfully claimed
+    for (const asset of claimedAssets) {
       const assetStartTime = Date.now();
       stats.totalProcessed++;
 
@@ -124,7 +177,7 @@ export async function GET(request: NextRequest) {
           contentType: `image/${result.thumbnail.format}`,
         });
 
-        // Update asset record with processed data
+        // Update asset record with processed data and clear claim
         await prisma.asset.update({
           where: { id: asset.id },
           data: {
@@ -135,6 +188,7 @@ export async function GET(request: NextRequest) {
             height: result.main.height,
             size: result.main.size,
             processingError: null,
+            processingClaimedAt: null, // Release claim
           },
         });
 

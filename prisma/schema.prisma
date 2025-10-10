@@ -53,6 +53,8 @@ model Asset {
   embeddingError       String?   @map("embedding_error") // Error during embedding generation
   embeddingRetryCount  Int       @default(0) @map("embedding_retry_count") // Number of embedding retry attempts
   embeddingNextRetry   DateTime? @map("embedding_next_retry") // When to retry embedding generation
+  processingClaimedAt  DateTime? @map("processing_claimed_at") // Timestamp when claimed for image processing
+  embeddingClaimedAt   DateTime? @map("embedding_claimed_at") // Timestamp when claimed for embedding generation
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   deletedAt            DateTime? @map("deleted_at")

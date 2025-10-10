@@ -78,10 +78,14 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find assets that need embeddings
+    // Find assets that need embeddings that are unclaimed or have stale claims (>10min old)
     // Only process assets that have been image-processed (processed=true)
     // This ensures we don't try to embed unprocessed images
+    const STALE_CLAIM_MINUTES = 10;
     const now = new Date();
+    const staleClaimThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000);
+    const claimTime = new Date();
+
     const assetsNeedingEmbeddings = await prisma.asset.findMany({
       where: {
         deletedAt: null,
@@ -91,8 +95,17 @@ export async function GET(request: NextRequest) {
           lt: MAX_RETRIES, // Skip assets that hit max retries
         },
         OR: [
-          { embeddingNextRetry: null }, // First attempt
-          { embeddingNextRetry: { lt: now } }, // Retry time has passed
+          {
+            embeddingNextRetry: null, // First attempt
+            embeddingClaimedAt: null, // Unclaimed
+          },
+          {
+            embeddingNextRetry: { lt: now }, // Retry time has passed
+            embeddingClaimedAt: null, // Unclaimed
+          },
+          {
+            embeddingClaimedAt: { lt: staleClaimThreshold }, // Stale claims
+          },
         ],
       },
       select: {
@@ -102,6 +115,7 @@ export async function GET(request: NextRequest) {
         ownerUserId: true,
         createdAt: true,
         embeddingRetryCount: true,
+        embeddingClaimedAt: true,
       },
       take: 5, // Process max 5 per invocation to respect Replicate rate limits
       orderBy: {
@@ -118,6 +132,50 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // Claim assets atomically using updateMany with WHERE condition
+    // Only claim if still unclaimed (prevents race condition)
+    const assetIds = assetsNeedingEmbeddings.map(a => a.id);
+    const claimResult = await prisma.asset.updateMany({
+      where: {
+        id: { in: assetIds },
+        OR: [
+          { embeddingClaimedAt: null },
+          { embeddingClaimedAt: { lt: staleClaimThreshold } },
+        ],
+      },
+      data: {
+        embeddingClaimedAt: claimTime,
+      },
+    });
+
+    console.log(`[cron] Claimed ${claimResult.count} assets for embedding generation`);
+
+    // Verify which assets we successfully claimed by re-querying
+    const claimedAssets = await prisma.asset.findMany({
+      where: {
+        id: { in: assetIds },
+        embeddingClaimedAt: claimTime,
+      },
+      select: {
+        id: true,
+        blobUrl: true,
+        checksumSha256: true,
+        ownerUserId: true,
+        createdAt: true,
+        embeddingRetryCount: true,
+      },
+    });
+
+    if (claimedAssets.length === 0) {
+      console.log(`[cron] Failed to claim any assets (lost race to another cron instance)`);
+      return NextResponse.json({
+        message: 'No assets claimed (concurrent execution)',
+        stats,
+      });
+    }
+
+    console.log(`[cron] Successfully claimed ${claimedAssets.length} assets`);
+
     // Initialize embedding service once
     let embeddingService;
     try {
@@ -133,8 +191,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Process each asset
-    for (const asset of assetsNeedingEmbeddings) {
+    // Process only the assets we successfully claimed
+    for (const asset of claimedAssets) {
       const assetStartTime = Date.now();
       stats.totalProcessed++;
 
@@ -157,7 +215,7 @@ export async function GET(request: NextRequest) {
           throw new Error('Failed to persist embedding');
         }
 
-        // Mark asset as embedded and reset retry counters
+        // Mark asset as embedded, reset retry counters, and clear claim
         await prisma.asset.update({
           where: { id: asset.id },
           data: {
@@ -165,6 +223,7 @@ export async function GET(request: NextRequest) {
             embeddingError: null,
             embeddingRetryCount: 0,
             embeddingNextRetry: null,
+            embeddingClaimedAt: null, // Release claim
           },
         });
 
@@ -187,24 +246,26 @@ export async function GET(request: NextRequest) {
         // Update asset with error and retry info
         try {
           if (nextRetry === null) {
-            // Max retries exceeded - mark as permanently failed
+            // Max retries exceeded - mark as permanently failed and clear claim
             await prisma.asset.update({
               where: { id: asset.id },
               data: {
                 embeddingError: `Max retries exceeded (${MAX_RETRIES}). Last error: ${errorMessage}`,
                 embeddingRetryCount: newRetryCount,
                 embeddingNextRetry: null,
+                embeddingClaimedAt: null, // Release claim for permanent failures
               },
             });
             console.log(`[cron] Asset ${asset.id} permanently failed after ${MAX_RETRIES} retries`);
           } else {
-            // Schedule retry with exponential backoff
+            // Schedule retry with exponential backoff, clear claim so it can be retried
             await prisma.asset.update({
               where: { id: asset.id },
               data: {
                 embeddingError: errorMessage,
                 embeddingRetryCount: newRetryCount,
                 embeddingNextRetry: nextRetry,
+                embeddingClaimedAt: null, // Clear claim so it can be picked up again after delay
               },
             });
             console.log(`[cron] Asset ${asset.id} will retry at ${nextRetry.toISOString()} (attempt ${newRetryCount}/${MAX_RETRIES})`);
