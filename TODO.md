@@ -668,13 +668,26 @@ The `feature/bulk-upload-optimization` branch implements the complete bulk uploa
   - Commit: 9b588cc
   ```
 
-- [ ] **Add processing status to individual file items**
+- [x] **Add processing status to individual file items**
   - Update `FileMetadata` interface with `processingStatus: 'pending' | 'processing' | 'complete' | 'failed'`
   - Show processing state next to upload success indicator
   - Display: "✓ Uploaded → ⏳ Processing images..." → "✓ Ready to search"
   - Allow retry for failed processing (call `/api/assets/[id]/retry-processing`)
   - Success criteria: Each file shows its current processing stage
   - File: `components/upload/upload-zone.tsx:24-40` (FileMetadata interface)
+  ```
+  Work Log:
+  - Created GET /api/assets/[id]/processing-status with 5s caching
+  - Created POST /api/assets/[id]/retry-processing for manual retry
+  - Implemented useProcessingStatus hook with 5s polling
+  - Built ProcessingStatusIndicator component (4 states: pending/processing/complete/failed)
+  - Extended FileMetadata in both upload-zone.tsx and file-metadata-manager.ts
+  - Integrated into FileListVirtual: shows BOTH processing + embedding status
+  - Bloomberg Terminal aesthetic maintained (monospace, status colors)
+  - Mirrors EmbeddingStatusIndicator pattern for consistency
+  - Type-safe implementation, no TypeScript errors
+  - Commit: 5d34cff
+  ```
 
 ### Reduce Client Concurrency (Immediate Relief)
 
