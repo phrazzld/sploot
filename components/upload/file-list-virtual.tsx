@@ -4,6 +4,7 @@ import { useRef, useMemo, useCallback, useLayoutEffect, CSSProperties } from 're
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { FileMetadata } from '@/lib/file-metadata-manager';
 import { EmbeddingStatusIndicator } from './embedding-status-indicator';
+import { ProcessingStatusIndicator } from './processing-status-indicator';
 import { UploadErrorDisplay } from './upload-error-display';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
@@ -26,6 +27,8 @@ interface FileRowProps {
   onRemove: () => void;
   onViewDuplicate?: () => void;
   measureElement: (element: HTMLDivElement | null) => void;
+  fileMetadata: Map<string, FileMetadata>;
+  setFileMetadata: React.Dispatch<React.SetStateAction<Map<string, FileMetadata>>>;
 }
 
 /**
@@ -39,7 +42,9 @@ function FileRow({
   onRetry,
   onRemove,
   onViewDuplicate,
-  measureElement
+  measureElement,
+  fileMetadata,
+  setFileMetadata
 }: FileRowProps) {
   // Dynamic height based on content
   const hasError = file.status === 'error' && file.errorDetails;
@@ -105,10 +110,28 @@ function FileRow({
             )}
 
             {file.status === 'success' && (
-              <EmbeddingStatusIndicator
-                file={file}
-                onStatusChange={onStatusChange}
-              />
+              <div className="flex flex-col gap-1">
+                {/* Processing status (image resize/thumbnail) */}
+                <ProcessingStatusIndicator
+                  assetId={file.assetId}
+                  onStatusChange={(status) => {
+                    // Update file metadata with processing status
+                    const currentFile = fileMetadata.get(file.id);
+                    if (currentFile) {
+                      setFileMetadata(prev => {
+                        const next = new Map(prev);
+                        next.set(file.id, { ...currentFile, processingStatus: status });
+                        return next;
+                      });
+                    }
+                  }}
+                />
+                {/* Embedding status (semantic search indexing) */}
+                <EmbeddingStatusIndicator
+                  file={file}
+                  onStatusChange={onStatusChange}
+                />
+              </div>
             )}
 
             {file.status === 'duplicate' && (
@@ -269,6 +292,8 @@ export function FileListVirtual({
               onRemove={() => removeFile(file.id)}
               onViewDuplicate={() => handleViewDuplicate(file.assetId || '')}
               measureElement={virtualizer.measureElement}
+              fileMetadata={fileMetadata}
+              setFileMetadata={setFileMetadata}
             />
           );
         })}
