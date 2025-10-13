@@ -177,7 +177,7 @@ describe('/api/cron/process-embeddings', () => {
       expect(callArgs.where.deletedAt).toBe(null);
       expect(callArgs.where.processed).toBe(true); // Only process after image processing
       expect(callArgs.where.embedded).toBe(false); // Not yet embedded
-      expect(callArgs.where.embeddingRetryCount.lt).toBe(5); // Skip max retries
+      expect(callArgs.where.embeddingRetryCount.lte).toBe(5); // Include max retries for final permanent failure marking
 
       // Verify OR clause for retry logic (3 conditions: first attempt, retry, stale claims)
       expect(callArgs.where.OR).toHaveLength(3);
