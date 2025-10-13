@@ -1,20 +1,19 @@
 /**
  * Integration tests for direct-to-Blob upload flow
  *
- * Tests the 3-step upload sequence:
- * 1. GET /api/upload-url - Get presigned URL and credentials
+ * Tests the upload completion flow:
+ * 1. POST /api/upload/handle - Secure token generation (tested elsewhere)
  * 2. PUT to Vercel Blob - Client uploads file (mocked)
  * 3. POST /api/upload-complete - Finalize upload and create asset
  *
  * Validates:
- * - Credential generation with rate limiting
  * - Asset creation with correct initial state
  * - Duplicate detection via checksum
+ * - Blob URL validation (SSRF prevention)
  * - Error handling for invalid inputs
  */
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { GET as getUploadUrl } from '@/app/api/upload-url/route';
 import { POST as uploadComplete } from '@/app/api/upload-complete/route';
 import { NextRequest } from 'next/server';
 
@@ -80,24 +79,8 @@ describe('Direct-to-Blob Upload Flow', () => {
     vi.restoreAllMocks();
   });
 
-  describe('Step 1: GET /api/upload-url', () => {
-    it('should return 410 Gone (endpoint deprecated)', async () => {
-      const url = `http://localhost:3000/api/upload-url?filename=${TEST_FILE.filename}&mimeType=${TEST_FILE.mimeType}&size=${TEST_FILE.size}`;
-      const req = new NextRequest(url);
-
-      const response = await getUploadUrl(req);
-      const data = await response.json();
-
-      expect(response.status).toBe(410);
-      expect(data.error).toContain('deprecated');
-      expect(data.migration).toContain('/api/upload/handle');
-      expect(response.headers.get('X-Deprecated')).toBe('true');
-      expect(response.headers.get('X-Deprecated-Replacement')).toBe('/api/upload/handle');
-    });
-
-    // All other upload-url tests removed - endpoint is deprecated for security
-    // Tests for secure upload flow moved to /api/upload/handle
-  });
+  // Note: GET /api/upload-url endpoint removed for security (exposed master token)
+  // Secure upload flow uses POST /api/upload/handle with scoped tokens
 
   describe('Step 3: POST /api/upload-complete', () => {
     const MOCK_UPLOAD_COMPLETE_BODY = {

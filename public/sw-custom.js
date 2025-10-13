@@ -8,7 +8,9 @@ self.addEventListener('sync', async (event) => {
   }
 });
 
-// Process queued uploads
+// Process queued uploads by notifying the main app
+// NOTE: Service workers can't easily use @vercel/blob/client SDK,
+// so we just notify the main app to retry uploads using its secure flow
 async function processUploadQueue() {
   try {
     // Get queued uploads from IndexedDB
@@ -19,114 +21,31 @@ async function processUploadQueue() {
       return;
     }
 
-    console.log(`[SW] Processing ${queue.length} queued uploads`);
+    console.log(`[SW] Found ${queue.length} queued uploads, notifying main app`);
 
-    for (const item of queue) {
-      try {
-        // Skip if already processed
-        if (item.status === 'success') {
-          await removeFromQueue(item.id);
-          continue;
-        }
+    // Filter uploads that need retry (not already successful, haven't exceeded retries)
+    const uploadsToRetry = queue.filter(
+      item => item.status !== 'success' && (item.retryCount || 0) < 3
+    );
 
-        // Check retry count
-        if (item.retryCount >= 3) {
-          console.error(`[SW] Max retries reached for upload ${item.id}`);
-          await updateQueueItem(item.id, { status: 'error', error: 'Max retries exceeded' });
-          continue;
-        }
+    if (uploadsToRetry.length === 0) {
+      console.log('[SW] No uploads need retry');
+      return;
+    }
 
-        console.log(`[SW] Processing upload ${item.id}: ${item.fileName}`);
-
-        // Recreate the file from stored data
-        const blob = await base64ToBlob(item.fileData);
-        const formData = new FormData();
-        formData.append('file', blob, item.fileName);
-
-        // First, get the upload URL
-        const uploadUrlResponse = await fetch('/api/upload-url', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            filename: item.fileName,
-            contentType: item.mimeType,
-          }),
+    // Notify all open clients to retry uploads
+    // The main app will handle the actual upload using secure /api/upload/handle
+    const clients = await self.clients.matchAll();
+    if (clients.length > 0) {
+      console.log(`[SW] Notifying ${clients.length} clients to retry ${uploadsToRetry.length} uploads`);
+      clients.forEach(client => {
+        client.postMessage({
+          type: 'RETRY_UPLOADS',
+          uploads: uploadsToRetry,
         });
-
-        if (!uploadUrlResponse.ok) {
-          throw new Error('Failed to get upload URL');
-        }
-
-        const { url: uploadUrl, pathname } = await uploadUrlResponse.json();
-
-        // Upload to blob storage
-        const uploadResponse = await fetch(uploadUrl, {
-          method: 'PUT',
-          body: blob,
-          headers: {
-            'Content-Type': item.mimeType,
-          },
-        });
-
-        if (!uploadResponse.ok) {
-          throw new Error('Failed to upload file');
-        }
-
-        // Create asset record
-        const assetResponse = await fetch('/api/assets', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            blobUrl: uploadUrl.split('?')[0], // Remove query params
-            pathname,
-            filename: item.fileName,
-            mimeType: item.mimeType,
-            size: item.fileSize,
-            checksum: item.checksum,
-            width: item.width,
-            height: item.height,
-          }),
-        });
-
-        if (!assetResponse.ok) {
-          throw new Error('Failed to create asset record');
-        }
-
-        // Mark as successful
-        await updateQueueItem(item.id, { status: 'success' });
-
-        // Notify the client
-        await self.clients.matchAll().then(clients => {
-          clients.forEach(client => {
-            client.postMessage({
-              type: 'upload-complete',
-              id: item.id,
-              fileName: item.fileName,
-            });
-          });
-        });
-
-        console.log(`[SW] Successfully uploaded ${item.fileName}`);
-      } catch (error) {
-        console.error(`[SW] Failed to upload ${item.fileName}:`, error);
-
-        // Increment retry count
-        const newRetryCount = (item.retryCount || 0) + 1;
-        await updateQueueItem(item.id, {
-          status: 'error',
-          error: error.message,
-          retryCount: newRetryCount,
-        });
-
-        // If we still have retries left, schedule another sync
-        if (newRetryCount < 3) {
-          await self.registration.sync.register('upload-queue');
-        }
-      }
+      });
+    } else {
+      console.log('[SW] No open clients to notify, uploads will retry when app reopens');
     }
   } catch (error) {
     console.error('[SW] Error processing upload queue:', error);

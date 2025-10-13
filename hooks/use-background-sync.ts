@@ -242,61 +242,51 @@ export function useBackgroundSync() {
     try {
       updateQueueItem(upload.id, { status: 'uploading' });
 
-      // Convert base64 to blob
+      // Convert base64 to File object
       const response = await fetch(upload.fileData);
       const blob = await response.blob();
+      const file = new File([blob], upload.fileName, { type: upload.mimeType });
 
-      // Get upload URL
-      const uploadUrlResponse = await fetch('/api/upload-url', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          filename: upload.fileName,
-          contentType: upload.mimeType,
+      // Use secure upload with @vercel/blob/client SDK
+      // This uses scoped, time-limited tokens from /api/upload/handle
+      const { upload: uploadFn } = await import('@vercel/blob/client');
+
+      const result = await uploadFn(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload/handle',
+        clientPayload: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          size: file.size,
         }),
       });
 
-      if (!uploadUrlResponse.ok) {
-        throw new Error('Failed to get upload URL');
-      }
+      // Calculate checksum for duplicate detection
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      const { url: uploadUrl, pathname } = await uploadUrlResponse.json();
-
-      // Upload to blob storage
-      const uploadResponse = await fetch(uploadUrl, {
-        method: 'PUT',
-        body: blob,
-        headers: {
-          'Content-Type': upload.mimeType,
-        },
-      });
-
-      if (!uploadResponse.ok) {
-        throw new Error('Failed to upload file');
-      }
-
-      // Create asset record
-      const assetResponse = await fetch('/api/assets', {
+      // Finalize upload with duplicate detection
+      const completeResponse = await fetch('/api/upload-complete', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          blobUrl: uploadUrl.split('?')[0],
-          pathname,
+          assetId: `asset_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
+          blobUrl: result.url,
+          pathname: result.pathname,
           filename: upload.fileName,
           mimeType: upload.mimeType,
           size: upload.fileSize,
-          checksum: upload.checksum,
-          width: upload.width,
-          height: upload.height,
+          checksum,
         }),
       });
 
-      if (!assetResponse.ok) {
-        throw new Error('Failed to create asset record');
+      if (!completeResponse.ok) {
+        const error = await completeResponse.json();
+        throw new Error(error.error || 'Failed to complete upload');
       }
 
       // Mark as successful and remove from queue
