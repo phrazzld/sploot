@@ -26,12 +26,12 @@
 
 ### Tasks:
 
-- [~] **Remove module-level setInterval cleanup** (`app/api/processing-stats/route.ts:25-33`)
+- [x] **Remove module-level setInterval cleanup** (`app/api/processing-stats/route.ts:25-33`)
   - Delete lines 25-33 entirely (the setInterval block)
   - Keep `statsCache` Map and interface definitions (lines 6-24)
   - **Rationale**: setInterval is incompatible with serverless execution model
 
-- [~] **Add inline cleanup during cache access** (`app/api/processing-stats/route.ts:68-77`)
+- [x] **Add inline cleanup during cache access** (`app/api/processing-stats/route.ts:68-77`)
   - After line 69 (`const cached = statsCache.get(userId);`), add cleanup logic:
     ```typescript
     // Clean up stale entries inline (serverless-compatible)
@@ -92,14 +92,14 @@
 
 ### Tasks:
 
-- [ ] **Fix retry count filter in findMany query** (`app/api/cron/process-images/route.ts:54-89`)
+- [~] **Fix retry count filter in findMany query** (`app/api/cron/process-images/route.ts:54-89`)
   - Line 58-59: Change `processingRetryCount: { lt: MAX_RETRIES }` → `lte: MAX_RETRIES`
   - **Before**: `lt: MAX_RETRIES` (retryCount < 3, excludes 3)
   - **After**: `lte: MAX_RETRIES` (retryCount <= 3, includes 3)
   - **Rationale**: Allow assets at MAX_RETRIES to be picked up one final time for permanent failure marking
   - **This allows**: When retryCount=3, asset is picked up, calculateNextRetry(3, [60k,300k,900k]) returns null (3 >= 3), lines 216-226 mark as permanently failed
 
-- [ ] **Add comment explaining retry logic** (`app/api/cron/process-images/route.ts:58`)
+- [~] **Add comment explaining retry logic** (`app/api/cron/process-images/route.ts:58`)
   - Add above line 58:
     ```typescript
     // Use lte (<=) not lt (<) to allow final pickup when retryCount === MAX_RETRIES
@@ -167,13 +167,13 @@
 
 ### Tasks:
 
-- [ ] **Fix retry count filter in findMany query** (`app/api/cron/process-embeddings/route.ts:55-90`)
+- [~] **Fix retry count filter in findMany query** (`app/api/cron/process-embeddings/route.ts:55-90`)
   - Line 60-61: Change `embeddingRetryCount: { lt: MAX_RETRIES }` → `lte: MAX_RETRIES`
   - **Before**: `lt: MAX_RETRIES` (retryCount < 5, excludes 5)
   - **After**: `lte: MAX_RETRIES` (retryCount <= 5, includes 5)
   - **Rationale**: Same as P2 - allow final pickup for permanent failure marking
 
-- [ ] **Add comment explaining retry logic** (`app/api/cron/process-embeddings/route.ts:60`)
+- [~] **Add comment explaining retry logic** (`app/api/cron/process-embeddings/route.ts:60`)
   - Add above line 60:
     ```typescript
     // Use lte (<=) not lt (<) to allow final pickup when retryCount === MAX_RETRIES

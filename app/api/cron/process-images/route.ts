@@ -55,8 +55,10 @@ export async function GET(request: NextRequest) {
       where: {
         deletedAt: null,
         processed: false,
+        // Use lte (<=) not lt (<) to allow final pickup when retryCount === MAX_RETRIES
+        // This is necessary to mark assets as permanently failed via calculateNextRetry() → null logic
         processingRetryCount: {
-          lt: MAX_RETRIES, // Skip assets that hit max retries
+          lte: MAX_RETRIES, // Include assets at max retries for final permanent failure marking
         },
         OR: [
           {

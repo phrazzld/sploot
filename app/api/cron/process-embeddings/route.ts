@@ -57,8 +57,10 @@ export async function GET(request: NextRequest) {
         deletedAt: null,
         processed: true, // Wait for image processing to complete
         embedded: false, // Not yet embedded
+        // Use lte (<=) not lt (<) to allow final pickup when retryCount === MAX_RETRIES
+        // This is necessary to mark assets as permanently failed via calculateNextRetry() → null logic
         embeddingRetryCount: {
-          lt: MAX_RETRIES, // Skip assets that hit max retries
+          lte: MAX_RETRIES, // Include assets at max retries for final permanent failure marking
         },
         OR: [
           {
