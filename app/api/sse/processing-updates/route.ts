@@ -66,9 +66,10 @@ export async function GET(request: NextRequest) {
       const sendProcessingStats = async () => {
         try {
           // Fetch stats from our cached endpoint
-          const baseUrl = process.env.NEXT_PUBLIC_APP_URL ||
-                         process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-                         'http://localhost:3000';
+          // Prefer NEXT_PUBLIC_APP_URL (custom domain) → VERCEL_URL (default) → localhost
+          const baseUrl =
+            process.env.NEXT_PUBLIC_APP_URL ||
+            (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
           const response = await fetch(`${baseUrl}/api/processing-stats`, {
             headers: {
