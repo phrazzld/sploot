@@ -2,16 +2,13 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { processUploadedImage } from '@/lib/image-processing';
 import { put } from '@vercel/blob';
-import { headers } from 'next/headers';
-
-// Performance tracking
-interface ProcessingStats {
-  totalProcessed: number;
-  successCount: number;
-  failureCount: number;
-  totalProcessingTime: number;
-  errors: Array<{ assetId: string; error: string }>;
-}
+import {
+  initCronStats,
+  verifyCronAuth,
+  calculateNextRetry,
+  formatCronResponse,
+  STALE_CLAIM_MINUTES,
+} from '@/lib/cron-utils';
 
 // Exponential backoff schedule: 1min, 5min, 15min (max 3 retries)
 // Shorter than embeddings since Sharp failures are more likely permanent
@@ -21,18 +18,6 @@ const RETRY_DELAYS_MS = [
   15 * 60 * 1000,   // 15 minutes
 ];
 const MAX_RETRIES = 3;
-
-/**
- * Calculate next retry time based on retry count.
- * Returns null if max retries exceeded.
- */
-function calculateNextRetry(retryCount: number): Date | null {
-  if (retryCount >= MAX_RETRIES) {
-    return null; // Max retries exceeded, no more retries
-  }
-  const delay = RETRY_DELAYS_MS[retryCount] ?? RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1];
-  return new Date(Date.now() + delay);
-}
 
 /**
  * GET /api/cron/process-images
@@ -45,31 +30,13 @@ function calculateNextRetry(retryCount: number): Date | null {
  */
 export async function GET(request: NextRequest) {
   const startTime = Date.now();
-  const stats: ProcessingStats = {
-    totalProcessed: 0,
-    successCount: 0,
-    failureCount: 0,
-    totalProcessingTime: 0,
-    errors: [],
-  };
+  const stats = initCronStats();
 
   try {
     // Verify cron authorization
-    const authHeader = (await headers()).get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
-
-    if (!cronSecret) {
-      return NextResponse.json(
-        { error: 'CRON_SECRET not configured' },
-        { status: 500 }
-      );
-    }
-
-    if (authHeader !== `Bearer ${cronSecret}`) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+    const authError = await verifyCronAuth(request);
+    if (authError) {
+      return authError;
     }
 
     if (!prisma) {
@@ -79,8 +46,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Find unprocessed assets that are unclaimed or have stale claims (>10min old)
-    const STALE_CLAIM_MINUTES = 10;
+    // Find unprocessed assets that are unclaimed or have stale claims
     const now = new Date();
     const staleClaimThreshold = new Date(Date.now() - STALE_CLAIM_MINUTES * 60 * 1000);
     const claimTime = new Date();
@@ -243,7 +209,7 @@ export async function GET(request: NextRequest) {
 
         // Increment retry count and calculate next retry time
         const newRetryCount = asset.processingRetryCount + 1;
-        const nextRetry = calculateNextRetry(newRetryCount);
+        const nextRetry = calculateNextRetry(newRetryCount, RETRY_DELAYS_MS);
 
         // Update asset with error and retry info
         try {
@@ -283,31 +249,18 @@ export async function GET(request: NextRequest) {
     }
 
     const totalTime = Date.now() - startTime;
-    const avgProcessingTime = stats.successCount > 0
-      ? Math.round(stats.totalProcessingTime / stats.successCount)
-      : 0;
-    const successRate = stats.totalProcessed > 0
-      ? Math.round((stats.successCount / stats.totalProcessed) * 100)
-      : 0;
-
     console.log(`[cron] Processing complete:`, {
       totalTime: `${totalTime}ms`,
       processed: stats.totalProcessed,
       successful: stats.successCount,
       failed: stats.failureCount,
-      successRate: `${successRate}%`,
-      avgProcessingTime: `${avgProcessingTime}ms`,
     });
 
-    return NextResponse.json({
-      message: `Processed ${stats.totalProcessed} assets`,
-      stats: {
-        ...stats,
-        totalTime,
-        avgProcessingTime,
-        successRate,
-      },
-    });
+    return formatCronResponse(
+      `Processed ${stats.totalProcessed} assets`,
+      stats,
+      totalTime
+    );
   } catch (error) {
     console.error('[cron] Unexpected error in process-images:', error);
     return NextResponse.json(
