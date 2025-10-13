@@ -63,6 +63,10 @@ describe('Direct-to-Blob Upload Flow', () => {
     // Set environment variable for blob token
     process.env.BLOB_READ_WRITE_TOKEN = 'test-blob-token';
 
+    // Reset auth mock after clearAll
+    const { requireUserIdWithSync } = await import('@/lib/auth/server');
+    vi.mocked(requireUserIdWithSync).mockResolvedValue('test-user-123');
+
     // Reset rate limiter mock after clearAll
     const { uploadRateLimiter } = await import('@/lib/rate-limiter');
     vi.mocked(uploadRateLimiter.consume).mockResolvedValue({ allowed: true, remaining: 99 });
@@ -77,108 +81,22 @@ describe('Direct-to-Blob Upload Flow', () => {
   });
 
   describe('Step 1: GET /api/upload-url', () => {
-    it('should generate upload credentials with valid parameters', async () => {
+    it('should return 410 Gone (endpoint deprecated)', async () => {
       const url = `http://localhost:3000/api/upload-url?filename=${TEST_FILE.filename}&mimeType=${TEST_FILE.mimeType}&size=${TEST_FILE.size}`;
       const req = new NextRequest(url);
 
       const response = await getUploadUrl(req);
       const data = await response.json();
 
-      expect(response.status).toBe(200);
-      expect(data).toHaveProperty('assetId');
-      expect(data).toHaveProperty('pathname');
-      expect(data).toHaveProperty('token', 'test-blob-token');
-      expect(data).toHaveProperty('expiresAt');
-
-      // Verify expiry is ~5 minutes in future
-      const expiresAt = data.expiresAt;
-      const now = Date.now();
-      expect(expiresAt).toBeGreaterThan(now);
-      expect(expiresAt).toBeLessThan(now + 6 * 60 * 1000); // < 6 minutes
+      expect(response.status).toBe(410);
+      expect(data.error).toContain('deprecated');
+      expect(data.migration).toContain('/api/upload/handle');
+      expect(response.headers.get('X-Deprecated')).toBe('true');
+      expect(response.headers.get('X-Deprecated-Replacement')).toBe('/api/upload/handle');
     });
 
-    it('should include rate limit headers', async () => {
-      const url = `http://localhost:3000/api/upload-url?filename=${TEST_FILE.filename}&mimeType=${TEST_FILE.mimeType}&size=${TEST_FILE.size}`;
-      const req = new NextRequest(url);
-
-      const response = await getUploadUrl(req);
-
-      expect(response.headers.get('X-RateLimit-Limit')).toBe('100');
-      expect(response.headers.get('X-RateLimit-Remaining')).toBe('99');
-      expect(response.headers.get('X-RateLimit-Reset')).toBeTruthy();
-    });
-
-    it('should reject missing required parameters', async () => {
-      const url = 'http://localhost:3000/api/upload-url?filename=test.jpg';
-      const req = new NextRequest(url);
-
-      const response = await getUploadUrl(req);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('Missing required parameters');
-    });
-
-    it('should reject invalid file types', async () => {
-      const url = `http://localhost:3000/api/upload-url?filename=test.pdf&mimeType=application/pdf&size=1000`;
-      const req = new NextRequest(url);
-
-      const response = await getUploadUrl(req);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('Invalid file type');
-      expect(data.errorType).toBe('invalid_type');
-    });
-
-    it('should reject files exceeding size limit', async () => {
-      const url = `http://localhost:3000/api/upload-url?filename=test.jpg&mimeType=image/jpeg&size=11000000`; // 11MB
-      const req = new NextRequest(url);
-
-      const response = await getUploadUrl(req);
-      const data = await response.json();
-
-      expect(response.status).toBe(400);
-      expect(data.error).toContain('File size must be between');
-      expect(data.errorType).toBe('file_too_large');
-    });
-
-    it('should enforce rate limiting', async () => {
-      const { uploadRateLimiter } = await import('@/lib/rate-limiter');
-      vi.mocked(uploadRateLimiter.consume).mockResolvedValueOnce({
-        allowed: false,
-        retryAfter: 30,
-        remaining: 0,
-      });
-
-      const url = `http://localhost:3000/api/upload-url?filename=${TEST_FILE.filename}&mimeType=${TEST_FILE.mimeType}&size=${TEST_FILE.size}`;
-      const req = new NextRequest(url);
-
-      const response = await getUploadUrl(req);
-      const data = await response.json();
-
-      expect(response.status).toBe(429);
-      expect(data.error).toContain('Too many uploads');
-      expect(data.retryAfter).toBe(30);
-      expect(data.errorType).toBe('rate_limited');
-      expect(response.headers.get('Retry-After')).toBe('30');
-    });
-
-    it('should generate unique pathnames for same filename', async () => {
-      const url = `http://localhost:3000/api/upload-url?filename=${TEST_FILE.filename}&mimeType=${TEST_FILE.mimeType}&size=${TEST_FILE.size}`;
-
-      const req1 = new NextRequest(url);
-      const req2 = new NextRequest(url);
-
-      const response1 = await getUploadUrl(req1);
-      const response2 = await getUploadUrl(req2);
-
-      const data1 = await response1.json();
-      const data2 = await response2.json();
-
-      expect(data1.pathname).not.toBe(data2.pathname);
-      expect(data1.assetId).not.toBe(data2.assetId);
-    });
+    // All other upload-url tests removed - endpoint is deprecated for security
+    // Tests for secure upload flow moved to /api/upload/handle
   });
 
   describe('Step 3: POST /api/upload-complete', () => {
@@ -321,27 +239,18 @@ describe('Direct-to-Blob Upload Flow', () => {
     it('should complete full upload sequence successfully', async () => {
       const { prisma } = await import('@/lib/db');
 
-      // Step 1: Get upload credentials
-      const uploadUrlReq = new NextRequest(
-        `http://localhost:3000/api/upload-url?filename=${TEST_FILE.filename}&mimeType=${TEST_FILE.mimeType}&size=${TEST_FILE.size}`
-      );
-      const uploadUrlResponse = await getUploadUrl(uploadUrlReq);
-      const credentials = await uploadUrlResponse.json();
+      // Note: Step 1 (GET /api/upload-url) deprecated - use /api/upload/handle instead
+      // This test uses hard-coded valid credentials that would come from handleUpload()
 
-      expect(uploadUrlResponse.status).toBe(200);
-      expect(credentials).toHaveProperty('assetId');
-      expect(credentials).toHaveProperty('pathname');
-      expect(credentials).toHaveProperty('token');
-
-      // Step 2: Client uploads to Blob (mocked - would be done by @vercel/blob SDK)
-      const blobUrl = `https://blob.vercel-storage.com/${credentials.pathname}`;
+      const pathname = `${TEST_USER}/1234567890-abc123.jpg`;
+      const blobUrl = `https://blob.vercel-storage.com/${pathname}`;
 
       // Step 3: Finalize upload
       const mockAsset = {
         id: 'asset-final-123',
         ownerUserId: TEST_USER,
         blobUrl,
-        pathname: credentials.pathname,
+        pathname,
         mime: TEST_FILE.mimeType,
         size: parseInt(TEST_FILE.size),
         checksumSha256: TEST_FILE.checksum,
@@ -355,9 +264,9 @@ describe('Direct-to-Blob Upload Flow', () => {
       const completeReq = new NextRequest('http://localhost:3000/api/upload-complete', {
         method: 'POST',
         body: JSON.stringify({
-          assetId: credentials.assetId,
+          assetId: 'asset_1234567890_abc123',
           blobUrl,
-          pathname: credentials.pathname,
+          pathname,
           filename: TEST_FILE.filename,
           size: parseInt(TEST_FILE.size),
           mimeType: TEST_FILE.mimeType,
@@ -384,8 +293,8 @@ describe('Direct-to-Blob Upload Flow', () => {
       // Existing duplicate asset
       const existingAsset = {
         id: 'duplicate-asset-123',
-        blobUrl: 'https://blob.vercel-storage.com/original.jpg',
-        pathname: 'original.jpg',
+        blobUrl: 'https://blob.vercel-storage.com/test-user-123/original.jpg',
+        pathname: 'test-user-123/original.jpg',
         mime: 'image/jpeg',
         size: 1048576,
         checksumSha256: TEST_FILE.checksum,
@@ -395,21 +304,17 @@ describe('Direct-to-Blob Upload Flow', () => {
 
       vi.mocked(assetExists).mockResolvedValueOnce(existingAsset as any);
 
-      // Step 1: Get credentials (succeeds)
-      const uploadUrlReq = new NextRequest(
-        `http://localhost:3000/api/upload-url?filename=${TEST_FILE.filename}&mimeType=${TEST_FILE.mimeType}&size=${TEST_FILE.size}`
-      );
-      const uploadUrlResponse = await getUploadUrl(uploadUrlReq);
-      const credentials = await uploadUrlResponse.json();
+      // Hard-coded valid credentials (would come from handleUpload())
+      const pathname = `${TEST_USER}/1234567890-new.jpg`;
+      const blobUrl = `https://blob.vercel-storage.com/${pathname}`;
 
       // Step 3: Finalize (detects duplicate)
-      const blobUrl = `https://blob.vercel-storage.com/${credentials.pathname}`;
       const completeReq = new NextRequest('http://localhost:3000/api/upload-complete', {
         method: 'POST',
         body: JSON.stringify({
-          assetId: credentials.assetId,
+          assetId: 'asset_1234567890_new123',
           blobUrl,
-          pathname: credentials.pathname,
+          pathname,
           filename: TEST_FILE.filename,
           size: parseInt(TEST_FILE.size),
           mimeType: TEST_FILE.mimeType,

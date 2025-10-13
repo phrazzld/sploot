@@ -3,6 +3,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, assetExists } from '@/lib/db';
 import { del } from '@vercel/blob';
+import { validateBlobUrl } from '@/lib/blob';
 
 /**
  * Finalizes a client-side upload by creating the asset record in database.
@@ -41,6 +42,20 @@ export async function POST(req: NextRequest) {
     if (!/^[a-f0-9]{64}$/.test(checksum)) {
       return NextResponse.json(
         { error: 'Invalid checksum format. Expected 64 hex characters (SHA-256)' },
+        { status: 400 }
+      );
+    }
+
+    // SECURITY: Validate blob URL to prevent SSRF attacks
+    // Ensures URL is from Vercel Blob storage, matches pathname, and belongs to user
+    const urlValidation = validateBlobUrl(blobUrl, pathname, userId);
+    if (!urlValidation.valid) {
+      console.warn(`[upload-complete] Invalid blob URL for user ${userId}: ${urlValidation.error}`);
+      return NextResponse.json(
+        {
+          error: `Invalid blob URL: ${urlValidation.error}`,
+          errorType: 'invalid_blob_url',
+        },
         { status: 400 }
       );
     }

@@ -109,3 +109,102 @@ export function getBlobUrl(pathname: string): string {
   const baseUrl = process.env.NEXT_PUBLIC_BLOB_BASE_URL || 'https://your-blob-store.vercel-storage.com';
   return `${baseUrl}/${pathname}`;
 }
+
+/**
+ * Validates that a blob URL is legitimate and belongs to the authenticated user.
+ *
+ * Security: Prevents SSRF attacks by ensuring URLs:
+ * - Are from Vercel Blob storage (not arbitrary external/internal URLs)
+ * - Match the expected pathname
+ * - Belong to the authenticated user's directory
+ *
+ * @param blobUrl - URL returned from client (untrusted input)
+ * @param pathname - Expected pathname (from server-generated credentials)
+ * @param userId - Authenticated user ID (for path isolation)
+ * @returns Validation result with error message if invalid
+ */
+export function validateBlobUrl(
+  blobUrl: string,
+  pathname: string,
+  userId: string
+): { valid: boolean; error?: string } {
+  try {
+    const url = new URL(blobUrl);
+
+    // 1. Validate protocol (only HTTPS allowed)
+    if (url.protocol !== 'https:') {
+      return {
+        valid: false,
+        error: `Invalid protocol: ${url.protocol}. Only HTTPS URLs are allowed.`,
+      };
+    }
+
+    // 2. Validate domain is Vercel Blob storage
+    // Allow: *.blob.vercel-storage.com or *.public.blob.vercel-storage.com
+    const hostname = url.hostname.toLowerCase();
+    const isVercelBlob =
+      hostname.endsWith('.blob.vercel-storage.com') ||
+      hostname.endsWith('.public.blob.vercel-storage.com') ||
+      hostname === 'blob.vercel-storage.com' ||
+      hostname === 'public.blob.vercel-storage.com';
+
+    if (!isVercelBlob) {
+      return {
+        valid: false,
+        error: `Invalid domain: ${hostname}. URL must be from Vercel Blob storage.`,
+      };
+    }
+
+    // 3. Reject internal/private network addresses
+    // Prevent SSRF to internal services
+    const privatePatterns = [
+      /^localhost$/i,
+      /^127\./,
+      /^10\./,
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./,
+      /^192\.168\./,
+      /^169\.254\./, // AWS metadata
+      /^0\.0\.0\.0$/,
+      /^::1$/, // IPv6 localhost
+      /^fe80:/i, // IPv6 link-local
+    ];
+
+    if (privatePatterns.some(pattern => pattern.test(hostname))) {
+      return {
+        valid: false,
+        error: `Blocked internal/private address: ${hostname}`,
+      };
+    }
+
+    // 4. Extract pathname from URL and validate it matches expected pathname
+    // URL pathname includes leading slash, our pathname doesn't
+    const urlPathname = url.pathname.startsWith('/')
+      ? url.pathname.slice(1)
+      : url.pathname;
+
+    if (urlPathname !== pathname) {
+      return {
+        valid: false,
+        error: `Pathname mismatch. Expected: ${pathname}, Got: ${urlPathname}`,
+      };
+    }
+
+    // 5. Validate pathname belongs to authenticated user (isolation)
+    // Format: userId/timestamp-random.ext
+    if (!pathname.startsWith(`${userId}/`)) {
+      return {
+        valid: false,
+        error: `Pathname must start with user directory: ${userId}/`,
+      };
+    }
+
+    // All validations passed
+    return { valid: true };
+  } catch (error) {
+    // Invalid URL format
+    return {
+      valid: false,
+      error: error instanceof Error ? error.message : 'Invalid URL format',
+    };
+  }
+}
