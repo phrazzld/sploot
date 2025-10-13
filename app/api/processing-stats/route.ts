@@ -22,16 +22,6 @@ interface ProcessingStats {
 const CACHE_TTL_MS = 5000; // 5 seconds
 const statsCache = new Map<string, CachedStats>();
 
-// Clean up stale cache entries every minute
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, value] of statsCache.entries()) {
-    if (now - value.timestamp > 60000) { // Remove entries older than 1 minute
-      statsCache.delete(key);
-    }
-  }
-}, 60000);
-
 /**
  * GET /api/processing-stats
  *
@@ -68,6 +58,14 @@ export async function GET(req: NextRequest) {
     // Check cache first
     const cached = statsCache.get(userId);
     const now = Date.now();
+
+    // Clean up stale entries inline (serverless-compatible)
+    for (const [key, value] of statsCache.entries()) {
+      if (now - value.timestamp > 60000) { // Remove entries older than 1 minute
+        statsCache.delete(key);
+      }
+    }
+
     if (cached && (now - cached.timestamp) < CACHE_TTL_MS) {
       return NextResponse.json({
         stats: cached.stats,
