@@ -92,14 +92,14 @@
 
 ### Tasks:
 
-- [~] **Fix retry count filter in findMany query** (`app/api/cron/process-images/route.ts:54-89`)
+- [x] **Fix retry count filter in findMany query** (`app/api/cron/process-images/route.ts:54-89`)
   - Line 58-59: Change `processingRetryCount: { lt: MAX_RETRIES }` → `lte: MAX_RETRIES`
   - **Before**: `lt: MAX_RETRIES` (retryCount < 3, excludes 3)
   - **After**: `lte: MAX_RETRIES` (retryCount <= 3, includes 3)
   - **Rationale**: Allow assets at MAX_RETRIES to be picked up one final time for permanent failure marking
   - **This allows**: When retryCount=3, asset is picked up, calculateNextRetry(3, [60k,300k,900k]) returns null (3 >= 3), lines 216-226 mark as permanently failed
 
-- [~] **Add comment explaining retry logic** (`app/api/cron/process-images/route.ts:58`)
+- [x] **Add comment explaining retry logic** (`app/api/cron/process-images/route.ts:58`)
   - Add above line 58:
     ```typescript
     // Use lte (<=) not lt (<) to allow final pickup when retryCount === MAX_RETRIES
@@ -107,7 +107,7 @@
     ```
   - **Rationale**: Prevent future confusion about why we use `lte` instead of `lt`
 
-- [ ] **Verify retry logic with calculateNextRetry** (`lib/cron-utils.ts:67-79`)
+- [x] **Verify retry logic with calculateNextRetry** (`lib/cron-utils.ts:67-79`)
   - Read calculateNextRetry function to confirm behavior:
     - `if (retryCount >= maxRetries) return null` (line 73)
     - maxRetries = RETRY_DELAYS_MS.length = 3
@@ -167,13 +167,13 @@
 
 ### Tasks:
 
-- [~] **Fix retry count filter in findMany query** (`app/api/cron/process-embeddings/route.ts:55-90`)
+- [x] **Fix retry count filter in findMany query** (`app/api/cron/process-embeddings/route.ts:55-90`)
   - Line 60-61: Change `embeddingRetryCount: { lt: MAX_RETRIES }` → `lte: MAX_RETRIES`
   - **Before**: `lt: MAX_RETRIES` (retryCount < 5, excludes 5)
   - **After**: `lte: MAX_RETRIES` (retryCount <= 5, includes 5)
   - **Rationale**: Same as P2 - allow final pickup for permanent failure marking
 
-- [~] **Add comment explaining retry logic** (`app/api/cron/process-embeddings/route.ts:60`)
+- [x] **Add comment explaining retry logic** (`app/api/cron/process-embeddings/route.ts:60`)
   - Add above line 60:
     ```typescript
     // Use lte (<=) not lt (<) to allow final pickup when retryCount === MAX_RETRIES
@@ -181,7 +181,7 @@
     ```
   - **Rationale**: Consistency with P2 fix, prevent future confusion
 
-- [ ] **Verify retry logic with calculateNextRetry** (`lib/cron-utils.ts:67-79`)
+- [x] **Verify retry logic with calculateNextRetry** (`lib/cron-utils.ts:67-79`)
   - Same verification as P2, but with embedding parameters:
     - calculateNextRetry(5, [60k,300k,900k,3.6M,21.6M]) returns null (5 >= 5) ✓
   - **Confirm**: Fix will pick up retryCount=5, get null back, trigger permanent failure logic
