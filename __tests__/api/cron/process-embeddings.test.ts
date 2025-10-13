@@ -13,6 +13,7 @@ const mockPrisma = {
   asset: {
     findMany: vi.fn(),
     update: vi.fn(),
+    updateMany: vi.fn(),
   },
 };
 
@@ -94,6 +95,9 @@ describe('/api/cron/process-embeddings', () => {
       embeddingRetryCount: 0,
       embeddingNextRetry: null,
     });
+
+    // Default: atomic claim succeeds (no assets to claim)
+    mockPrisma.asset.updateMany.mockResolvedValue({ count: 0 });
   });
 
   afterEach(() => {
@@ -175,10 +179,13 @@ describe('/api/cron/process-embeddings', () => {
       expect(callArgs.where.embedded).toBe(false); // Not yet embedded
       expect(callArgs.where.embeddingRetryCount.lt).toBe(5); // Skip max retries
 
-      // Verify OR clause for retry logic
-      expect(callArgs.where.OR).toHaveLength(2);
-      expect(callArgs.where.OR[0]).toEqual({ embeddingNextRetry: null }); // First attempt
-      expect(callArgs.where.OR[1]).toHaveProperty('embeddingNextRetry'); // Retry time check
+      // Verify OR clause for retry logic (3 conditions: first attempt, retry, stale claims)
+      expect(callArgs.where.OR).toHaveLength(3);
+      expect(callArgs.where.OR[0]).toHaveProperty('embeddingNextRetry', null);
+      expect(callArgs.where.OR[0]).toHaveProperty('embeddingClaimedAt', null); // Unclaimed
+      expect(callArgs.where.OR[1]).toHaveProperty('embeddingNextRetry'); // Retry time passed
+      expect(callArgs.where.OR[1]).toHaveProperty('embeddingClaimedAt', null); // Unclaimed
+      expect(callArgs.where.OR[2]).toHaveProperty('embeddingClaimedAt'); // Stale claims
     });
 
     it('should process batch of 5 assets maximum for rate limiting', async () => {
@@ -224,6 +231,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
 
       const response = await GET({} as NextRequest);
       const data = await response.json();
@@ -256,6 +264,7 @@ describe('/api/cron/process-embeddings', () => {
           embeddingError: null,
           embeddingRetryCount: 0,
           embeddingNextRetry: null,
+          embeddingClaimedAt: null, // Release claim after success
         },
       });
     });
@@ -273,6 +282,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
 
       await GET({} as NextRequest);
 
@@ -287,6 +297,7 @@ describe('/api/cron/process-embeddings', () => {
           embeddingError: null,
           embeddingRetryCount: 0,
           embeddingNextRetry: null,
+          embeddingClaimedAt: null, // Release claim after success
         },
       });
     });
@@ -304,6 +315,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
       mockEmbedImage.mockRejectedValue(new Error('Embedding generation failed'));
 
       // Suppress console.error and console.log
@@ -359,6 +371,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
 
       // First fails, second succeeds
       mockEmbedImage
@@ -404,6 +417,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
       mockUpsertAssetEmbedding.mockResolvedValue(null); // Upsert returns null on failure
 
       // Suppress console.error and console.log
@@ -448,6 +462,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
       mockCreateEmbeddingService.mockImplementation(() => {
         throw new Error('Service initialization failed');
       });
@@ -490,6 +505,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
 
       const response = await GET({} as NextRequest);
       const data = await response.json();
@@ -517,6 +533,7 @@ describe('/api/cron/process-embeddings', () => {
       }));
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
 
       // Make 3 fail
       mockEmbedImage
@@ -558,6 +575,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
 
       const response = await GET({} as NextRequest);
       const data = await response.json();
@@ -580,6 +598,7 @@ describe('/api/cron/process-embeddings', () => {
       ];
 
       mockPrisma.asset.findMany.mockResolvedValue(mockAssets);
+      mockPrisma.asset.updateMany.mockResolvedValue({ count: mockAssets.length });
       mockEmbedImage.mockRejectedValue(new Error('All failed'));
 
       // Suppress console.error
