@@ -205,9 +205,9 @@ export async function GET(request: NextRequest) {
           error: errorMessage,
         });
 
-        // Increment retry count and calculate next retry time
+        // Calculate next retry based on current count (0-indexed), then increment
+        const nextRetry = calculateNextRetry(asset.embeddingRetryCount, RETRY_DELAYS_MS);
         const newRetryCount = asset.embeddingRetryCount + 1;
-        const nextRetry = calculateNextRetry(newRetryCount, RETRY_DELAYS_MS);
 
         // Update asset with error and retry info
         try {
