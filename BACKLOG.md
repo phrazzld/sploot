@@ -34,6 +34,45 @@
   - **Implementation**: Add to `middleware.ts`: `if (pathname.startsWith('/test-') && process.env.NODE_ENV === 'production') return NextResponse.redirect('/')`
   - **PR Reference**: Flagged in multiple reviews
 
+## 📤 Upload & Processing
+
+> **Context**: Phase 3 of bulk upload optimization completed 28/32 tasks. The 4 items below are deferred for post-merge iterations. See `docs/PHASE_3_COMPLETE.md` for completed work.
+
+### Load Testing Infrastructure
+
+- **Create Playwright test suite for bulk uploads** - Generate synthetic test images (100/500/1000/2000 files at 1MB/5MB/10MB sizes), automate upload flow, measure success rate, P95 latency, memory usage, failure types. Test scenarios: happy path, network interruption, rate limiting, concurrent users.
+  - **Rationale for deferring**: Core upload flow validated via 14 integration tests (see `__tests__/api/upload-direct.test.ts`); load testing requires Playwright infrastructure setup
+  - **Effort**: Large (~4-6 hours for script + synthetic image generation + infra)
+  - **Priority**: Medium (performance validation, not functional requirement)
+  - **Success Criteria**: >95% success rate for 2000 files, <10s P95 upload latency
+  - **Reference**: Phase 3 branch already has 43 unit/integration tests covering rate limiting and upload flow
+  - **Branch**: `feature/bulk-upload-optimization`
+
+### Monitoring & Observability
+
+- **Add performance telemetry to upload endpoints** - Track upload latency (P50/P95/P99), processing queue depth, embedding queue depth. Log structured metrics to console: `[Metrics] upload_latency_p95=450ms`. Expose via `/api/telemetry` endpoint for dashboard consumption.
+  - **Rationale for deferring**: Basic console logging exists; dedicated observability sprint more appropriate than ad-hoc additions
+  - **Effort**: Medium (~3-4 hours including aggregation logic)
+  - **Priority**: Medium (monitoring nice-to-have, not blocking)
+  - **Dependencies**: Decide on observability stack (Grafana/Datadog/custom)
+  - **Files**: `app/api/upload-url/route.ts`, `app/api/upload-complete/route.ts`, `app/api/telemetry/route.ts`
+
+### Advanced Error Handling
+
+- **DistributedQueue integration for upload retry logic** - Replace manual retry logic with priority queue system from `lib/distributed-queue.ts`. Features: urgent/normal/background priorities, automatic exponential backoff (5x for rate limits, 2x for network), dead letter queue for permanent failures (>5 retries).
+  - **Rationale for deferring**: Current retry logic with exponential backoff works well; DistributedQueue adds complexity without clear benefit for client-side uploads (uploads are already client-driven with browser retry mechanisms)
+  - **Effort**: Medium (~3-4 hours to integrate + test)
+  - **Priority**: Low (optimization, not requirement)
+  - **Note**: Code exists in `lib/distributed-queue.ts` but may be better suited for server-side background jobs than client uploads
+  - **Files**: `components/upload/upload-zone.tsx:942-1016` (uploadBatch function)
+
+- **Dead letter queue UI for permanent failures** - Show permanently failed uploads (>5 retry attempts) with error classification (rate_limit/network/server/invalid/unknown). Allow manual retry from UI via `DistributedQueue.retryDeadLetterItem(id)`. Log dead letter items for debugging.
+  - **Rationale for deferring**: Depends on DistributedQueue integration; current UI already shows failed uploads with retry buttons
+  - **Effort**: Small (~1-2 hours)
+  - **Priority**: Low (edge case handling; manual retry already exists)
+  - **Dependencies**: DistributedQueue integration (above)
+  - **Files**: `components/upload/upload-zone.tsx:1799-1812` (error summary section)
+
 ## ♿ Accessibility
 
 ### Keyboard Navigation
