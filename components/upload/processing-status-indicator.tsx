@@ -5,18 +5,19 @@ import { useProcessingStatus } from '@/hooks/use-processing-status';
 
 interface ProcessingStatusIndicatorProps {
   assetId: string | undefined;
-  onStatusChange?: (status: 'pending' | 'processing' | 'complete' | 'failed') => void;
+  onStatusChange?: (status: 'pending' | 'processing' | 'embedding' | 'complete' | 'failed') => void;
 }
 
 /**
- * Component to display image processing status for uploaded files
- * Shows current state of Sharp image processing (resize, thumbnail generation)
+ * Component to display processing and embedding status for uploaded files
+ * Tracks full pipeline: upload → image processing → embedding generation
  *
  * States:
  * - pending: Just uploaded, waiting for processing
- * - processing: Currently being processed by cron job
- * - complete: Processing done, ready for embedding
- * - failed: Processing failed, needs retry
+ * - processing: Image processing in progress (Sharp resize, thumbnail generation)
+ * - embedding: Image processed, embedding generation in progress
+ * - complete: Both processing and embedding complete, asset searchable
+ * - failed: Processing or embedding failed, needs retry
  */
 export function ProcessingStatusIndicator({
   assetId,
@@ -69,10 +70,18 @@ export function ProcessingStatusIndicator({
     );
   }
 
-  // Determine current state
+  // Determine current state based on processing and embedding flags
   const getState = () => {
-    if (status.processingError) return 'failed';
-    if (status.processed) return 'complete';
+    // Check for failures (either processing or embedding)
+    if (status.processingError || status.embeddingError) return 'failed';
+
+    // Check for completion (both processed AND embedded)
+    if (status.processed && status.embedded) return 'complete';
+
+    // Check for embedding phase (processed but not yet embedded)
+    if (status.processed && !status.embedded) return 'embedding';
+
+    // Still in image processing phase
     return 'processing';
   };
 
@@ -111,10 +120,27 @@ export function ProcessingStatusIndicator({
         </div>
       );
 
+    case 'embedding':
+      return (
+        <div className="flex items-center gap-2 text-xs font-mono">
+          <span className="text-[#FBBF24] flex items-center gap-1">
+            🧠 Generating embeddings
+            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+          </span>
+        </div>
+      );
+
     case 'complete':
       return (
         <div className="flex items-center gap-2 text-xs font-mono animate-fade-in">
-          <span className="text-[#4ADE80]">✓ Processed</span>
+          <span className="text-[#4ADE80]">✓ Complete</span>
         </div>
       );
 

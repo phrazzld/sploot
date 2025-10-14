@@ -6,7 +6,8 @@
  * - Embedding generation state (embedded flag)
  * - Error states and retry counts
  *
- * Automatically stops polling when processing completes or component unmounts.
+ * Automatically stops polling when BOTH processing and embedding complete,
+ * or when asset has permanently failed (max retries exceeded).
  */
 
 import { useEffect, useState, useCallback, useRef } from 'react';
@@ -105,8 +106,13 @@ export function useProcessingStatus(
         onErrorRef.current(status.processingError);
       }
 
-      // Stop polling if processing is complete (or permanently failed)
-      if (status.processed || (status.processingError && status.processingRetryCount >= 3)) {
+      // Stop polling only when BOTH processing AND embedding complete (or permanently failed)
+      // Continue polling through: upload → image processing → embedding generation
+      if (
+        (status.processed && status.embedded) ||
+        (status.processingError && status.processingRetryCount >= 3) ||
+        (status.embeddingError && status.embeddingRetryCount >= 5)
+      ) {
         if (pollTimerRef.current) {
           clearInterval(pollTimerRef.current);
           pollTimerRef.current = null;

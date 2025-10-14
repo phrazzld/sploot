@@ -21,8 +21,8 @@ export interface FileMetadata {
   blobUrl?: string;
   isDuplicate?: boolean;
   needsEmbedding?: boolean;
-  // Processing status (image resize/thumbnail generation)
-  processingStatus?: 'pending' | 'processing' | 'complete' | 'failed';
+  // Processing status (image resize/thumbnail generation + embedding generation)
+  processingStatus?: 'pending' | 'processing' | 'embedding' | 'complete' | 'failed';
   // Embedding status (semantic search indexing)
   embeddingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
   embeddingError?: string;
