@@ -32,11 +32,11 @@ const statsCache = new Map<string, CachedStats>();
  * {
  *   stats: {
  *     total: number,        // Total assets
- *     uploaded: number,     // Uploaded but not processed
- *     processing: number,   // Processing in progress
- *     embedding: number,    // Embedding in progress
+ *     uploaded: number,     // Waiting to start processing (not claimed, no errors)
+ *     processing: number,   // In processing pipeline (claimed OR will retry)
+ *     embedding: number,    // In embedding pipeline (excludes permanent failures)
  *     ready: number,        // Fully processed and embedded
- *     failed: number        // Failed processing or embedding
+ *     failed: number        // Permanently failed (max retries exceeded)
  *   },
  *   timestamp: string       // ISO timestamp of stats
  * }
@@ -90,32 +90,42 @@ export async function GET(req: NextRequest) {
           deletedAt: null,
         },
       }),
-      // Uploaded but not processed
+      // Uploaded but not processed (waiting to start, not claimed, no errors)
       prisma.asset.count({
         where: {
           ownerUserId: userId,
           deletedAt: null,
           processed: false,
+          processingClaimedAt: null, // Not currently being processed
           processingError: null,
         },
       }),
-      // Processing (has error, will retry or manual intervention needed)
+      // Processing (actively claimed OR has error with retry scheduled)
       prisma.asset.count({
         where: {
           ownerUserId: userId,
           deletedAt: null,
           processed: false,
-          processingError: { not: null },
+          OR: [
+            { processingClaimedAt: { not: null } }, // Currently being processed
+            {
+              processingError: { not: null },
+              processingNextRetry: { not: null }, // Will retry
+            },
+          ],
         },
       }),
-      // Embedding (processed but not embedded, no error)
+      // Embedding (in embedding pipeline - excludes permanent failures)
       prisma.asset.count({
         where: {
           ownerUserId: userId,
           deletedAt: null,
           processed: true,
           embedded: false,
-          embeddingError: null,
+          OR: [
+            { embeddingError: null }, // Never failed or waiting for first attempt
+            { embeddingNextRetry: { not: null } }, // Failed but will retry
+          ],
         },
       }),
       // Ready (fully processed and embedded)
@@ -127,12 +137,21 @@ export async function GET(req: NextRequest) {
           embedded: true,
         },
       }),
-      // Failed (has embedding error)
+      // Failed (permanently failed - no retry scheduled)
       prisma.asset.count({
         where: {
           ownerUserId: userId,
           deletedAt: null,
-          embeddingError: { not: null },
+          OR: [
+            {
+              processingError: { not: null },
+              processingNextRetry: null, // No retry scheduled
+            },
+            {
+              embeddingError: { not: null },
+              embeddingNextRetry: null, // No retry scheduled
+            },
+          ],
         },
       }),
     ]);
