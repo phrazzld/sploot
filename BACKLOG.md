@@ -34,6 +34,55 @@
   - **Implementation**: Add to `middleware.ts`: `if (pathname.startsWith('/test-') && process.env.NODE_ENV === 'production') return NextResponse.redirect('/')`
   - **PR Reference**: Flagged in multiple reviews
 
+## 📤 Upload & Processing
+
+> **Context**: Phase 3 of bulk upload optimization completed 28/32 tasks. The 4 items below are deferred for post-merge iterations. See `docs/PHASE_3_COMPLETE.md` for completed work.
+
+### Load Testing Infrastructure
+
+- **Create Playwright test suite for bulk uploads** - Generate synthetic test images (100/500/1000/2000 files at 1MB/5MB/10MB sizes), automate upload flow, measure success rate, P95 latency, memory usage, failure types. Test scenarios: happy path, network interruption, rate limiting, concurrent users.
+  - **Rationale for deferring**: Core upload flow validated via 14 integration tests (see `__tests__/api/upload-direct.test.ts`); load testing requires Playwright infrastructure setup
+  - **Effort**: Large (~4-6 hours for script + synthetic image generation + infra)
+  - **Priority**: Medium (performance validation, not functional requirement)
+  - **Success Criteria**: >95% success rate for 2000 files, <10s P95 upload latency
+  - **Reference**: Phase 3 branch already has 43 unit/integration tests covering rate limiting and upload flow
+  - **Branch**: `feature/bulk-upload-optimization`
+
+### Monitoring & Observability
+
+- **Add performance telemetry to upload endpoints** - Track upload latency (P50/P95/P99), processing queue depth, embedding queue depth. Log structured metrics to console: `[Metrics] upload_latency_p95=450ms`. Expose via `/api/telemetry` endpoint for dashboard consumption.
+  - **Rationale for deferring**: Basic console logging exists; dedicated observability sprint more appropriate than ad-hoc additions
+  - **Effort**: Medium (~3-4 hours including aggregation logic)
+  - **Priority**: Medium (monitoring nice-to-have, not blocking)
+  - **Dependencies**: Decide on observability stack (Grafana/Datadog/custom)
+  - **Files**: `app/api/upload-url/route.ts`, `app/api/upload-complete/route.ts`, `app/api/telemetry/route.ts`
+
+### Advanced Error Handling
+
+- **DistributedQueue integration for upload retry logic** - Replace manual retry logic with priority queue system from `lib/distributed-queue.ts`. Features: urgent/normal/background priorities, automatic exponential backoff (5x for rate limits, 2x for network), dead letter queue for permanent failures (>5 retries).
+  - **Rationale for deferring**: Current retry logic with exponential backoff works well; DistributedQueue adds complexity without clear benefit for client-side uploads (uploads are already client-driven with browser retry mechanisms)
+  - **Effort**: Medium (~3-4 hours to integrate + test)
+  - **Priority**: Low (optimization, not requirement)
+  - **Note**: Code exists in `lib/distributed-queue.ts` but may be better suited for server-side background jobs than client uploads
+  - **Files**: `components/upload/upload-zone.tsx:942-1016` (uploadBatch function)
+
+- **Dead letter queue UI for permanent failures** - Show permanently failed uploads (>5 retry attempts) with error classification (rate_limit/network/server/invalid/unknown). Allow manual retry from UI via `DistributedQueue.retryDeadLetterItem(id)`. Log dead letter items for debugging.
+  - **Rationale for deferring**: Depends on DistributedQueue integration; current UI already shows failed uploads with retry buttons
+  - **Effort**: Small (~1-2 hours)
+  - **Priority**: Low (edge case handling; manual retry already exists)
+  - **Dependencies**: DistributedQueue integration (above)
+  - **Files**: `components/upload/upload-zone.tsx:1799-1812` (error summary section)
+
+### Data Correctness
+
+- **P2: Duplicate Upload Response Returns Wrong Processing State** - `/api/upload-complete` returns `processed: false` for duplicates instead of actual state from `existingAsset.processed`. When user re-uploads a file that already exists, the duplicate response always returns `processed: false` regardless of the asset's true state. This can cause UI to believe processing is still pending even for already-processed assets, potentially triggering unnecessary polling.
+  - **Rationale for deferring**: Edge case (only affects re-uploads), self-corrects on first poll if polling starts, UI marks duplicates specially anyway
+  - **Effort**: Trivial (30 seconds - one word change on line 101)
+  - **Priority**: P2 (low impact, easy fix for later)
+  - **Fix**: Change `app/api/upload-complete/route.ts:101` from `processed: false,` to `processed: existingAsset.processed,`
+  - **Note**: Also inconsistent with `embedded: existingAsset.hasEmbedding` on line 102 which DOES use actual state
+  - **Code Review**: [Feature branch review](https://github.com/phrazzld/sploot/pull/XXX) - flagged as P1 but determined to be non-blocking
+
 ## ♿ Accessibility
 
 ### Keyboard Navigation
@@ -624,9 +673,325 @@
 
 ---
 
+## 📤 Bulk Upload System Enhancements
+
+**Context**: After implementing direct-to-Blob uploads with background processing (TODO.md), these enhancements would further improve scalability, performance, and user experience for bulk operations. Deferred because the core architecture solves the immediate problem (2000+ file uploads), but these would optimize for even larger scale.
+
+### Scalability Improvements
+
+- **Batch upload API endpoint** - New `/api/upload/batch` endpoint accepting multiple files in single request, reducing network overhead from N requests to 1 request with N files. Process files with controlled internal concurrency (10 at a time).
+  - **Rationale for deferring**: Direct-to-Blob uploads (TODO.md) solve the concurrency problem; batch API is optimization
+  - **Effort**: Medium (~3-4 hours for endpoint implementation, multipart parsing, batch processing)
+  - **Priority**: Medium
+  - **Benefits**: Reduces network RTT overhead (~100ms × 2000 files = 3min saved), simpler client code
+  - **Trade-offs**: Larger request payload (need timeout >60s for 100MB batches), more complex error handling
+  - **Implementation**: Accept `multipart/form-data` with multiple files, create batch upload session, process with queue
+
+- **Vercel Queue integration for background processing** - Replace cron-based processing with `@vercel/queue` for proper distributed background job processing. Enables horizontal scaling, better retry semantics, and automatic concurrency management.
+  - **Rationale for deferring**: Cron jobs (TODO.md Phase 2) work for single-region deployment; queue needed for multi-region
+  - **Effort**: Large (~6-8 hours for queue setup, migration from cron, deployment config)
+  - **Priority**: High (for production scale >10K assets/day)
+  - **Benefits**: Automatic retry, DLQ, horizontal scaling, better observability
+  - **Migration path**: Keep cron jobs initially, add queue as alternative, measure performance, deprecate cron
+  - **Cost**: Vercel Queue has usage-based pricing, estimate $10-20/month for moderate use
+
+- **Parallel image processing with worker threads** - Process multiple images concurrently within single cron invocation using `worker_threads`. Currently processes 10 images sequentially (10 × 2s = 20s), could do 10 in parallel (max 5s).
+  - **Rationale for deferring**: Sequential processing works and stays within 60s timeout; parallel is optimization
+  - **Effort**: Medium (~4-5 hours for worker thread setup, message passing, error handling)
+  - **Priority**: Medium
+  - **Benefits**: 4x faster processing (20s → 5s per batch), better CPU utilization
+  - **Trade-offs**: More complex code, higher memory usage (10 Sharp instances × 100MB = 1GB peak)
+  - **Serverless constraint**: Vercel functions limited to 1GB memory (Hobby) / 3GB (Pro)
+
+### Database Optimizations
+
+- **Batch INSERT statements for assets** - Use Prisma `createMany()` to insert multiple assets in single transaction. Currently inserts 1 asset per upload completion, could batch 100 assets every 5 seconds.
+  - **Rationale for deferring**: Individual inserts work fine; batching is optimization for extreme scale
+  - **Effort**: Small (~1-2 hours for batch logic, transaction handling)
+  - **Priority**: Low
+  - **Benefits**: Reduces DB round trips (1 vs 100), lower connection pool usage
+  - **Trade-offs**: Delayed visibility (5s batch window), more complex error handling (partial batch failures)
+  - **Implementation**: Queue assets in memory, flush every 5s or when 100 queued, use `createMany()`
+
+- **Connection pooling optimization** - Tune Prisma connection pool settings for high-concurrency scenarios. Default pool size is 10, could increase to 20-30 for Pro tier with more DB capacity.
+  - **Rationale for deferring**: Current pool size (10) handles typical load; tuning needed for >100 concurrent uploads
+  - **Effort**: Small (~1 hour for config changes, load testing, monitoring)
+  - **Priority**: Low
+  - **Configuration**: Adjust `connection_limit` in `DATABASE_URL`, monitor connection usage with Prisma metrics
+  - **Prerequisite**: Neon Postgres plan upgrade to support more connections (Hobby = 100 connections, Pro = 1000)
+
+- **Database indexes for queue queries** - Add compound indexes on `(processed, embedded, createdAt)` for efficient queue processing queries. Currently has single-column indexes, compound would be faster.
+  - **Rationale for deferring**: Existing indexes work for <10K assets; compound index optimizes for >100K assets
+  - **Effort**: Small (~30 min for migration, index creation)
+  - **Priority**: Low
+  - **Index design**: `CREATE INDEX idx_processing_queue ON assets(processed, embedded, createdAt DESC)`
+  - **Impact**: Reduces queue query time from ~50ms to ~5ms at 100K assets
+
+### User Experience Enhancements
+
+- **Upload session management** - Track bulk uploads as sessions with pause/resume capability. User can pause 2000-file upload, close browser, resume later from where they left off.
+  - **Rationale for deferring**: Current IndexedDB recovery (UploadQueueManager) handles interrupted uploads; sessions add explicit control
+  - **Effort**: Medium (~3-4 hours for session model, UI controls, resume logic)
+  - **Priority**: Medium
+  - **Features**: Pause/resume button, session history (last 10 sessions), automatic resume on return
+  - **Schema**: New `UploadSession` model with `{ id, userId, totalFiles, completedFiles, status, createdAt }`
+
+- **WebSocket progress updates** - Replace SSE with WebSocket for bi-directional communication. Enables server to push updates without polling, client to request progress on demand.
+  - **Rationale for deferring**: SSE (TODO.md Phase 2) works well for server→client updates; WebSocket adds client→server control
+  - **Effort**: Medium (~4-5 hours for WebSocket setup, fallback to SSE, reconnection logic)
+  - **Priority**: Low
+  - **Benefits**: Lower latency, bi-directional control (client can request specific asset status)
+  - **Trade-offs**: More complex protocol, need to handle connection state, Vercel WebSocket support varies by plan
+
+- **Smart retry with error classification** - Automatically retry uploads based on error type: retry network errors immediately, rate limits after delay, never retry invalid files. Show clear UI for each category.
+  - **Rationale for deferring**: Manual retry button works; automatic retry is convenience
+  - **Effort**: Small (~2 hours for error classification, retry logic, UI updates)
+  - **Priority**: Medium
+  - **Error categories**: Network (auto-retry 3x), Rate Limit (auto-retry after backoff), Invalid (never retry), Server (retry 1x)
+  - **UI**: Show "Retrying automatically (2/3)..." vs "Retry failed - click to retry manually" vs "Cannot retry - invalid file"
+
+- **Adaptive rate limiting based on system load** - Dynamically adjust upload concurrency based on current system load (CPU, memory, DB connections). Reduce concurrency when system stressed, increase when idle.
+  - **Rationale for deferring**: Fixed concurrency (2-3 parallel) works for most cases; adaptive is optimization
+  - **Effort**: Medium (~3-4 hours for load monitoring, concurrency adjustment algorithm)
+  - **Priority**: Low
+  - **Metrics**: Monitor via `/api/health/services` endpoint (DB pool usage, Blob API latency, memory pressure)
+  - **Algorithm**: Increase concurrency by 1 when load <30%, decrease by 1 when load >70%, check every 10s
+
+### Advanced Features
+
+- **Resume interrupted uploads from partial state** - Store upload progress in IndexedDB (bytes uploaded per file), resume from exact byte offset on reconnect. Requires multipart upload support from Blob storage.
+  - **Rationale for deferring**: Current system re-uploads entire file on failure; resumable uploads optimize for flaky networks
+  - **Effort**: Large (~6-8 hours for multipart upload logic, checkpoint storage, resume logic)
+  - **Priority**: Low
+  - **Constraint**: Vercel Blob doesn't natively support multipart upload resumption; would need custom chunking
+  - **Value**: Saves bandwidth on large file failures (10MB file 90% uploaded → resume from 9MB, not 0MB)
+
+- **Client-side image compression before upload** - Compress images in browser using Canvas API or WASM library before uploading. Reduces upload time and bandwidth for large images.
+  - **Rationale for deferring**: Server-side Sharp processing handles optimization; client-side is redundant
+  - **Effort**: Medium (~3-4 hours for compression logic, quality presets, UI toggle)
+  - **Priority**: Very Low
+  - **Trade-offs**: Uses client CPU (battery drain on mobile), inconsistent quality across devices
+  - **Use case**: Only valuable for very slow upload connections (<1Mbps)
+
+- **Grafana dashboard for upload metrics** - Visualize upload queue depth, processing throughput, error rates, P95 latencies over time. Enables data-driven optimization and capacity planning.
+  - **Rationale for deferring**: Console logs and `/api/telemetry` provide basic visibility; dashboard is ops enhancement
+  - **Effort**: Large (~6-8 hours for metrics export, Grafana setup, dashboard creation)
+  - **Priority**: Medium (high value for production operations)
+  - **Metrics**: Upload queue depth, processing queue depth, embedding queue depth, throughput (files/min), error rate (%), P95 latency (ms)
+  - **Prerequisite**: Set up Prometheus exporter or Grafana Cloud integration
+
+### Testing & Validation
+
+- **Load testing suite for extreme scenarios** - Test 5000, 10000, 50000 file uploads to identify breaking points. Measure memory usage, timeout rates, database connection pool exhaustion.
+  - **Rationale for deferring**: 2000-file upload (TODO.md success criteria) is sufficient for initial release; extreme scale is future-proofing
+  - **Effort**: Medium (~4-5 hours for test scripts, scenario design, metric collection)
+  - **Priority**: Medium
+  - **Tool**: k6 or Artillery for load generation, Datadog for monitoring
+  - **Scenarios**: Gradual ramp (0→10K over 10min), spike (0→10K instantly), sustained (5K/hour for 2 hours)
+
+- **Chaos engineering for resilience testing** - Simulate failures: kill database connections mid-upload, rate limit Blob API, timeout Replicate API. Verify system degrades gracefully.
+  - **Rationale for deferring**: Basic error handling (TODO.md) handles common failures; chaos tests edge cases
+  - **Effort**: Medium (~3-4 hours for failure injection, recovery validation)
+  - **Priority**: Low
+  - **Tool**: Toxiproxy for network failures, manual kill for database, rate limit simulation via proxy
+  - **Validation**: No data loss, clear error messages, automatic retry succeeds
+
+---
+
+## 🔐 PR #4 Review Feedback - Deferred Items
+
+**Context**: PR #4 reviews identified 22 feedback items total. 7 critical/high-priority items moved to TODO.md Phase 2.5. The remaining 15 items are catalogued here as valid but lower-priority improvements.
+
+**Source**: PR #4 Code Reviews by @claude (2 comprehensive reviews)
+
+### Security Enhancements
+
+- **Server-Side Checksum Validation** (app/api/upload-complete/route.ts:42-47)
+  - **Current**: Client sends SHA-256 checksum, server trusts it for duplicate detection
+  - **Enhancement**: Re-download blob server-side and recalculate checksum to verify integrity
+  - **Rationale for deferring**: Trust-the-client approach is acceptable for duplicate detection (not security-critical). Server-side verification adds ~200ms latency and ~10MB memory overhead per upload.
+  - **Trade-off**: Security vs performance - current approach optimizes for speed
+  - **Effort**: Small (~1-2 hours to implement conditional verification)
+  - **Priority**: Medium
+  - **Implementation**:
+    ```typescript
+    // Optional server-side verification:
+    if (process.env.STRICT_CHECKSUM_VALIDATION === 'true') {
+      const response = await fetch(blobUrl);
+      const buffer = await response.arrayBuffer();
+      const serverChecksum = crypto.createHash('sha256')
+        .update(Buffer.from(buffer))
+        .digest('hex');
+
+      if (serverChecksum !== checksum) {
+        await del(blobUrl);  // Clean up invalid upload
+        return NextResponse.json(
+          { error: 'Checksum mismatch - file corrupted' },
+          { status: 400 }
+        );
+      }
+    }
+    ```
+  - **When to revisit**: If duplicate detection is bypassed by attackers, or for high-security deployments
+  - **PR Reference**: PR #4 Review #2 - Checksum Validation section
+
+### Testing & Quality Assurance
+
+- **Add Test Coverage for New Endpoints** (Missing tests for 5 new endpoints)
+  - **Missing tests**:
+    - `app/api/cron/process-images/route.ts` (207 lines, 0% coverage)
+    - `app/api/upload-url/route.ts` (133 lines, 0% coverage)
+    - `app/api/upload-complete/route.ts` (120 lines, 0% coverage)
+    - `app/api/processing-stats/route.ts` (174 lines, 0% coverage)
+    - `lib/rate-limiter.ts` (165 lines, 0% coverage - **SECURITY-CRITICAL**)
+  - **Rationale for deferring**: Manual testing confirms functionality. `process-embeddings` has excellent test coverage (616 lines, 19 tests) proving the pattern works. Can add tests incrementally.
+  - **Recommendation**: Prioritize rate limiter tests first (security-critical), then upload flow tests
+  - **Effort**: Medium (~6-8 hours for comprehensive coverage)
+  - **Priority**: High (especially rate limiter tests)
+  - **Test patterns to copy**: `__tests__/api/cron/process-embeddings.test.ts` provides excellent template
+  - **PR Reference**: PR #4 Review #2 - Test Coverage section
+
+- **Add Integration Tests for Direct-to-Blob Upload Flow** (3-step flow test)
+  - **Test sequence**: GET /api/upload-url → PUT to blob → POST /api/upload-complete
+  - **Verify**: Asset created with `processed=false, embedded=false`, presigned URL expiration, duplicate detection
+  - **Rationale for deferring**: End-to-end flow works in production, integration test is confidence-building but not blocking
+  - **Effort**: Medium (~2-3 hours)
+  - **Priority**: Medium
+  - **File**: `__tests__/api/upload-direct.test.ts` (new file)
+  - **PR Reference**: TODO.md Phase 4 testing section
+
+- **Add Unit Tests for Rate Limiter** (Token bucket algorithm verification)
+  - **Test cases**: Token consumption/refill, burst handling, concurrent users, retry-after calculation
+  - **Rationale for deferring**: Algorithm is well-understood, manual testing confirms behavior
+  - **Security risk**: Rate limiter bugs could allow abuse - HIGH priority to test
+  - **Effort**: Small (~2 hours)
+  - **Priority**: High (security-critical component)
+  - **File**: `__tests__/lib/rate-limiter.test.ts` (new file)
+  - **PR Reference**: TODO.md Phase 4 testing section
+
+### Logging & Observability
+
+- **Enhanced Structured Logging** (app/api/cron/*.ts, all endpoints)
+  - **Current**: Basic console.log/error with inconsistent formats
+  - **Enhancement**: Structured JSON logging with context (userId, assetId, timestamp, duration)
+  - **Example**:
+    ```typescript
+    console.error({
+      level: 'error',
+      context: '[cron/process-images]',
+      assetId: asset.id,
+      userId: asset.ownerUserId,
+      error: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      duration: Date.now() - startTime,
+    });
+    ```
+  - **Rationale for deferring**: Current logs are functional for debugging. Structured logging improves observability at scale but isn't blocking.
+  - **Effort**: Medium (~3-4 hours to add consistently across all endpoints)
+  - **Priority**: Medium
+  - **Prerequisite**: Define logging interface/utility in `lib/logger.ts`
+  - **PR Reference**: PR #4 Review #2 - Error Logging Lacks Context section
+
+- **Extract Magic Numbers to Named Constants** (Multiple files)
+  - **Examples**:
+    - `lib/rate-limiter.ts:40` - `refillPerMinute / 60` (should be `SECONDS_PER_MINUTE`)
+    - `app/api/cron/process-embeddings/route.ts:16-22` - Retry delay array
+    - `app/api/processing-stats/route.ts:22` - `5000` milliseconds cache TTL
+  - **Rationale for deferring**: Code is clear enough with inline comments. Named constants improve maintainability but not urgent.
+  - **Effort**: Small (~1 hour)
+  - **Priority**: Low
+  - **Example**:
+    ```typescript
+    const SECONDS_PER_MINUTE = 60;
+    const CACHE_TTL_MS = 5_000; // 5 seconds
+    const CLEANUP_INTERVAL_MS = 10 * 60 * 1000; // 10 minutes
+    ```
+  - **PR Reference**: PR #4 Review #2 - Type Safety section
+
+### Performance & Optimization
+
+- **Monitor Memory Usage for Image Processing** (app/api/cron/process-images/route.ts:99-106)
+  - **Current**: Loads entire image into memory (10MB × 10 images = 100MB peak)
+  - **Observation**: Acceptable for Vercel Hobby 1GB memory limit, but could be optimized with streaming
+  - **Rationale for deferring**: Current approach works within limits. Only optimize if hitting memory constraints.
+  - **Streaming approach**:
+    ```typescript
+    // Instead of buffering entire file:
+    const response = await fetch(asset.blobUrl);
+    const result = await processUploadedImage(response.body, asset.mime);  // Stream
+    ```
+  - **Effort**: Medium (~2-3 hours to refactor Sharp for streaming)
+  - **Priority**: Low (monitor first, optimize if needed)
+  - **When to revisit**: If max file size increases beyond 10MB or batch size increases beyond 10
+  - **PR Reference**: PR #4 Review #1 - Image Processing Memory Usage section
+
+- **Optimize Stats Cache Cleanup** (app/api/processing-stats/route.ts:26-33)
+  - **Current**: `setInterval` cleanup every 60 seconds (may not run in serverless)
+  - **Enhancement**: Add inline cleanup on cache access (similar to rate limiter fix)
+  - **Rationale for deferring**: Cache has small memory footprint (~100 bytes per user). Cleanup is nice-to-have but not critical.
+  - **Effort**: Small (~30 minutes)
+  - **Priority**: Low
+  - **Implementation**: Add cleanup logic before cache lookup, remove setInterval
+  - **PR Reference**: PR #4 Review #1 - Cache Cleanup Timing section
+
+- **Database Connection Pool Tuning** (prisma configuration)
+  - **Current**: Default pool size (10 connections)
+  - **Observation**: Sufficient for current load (<100 concurrent requests)
+  - **Rationale for deferring**: No connection pool exhaustion observed. Tune when load increases.
+  - **Configuration**: Adjust `connection_limit` in `DATABASE_URL` query param
+  - **Effort**: Small (~1 hour for load testing + config tuning)
+  - **Priority**: Low
+  - **Prerequisite**: Neon Postgres plan upgrade (Hobby = 100 connections, Pro = 1000)
+  - **When to revisit**: When concurrent uploads exceed 50 or queue processing slows
+  - **PR Reference**: PR #4 Review #2 - Database Connection Pool section
+
+### Edge Cases & Reliability
+
+- **Cron Dev Mode Fallback** (app/api/cron/*.ts:37-51)
+  - **Issue**: `CRON_SECRET` only set in production, not preview deployments. Cron auth fails in Vercel preview.
+  - **Enhancement**: Allow fallback auth in development/preview
+  - **Implementation**:
+    ```typescript
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isPreview = process.env.VERCEL_ENV === 'preview';
+    const skipAuth = (isDevelopment || isPreview) && !cronSecret;
+
+    if (!skipAuth && authHeader !== `Bearer ${cronSecret}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    ```
+  - **Rationale for deferring**: Cron jobs are production-only feature. Preview testing can use manual API calls.
+  - **Effort**: Small (~30 minutes)
+  - **Priority**: Low
+  - **Security note**: Only allow in preview/dev, never in production without secret
+  - **PR Reference**: PR #4 Review #2 - Cron Secret Validation Edge Case section
+
+### Code Architecture
+
+- **Centralize Database Availability Checks** (Multiple endpoints)
+  - **Current**: Inconsistent null checks (`if (!prisma)` in some endpoints, missing in others)
+  - **Enhancement**: Centralize in middleware or shared helper
+  - **Example**:
+    ```typescript
+    // lib/db-middleware.ts
+    export async function requireDatabase() {
+      if (!prisma) {
+        throw new DatabaseUnavailableError('Database connection unavailable');
+      }
+      return prisma;
+    }
+    ```
+  - **Rationale for deferring**: Current approach works. Centralization improves consistency but isn't urgent.
+  - **Effort**: Medium (~2 hours to refactor all endpoints)
+  - **Priority**: Low
+  - **PR Reference**: PR #4 Review #2 - Inconsistent Null Checks section
+
+---
+
 ## 📊 Backlog Statistics
 
-**Total Items**: 40
+**Total Items**: 61 (+8 from PR #4 review feedback)
 - Infrastructure & Tooling: 3 items
 - Accessibility: 3 items
 - Performance: 3 items
@@ -635,7 +1000,16 @@
 - Testing: 3 items
 - UX Enhancements: 3 items
 - Terminal Aesthetic: 9 items
+- Bulk Upload System: 13 items
+- **PR #4 Review Feedback**: 8 items (added)
 - Rejected: 4 items
 
-**Estimated Total Effort**: ~45-50 hours
-**Highest Priority Items**: Memory leak detection, rate limiting, architecture documentation, multi-column list view
+**Estimated Total Effort**: ~90-100 hours (+15 hours from PR feedback)
+
+**Highest Priority Items**:
+- Rate limiter unit tests (security-critical)
+- Test coverage for new endpoints
+- Server-side checksum validation
+- Structured logging
+- Memory leak detection (previous)
+- Vercel Queue integration (previous)

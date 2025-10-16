@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo, DragEvent, Clipboard
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { upload } from '@vercel/blob/client';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
@@ -19,6 +20,7 @@ import { showToast } from '@/components/ui/toast';
 import type { ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
 import { logger } from '@/lib/logger';
+import { useProcessingProgress } from '@/hooks/use-processing-progress';
 
 // Lightweight metadata for display - only ~300 bytes per file vs 5MB for File object
 interface FileMetadata {
@@ -33,6 +35,9 @@ interface FileMetadata {
   blobUrl?: string;
   isDuplicate?: boolean;
   needsEmbedding?: boolean;
+  // Processing status (image resize/thumbnail generation)
+  processingStatus?: 'pending' | 'processing' | 'complete' | 'failed';
+  // Embedding status (semantic search indexing)
   embeddingStatus?: 'pending' | 'processing' | 'ready' | 'failed';
   embeddingError?: string;
   retryCount?: number;
@@ -435,6 +440,11 @@ export function UploadZone({
     Array.from(fileMetadata.values()).sort((a, b) => a.addedAt - b.addedAt),
     [fileMetadata]
   );
+
+  // Real-time processing progress from SSE (enable when files uploaded)
+  const { stats: processingStats } = useProcessingProgress({
+    enabled: filesArray.length > 0,
+  });
 
   // Initialize IndexedDB on mount
   useEffect(() => {
@@ -935,9 +945,10 @@ export function UploadZone({
   );
 
   // Batch upload files with adaptive concurrency control
-  const BASE_CONCURRENT_UPLOADS = 6;
-  const MIN_CONCURRENT_UPLOADS = 2;
-  const MAX_CONCURRENT_UPLOADS = 8;
+  // Reduced limits for Vercel Hobby tier and serverless function concurrency
+  const BASE_CONCURRENT_UPLOADS = 2;
+  const MIN_CONCURRENT_UPLOADS = 1;
+  const MAX_CONCURRENT_UPLOADS = 3;
 
   const uploadBatch = async (fileIds: string[]) => {
     // Reset stats for this batch
@@ -1081,6 +1092,47 @@ export function UploadZone({
     }
   };
 
+  // Retry helper with exponential backoff and server-specified delays
+  const retryWithBackoff = async <T,>(
+    fn: () => Promise<T>,
+    maxRetries: number,
+    shouldRetry: (error: any) => boolean = () => true
+  ): Promise<T> => {
+    let lastError: any;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+
+        // Don't retry if we've exhausted attempts or error is not retryable
+        if (attempt === maxRetries || !shouldRetry(error)) {
+          throw error;
+        }
+
+        // Check if server specified a retry delay (rate limiting)
+        const serverRetryAfter = (error as any).retryAfter;
+        let delay: number;
+
+        if (serverRetryAfter && typeof serverRetryAfter === 'number') {
+          // Use server-specified delay for rate limiting (convert seconds to ms)
+          delay = serverRetryAfter * 1000;
+          // Add small jitter to prevent thundering herd (±10%)
+          const jitter = delay * 0.1 * (Math.random() - 0.5) * 2;
+          delay = Math.floor(delay + jitter);
+          console.log(`[Upload] Rate limited. Retry attempt ${attempt + 1}/${maxRetries} after ${Math.round(delay / 1000)}s`);
+        } else {
+          // Use exponential backoff for other errors: 1s, 2s, 4s
+          delay = Math.min(1000 * Math.pow(2, attempt), 4000);
+          console.log(`[Upload] Retry attempt ${attempt + 1}/${maxRetries} after ${delay}ms`);
+        }
+
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+    throw lastError;
+  };
+
   // Upload file to server - simplified direct upload
   const uploadFileToServer = async (fileId: string) => {
     const uploadStartTime = Date.now();
@@ -1093,131 +1145,134 @@ export function UploadZone({
       throw new Error(`File ${fileId} not found`);
     }
 
-    // Record upload start in metrics
-
     setFileMetadata((prev) => {
       const newMap = new Map(prev);
       const meta = newMap.get(fileId);
       if (meta) {
-        newMap.set(fileId, { ...meta, status: 'uploading', progress: 10 });
+        newMap.set(fileId, { ...meta, status: 'uploading', progress: 5 });
       }
       return newMap;
     });
 
-    const apiStartTime = performance.now(); // Define here so it's accessible in catch block
+    const apiStartTime = performance.now();
 
     try {
-      // Create FormData for file upload
-      const formData = new FormData();
-      formData.append('file', file);
+      // Calculate checksum before upload for duplicate detection
+      const buffer = await file.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const checksum = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      // Track upload progress with XMLHttpRequest for better progress reporting
-      const xhr = new XMLHttpRequest();
-
-      // Create a promise to handle the XHR request
-      const uploadPromise = new Promise<any>((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const percentComplete = Math.round((event.loaded / event.total) * 100);
-
-            // Record upload progress in metrics
-
-            // Throttle progress updates to reduce re-renders
-            const throttleInfo = progressThrottleMap.current.get(fileId) || {
-              lastUpdate: 0,
-              lastPercent: 0
-            };
-            const now = Date.now();
-            const percentDiff = Math.abs(percentComplete - throttleInfo.lastPercent);
-            const timeDiff = now - throttleInfo.lastUpdate;
-
-            // Only update if: progress changed significantly OR enough time passed OR it's complete
-            if (percentDiff >= PROGRESS_UPDATE_THRESHOLD ||
-                timeDiff >= PROGRESS_UPDATE_INTERVAL ||
-                percentComplete >= 90) {
-              setFileMetadata((prev) => {
-                const newMap = new Map(prev);
-                const meta = newMap.get(fileId);
-                if (meta) {
-                  newMap.set(fileId, { ...meta, progress: Math.min(90, percentComplete) });
-                }
-                return newMap;
-              });
-
-              // Update throttle map
-              progressThrottleMap.current.set(fileId, {
-                lastUpdate: now,
-                lastPercent: percentComplete
-              });
-            }
-          }
-        });
-
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            try {
-              const response = JSON.parse(xhr.responseText);
-              resolve(response);
-            } catch {
-              reject(new Error('Invalid response from server'));
-            }
-          } else {
-            // Create error with status code included
-            let errorMessage: string;
-            try {
-              const error = JSON.parse(xhr.responseText);
-              errorMessage = error.error || `Upload failed with status ${xhr.status}`;
-            } catch {
-              errorMessage = `Upload failed with status ${xhr.status}`;
-            }
-
-            // Include status code in error for better error handling
-            const uploadError = new Error(errorMessage);
-            (uploadError as any).statusCode = xhr.status;
-            reject(uploadError);
-          }
-        });
-
-        xhr.addEventListener('error', () => {
-          reject(new Error('Network error during upload'));
-        });
-
-        xhr.addEventListener('abort', () => {
-          reject(new Error('Upload cancelled'));
-        });
-
-        xhr.addEventListener('timeout', () => {
-          reject(new Error('Upload timeout - file too large or slow connection'));
-        });
-
-        // Upload without blocking on embedding generation for faster response
-        xhr.open('POST', '/api/upload');
-        xhr.timeout = 10000; // 10 second timeout per file
-        xhr.send(formData);
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const meta = newMap.get(fileId);
+        if (meta) {
+          newMap.set(fileId, { ...meta, progress: 10 });
+        }
+        return newMap;
       });
 
-      const result = await uploadPromise;
-      const apiDuration = performance.now() - apiStartTime;
+      // Step 1 & 2: Secure upload using Vercel Blob SDK
+      // This uses handleUpload pattern with scoped, time-limited tokens
+      const blob = await upload(file.name, file, {
+        access: 'public',
+        handleUploadUrl: '/api/upload/handle',
+        clientPayload: JSON.stringify({
+          filename: file.name,
+          mimeType: file.type,
+          size: file.size,
+        }),
+        onUploadProgress: ({ percentage }) => {
+          // Map SDK percentage (0-100) to our range (10-95, reserve 5% for finalization)
+          const mappedProgress = 10 + Math.round(percentage * 0.85);
 
-      // Record API call metrics
+          const throttleInfo = progressThrottleMap.current.get(fileId) || {
+            lastUpdate: 0,
+            lastPercent: 0
+          };
+          const now = Date.now();
+          const percentDiff = Math.abs(mappedProgress - throttleInfo.lastPercent);
+          const timeDiff = now - throttleInfo.lastUpdate;
+
+          if (percentDiff >= PROGRESS_UPDATE_THRESHOLD ||
+              timeDiff >= PROGRESS_UPDATE_INTERVAL ||
+              mappedProgress >= 80) {
+            setFileMetadata((prev) => {
+              const newMap = new Map(prev);
+              const meta = newMap.get(fileId);
+              if (meta) {
+                newMap.set(fileId, { ...meta, progress: mappedProgress });
+              }
+              return newMap;
+            });
+
+            progressThrottleMap.current.set(fileId, {
+              lastUpdate: now,
+              lastPercent: mappedProgress
+            });
+          }
+        },
+      });
+
+      const blobUrl = blob.url;
+      const pathname = blob.pathname;
+
+      // Generate assetId for tracking (server includes this in response metadata)
+      // The server's handleUpload can pass data through the response
+      const assetId = `asset_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+      setFileMetadata((prev) => {
+        const newMap = new Map(prev);
+        const meta = newMap.get(fileId);
+        if (meta) {
+          newMap.set(fileId, { ...meta, progress: 95 });
+        }
+        return newMap;
+      });
+
+      // Step 3: Finalize upload by creating asset record (with retry)
+      const result = await retryWithBackoff(
+        async () => {
+          const response = await fetch('/api/upload-complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              assetId,
+              blobUrl,
+              pathname,
+              filename: file.name,
+              size: file.size,
+              mimeType: file.type,
+              checksum,
+            }),
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            const err = new Error(error.error || 'Failed to complete upload');
+            (err as any).statusCode = response.status;
+            throw err;
+          }
+
+          return response.json();
+        },
+        3, // Max 3 retries for upload completion
+        (error) => {
+          // Retry on 5xx server errors and network failures
+          // Don't retry on 4xx client errors
+          const statusCode = (error as any).statusCode;
+          return !statusCode || statusCode >= 500;
+        }
+      );
+      const apiDuration = performance.now() - apiStartTime;
 
       if (!result.success) {
         throw new Error(result.error || 'Upload failed');
       }
 
-      // Track client upload time
-
-      // Record successful upload completion in metrics
-
-      // End the initial upload start timer if this is the first successful upload
-
       // Handle duplicate detection as a special success case
       const isDuplicate = result.isDuplicate === true;
-      const needsEmbedding = result.asset?.needsEmbedding === true;
-
-      // Track time to searchable if embedding is not needed
-      if (!needsEmbedding && result.asset?.id) {
-      }
+      const needsProcessing = result.asset?.needsProcessing === true;
 
       setFileMetadata((prev) => {
         const newMap = new Map(prev);
@@ -1230,8 +1285,8 @@ export function UploadZone({
             assetId: result.asset?.id,
             blobUrl: result.asset?.blobUrl,
             isDuplicate,
-            needsEmbedding,
-            embeddingStatus: (needsEmbedding ? 'pending' : 'ready') as 'pending' | 'ready'
+            needsEmbedding: needsProcessing,
+            embeddingStatus: (needsProcessing ? 'pending' : 'ready') as 'pending' | 'ready'
           });
         }
         return newMap;
@@ -1246,7 +1301,6 @@ export function UploadZone({
       // Clean up progress throttle map entry
       progressThrottleMap.current.delete(fileId);
 
-      // Log memory cleanup for monitoring during development
       logger.debug(`[UploadZone] Cleared file blob for ${metadata.name}, kept metadata only`);
 
       // Remove from persisted queue on success
@@ -1258,12 +1312,8 @@ export function UploadZone({
         }
       }
 
-      // Stats will be automatically updated by the effect that watches fileMetadata changes
-      // No need to manually update uploadStats here
-
       // Trigger a refresh of the asset list if there's a callback
       if (window.location.pathname === '/app') {
-        // Dispatch a custom event that the library page can listen to
         window.dispatchEvent(new CustomEvent('assetUploaded', { detail: result.asset }));
       }
 
@@ -1775,23 +1825,48 @@ export function UploadZone({
               </div>
             </div>
 
-            {/* Quick stats */}
-            <div className="grid grid-cols-4 gap-2 mt-3">
-              <div className="text-center">
-                <p className="text-[#B6FF6E] text-lg font-semibold">{getUploadStats().completed}</p>
-                <p className="text-[#B3B7BE] text-xs">complete</p>
+            {/* Three-phase processing pipeline */}
+            <div className="grid grid-cols-3 gap-3 mt-3">
+              {/* Phase 1: Uploading */}
+              <div className="bg-[#1B1F24] border border-[#2A2F37] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#B3B7BE] text-xs uppercase tracking-wider font-mono">uploading</p>
+                  <div className="w-2 h-2 rounded-full bg-[#7C5CFF]" />
+                </div>
+                <p className="text-[#7C5CFF] text-2xl font-semibold font-mono">
+                  {getUploadStats().uploading}
+                </p>
+                <p className="text-[#B3B7BE] text-xs mt-1 font-mono">
+                  {getUploadStats().completed} / {filesArray.length} uploaded
+                </p>
               </div>
-              <div className="text-center">
-                <p className="text-[#7C5CFF] text-lg font-semibold">{getUploadStats().uploading}</p>
-                <p className="text-[#B3B7BE] text-xs">uploading</p>
+
+              {/* Phase 2: Processing */}
+              <div className="bg-[#1B1F24] border border-[#2A2F37] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#B3B7BE] text-xs uppercase tracking-wider font-mono">processing</p>
+                  <div className="w-2 h-2 rounded-full bg-[#FBBF24]" />
+                </div>
+                <p className="text-[#FBBF24] text-2xl font-semibold font-mono">
+                  {processingStats?.processing || 0}
+                </p>
+                <p className="text-[#B3B7BE] text-xs mt-1 font-mono">
+                  sharp optimization
+                </p>
               </div>
-              <div className="text-center">
-                <p className="text-[#B3B7BE] text-lg font-semibold">{getUploadStats().pending}</p>
-                <p className="text-[#B3B7BE] text-xs">pending</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[#FF4D4D] text-lg font-semibold">{getUploadStats().failed}</p>
-                <p className="text-[#B3B7BE] text-xs">failed</p>
+
+              {/* Phase 3: Searchable */}
+              <div className="bg-[#1B1F24] border border-[#2A2F37] p-3">
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-[#B3B7BE] text-xs uppercase tracking-wider font-mono">searchable</p>
+                  <div className="w-2 h-2 rounded-full bg-[#4ADE80]" />
+                </div>
+                <p className="text-[#4ADE80] text-2xl font-semibold font-mono">
+                  {processingStats?.ready || 0}
+                </p>
+                <p className="text-[#B3B7BE] text-xs mt-1 font-mono">
+                  embeddings ready
+                </p>
               </div>
             </div>
 
