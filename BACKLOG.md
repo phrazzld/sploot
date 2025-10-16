@@ -73,6 +73,16 @@
   - **Dependencies**: DistributedQueue integration (above)
   - **Files**: `components/upload/upload-zone.tsx:1799-1812` (error summary section)
 
+### Data Correctness
+
+- **P2: Duplicate Upload Response Returns Wrong Processing State** - `/api/upload-complete` returns `processed: false` for duplicates instead of actual state from `existingAsset.processed`. When user re-uploads a file that already exists, the duplicate response always returns `processed: false` regardless of the asset's true state. This can cause UI to believe processing is still pending even for already-processed assets, potentially triggering unnecessary polling.
+  - **Rationale for deferring**: Edge case (only affects re-uploads), self-corrects on first poll if polling starts, UI marks duplicates specially anyway
+  - **Effort**: Trivial (30 seconds - one word change on line 101)
+  - **Priority**: P2 (low impact, easy fix for later)
+  - **Fix**: Change `app/api/upload-complete/route.ts:101` from `processed: false,` to `processed: existingAsset.processed,`
+  - **Note**: Also inconsistent with `embedded: existingAsset.hasEmbedding` on line 102 which DOES use actual state
+  - **Code Review**: [Feature branch review](https://github.com/phrazzld/sploot/pull/XXX) - flagged as P1 but determined to be non-blocking
+
 ## ♿ Accessibility
 
 ### Keyboard Navigation
