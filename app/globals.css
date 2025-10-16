@@ -4,13 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Force pure black terminal aesthetic (Bloomberg Terminal style) */
-
-  /* Terminal color system */
-  --color-terminal-green: #4ADE80;
-  --color-terminal-red: #EF4444;
-  --color-terminal-yellow: #FBBF24;
-  --color-terminal-gray: #888888;
+  /* shadcn/ui design tokens */
   --radius: 0.625rem;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
