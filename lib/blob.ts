@@ -131,6 +131,14 @@ export function validateBlobUrl(
   try {
     const url = new URL(blobUrl);
 
+    // Log validation attempt for debugging production issues
+    console.log('[validateBlobUrl] Validating blob URL:', {
+      blobUrl,
+      expectedPathname: pathname,
+      userId: userId.substring(0, 8) + '...', // Truncate for privacy
+      hostname: url.hostname,
+    });
+
     // 1. Validate protocol (only HTTPS allowed)
     if (url.protocol !== 'https:') {
       return {
@@ -178,14 +186,25 @@ export function validateBlobUrl(
 
     // 4. Extract pathname from URL and validate it matches expected pathname
     // URL pathname includes leading slash, our pathname doesn't
+    // IMPORTANT: url.pathname is URL-encoded, must decode before comparison
     const urlPathname = url.pathname.startsWith('/')
-      ? url.pathname.slice(1)
-      : url.pathname;
+      ? decodeURIComponent(url.pathname.slice(1))
+      : decodeURIComponent(url.pathname);
 
     if (urlPathname !== pathname) {
+      console.warn('[validateBlobUrl] Pathname mismatch detected:', {
+        expected: pathname,
+        got: urlPathname,
+        urlEncoded: url.pathname,
+        hasSpecialChars: /[^\x00-\x7F]/.test(pathname) || /[^\x00-\x7F]/.test(urlPathname),
+      });
+
       return {
         valid: false,
-        error: `Pathname mismatch. Expected: ${pathname}, Got: ${urlPathname}`,
+        error: `Pathname mismatch.\n` +
+               `  Expected: ${pathname}\n` +
+               `  Got: ${urlPathname}\n` +
+               `  Hint: Check for special characters or URL encoding issues`,
       };
     }
 
@@ -199,6 +218,7 @@ export function validateBlobUrl(
     }
 
     // All validations passed
+    console.log('[validateBlobUrl] Validation successful');
     return { valid: true };
   } catch (error) {
     // Invalid URL format
