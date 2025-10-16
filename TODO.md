@@ -57,17 +57,23 @@
 
 ### 1.2 Install Core Primitive Components
 
-- [~] Install base UI primitives (batch 1: core interactions)
+- [x] Install base UI primitives (batch 1: core interactions)
   ```
-  Files: components/ui/* (18 new files)
+  Files: components/ui/* (5 new files: button, input, label, card, dialog)
   Command: npx shadcn@latest add button input label card dialog
   Success: Components installed to components/ui/, no TypeScript errors
   Test: Import and render Button in test page, verify styling works
   Module: Primitive components—basic interactions
   Time: 20min
+  Commit: 88d5e2e
+  Work Log:
+  - Installed lucide-react (required by dialog component for X icon)
+  - Created test page at /test-shadcn-batch1 with all 5 components
+  - Verified build passes, type-check passes, all variants render
+  - CVA provides type-safe variant system (6 button variants tested)
   ```
 
-- [ ] Install navigation and feedback primitives (batch 2)
+- [~] Install navigation and feedback primitives (batch 2)
   ```
   Files: components/ui/* (additional files)
   Command: npx shadcn@latest add dropdown-menu tooltip badge separator avatar
