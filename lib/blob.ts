@@ -115,26 +115,37 @@ export function getBlobUrl(pathname: string): string {
  *
  * Security: Prevents SSRF attacks by ensuring URLs:
  * - Are from Vercel Blob storage (not arbitrary external/internal URLs)
- * - Match the expected pathname
  * - Belong to the authenticated user's directory
  *
+ * The pathname is extracted from the URL itself (source of truth), eliminating
+ * client-server state mismatch issues.
+ *
  * @param blobUrl - URL returned from client (untrusted input)
- * @param pathname - Expected pathname (from server-generated credentials)
  * @param userId - Authenticated user ID (for path isolation)
+ * @param pathname - Optional expected pathname (for legacy compatibility)
  * @returns Validation result with error message if invalid
  */
 export function validateBlobUrl(
   blobUrl: string,
-  pathname: string,
-  userId: string
+  userId: string,
+  pathname?: string
 ): { valid: boolean; error?: string } {
   try {
     const url = new URL(blobUrl);
 
+    // Extract pathname from URL if not provided (removes client-server state mismatch)
+    // This is the source of truth - what's actually in the blob URL
+    const extractedPathname = pathname || (
+      url.pathname.startsWith('/')
+        ? decodeURIComponent(url.pathname.slice(1))
+        : decodeURIComponent(url.pathname)
+    );
+
     // Log validation attempt for debugging production issues
     console.log('[validateBlobUrl] Validating blob URL:', {
       blobUrl,
-      expectedPathname: pathname,
+      extractedPathname,
+      providedPathname: pathname,
       userId: userId.substring(0, 8) + '...', // Truncate for privacy
       hostname: url.hostname,
     });
@@ -184,36 +195,13 @@ export function validateBlobUrl(
       };
     }
 
-    // 4. Extract pathname from URL and validate it matches expected pathname
-    // URL pathname includes leading slash, our pathname doesn't
-    // IMPORTANT: url.pathname is URL-encoded, must decode before comparison
-    const urlPathname = url.pathname.startsWith('/')
-      ? decodeURIComponent(url.pathname.slice(1))
-      : decodeURIComponent(url.pathname);
-
-    if (urlPathname !== pathname) {
-      console.warn('[validateBlobUrl] Pathname mismatch detected:', {
-        expected: pathname,
-        got: urlPathname,
-        urlEncoded: url.pathname,
-        hasSpecialChars: /[^\x00-\x7F]/.test(pathname) || /[^\x00-\x7F]/.test(urlPathname),
-      });
-
-      return {
-        valid: false,
-        error: `Pathname mismatch.\n` +
-               `  Expected: ${pathname}\n` +
-               `  Got: ${urlPathname}\n` +
-               `  Hint: Check for special characters or URL encoding issues`,
-      };
-    }
-
-    // 5. Validate pathname belongs to authenticated user (isolation)
+    // 4. Validate pathname belongs to authenticated user (isolation)
     // Format: userId/timestamp-random.ext
-    if (!pathname.startsWith(`${userId}/`)) {
+    // Uses extractedPathname which is the source of truth from the URL itself
+    if (!extractedPathname.startsWith(`${userId}/`)) {
       return {
         valid: false,
-        error: `Pathname must start with user directory: ${userId}/`,
+        error: `Pathname must start with user directory: ${userId}/. Got: ${extractedPathname}`,
       };
     }
 

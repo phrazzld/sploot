@@ -28,11 +28,11 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { assetId, blobUrl, pathname, filename, size, mimeType, checksum } = body;
 
-    // Validate required fields
-    if (!assetId || !blobUrl || !pathname || !filename || !size || !mimeType || !checksum) {
+    // Validate required fields (pathname is optional - extracted from blobUrl if not provided)
+    if (!assetId || !blobUrl || !filename || !size || !mimeType || !checksum) {
       return NextResponse.json(
         {
-          error: 'Missing required fields: assetId, blobUrl, pathname, filename, size, mimeType, checksum',
+          error: 'Missing required fields: assetId, blobUrl, filename, size, mimeType, checksum',
         },
         { status: 400 }
       );
@@ -47,8 +47,9 @@ export async function POST(req: NextRequest) {
     }
 
     // SECURITY: Validate blob URL to prevent SSRF attacks
-    // Ensures URL is from Vercel Blob storage, matches pathname, and belongs to user
-    const urlValidation = validateBlobUrl(blobUrl, pathname, userId);
+    // Ensures URL is from Vercel Blob storage and belongs to user
+    // Pathname is extracted from URL (source of truth), no client-provided pathname needed
+    const urlValidation = validateBlobUrl(blobUrl, userId);
     if (!urlValidation.valid) {
       console.warn(`[upload-complete] Invalid blob URL for user ${userId}: ${urlValidation.error}`);
       return NextResponse.json(
