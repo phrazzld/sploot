@@ -73,17 +73,24 @@
   - CVA provides type-safe variant system (6 button variants tested)
   ```
 
-- [~] Install navigation and feedback primitives (batch 2)
+- [x] Install navigation and feedback primitives (batch 2)
   ```
-  Files: components/ui/* (additional files)
+  Files: components/ui/* (5 new files: dropdown-menu, tooltip, badge, separator, avatar)
   Command: npx shadcn@latest add dropdown-menu tooltip badge separator avatar
   Success: All components installed, types resolve correctly
   Test: Render each component in isolation, verify Radix UI integration
   Module: Primitive components—navigation patterns
   Time: 20min
+  Commit: c3b1b72
+  Work Log:
+  - Created test page at /test-shadcn-batch2 with all 5 components
+  - Verified Radix UI keyboard navigation (dropdown menu arrow keys work)
+  - Tested avatar fallback behavior (renders fallback when image fails)
+  - Badge variants render with correct semantic colors
+  - Separator works in both horizontal and vertical orientations
   ```
 
-- [ ] Install advanced primitives (batch 3: complex interactions)
+- [~] Install advanced primitives (batch 3: complex interactions)
   ```
   Files: components/ui/* (additional files)
   Command: npx shadcn@latest add command tabs popover select checkbox scroll-area
