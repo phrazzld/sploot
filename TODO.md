@@ -90,17 +90,25 @@
   - Separator works in both horizontal and vertical orientations
   ```
 
-- [~] Install advanced primitives (batch 3: complex interactions)
+- [x] Install advanced primitives (batch 3: complex interactions)
   ```
-  Files: components/ui/* (additional files)
+  Files: components/ui/* (6 new files: command, tabs, popover, select, checkbox, scroll-area)
   Command: npx shadcn@latest add command tabs popover select checkbox scroll-area
   Success: All components installed, no dependency conflicts
   Test: Command palette renders, keyboard nav works, scrollarea scrolls
   Module: Primitive components—advanced interactions
   Time: 20min
+  Commit: 4f44b21
+  Work Log:
+  - Added cmdk dependency (command component uses it for fuzzy search)
+  - Created test page at /test-shadcn-batch3 with all 6 components
+  - Verified command search filtering works (type to filter items)
+  - Tested tab switching (clicks and keyboard work correctly)
+  - Verified scrollarea scrolls smoothly with 50 items
+  - Checkbox state management working correctly
   ```
 
-- [ ] Install feedback and loading primitives (batch 4)
+- [~] Install feedback and loading primitives (batch 4)
   ```
   Files: components/ui/* (additional files)
   Command: npx shadcn@latest add skeleton alert progress toast
