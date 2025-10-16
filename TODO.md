@@ -57,7 +57,7 @@
 
 ### 1.2 Install Core Primitive Components
 
-- [ ] Install base UI primitives (batch 1: core interactions)
+- [~] Install base UI primitives (batch 1: core interactions)
   ```
   Files: components/ui/* (18 new files)
   Command: npx shadcn@latest add button input label card dialog
