@@ -28,7 +28,7 @@ export async function POST(
     }
 
     // Fetch asset with ownership validation
-    const asset = await prisma.asset.findUnique({
+    const asset = await prisma.asset.findFirst({
       where: {
         id,
         ownerUserId: userId,
