@@ -279,7 +279,7 @@
   Test: Toggle switches themes, localStorage updated, system preference respected
   Module: Theme system—light/dark mode management
   Time: 30min
-  Commit: (pending)
+  Commit: 6291dd5
   Work Log:
   - Installed next-themes 0.4.6 package
   - Created ThemeProvider wrapper component (components/theme-provider.tsx)
@@ -293,7 +293,7 @@
   - Dark mode CSS variables already configured in globals.css
   ```
 
-- [ ] Migrate User Avatar and dropdown menu
+- [~] Migrate User Avatar and dropdown menu
   ```
   Files: components/chrome/user-avatar.tsx:1-127
   Approach: Replace with shadcn Avatar + DropdownMenu
