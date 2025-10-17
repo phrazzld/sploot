@@ -709,7 +709,7 @@
 
 ### 3.3 Banners and Alerts
 
-- [~] Migrate Asset Integrity Banner to shadcn Alert
+- [x] Migrate Asset Integrity Banner to shadcn Alert
   ```
   Files: components/library/asset-integrity-banner.tsx:1-34
   Approach: Replace with Alert (variant="destructive")
@@ -719,9 +719,18 @@
   Test: Banner renders when integrity issue detected, dismisses correctly
   Module: Integrity banner—data consistency warning
   Time: 20min
+
+  Work Log:
+  - Migrated to Alert with variant="destructive"
+  - Replaced SVG icons with Lucide (AlertTriangle, ClipboardCheck, X)
+  - Used Button variants (outline with custom destructive colors, ghost for dismiss)
+  - Replaced animate-slide-down with Tailwind animate-in utilities
+  - Swapped hardcoded yellow/gray colors with semantic tokens (destructive, muted-foreground)
+  - Simplified from 70 to 56 lines
+  - Type check passed
   ```
 
-- [ ] Migrate Blob Error Banner to shadcn Alert
+- [~] Migrate Blob Error Banner to shadcn Alert
   ```
   Files: components/library/blob-error-banner.tsx:1-47
   Approach: Replace with Alert (variant="destructive")
