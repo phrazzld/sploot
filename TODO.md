@@ -149,9 +149,9 @@
   - Build passes, shadcn test pages render correctly
   ```
 
-- [~] Remove custom animations and add shadcn animations
+- [x] Remove custom animations and add shadcn animations
   ```
-  Files: app/globals.css:28-198
+  Files: app/globals.css:82-110 (deleted lines 109-252)
   Approach: Delete shimmer, fadeInScale, slideDown animations
   Keep: Basic fadeIn/fadeOut if needed for transitions
   Add: shadcn animation utilities via tailwindcss-animate plugin
@@ -159,17 +159,32 @@
   Test: Dialog animations work, accordion down/up animations smooth
   Module: Animation system—Radix UI animations
   Time: 20min
+  Commit: 15074f4
+  Work Log:
+  - Removed: scaleIn, fadeInScale, shimmer, slideDown, dropdown animations
+  - Kept: fadeIn/fadeOut for backward compatibility (9 components use them)
+  - tailwindcss-animate provides: animate-in/out, fade, zoom, slide variants
+  - Verified Dialog uses data-[state] with zoom-in-95/fade-in-0 animations
+  - Build passes, animations work on shadcn test pages
   ```
 
-- [ ] Update font configuration to work with shadcn
+- [x] Update font configuration to work with shadcn
   ```
-  Files: app/layout.tsx:8-21, app/globals.css:15-20
+  Files: app/layout.tsx:122, app/globals.css:45-46
   Approach: Keep Geist Sans and JetBrains Mono, ensure CSS vars match shadcn
   Update: Ensure --font-sans and --font-mono align with shadcn expectations
   Success: Typography renders correctly, monospace preserved for technical data
   Test: Text renders in Geist Sans by default, code uses JetBrains Mono
   Module: Typography—font loading and CSS variables
   Time: 15min
+  Commit: (pending)
+  Work Log:
+  - Added font-sans utility class to body element (layout.tsx:122)
+  - Verified @theme block correctly maps fonts (globals.css:45-46)
+  - --font-sans → var(--font-geist-sans) ✓
+  - --font-mono → var(--font-jetbrains-mono) ✓
+  - Build passes, type-check passes
+  - Body applies: CSS variables + font-sans + antialiased
   ```
 
 ### 1.4 Install Required Dependencies
