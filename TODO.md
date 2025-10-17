@@ -266,19 +266,31 @@
   Note: Theme toggle will be added in separate task after theme system implemented
   Module: Navigation—design token migration
   Time: 10min
-  Commit: (pending)
+  Commit: 004694e
   ```
 
-- [ ] Implement theme toggle and provider
+- [x] Implement theme toggle and provider
   ```
-  Files: components/theme-provider.tsx (new), components/theme-toggle.tsx (new)
+  Files: components/theme-provider.tsx (new), components/theme-toggle.tsx (new), app/layout.tsx
   Approach: Use next-themes package, follow shadcn dark mode guide
   Pattern: Create context provider, add toggle button with Sun/Moon icons
   Add: localStorage persistence, system preference detection
   Success: Theme switches between light/dark, preference persists
   Test: Toggle switches themes, localStorage updated, system preference respected
   Module: Theme system—light/dark mode management
-  Time: 45min
+  Time: 30min
+  Commit: (pending)
+  Work Log:
+  - Installed next-themes 0.4.6 package
+  - Created ThemeProvider wrapper component (components/theme-provider.tsx)
+  - Created ThemeToggle component with Sun/Moon icons (components/theme-toggle.tsx)
+  - Integrated ThemeProvider in app/layout.tsx with system preference support
+  - Configured: attribute="class", defaultTheme="system", enableSystem=true
+  - Added suppressHydrationWarning to html tag to prevent mismatch
+  - Used lucide-react Sun/Moon icons with rotation transitions
+  - Prevented hydration issues with mounted state check
+  - Build passes, type-check passes
+  - Dark mode CSS variables already configured in globals.css
   ```
 
 - [ ] Migrate User Avatar and dropdown menu
