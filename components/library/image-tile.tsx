@@ -8,7 +8,10 @@ import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { useEmbeddingRetry } from '@/hooks/use-embedding-retry';
 import { useBlobCircuitBreaker } from '@/contexts/blob-circuit-breaker-context';
-import { HeartIcon } from '@/components/icons/heart-icon';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Heart, Trash2, ImageOff, Loader2, AlertCircle, Clock } from 'lucide-react';
 import type { Asset } from '@/lib/types';
 
 interface ImageTileProps {
@@ -66,20 +69,20 @@ function ImageTileComponent({
   // Simulate queue position in debug mode
   useEffect(() => {
     if (isDebugMode && embeddingStatus === 'processing' && !debugInfo.queuePosition) {
-      // Simulate a queue position for debugging
       const simulatedPosition = Math.floor(Math.random() * 5) + 1;
-      setDebugInfo(prev => ({ ...prev, queuePosition: simulatedPosition }));
+      setDebugInfo((prev) => ({ ...prev, queuePosition: simulatedPosition }));
       console.log(`[debug_embeddings] Asset ${asset.id}: Simulated queue position - #${simulatedPosition}`);
     }
-    // Only depend on external inputs, not debugInfo.queuePosition which we set internally
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDebugMode, embeddingStatus, asset.id]);
 
-  const handleEmbeddingSuccess = (result?: { embedding?: { modelName: string; dimension: number; createdAt: string } }) => {
+  const handleEmbeddingSuccess = (result?: {
+    embedding?: { modelName: string; dimension: number; createdAt: string };
+  }) => {
     if (isDebugMode) {
       console.log(`[debug_embeddings] Asset ${asset.id}: Embedding generation succeeded`);
       console.log('[debug_embeddings] Result:', result);
-      setDebugInfo(prev => ({ ...prev, lastTransition: 'processing → ready' }));
+      setDebugInfo((prev) => ({ ...prev, lastTransition: 'processing → ready' }));
     }
     setHasEmbedding(true);
     setEmbeddingStatus('ready');
@@ -105,7 +108,7 @@ function ImageTileComponent({
     assetId: asset.id,
     hasEmbedding,
     onEmbeddingGenerated: handleEmbeddingSuccess,
-    retryDelay: 5000, // Start retry after 5 seconds
+    retryDelay: 5000,
     maxRetries: 3,
   });
 
@@ -115,7 +118,10 @@ function ImageTileComponent({
       if (isDebugMode) {
         console.log(`[debug_embeddings] Asset ${asset.id}: Auto-retry initiated`);
         console.log(`[debug_embeddings] Retry count: ${asset.embeddingRetryCount || 0}`);
-        setDebugInfo(prev => ({ ...prev, lastTransition: `${embeddingStatus} → processing (auto-retry)` }));
+        setDebugInfo((prev) => ({
+          ...prev,
+          lastTransition: `${embeddingStatus} → processing (auto-retry)`,
+        }));
       }
       setEmbeddingStatus('processing');
     }
@@ -135,7 +141,14 @@ function ImageTileComponent({
         console.log(`[debug_embeddings] Asset ${asset.id}: Last attempt - ${asset.embeddingLastAttempt}`);
       }
     }
-  }, [isDebugMode, asset.id, embeddingStatus, asset.embeddingError, asset.embeddingRetryCount, asset.embeddingLastAttempt]);
+  }, [
+    isDebugMode,
+    asset.id,
+    embeddingStatus,
+    asset.embeddingError,
+    asset.embeddingRetryCount,
+    asset.embeddingLastAttempt,
+  ]);
 
   // Log status changes in debug mode
   useEffect(() => {
@@ -143,6 +156,7 @@ function ImageTileComponent({
       console.log(`[debug_embeddings] Asset ${asset.id}: Status changed to ${embeddingStatus}`);
     }
   }, [embeddingStatus, isDebugMode, asset.id]);
+
   const aspectRatioStyle = useMemo<CSSProperties | undefined>(() => {
     if (!preserveAspectRatio) return undefined;
     if (!asset.width || !asset.height) return undefined;
@@ -181,7 +195,7 @@ function ImageTileComponent({
     const startTime = Date.now();
     if (isDebugMode) {
       console.log(`[debug_embeddings] Asset ${asset.id}: Manual embedding generation triggered`);
-      setDebugInfo(prev => ({ ...prev, lastTransition: `${embeddingStatus} → processing (manual)` }));
+      setDebugInfo((prev) => ({ ...prev, lastTransition: `${embeddingStatus} → processing (manual)` }));
     }
 
     setIsGeneratingEmbedding(true);
@@ -194,7 +208,7 @@ function ImageTileComponent({
       const apiResponseTime = Date.now() - startTime;
       if (isDebugMode) {
         console.log(`[debug_embeddings] Asset ${asset.id}: API response time - ${apiResponseTime}ms`);
-        setDebugInfo(prev => ({ ...prev, apiResponseTime }));
+        setDebugInfo((prev) => ({ ...prev, apiResponseTime }));
       }
 
       if (response.ok) {
@@ -208,14 +222,14 @@ function ImageTileComponent({
         if (isDebugMode) {
           console.error(`[debug_embeddings] Asset ${asset.id}: Failed to generate embedding - ${response.status}`);
           console.error('[debug_embeddings] Error response:', errorText);
-          setDebugInfo(prev => ({ ...prev, lastTransition: 'processing → failed' }));
+          setDebugInfo((prev) => ({ ...prev, lastTransition: 'processing → failed' }));
         }
         setEmbeddingStatus('failed');
       }
     } catch (error) {
       if (isDebugMode) {
         console.error(`[debug_embeddings] Asset ${asset.id}: Exception during embedding generation:`, error);
-        setDebugInfo(prev => ({ ...prev, lastTransition: 'processing → failed (exception)' }));
+        setDebugInfo((prev) => ({ ...prev, lastTransition: 'processing → failed (exception)' }));
       }
       logError('Failed to generate embedding:', error);
       setEmbeddingStatus('failed');
@@ -228,7 +242,6 @@ function ImageTileComponent({
     e.stopPropagation();
     if (!onDelete || isLoading) return;
 
-    // Check if we should skip confirmation
     const shouldDelete = deleteConfirmation.openConfirmation({
       id: asset.id,
       imageUrl: asset.thumbnailUrl || asset.blobUrl,
@@ -236,7 +249,6 @@ function ImageTileComponent({
     });
 
     if (shouldDelete) {
-      // User has chosen to skip confirmations, delete immediately
       performDelete();
     }
   };
@@ -265,7 +277,6 @@ function ImageTileComponent({
   };
 
   // Extract similarity score from search results
-  // Similarity is 0-1, display as 0.00 format
   const similarityScore = useMemo(() => {
     if (!showSimilarityScore) return null;
     const score = (asset as any).similarity;
@@ -274,350 +285,243 @@ function ImageTileComponent({
   }, [showSimilarityScore, asset]);
 
   // Determine border color based on similarity score
-  // High (>0.85) = terminal green, Medium (0.7-0.85) = terminal yellow, Low (<0.7) = default
   const scoreBorderStyle = useMemo(() => {
     if (!showSimilarityScore) return null;
     const score = (asset as any).similarity;
     if (typeof score !== 'number') return null;
 
     if (score > 0.85) {
-      return {
-        borderColor: 'var(--color-terminal-green)',
-        boxShadow: '0 0 0 2px var(--color-terminal-green), 0 0 12px rgba(74, 222, 128, 0.3)',
-      };
+      return 'border-green-500 shadow-[0_0_0_2px_rgb(34_197_94),0_0_12px_rgba(34,197,94,0.3)]';
     } else if (score >= 0.7) {
-      return {
-        borderColor: 'var(--color-terminal-yellow)',
-        boxShadow: '0 0 0 2px var(--color-terminal-yellow), 0 0 12px rgba(251, 191, 36, 0.3)',
-      };
+      return 'border-yellow-500 shadow-[0_0_0_2px_rgb(234_179_8),0_0_12px_rgba(234,179,8,0.3)]';
     }
-    // Low scores get default border (subtle white/gray)
-    return {
-      borderColor: '#464C55',
-      boxShadow: '0 0 0 2px #464C55',
-    };
+    return 'border-border shadow-[0_0_0_2px_hsl(var(--border))]';
   }, [showSimilarityScore, asset]);
+
+  // Get embedding status icon and label
+  const getEmbeddingStatusIcon = () => {
+    switch (embeddingStatus) {
+      case 'ready':
+        return { icon: null, label: '[✓] EMBEDDED', color: 'text-green-500' };
+      case 'processing':
+        return { icon: Loader2, label: '[⏳] PROCESSING', color: 'text-yellow-500' };
+      case 'pending':
+        return { icon: Clock, label: '[⏳] QUEUED', color: 'text-yellow-500' };
+      case 'failed':
+        return { icon: AlertCircle, label: '[✗] FAILED', color: 'text-red-500' };
+      default:
+        return { icon: null, label: '', color: '' };
+    }
+  };
+
+  const embeddingStatusInfo = getEmbeddingStatusIcon();
 
   return (
     <>
-      <div
-      onClick={onClick || (() => onSelect?.(asset))}
-      className={cn(
-        'group relative bg-[#0F1012] overflow-hidden w-full border border-[#1A1A1A]',
-        'cursor-pointer',
-        // Terminal-style hover state
-        !showSimilarityScore && 'hover:border-[var(--color-terminal-green)]'
-      )}
-      style={scoreBorderStyle || undefined}
-    >
-      {/* Image container */}
-      <div
+      <Card
+        onClick={onClick || (() => onSelect?.(asset))}
         className={cn(
-          'relative bg-[#0F1012] overflow-hidden',
-          !preserveAspectRatio && 'aspect-square'
+          'group relative overflow-hidden cursor-pointer border transition-colors',
+          !showSimilarityScore && 'hover:border-primary',
+          scoreBorderStyle
         )}
-        style={aspectRatioStyle}
       >
-        {imageError ? (
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-4 bg-[#14171A]">
-            {/* Broken image icon */}
-            <div className="flex flex-col items-center gap-2 text-[#B3B7BE]/60">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <p className="text-xs text-center">Image unavailable</p>
-            </div>
-
-            {/* Delete button for broken images */}
-            <button
-              type="button"
-              onClick={handleDelete}
-              disabled={isLoading}
-              className={cn(
-                'inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono uppercase',
-                'bg-black text-[var(--color-terminal-red)] border border-[var(--color-terminal-red)]',
-                'hover:bg-[var(--color-terminal-red)] hover:text-black',
-                isLoading && 'opacity-50 cursor-wait'
-              )}
-              title="Delete broken image"
-            >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
-              Delete
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* Skeleton placeholder shown while loading */}
-            {!imageLoaded && (
-              <div aria-hidden className="absolute inset-0 overflow-hidden">
-                <div className="h-full w-full bg-[#1B1F24] animate-pulse" />
-              </div>
-            )}
-            <Image
-              key={asset.blobUrl}
-              src={asset.thumbnailUrl || asset.blobUrl}
-              alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
-              fill
-              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
-              className={cn(
-                'h-full w-full',
-                preserveAspectRatio ? 'object-contain' : 'object-cover',
-                imageLoaded ? 'opacity-100' : 'opacity-0',
-                'transition-opacity duration-300 ease-out'
-              )}
-              loading="lazy"
-              onLoad={() => {
-                setImageLoaded(true);
-                recordBlobSuccess();
-              }}
-              onError={(e) => {
-                setImageError(true);
-                setImageLoaded(true);
-
-                // Record blob error for circuit breaker
-                recordBlobError(404);
-
-                // Send telemetry (fire-and-forget)
-                fetch('/api/telemetry', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    assetId: asset.id,
-                    blobUrl: asset.thumbnailUrl || asset.blobUrl,
-                    errorType: 'blob_load_failure',
-                    timestamp: Date.now(),
-                  }),
-                }).catch(() => {
-                  // Ignore telemetry errors - non-blocking
-                });
-              }}
-            />
-          </>
-        )}
-
-        {/* Floating actions */}
-        <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleFavoriteToggle}
-            disabled={isLoading}
-            aria-pressed={asset.favorite}
-            className={cn(
-              'w-8 h-8 flex items-center justify-center bg-black/80 border',
-              asset.favorite
-                ? 'border-[var(--color-terminal-green)] text-[var(--color-terminal-green)]'
-                : 'border-[#333333] text-[#666666] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]',
-              isLoading && 'opacity-70 cursor-wait'
-            )}
-            title={asset.favorite ? 'drop from bangers' : 'crown as banger'}
+        <CardContent className="p-0">
+          {/* Image container */}
+          <div
+            className={cn('relative bg-muted overflow-hidden', !preserveAspectRatio && 'aspect-square')}
+            style={aspectRatioStyle}
           >
-            <HeartIcon className="w-4 h-4" filled={asset.favorite} />
-          </button>
-
-          <button
-            type="button"
-            onClick={handleDelete}
-            disabled={isLoading}
-            className={cn(
-              'w-8 h-8 flex items-center justify-center bg-black/80 text-[#666666] border border-[#333333]',
-              'opacity-0 group-hover:opacity-100',
-              'hover:bg-[var(--color-terminal-red)] hover:text-black hover:border-[var(--color-terminal-red)]',
-              isLoading && 'pointer-events-none cursor-wait'
-            )}
-            title="rage delete"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* Similarity score overlay - top right, only during search */}
-        {similarityScore !== null && (
-          <div className="absolute top-2 right-2 z-10">
-            <div className="px-2 py-1 bg-black border border-[var(--color-terminal-green)]">
-              <span className="font-mono text-xs text-[var(--color-terminal-green)] tabular-nums">
-                {similarityScore}
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Hover overlay with metadata - terminal style */}
-        <div className="absolute inset-0 bg-black/85 opacity-0 group-hover:opacity-100 pointer-events-none">
-          {/* Bottom info on hover - terminal-style metadata with pipes */}
-          <div className="absolute bottom-0 left-0 right-0 p-1.5">
-            <div className="flex flex-col gap-0.5">
-              <div className="flex items-center justify-between">
-                <div className="text-white/90 text-xs font-mono truncate">
-                  {asset.filename}
+            {imageError ? (
+              <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-4">
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <ImageOff className="w-12 h-12" />
+                  <p className="text-xs text-center">Image unavailable</p>
                 </div>
-                {/* Terminal-style embedding status */}
-                <div className="text-xs font-mono ml-2 shrink-0">
-                  {embeddingStatus === 'ready' && (
-                    <span className="text-[var(--color-terminal-green)]">[✓] EMBEDDED</span>
-                  )}
-                  {embeddingStatus === 'processing' && (
-                    <span className="text-[var(--color-terminal-yellow)]">[⏳] PROCESSING</span>
-                  )}
-                  {embeddingStatus === 'pending' && (
-                    <span className="text-[var(--color-terminal-yellow)]">[⏳] QUEUED</span>
-                  )}
-                  {embeddingStatus === 'failed' && (
-                    <span className="text-[var(--color-terminal-red)]">[✗] FAILED</span>
-                  )}
-                </div>
+
+                <Button variant="destructive" size="sm" onClick={handleDelete} disabled={isLoading}>
+                  <Trash2 className="w-3 h-3 mr-1.5" />
+                  Delete
+                </Button>
               </div>
-              <div className="flex items-center justify-between text-white/70 text-xs font-mono">
-                <span className="truncate">
-                  {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
-                </span>
-                {typeof asset.relevance === 'number' && (
-                  <span
-                    className={cn(
-                      'font-semibold tabular-nums ml-2',
-                      asset.belowThreshold ? 'text-[#FFAA5C]' : 'text-[#B6FF6E]'
-                    )}
-                  >
-                    {Math.round(asset.relevance)}%
-                  </span>
+            ) : (
+              <>
+                {/* Skeleton placeholder */}
+                {!imageLoaded && (
+                  <div aria-hidden className="absolute inset-0 overflow-hidden">
+                    <div className="h-full w-full bg-muted animate-pulse" />
+                  </div>
                 )}
+                <Image
+                  key={asset.blobUrl}
+                  src={asset.thumbnailUrl || asset.blobUrl}
+                  alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
+                  fill
+                  sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+                  className={cn(
+                    'h-full w-full',
+                    preserveAspectRatio ? 'object-contain' : 'object-cover',
+                    imageLoaded ? 'opacity-100' : 'opacity-0',
+                    'transition-opacity duration-300 ease-out'
+                  )}
+                  loading="lazy"
+                  onLoad={() => {
+                    setImageLoaded(true);
+                    recordBlobSuccess();
+                  }}
+                  onError={(e) => {
+                    setImageError(true);
+                    setImageLoaded(true);
+                    recordBlobError(404);
+
+                    // Send telemetry (fire-and-forget)
+                    fetch('/api/telemetry', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        assetId: asset.id,
+                        blobUrl: asset.thumbnailUrl || asset.blobUrl,
+                        errorType: 'blob_load_failure',
+                        timestamp: Date.now(),
+                      }),
+                    }).catch(() => {});
+                  }}
+                />
+              </>
+            )}
+
+            {/* Floating actions */}
+            <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={asset.favorite ? 'default' : 'secondary'}
+                      size="icon"
+                      className={cn(
+                        'h-8 w-8 bg-black/80 backdrop-blur-sm',
+                        asset.favorite && 'bg-green-500/80 hover:bg-green-500 border-green-500'
+                      )}
+                      onClick={handleFavoriteToggle}
+                      disabled={isLoading}
+                      aria-pressed={asset.favorite}
+                    >
+                      <Heart className={cn('h-4 w-4', asset.favorite && 'fill-current')} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{asset.favorite ? 'drop from bangers' : 'crown as banger'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                onClick={handleDelete}
+                disabled={isLoading}
+                title="rage delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Similarity score overlay */}
+            {similarityScore !== null && (
+              <div className="absolute top-2 right-2 z-10">
+                <div className="px-2 py-1 bg-black/80 backdrop-blur-sm border border-green-500 rounded">
+                  <span className="font-mono text-xs text-green-500 tabular-nums">{similarityScore}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Hover overlay with metadata */}
+            <div className="absolute inset-0 bg-black/85 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
+              <div className="absolute bottom-0 left-0 right-0 p-1.5">
+                <div className="flex flex-col gap-0.5">
+                  <div className="flex items-center justify-between">
+                    <div className="text-white/90 text-xs font-mono truncate">{asset.filename}</div>
+                    <div className="text-xs font-mono ml-2 shrink-0">
+                      {embeddingStatusInfo.icon && (
+                        <span className={cn('flex items-center gap-1', embeddingStatusInfo.color)}>
+                          {embeddingStatusInfo.label}
+                        </span>
+                      )}
+                      {!embeddingStatusInfo.icon && embeddingStatus === 'ready' && (
+                        <span className={embeddingStatusInfo.color}>{embeddingStatusInfo.label}</span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-white/70 text-xs font-mono">
+                    <span className="truncate">
+                      {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
+                    </span>
+                    {typeof asset.relevance === 'number' && (
+                      <span
+                        className={cn(
+                          'font-semibold tabular-nums ml-2',
+                          asset.belowThreshold ? 'text-orange-400' : 'text-green-400'
+                        )}
+                      >
+                        {Math.round(asset.relevance)}%
+                      </span>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Embedding status indicator - only show when NOT ready */}
-        {embeddingStatus !== 'ready' && (
-          <div className="absolute bottom-1 left-1 z-10">
-            <button
-              onClick={embeddingStatus === 'failed' ? handleGenerateEmbedding : undefined}
-              disabled={embeddingStatus === 'processing'}
-              className={cn(
-                'flex items-center justify-center',
-                isDebugMode ? 'min-w-[20px] h-5 px-1 rounded' : 'w-5 h-5 ',
-                'backdrop-blur-sm transition-all duration-200',
-                embeddingStatus === 'pending' && 'bg-yellow-500/70 cursor-default',
-                embeddingStatus === 'processing' && 'bg-blue-500/70 cursor-wait',
-                embeddingStatus === 'failed' && 'bg-red-500/70 hover:bg-red-500/90 cursor-pointer'
-              )}
-              title={
-                isDebugMode ? (
-                  `Status: ${embeddingStatus}\n` +
-                  `Retry count: ${asset.embeddingRetryCount || 0}\n` +
-                  (asset.embeddingError ? `Error: ${asset.embeddingError}\n` : '') +
-                  (debugInfo.apiResponseTime ? `Last API time: ${debugInfo.apiResponseTime}ms\n` : '') +
-                  (debugInfo.lastTransition ? `Last transition: ${debugInfo.lastTransition}` : '')
-                ) : (
-                  embeddingStatus === 'pending' ? 'Embedding pending' :
-                  embeddingStatus === 'processing' ? 'Generating embedding...' :
-                  embeddingStatus === 'failed' ? 'Click to retry' : ''
-                )
-              }
-            >
-              {isDebugMode ? (
-                <div className="flex items-center gap-1 text-white">
-                  {embeddingStatus === 'pending' && (
-                    <div className="flex items-center gap-1">
-                      <div className="relative">
-                        <div className="w-2 h-2 bg-yellow-200 animate-ping absolute inset-0" />
-                        <div className="w-2 h-2 bg-yellow-300 relative" />
-                      </div>
-                      <span className="text-[10px] font-mono">P</span>
-                    </div>
+            {/* Embedding status indicator */}
+            {embeddingStatus !== 'ready' && (
+              <div className="absolute bottom-1 left-1 z-10">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className={cn(
+                    'h-5 w-5 backdrop-blur-sm',
+                    embeddingStatus === 'pending' && 'bg-yellow-500/70 hover:bg-yellow-500/90 cursor-default',
+                    embeddingStatus === 'processing' && 'bg-blue-500/70 hover:bg-blue-500/90 cursor-wait',
+                    embeddingStatus === 'failed' && 'bg-red-500/70 hover:bg-red-500/90 cursor-pointer'
                   )}
-                  {embeddingStatus === 'processing' && (
-                    <div className="flex items-center gap-1">
-                      <svg className="w-3 h-3 text-white animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      <span className="text-[10px] font-mono">#{debugInfo.queuePosition || '?'}</span>
-                      {asset.embeddingRetryCount && asset.embeddingRetryCount > 0 && (
-                        <span className="text-[10px] font-mono">R{asset.embeddingRetryCount}</span>
-                      )}
-                    </div>
-                  )}
-                  {embeddingStatus === 'failed' && (
-                    <div className="flex items-center gap-1">
-                      <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      {asset.embeddingRetryCount !== undefined && (
-                        <span className="text-[10px] font-mono">R{asset.embeddingRetryCount}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
+                  onClick={embeddingStatus === 'failed' ? handleGenerateEmbedding : undefined}
+                  disabled={embeddingStatus === 'processing'}
+                  title={
+                    embeddingStatus === 'pending'
+                      ? 'Embedding pending'
+                      : embeddingStatus === 'processing'
+                        ? 'Generating embedding...'
+                        : embeddingStatus === 'failed'
+                          ? 'Click to retry'
+                          : ''
+                  }
+                >
                   {embeddingStatus === 'pending' && (
                     <div className="relative">
                       <div className="w-1.5 h-1.5 bg-yellow-200 animate-ping absolute inset-0" />
                       <div className="w-1.5 h-1.5 bg-yellow-300 relative" />
                     </div>
                   )}
-                  {embeddingStatus === 'processing' && (
-                    <svg className="w-3 h-3 text-white animate-spin" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                  )}
-                  {embeddingStatus === 'failed' && (
-                    <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  )}
-                </>
-              )}
-            </button>
-          </div>
-        )}
-
-        {/* No success checkmark - we don't show anything when ready (the default state) */}
-      </div>
-
-      {/* Debug info overlay when in debug mode */}
-      {isDebugMode && (embeddingStatus !== 'ready' || debugInfo.apiResponseTime) && (
-        <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/80 text-[9px] font-mono text-[#B3B7BE]">
-          <div className="flex items-center gap-2">
-            <span className="text-[#7C5CFF]">Debug:</span>
-            <span>{embeddingStatus}</span>
-            {asset.embeddingRetryCount !== undefined && (
-              <span>R{asset.embeddingRetryCount}</span>
-            )}
-            {debugInfo.apiResponseTime && (
-              <span>{debugInfo.apiResponseTime}ms</span>
+                  {embeddingStatus === 'processing' && <Loader2 className="w-3 h-3 text-white animate-spin" />}
+                  {embeddingStatus === 'failed' && <AlertCircle className="w-3 h-3 text-white" />}
+                </Button>
+              </div>
             )}
           </div>
-        </div>
-      )}
-    </div>
+
+          {/* Debug info overlay */}
+          {isDebugMode && (embeddingStatus !== 'ready' || debugInfo.apiResponseTime) && (
+            <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/80 text-[9px] font-mono text-muted-foreground">
+              <div className="flex items-center gap-2">
+                <span className="text-primary">Debug:</span>
+                <span>{embeddingStatus}</span>
+                {asset.embeddingRetryCount !== undefined && <span>R{asset.embeddingRetryCount}</span>}
+                {debugInfo.apiResponseTime && <span>{debugInfo.apiResponseTime}ms</span>}
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.targetAsset && (

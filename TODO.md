@@ -485,9 +485,9 @@
   - Type-check passes
   ```
 
-- [~] Create Keyboard Shortcuts Help dialog
+- [x] Create Keyboard Shortcuts Help dialog
   ```
-  Files: components/chrome/keyboard-shortcuts-help.tsx:1-171
+  Files: components/chrome/keyboard-shortcuts-help.tsx:1-143
   Approach: Rebuild with shadcn Dialog + custom content layout
   Pattern: DialogHeader, DialogContent with shortcut list, use <kbd> tags
   Remove: Custom modal styling, manual keyboard handling
@@ -496,6 +496,18 @@
   Test: Modal accessible, keyboard shortcuts formatted correctly
   Module: Help dialog—keyboard shortcuts reference
   Time: 45min
+  Commit: c7c3f20
+  Work Log:
+  - Replaced custom backdrop/modal with shadcn Dialog
+  - Replaced manual close button with DialogHeader (automatic X button)
+  - Replaced hardcoded colors with shadcn tokens (bg-muted/50, text-muted-foreground, border-border)
+  - Used DialogHeader, DialogTitle, DialogDescription for semantic structure
+  - Used Separator between categories for visual breaks
+  - Radix provides automatic ESC handling, focus trap, backdrop click close
+  - Removed manual animation classes (Dialog provides smooth transitions)
+  - Preserved <kbd> tag styling for keyboard shortcuts
+  - Simplified from 163 to 143 lines (12% reduction, 20 lines removed)
+  - Type-check passes
   ```
 
 **Phase 2 Deliverable**: Navigation, search, and primary UI chrome rebuilt with shadcn primitives. Theme system functional.
@@ -506,7 +518,7 @@
 
 ### 3.1 Image Display Components
 
-- [ ] Migrate ImageTile to shadcn Card + Button
+- [~] Migrate ImageTile to shadcn Card + Button
   ```
   Files: components/library/image-tile.tsx:1-400
   Approach: Wrap in shadcn Card, replace action buttons with Button variants
