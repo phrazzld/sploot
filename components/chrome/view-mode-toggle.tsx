@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+import { LayoutGrid, List } from 'lucide-react';
 
 export type ViewMode = 'grid' | 'list';
 
@@ -16,7 +18,7 @@ interface ViewModeToggleProps {
 
 /**
  * View mode toggle component with grid and list icons
- * Each button is a 40x40px touch target with accent color active state
+ * Two-button toggle group with active state highlighting
  */
 export function ViewModeToggle({
   value,
@@ -26,80 +28,30 @@ export function ViewModeToggle({
   size = 'md',
   showLabels = false,
 }: ViewModeToggleProps) {
-  const sizeConfig = {
-    sm: {
-      button: 'w-8 h-8',
-      icon: 'w-4 h-4',
-      gap: 'gap-0.5',
-      fontSize: 'text-xs',
-    },
-    md: {
-      button: 'w-10 h-10', // 40x40px as specified
-      icon: 'w-5 h-5',
-      gap: 'gap-1',
-      fontSize: 'text-sm',
-    },
-    lg: {
-      button: 'w-12 h-12',
-      icon: 'w-6 h-6',
-      gap: 'gap-1.5',
-      fontSize: 'text-base',
-    },
-  };
-
-  const config = sizeConfig[size];
-
   const viewModes: Array<{
     value: ViewMode;
     label: string;
-    icon: React.ReactElement;
+    icon: typeof LayoutGrid;
   }> = [
     {
       value: 'grid',
       label: 'Grid',
-      icon: (
-        <svg
-          className={config.icon}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"
-          />
-        </svg>
-      ),
+      icon: LayoutGrid,
     },
     {
       value: 'list',
       label: 'List',
-      icon: (
-        <svg
-          className={config.icon}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M4 6h16M4 12h16M4 18h16"
-          />
-        </svg>
-      ),
+      icon: List,
     },
   ];
+
+  // Map custom size to Button size prop
+  const buttonSize = size === 'md' ? 'default' : size;
 
   return (
     <div
       className={cn(
-        'flex items-center',
-        config.gap,
-        'bg-black border border-[#333333] p-0.5',
+        'inline-flex items-center gap-0.5 p-0.5 bg-muted rounded-md',
         className
       )}
       role="radiogroup"
@@ -107,28 +59,18 @@ export function ViewModeToggle({
     >
       {viewModes.map((mode) => {
         const isActive = value === mode.value;
+        const Icon = mode.icon;
 
         return (
-          <button
+          <Button
             key={mode.value}
+            variant={isActive ? 'default' : 'ghost'}
+            size={buttonSize}
             onClick={() => onChange(mode.value)}
             className={cn(
-              // Base styles
-              'flex items-center justify-center',
-              'group relative',
-
-              // Size
-              config.button,
-
-              // Colors and states
-              isActive
-                ? 'bg-[var(--color-terminal-green)] text-black'
-                : 'text-[#888888] hover:text-[var(--color-terminal-green)] hover:bg-[#0F1012]',
-
-              // Touch target optimization
-              'touch-manipulation',
-
-              // Custom classes
+              'gap-1.5',
+              isActive && 'shadow-sm',
+              !showLabels && 'w-10 px-0',
               buttonClassName
             )}
             role="radio"
@@ -136,14 +78,9 @@ export function ViewModeToggle({
             aria-label={mode.label}
             title={mode.label}
           >
-            {mode.icon}
-
-            {showLabels && (
-              <span className={cn('ml-1.5 font-mono uppercase', config.fontSize)}>
-                {mode.label}
-              </span>
-            )}
-          </button>
+            <Icon className="h-4 w-4" />
+            {showLabels && <span>{mode.label}</span>}
+          </Button>
         );
       })}
     </div>
@@ -173,45 +110,21 @@ export function ViewModeCycle({
     onChange(modes[nextIndex]);
   };
 
-  const sizeConfig = {
-    sm: 'w-8 h-8 text-xs',
-    md: 'w-10 h-10 text-sm',
-    lg: 'w-12 h-12 text-base',
-  };
+  // Map custom size to Button size prop
+  const buttonSize = size === 'md' ? 'icon' : size === 'sm' ? 'icon-sm' : 'icon-lg';
 
-  const icons = {
-    grid: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-      </svg>
-    ),
-    masonry: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 13a1 1 0 011-1h4a1 1 0 011 1v6a1 1 0 01-1 1h-4a1 1 0 01-1-1v-6z" />
-      </svg>
-    ),
-    list: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-      </svg>
-    ),
-  };
+  const Icon = value === 'grid' ? LayoutGrid : List;
 
   return (
-    <button
+    <Button
+      variant="outline"
+      size={buttonSize}
       onClick={handleClick}
-      className={cn(
-        'flex items-center justify-center',
-        'bg-black border border-[#333333]',
-        'text-[#888888] hover:text-[var(--color-terminal-green)] hover:bg-[#0F1012]',
-        'group',
-        sizeConfig[size],
-        className
-      )}
+      className={className}
       aria-label={`View mode: ${value}`}
       title={`View mode: ${value} (click to cycle)`}
     >
-      {icons[value]}
-    </button>
+      <Icon className="h-4 w-4" />
+    </Button>
   );
 }

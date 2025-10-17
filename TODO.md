@@ -441,19 +441,29 @@
   - Type-check passes
   ```
 
-- [~] Replace Filter Chips with Badge components
+- [x] Replace Filter Chips with Badge components
   ```
-  Files: components/chrome/filter-chips.tsx:1-87
-  Approach: Use shadcn Badge (variant="outline") with close button
-  Pattern: Badge + Button (variant="ghost", size="icon") for remove
+  Files: components/chrome/filter-chips.tsx:1-122
+  Approach: Use shadcn Button (variant="default"/"outline") for toggle group
+  Pattern: Button with active/inactive variants
   Remove: Custom chip styling, manual hover states
-  Success: Filter chips render, close button removes filter
-  Test: Chips display active filters, remove button triggers callback
-  Module: Filter chips—active filter display
+  Success: Filter chips render, active state highlights current filter
+  Test: Chips display filters, click toggles state, aria-pressed updates
+  Module: Filter chips—filter toggle display
   Time: 30min
+  Commit: ca16c9b
+  Work Log:
+  - Replaced custom button styles with shadcn Button variants
+  - Replaced custom SVG icons with Lucide (Star, Clock)
+  - Replaced hardcoded colors with shadcn tokens
+  - Used variant="default" for active, variant="outline" for inactive
+  - Star icon fills when favorites filter active (fill-current)
+  - Size mapping: custom 'md' → Button 'default'
+  - Simplified from 211 to 122 lines (42% reduction, 89 lines removed)
+  - Type-check passes
   ```
 
-- [ ] Migrate View Mode Toggle to Tabs
+- [~] Migrate View Mode Toggle to Tabs
   ```
   Files: components/chrome/view-mode-toggle.tsx:1-71
   Approach: Replace with shadcn Tabs or create custom with Button variants
