@@ -665,7 +665,7 @@
   - Type check passed
   ```
 
-- [~] Update File List to use ScrollArea
+- [x] Update File List to use ScrollArea
   ```
   Files: components/upload/file-list-virtual.tsx:1-267
   Approach: Wrap virtual list in shadcn ScrollArea
@@ -676,9 +676,19 @@
   Test: Large file lists render quickly, scrolling performant
   Module: File list—virtualized upload queue display
   Time: 45min
+
+  Work Log:
+  - Wrapped virtualized container in shadcn ScrollArea
+  - Migrated file rows to Card with semantic border colors
+  - Replaced manual progress bars with shadcn Progress
+  - Used Badge for status indicators (queued, uploading, pending)
+  - Migrated duplicate view link to shadcn Button (link variant)
+  - Replaced all hardcoded colors with semantic tokens (primary, yellow-500, muted, muted-foreground)
+  - Preserved virtualization: dynamic sizing, overscan, CSS containment for 60fps with 10k+ files
+  - Type check passed
   ```
 
-- [ ] Replace Background Sync Status with Toast
+- [x] Replace Background Sync Status with Toast
   ```
   Files: components/upload/background-sync-status.tsx:1-87
   Approach: Use shadcn toast (Sonner) for sync notifications
@@ -689,11 +699,17 @@
   Test: Toast appears on sync events, multiple toasts stack correctly
   Module: Sync notifications—background upload feedback
   Time: 45min
+
+  Work Log:
+  - Component not in use (grep found no imports)
+  - Background sync status already handled inline in UploadZone via Alert (migrated in previous task)
+  - Custom toast system already exists in components/ui/toast.tsx with showToast() helper
+  - Skipping as redundant - sync notifications use existing Alert + toast infrastructure
   ```
 
 ### 3.3 Banners and Alerts
 
-- [ ] Migrate Asset Integrity Banner to shadcn Alert
+- [~] Migrate Asset Integrity Banner to shadcn Alert
   ```
   Files: components/library/asset-integrity-banner.tsx:1-34
   Approach: Replace with Alert (variant="destructive")
