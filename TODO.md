@@ -730,7 +730,7 @@
   - Type check passed
   ```
 
-- [~] Migrate Blob Error Banner to shadcn Alert
+- [x] Migrate Blob Error Banner to shadcn Alert
   ```
   Files: components/library/blob-error-banner.tsx:1-47
   Approach: Replace with Alert (variant="destructive")
@@ -739,6 +739,16 @@
   Test: Banner displays on blob failures, action triggers retry
   Module: Blob error—storage failure notification
   Time: 20min
+
+  Work Log:
+  - Migrated to Alert with variant="destructive", fixed positioning
+  - Replaced SVG icons with Lucide (AlertTriangle with animate-pulse, RotateCw)
+  - Used Button (outline variant with custom primary colors for retry action)
+  - Replaced animate-slide-down with Tailwind animate-in utilities
+  - Swapped hardcoded colors (orange-400, #7C5CFF) with semantic tokens (destructive, primary)
+  - Preserved circuit breaker countdown functionality and reset handler
+  - Simplified from 56 to 44 lines
+  - Type check passed
   ```
 
 **Phase 3 Deliverable**: Image display and upload components rebuilt with shadcn primitives. Core user flows functional.
@@ -749,7 +759,7 @@
 
 ### 4.1 Search Components
 
-- [ ] Rebuild Query Syntax Indicator with Badge + Tooltip
+- [~] Rebuild Query Syntax Indicator with Badge + Tooltip
   ```
   Files: components/search/query-syntax-indicator.tsx:1-63
   Approach: Badge with query info, Tooltip with syntax help
