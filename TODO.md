@@ -566,20 +566,33 @@
   - Type-check passes
   ```
 
-- [~] Migrate ImageList to use shadcn ScrollArea + Card
+- [x] Migrate ImageList to use shadcn ScrollArea + Card
   ```
-  Files: components/library/image-list.tsx:1-297
+  Files: components/library/image-list.tsx:1-317
   Approach: Wrap in ScrollArea, use Card for each list item
   Pattern: ScrollArea > list of Cards with Separator between items
   Keep: List layout logic, same handlers as ImageGrid
-  Remove: Custom scroll container styling
+  Remove: Custom scroll container styling, hardcoded terminal colors
   Success: List view renders, scrolling smooth, items separated
   Test: List scrolls correctly, items clickable, actions work
   Module: Image list—list view of images
   Time: 1hr
+  Commit: ec100d3
+  Work Log:
+  - Wrapped component in shadcn ScrollArea for scrolling container
+  - Replaced custom ListRow div with Card component
+  - Replaced custom action buttons with shadcn Button + Lucide icons (Heart, Trash2, Loader2)
+  - Replaced custom tag badges with shadcn Badge (variant="outline")
+  - Added Separator between list items for visual separation
+  - Replaced hardcoded colors with shadcn tokens (bg-muted, border-border, text-muted-foreground)
+  - Replaced custom hover/focus styles with shadcn focus-visible:ring-2 and hover:border-primary
+  - Favorite badge uses green-500 (matching ImageTile green favorite state)
+  - Preserved all handlers, scroll detection (92% threshold), empty state transitions
+  - Simplified from 324 to 317 lines (2% reduction, 7 lines removed)
+  - Type-check passes
   ```
 
-- [ ] Rebuild Empty State with shadcn Card + Button
+- [~] Rebuild Empty State with shadcn Card + Button
   ```
   Files: components/library/empty-state.tsx:1-94
   Approach: Simple Card with centered content and CTA Button
