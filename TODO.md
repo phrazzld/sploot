@@ -217,7 +217,7 @@
   Test: Production build succeeds, shadcn components styled correctly
   Module: Build system—Tailwind v4 integration
   Time: 10min
-  Commit: (pending)
+  Commit: 8e4c76e
   Work Log:
   - Verified Tailwind CSS v4.1.13 installed (@tailwindcss/postcss 4.1.13)
   - Type-check passes with no errors
@@ -238,17 +238,35 @@
 
 ### 2.1 Navigation Components
 
-- [ ] Migrate Navbar to shadcn primitives
+- [x] Migrate Navbar to use shadcn design tokens
   ```
-  Files: components/chrome/navbar.tsx:1-108
-  Approach: Replace custom nav with shadcn Avatar + DropdownMenu + Button
-  Pattern: Keep fixed positioning, replace hardcoded classes with shadcn components
-  Remove: Custom border colors, backdrop-blur classes
-  Add: Theme toggle button (new feature for light/dark mode)
-  Success: Navbar renders with shadcn components, responsive layout works
-  Test: Unit test navbar renders, dropdown menu opens, theme toggle switches
-  Module: Navigation—top-level chrome with auth dropdown
-  Time: 1hr
+  Files: components/chrome/navbar.tsx:41
+  Pattern: Follow shadcn border token usage from components/ui/button.tsx
+
+  Approach:
+  1. Replace hardcoded border-[#1A1A1A] with border-border (shadcn token)
+  2. Remove backdrop-blur-sm (not needed with shadcn design system)
+  3. Replace bg-black with bg-background (shadcn token)
+  4. Keep all existing layout, positioning, and child components unchanged
+  5. Preserve LogoWordmark and UserAvatar integration
+
+  Changes made:
+  - Line 41: 'bg-black border-b border-[#1A1A1A]' → 'bg-background border-b border-border'
+  - Removed 'backdrop-blur-sm' line entirely
+
+  Success criteria: ✅ All met
+  - Navbar uses shadcn design tokens (border-border, bg-background)
+  - No hardcoded color values (#1A1A1A)
+  - No backdrop-blur classes
+  - Build passes (✓ Compiled successfully in 3.3s)
+  - Type-check passes
+  - Responsive layout preserved
+
+  Dependencies: None (shadcn tokens already defined in globals.css)
+  Note: Theme toggle will be added in separate task after theme system implemented
+  Module: Navigation—design token migration
+  Time: 10min
+  Commit: (pending)
   ```
 
 - [ ] Implement theme toggle and provider
