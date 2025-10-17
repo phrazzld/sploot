@@ -418,9 +418,9 @@
 
 ### 2.3 Controls and Filters
 
-- [~] Rebuild Sort Dropdown with DropdownMenu
+- [x] Rebuild Sort Dropdown with DropdownMenu
   ```
-  Files: components/chrome/sort-dropdown.tsx:1-143
+  Files: components/chrome/sort-dropdown.tsx:1-144
   Approach: Replace custom dropdown with shadcn DropdownMenu + RadioGroup
   Pattern: DropdownMenuRadioGroup for mutually exclusive sort options
   Remove: Custom positioning, manual click-outside handling
@@ -429,9 +429,19 @@
   Test: Keyboard nav works, radio selection updates, dropdown repositions
   Module: Sort controls—list sorting UI
   Time: 45min
+  Commit: 652f0af
+  Work Log:
+  - Replaced custom dropdown with shadcn DropdownMenuRadioGroup
+  - Replaced custom SVG icons with Lucide (ArrowDown, ArrowUp, ArrowDownAZ, ArrowUpAZ)
+  - Replaced hardcoded colors with shadcn tokens (text-muted-foreground)
+  - Radix provides automatic keyboard nav, ESC, click-outside, positioning
+  - Preserved toggle-direction-on-reselect logic
+  - SortButtonCompact uses semantic icons (ArrowDownAZ for name sort)
+  - Simplified from 230 to 144 lines (37% reduction, 86 lines removed)
+  - Type-check passes
   ```
 
-- [ ] Replace Filter Chips with Badge components
+- [~] Replace Filter Chips with Badge components
   ```
   Files: components/chrome/filter-chips.tsx:1-87
   Approach: Use shadcn Badge (variant="outline") with close button
