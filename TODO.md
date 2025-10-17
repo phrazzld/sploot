@@ -177,7 +177,7 @@
   Test: Text renders in Geist Sans by default, code uses JetBrains Mono
   Module: Typography—font loading and CSS variables
   Time: 15min
-  Commit: (pending)
+  Commit: 5880ff2
   Work Log:
   - Added font-sans utility class to body element (layout.tsx:122)
   - Verified @theme block correctly maps fonts (globals.css:45-46)
@@ -189,7 +189,7 @@
 
 ### 1.4 Install Required Dependencies
 
-- [ ] Install shadcn peer dependencies
+- [x] Install shadcn peer dependencies
   ```
   Files: package.json, pnpm-lock.yaml
   Command: pnpm add class-variance-authority clsx tailwind-merge lucide-react
@@ -198,6 +198,14 @@
   Test: Import { cva } and lucide icons, verify tree-shaking works
   Module: Dependencies—variant management and icons
   Time: 10min
+  Note: Dependencies already installed during shadcn component batches
+  Work Log:
+  - Verified all 4 dependencies installed: CVA 0.7.1, clsx 2.1.1, tailwind-merge 3.3.1, lucide-react 0.546.0
+  - Confirmed no peer dependency warnings with pnpm list
+  - Tested imports: cva, clsx, twMerge, lucide icons all functional
+  - Verified usage in components: CVA (3 files), lucide-react (5 files)
+  - Confirmed lib/utils.ts cn() helper uses clsx + tailwind-merge
+  - Tree-shaking ready with named exports
   ```
 
 - [ ] Verify Tailwind CSS v4 compatibility
