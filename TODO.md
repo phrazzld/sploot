@@ -759,7 +759,7 @@
 
 ### 4.1 Search Components
 
-- [~] Rebuild Query Syntax Indicator with Badge + Tooltip
+- [x] Rebuild Query Syntax Indicator with Badge + Tooltip
   ```
   Files: components/search/query-syntax-indicator.tsx:1-63
   Approach: Badge with query info, Tooltip with syntax help
@@ -770,9 +770,20 @@
   Test: Badge renders with correct variant, tooltip displays on hover
   Module: Query indicator—search query feedback
   Time: 30min
+
+  Work Log:
+  - Replaced terminal-style text with Badge components (outline, secondary, default, destructive variants)
+  - Query badge: outline variant with monospace font
+  - Filters badge: secondary variant with yellow-500 text
+  - Results badge: dynamic variant (green-500 for results, destructive for none)
+  - Latency badge: outline variant with muted text
+  - Added Tooltip with HelpCircle icon for syntax help
+  - Replaced manual separators with gap spacing
+  - Swapped terminal colors with semantic tokens (muted-foreground, green-500, yellow-500)
+  - Type check passed
   ```
 
-- [ ] Migrate Similarity Score Legend to Card + Badge
+- [~] Migrate Similarity Score Legend to Card + Badge
   ```
   Files: components/search/similarity-score-legend.tsx:1-51
   Approach: Card with color-coded Badges for score ranges

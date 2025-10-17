@@ -2,6 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { X } from 'lucide-react';
 
 interface SimilarityScoreLegendProps {
   className?: string;
@@ -10,7 +14,7 @@ interface SimilarityScoreLegendProps {
 const STORAGE_KEY = 'sploot_similarity_legend_dismissed';
 
 /**
- * Terminal-style legend explaining similarity score color coding
+ * Legend explaining similarity score color coding with badges
  * Shows on first search, dismissible with localStorage persistence
  */
 export function SimilarityScoreLegend({ className }: SimilarityScoreLegendProps) {
@@ -30,47 +34,52 @@ export function SimilarityScoreLegend({ className }: SimilarityScoreLegendProps)
   if (isDismissed) return null;
 
   return (
-    <div
-      className={cn(
-        'flex items-center justify-between gap-4  border border-[#2A2F37] bg-[#0F1216] p-3',
-        'text-xs font-mono',
-        className
-      )}
-    >
-      <div className="flex items-center gap-4 flex-wrap">
-        <span className="text-[#888888]">CONFIDENCE:</span>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 border-2 border-[var(--color-terminal-green)]" />
-          <span className="text-[#B3B7BE]">
-            High match <span className="text-[#6A6E78]">(≥85%)</span>
-          </span>
-        </div>
-        <span className="text-[#464C55]">•</span>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 border-2 border-[var(--color-terminal-yellow)]" />
-          <span className="text-[#B3B7BE]">
-            Medium <span className="text-[#6A6E78]">(70-85%)</span>
-          </span>
-        </div>
-        <span className="text-[#464C55]">•</span>
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 border-2 border-[#464C55]" />
-          <span className="text-[#B3B7BE]">
-            Standard <span className="text-[#6A6E78]">(&lt;70%)</span>
-          </span>
-        </div>
-      </div>
+    <Card className={cn('animate-in fade-in-50 duration-200', className)}>
+      <CardContent className="flex items-center justify-between gap-4 p-3">
+        <div className="flex items-center gap-4 flex-wrap">
+          <span className="text-xs font-mono text-muted-foreground">CONFIDENCE:</span>
 
-      <button
-        onClick={handleDismiss}
-        className="flex items-center gap-1 text-[#6A6E78] hover:text-[#B3B7BE] transition-colors shrink-0"
-        title="Dismiss legend"
-      >
-        <span className="text-xs">HIDE</span>
-        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-        </svg>
-      </button>
-    </div>
+          {/* High match badge */}
+          <div className="flex items-center gap-2">
+            <Badge className="bg-green-500 hover:bg-green-500 text-white border-green-500">
+              High match
+            </Badge>
+            <span className="text-xs text-muted-foreground">(≥85%)</span>
+          </div>
+
+          <span className="text-muted-foreground/40">•</span>
+
+          {/* Medium match badge */}
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-yellow-500">
+              Medium
+            </Badge>
+            <span className="text-xs text-muted-foreground">(70-85%)</span>
+          </div>
+
+          <span className="text-muted-foreground/40">•</span>
+
+          {/* Standard badge */}
+          <div className="flex items-center gap-2">
+            <Badge variant="outline">
+              Standard
+            </Badge>
+            <span className="text-xs text-muted-foreground">(&lt;70%)</span>
+          </div>
+        </div>
+
+        {/* Dismiss button */}
+        <Button
+          onClick={handleDismiss}
+          size="sm"
+          variant="ghost"
+          className="shrink-0 gap-1 text-xs"
+          title="Dismiss legend"
+        >
+          <span>HIDE</span>
+          <X className="size-3" />
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
