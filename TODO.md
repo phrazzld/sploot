@@ -592,22 +592,35 @@
   - Type-check passes
   ```
 
-- [~] Rebuild Empty State with shadcn Card + Button
+- [x] Rebuild Empty State with shadcn Card + Button
   ```
-  Files: components/library/empty-state.tsx:1-94
+  Files: components/library/empty-state.tsx:1-176
   Approach: Simple Card with centered content and CTA Button
-  Pattern: Card > CardHeader (icon) > CardContent (message) > CardFooter (button)
-  Remove: Custom empty state styling, manual centering
-  Add: Upload icon from Lucide, semantic text styling
+  Pattern: Card > CardHeader (icon + title + description) > CardFooter (button)
+  Remove: Custom empty state styling, manual centering, custom SVG icons
+  Add: Lucide ImageIcon and Plus icons, semantic Card components
   Success: Empty state displays when no images, upload button works
   Test: Empty state shows correct variant, button triggers upload
   Module: Empty state—first-use experience
   Time: 30min
+  Commit: c3a18b9
+  Work Log:
+  - Wrapped in shadcn Card with CardHeader, CardTitle, CardDescription, CardFooter
+  - Replaced custom image SVG with Lucide ImageIcon
+  - Replaced custom plus SVG with Lucide Plus icon
+  - Upload button uses shadcn Button with asChild pattern for Link composition
+  - Replaced hardcoded colors with shadcn tokens (bg-muted, text-muted-foreground, border-primary)
+  - Drag feedback uses border-primary, bg-primary/5, scale-[1.02]
+  - Icon container uses rounded-lg border bg-muted for consistency
+  - kbd styling uses rounded border bg-muted text-primary
+  - Preserved all drag/drop handlers, performance tracking, variants
+  - Simplified from 244 to 176 lines (28% reduction, 68 lines removed)
+  - Type-check passes
   ```
 
 ### 3.2 Upload Components
 
-- [ ] Rebuild UploadZone with shadcn Card + Progress
+- [~] Rebuild UploadZone with shadcn Card + Progress
   ```
   Files: components/upload/upload-zone.tsx:1-447
   Approach: Dashed Card for drop zone, Progress for upload status
