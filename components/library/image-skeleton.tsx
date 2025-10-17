@@ -1,6 +1,8 @@
 'use client';
 
 import { cn } from '@/lib/utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card, CardContent } from '@/components/ui/card';
 
 interface ImageSkeletonProps {
   className?: string;
@@ -11,25 +13,22 @@ export function ImageSkeleton({ className, variant = 'tile' }: ImageSkeletonProp
   if (variant === 'list') {
     return (
       <div className={cn('flex items-center gap-4 p-4', className)}>
-        <div className="h-16 w-16 flex-shrink-0 animate-pulse bg-[#1B1F24]" />
+        <Skeleton className="h-16 w-16 flex-shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-3/4 animate-pulse rounded bg-[#1B1F24]" />
-          <div className="h-3 w-1/2 animate-pulse rounded bg-[#1B1F24]/70" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
         </div>
       </div>
     );
   }
 
-  // Default tile variant
+  // Default tile variant - matches ImageTile Card structure
   return (
-    <div className={cn('group relative overflow-hidden  bg-[#1B1F24] animate-pulse', className)}>
-      <div className="aspect-square w-full">
-        <div className="absolute inset-0 bg-gradient-to-t from-[#0F1216]/60 to-transparent opacity-0" />
-      </div>
-      <div className="absolute bottom-0 left-0 right-0 p-4">
-        <div className="h-3 w-2/3 rounded bg-[#2A2F37]/50" />
-      </div>
-    </div>
+    <Card className={cn('overflow-hidden border', className)}>
+      <CardContent className="p-0">
+        <Skeleton className="aspect-square w-full" />
+      </CardContent>
+    </Card>
   );
 }
 
@@ -39,11 +38,7 @@ interface ImageGridSkeletonProps {
   className?: string;
 }
 
-export function ImageGridSkeleton({
-  count = 12,
-  variant = 'tile',
-  className
-}: ImageGridSkeletonProps) {
+export function ImageGridSkeleton({ count = 12, variant = 'tile', className }: ImageGridSkeletonProps) {
   if (variant === 'list') {
     return (
       <div className={cn('space-y-1', className)}>
@@ -58,7 +53,7 @@ export function ImageGridSkeleton({
   return (
     <div
       className={cn(
-        'grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
+        'grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6',
         className
       )}
     >
@@ -73,7 +68,7 @@ export function ImageGridSkeleton({
 export function OptimizedImageSkeleton({
   className,
   variant = 'tile',
-  isExiting = false
+  isExiting = false,
 }: ImageSkeletonProps & { isExiting?: boolean }) {
   const baseClasses = cn(
     'transition-all duration-300 ease-out transform-gpu will-change-transform',
@@ -84,25 +79,21 @@ export function OptimizedImageSkeleton({
   if (variant === 'list') {
     return (
       <div className={cn('flex items-center gap-4 p-4', baseClasses)}>
-        <div className="h-16 w-16 flex-shrink-0 bg-[#1B1F24] skeleton-shimmer" />
+        <Skeleton className="h-16 w-16 flex-shrink-0" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-3/4 rounded bg-[#1B1F24] skeleton-shimmer" />
-          <div className="h-3 w-1/2 rounded bg-[#1B1F24]/70 skeleton-shimmer" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2 opacity-70" />
         </div>
       </div>
     );
   }
 
-  // Default tile variant with optimized shimmer
+  // Default tile variant with optimized transitions
   return (
-    <div className={cn(
-      'group relative overflow-hidden  bg-[#1B1F24] skeleton-shimmer',
-      baseClasses
-    )}>
-      <div className="aspect-square w-full" />
-      <div className="absolute bottom-0 left-0 right-0 p-4">
-        <div className="h-3 w-2/3 rounded bg-[#2A2F37]/50" />
-      </div>
-    </div>
+    <Card className={cn('overflow-hidden border', baseClasses)}>
+      <CardContent className="p-0">
+        <Skeleton className="aspect-square w-full" />
+      </CardContent>
+    </Card>
   );
 }

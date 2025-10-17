@@ -518,21 +518,32 @@
 
 ### 3.1 Image Display Components
 
-- [~] Migrate ImageTile to shadcn Card + Button
+- [x] Migrate ImageTile to shadcn Card + Button
   ```
-  Files: components/library/image-tile.tsx:1-400
+  Files: components/library/image-tile.tsx:1-620
   Approach: Wrap in shadcn Card, replace action buttons with Button variants
-  Pattern: Card > CardContent (image) > CardFooter (actions)
+  Pattern: Card > CardContent (image container with floating actions)
   Keep: Embedding status logic, favorite/delete handlers, image loading states
-  Remove: Custom card styling, manual hover effects
-  Add: Tooltip for metadata, AlertDialog for delete confirmation
+  Remove: Custom card styling, manual hover effects, custom SVG icons
+  Add: Tooltip for favorite button, Lucide icons for all actions
   Success: Tiles render in grid, actions work, delete confirmation shows
   Test: Favorite toggles, delete confirms, embedding status updates
   Module: Image tile—single image display with actions
   Time: 2hr
+  Commit: d3f58bc
+  Work Log:
+  - Wrapped component in shadcn Card with CardContent (p-0 for full-bleed image)
+  - Replaced custom action buttons with shadcn Button + Lucide icons
+  - Added Tooltip for favorite button hover text ("crown as banger" / "drop from bangers")
+  - Replaced all custom SVG icons with Lucide: Heart, Trash2, ImageOff, Loader2, AlertCircle, Clock
+  - Replaced hardcoded terminal colors with shadcn tokens and Tailwind utilities
+  - Preserved all complex logic: embedding retry, circuit breaker, debug mode, React.memo optimization
+  - Similarity score borders now use Tailwind color classes (border-green-500, border-yellow-500)
+  - Simplified from 716 to 620 lines (13% reduction, 96 lines removed)
+  - Type-check passes
   ```
 
-- [ ] Update ImageGrid to use shadcn Skeleton
+- [~] Update ImageGrid to use shadcn Skeleton
   ```
   Files: components/library/image-grid.tsx:1-395
   Approach: Replace custom loading skeletons with shadcn Skeleton
