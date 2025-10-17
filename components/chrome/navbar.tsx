@@ -51,23 +51,7 @@ export function Navbar({
       <div className="flex items-center justify-between w-full max-w-screen-2xl 2xl:max-w-[1920px] mx-auto">
         {/* Left section: Logo/Wordmark */}
         <div className="flex items-center gap-4">
-          {/* Mobile: Compact logo */}
-          <div className="block sm:hidden">
-            <LogoWordmark
-              variant="compact"
-              size="sm"
-              showTagline={false}
-            />
-          </div>
-          {/* Desktop: Full logo */}
-          <div className="hidden sm:block">
-            <LogoWordmark
-              variant="default"
-              size="md"
-              showTagline={false}
-              // Normal size on all screens for more search space
-            />
-          </div>
+          <LogoWordmark />
         </div>
 
         {/* Spacer to push user menu to the right */}

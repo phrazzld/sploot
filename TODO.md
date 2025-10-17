@@ -293,9 +293,9 @@
   - Dark mode CSS variables already configured in globals.css
   ```
 
-- [~] Migrate User Avatar and dropdown menu
+- [x] Migrate User Avatar and dropdown menu
   ```
-  Files: components/chrome/user-avatar.tsx:1-127
+  Files: components/chrome/user-avatar.tsx:1-172
   Approach: Replace with shadcn Avatar + DropdownMenu
   Pattern: Keep Clerk user data integration, simplify dropdown items
   Remove: Custom hover states, manual dropdown positioning
@@ -304,9 +304,17 @@
   Test: Avatar renders with fallback, dropdown keyboard navigation works
   Module: User menu—authentication UI
   Time: 45min
+  Commit: 58642f3
+  Work Log:
+  - Replaced custom dropdown with shadcn DropdownMenu primitive
+  - Replaced custom SVG icons with Lucide (Settings, LogOut)
+  - Used destructive variant for sign-out menu item
+  - Preserved all Clerk auth integration and handlers
+  - Simplified from 225 lines to 172 lines (53 line reduction)
+  - Build passes, type-check passes
   ```
 
-- [ ] Simplify Logo/Wordmark component
+- [~] Simplify Logo/Wordmark component
   ```
   Files: components/chrome/logo-wordmark.tsx:1-89
   Approach: Keep SVG, remove custom size variants, use Tailwind directly

@@ -4,121 +4,38 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface LogoWordmarkProps {
-  variant?: 'default' | 'compact' | 'icon-only';
-  size?: 'sm' | 'md' | 'lg';
-  showTagline?: boolean;
   className?: string;
-  linkClassName?: string;
 }
 
 /**
  * Logo/Wordmark component for sploot
- * Consistent branding across navbar, sidebar, and other locations
+ * Simplified - just SVG + text, responsive sizing via Tailwind
  */
-export function LogoWordmark({
-  variant = 'default',
-  size = 'md',
-  showTagline = false,
-  className,
-  linkClassName,
-}: LogoWordmarkProps) {
-  // Size configurations
-  const sizeConfig = {
-    sm: {
-      icon: 'w-6 h-6',
-      text: 'text-xl',
-      tagline: 'text-[10px]',
-      gap: 'gap-1.5',
-    },
-    md: {
-      icon: 'w-8 h-8',
-      text: 'text-2xl',
-      tagline: 'text-xs',
-      gap: 'gap-2',
-    },
-    lg: {
-      icon: 'w-10 h-10',
-      text: 'text-3xl',
-      tagline: 'text-sm',
-      gap: 'gap-3',
-    },
-  };
-
-  const config = sizeConfig[size];
-
-  // Icon SVG component (can be replaced with actual logo)
-  const LogoIcon = () => (
-    <div
-      className={cn(
-        'flex items-center justify-center',
-        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
-        config.icon
-      )}
-    >
-      <span className="font-mono font-bold text-black text-xs">S</span>
-    </div>
-  );
-
-  // Render based on variant
-  const renderLogo = () => {
-    switch (variant) {
-      case 'icon-only':
-        return (
-          <div className={cn('flex items-center', className)}>
-            <LogoIcon />
-          </div>
-        );
-
-      case 'compact':
-        return (
-          <div className={cn('flex items-center', config.gap, className)}>
-            <LogoIcon />
-            <span
-              className={cn(
-                'font-mono font-bold uppercase text-[#E6E8EB] tracking-wider',
-                config.text
-              )}
-            >
-              s
-            </span>
-          </div>
-        );
-
-      default:
-        return (
-          <div className={cn('flex items-center', config.gap, className)}>
-            <LogoIcon />
-            <div className="flex flex-col">
-              <span
-                className={cn(
-                  'font-mono font-bold uppercase text-[#E6E8EB] tracking-wider leading-tight',
-                  config.text,
-                  'hover:text-[var(--color-terminal-green)]'
-                )}
-              >
-                sploot
-              </span>
-              {showTagline && (
-                <span className={cn('font-mono text-[#888888] mt-0.5 uppercase', config.tagline)}>
-                  Your meme library
-                </span>
-              )}
-            </div>
-          </div>
-        );
-    }
-  };
-
+export function LogoWordmark({ className }: LogoWordmarkProps) {
   return (
     <Link
       href="/app"
-      className={cn(
-        'inline-flex items-center group',
-        linkClassName
-      )}
+      className={cn('inline-flex items-center gap-2', className)}
       aria-label="Sploot - Home"
     >
-      {renderLogo()}
+      {/* Logo icon */}
+      <div className="flex items-center justify-center size-8 bg-primary border border-primary">
+        <span className="font-mono font-bold text-primary-foreground text-xs">
+          S
+        </span>
+      </div>
+
+      {/* Wordmark - hidden on mobile */}
+      <div className="hidden sm:flex flex-col">
+        <span className="font-mono font-bold uppercase text-foreground tracking-wider leading-tight text-2xl hover:text-primary transition-colors">
+          sploot
+        </span>
+      </div>
+
+      {/* Mobile - just show 's' */}
+      <span className="sm:hidden font-mono font-bold uppercase text-foreground tracking-wider text-xl">
+        s
+      </span>
     </Link>
   );
 }
@@ -131,14 +48,13 @@ export function LogoIcon({ className, size = 32 }: { className?: string; size?: 
   return (
     <div
       className={cn(
-        'flex items-center justify-center',
-        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
+        'flex items-center justify-center bg-primary border border-primary',
         className
       )}
       style={{ width: size, height: size }}
     >
       <span
-        className="font-mono font-bold text-black"
+        className="font-mono font-bold text-primary-foreground"
         style={{ fontSize: size * 0.4 }}
       >
         S
