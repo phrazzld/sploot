@@ -543,20 +543,30 @@
   - Type-check passes
   ```
 
-- [~] Update ImageGrid to use shadcn Skeleton
+- [x] Update ImageGrid to use shadcn Skeleton
   ```
-  Files: components/library/image-grid.tsx:1-395
+  Files: components/library/image-skeleton.tsx:1-99
   Approach: Replace custom loading skeletons with shadcn Skeleton
-  Pattern: Keep virtual scrolling (@tanstack/react-virtual), replace loaders
-  Keep: Grid layout logic, scroll handlers, load more functionality
-  Remove: Custom skeleton shimmer animation, manual opacity transitions
-  Success: Grid renders with virtual scrolling, skeleton loaders display
-  Test: Scrolling loads more items, skeleton transitions smoothly to images
-  Module: Image grid—virtualized image gallery
+  Pattern: Skeleton component for pulse animation, Card wrapper for tile variant
+  Keep: Grid layout logic (handled by ImageGridSkeleton)
+  Remove: Custom skeleton shimmer animation, hardcoded bg colors
+  Success: Skeleton loaders display with shadcn animations
+  Test: Skeletons match ImageTile Card structure, transitions smooth
+  Module: Image skeleton—loading placeholder components
   Time: 1.5hr
+  Commit: 2058bcf
+  Work Log:
+  - Replaced custom skeleton divs with shadcn Skeleton component
+  - Wrapped tile variant in Card + CardContent to match ImageTile structure
+  - Removed hardcoded colors (bg-[#1B1F24], bg-[#2A2F37])
+  - Shadcn Skeleton provides built-in pulse animation automatically
+  - Preserved tile and list variants, OptimizedImageSkeleton with exit transitions
+  - Updated grid columns to match ImageGrid spacing (gap-2, grid-cols-2...xl:6)
+  - Simplified from 108 to 99 lines (8% reduction, 9 lines removed)
+  - Type-check passes
   ```
 
-- [ ] Migrate ImageList to use shadcn ScrollArea + Card
+- [~] Migrate ImageList to use shadcn ScrollArea + Card
   ```
   Files: components/library/image-list.tsx:1-297
   Approach: Wrap in ScrollArea, use Card for each list item

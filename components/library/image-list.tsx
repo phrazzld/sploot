@@ -4,11 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { KeyboardEvent, MouseEvent } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
-import { HeartIcon } from '@/components/icons/heart-icon';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { ImageGridSkeleton } from './image-skeleton';
 import { EmptyState } from './empty-state';
 import { error as logError } from '@/lib/logger';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Heart, Trash2, Loader2 } from 'lucide-react';
 import type { Asset } from '@/lib/types';
 
 interface ImageListProps {
@@ -116,14 +121,14 @@ function ListRow({
 
   return (
     <>
-      <div
+      <Card
         role="button"
         tabIndex={0}
         onClick={handleRowClick}
         onKeyDown={handleRowKeyDown}
-        className="group flex w-full items-center gap-3 bg-[#0F1012] px-3 py-2 text-left border border-transparent hover:border-[var(--color-terminal-green)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-green)]"
+        className="group flex w-full cursor-pointer items-center gap-3 border-transparent px-3 py-2 transition-colors hover:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
-        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden bg-[#0F1012] border border-[#333333]">
+        <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden border border-border bg-muted">
           <Image
             src={asset.thumbnailUrl || asset.blobUrl}
             alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
@@ -132,65 +137,65 @@ function ListRow({
             className="h-full w-full object-cover"
           />
           {asset.favorite && (
-            <span className="absolute -top-1 -right-1 inline-flex items-center justify-center border border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-black">
+            <Badge variant="default" className="absolute -top-1 -right-1 bg-green-500 text-black">
               fav
-            </span>
+            </Badge>
           )}
         </div>
 
         <div className="flex flex-1 items-center gap-4">
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-[#E6E8EB]">{asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image'}</p>
-            <p className="mt-1 text-xs text-[#8E94A3]">{asset.mime.toUpperCase()}</p>
+            <p className="truncate text-sm font-medium">
+              {asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image'}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{asset.mime.toUpperCase()}</p>
             {asset.tags && asset.tags.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-1">
                 {asset.tags.slice(0, 3).map((tag) => (
-                  <span key={tag.id} className="border border-[#333333] bg-black px-2 py-0.5 font-mono text-[10px] text-[#888888]">
+                  <Badge key={tag.id} variant="outline" className="font-mono text-[10px]">
                     #{tag.name}
-                  </span>
+                  </Badge>
                 ))}
                 {asset.tags.length > 3 && (
-                  <span className="font-mono text-[10px] text-[#666666]">+{asset.tags.length - 3}</span>
+                  <span className="font-mono text-[10px] text-muted-foreground">+{asset.tags.length - 3}</span>
                 )}
               </div>
             )}
           </div>
 
-          <div className="hidden min-w-[160px] font-mono text-xs text-[#8E94A3] md:block">
-            {asset.width && asset.height ? `${asset.width}×${asset.height}` : 'unknown'} | {formatFileSize(asset.size || 0)}
+          <div className="hidden min-w-[160px] font-mono text-xs text-muted-foreground md:block">
+            {asset.width && asset.height ? `${asset.width}×${asset.height}` : 'unknown'} |{' '}
+            {formatFileSize(asset.size || 0)}
           </div>
 
-          <div className="hidden min-w-[120px] font-mono text-xs text-[#8E94A3] xl:block">{formatTimestamp(asset.createdAt)}</div>
+          <div className="hidden min-w-[120px] font-mono text-xs text-muted-foreground xl:block">
+            {formatTimestamp(asset.createdAt)}
+          </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
+            <Button
+              variant={asset.favorite ? 'default' : 'outline'}
+              size="icon"
               onClick={handleFavoriteToggle}
               aria-pressed={asset.favorite}
-              className={cn(
-                'inline-flex h-9 w-9 items-center justify-center border focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-green)]',
-                asset.favorite
-                  ? 'border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] text-black'
-                  : 'border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]'
-              )}
+              className={cn(asset.favorite && 'bg-green-500 hover:bg-green-600 border-green-500')}
               title={asset.favorite ? 'drop from bangers' : 'crown as banger'}
             >
-              <HeartIcon className="h-4 w-4" filled={asset.favorite} />
-            </button>
+              <Heart className={cn('h-4 w-4', asset.favorite && 'fill-current')} />
+            </Button>
 
-            <button
-              type="button"
+            <Button
+              variant="outline"
+              size="icon"
               onClick={handleDeleteClick}
-              className="inline-flex h-9 w-9 items-center justify-center border border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-red)] hover:bg-[var(--color-terminal-red)] hover:text-black focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-red)]"
+              className="hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
               title="rage delete"
             >
-              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-            </button>
+              <Trash2 className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-      </div>
+      </Card>
 
       {deleteConfirmation.targetAsset && (
         <DeleteConfirmationModal
@@ -227,11 +232,10 @@ export function ImageList({
   // Handle transition from skeleton to empty state
   useEffect(() => {
     if (!loading && assets.length === 0) {
-      // Start transition: show skeleton fading out
       setShowingTransition(true);
       const timer = setTimeout(() => {
         setShowingTransition(false);
-      }, 300); // Match the fade-out duration
+      }, 300);
       return () => clearTimeout(timer);
     }
   }, [loading, assets.length]);
@@ -254,8 +258,6 @@ export function ImageList({
   }, [hasMore, loading, onLoadMore]);
 
   const emptyState = useMemo(
-    // Hide upload button since the main page toolbar already has a prominent one
-    // Fade in after skeleton transition completes
     () => (
       <div className="animate-fade-in">
         <EmptyState variant="first-use" showUploadButton={false} />
@@ -265,10 +267,10 @@ export function ImageList({
   );
 
   return (
-    <div
+    <ScrollArea
       ref={containerRef}
-      className={cn('h-full overflow-auto transition-all duration-300 ease-out', containerClassName)}
-      style={{ scrollbarGutter: 'stable' }}
+      className={cn('h-full', containerClassName)}
+      style={{ scrollbarGutter: 'stable' } as React.CSSProperties}
     >
       {assets.length === 0 && loading ? (
         <ImageGridSkeleton count={12} variant="list" className="animate-fade-in" />
@@ -283,42 +285,33 @@ export function ImageList({
       ) : (
         <div className="space-y-1">
           {assets.map((asset, index) => (
-            <ListRow
-              key={asset.id}
-              asset={asset}
-              onAssetUpdate={onAssetUpdate}
-              onAssetDelete={onAssetDelete}
-              onAssetSelect={onAssetSelect}
-            />
+            <div key={asset.id}>
+              <ListRow
+                asset={asset}
+                onAssetUpdate={onAssetUpdate}
+                onAssetDelete={onAssetDelete}
+                onAssetSelect={onAssetSelect}
+              />
+              {index < assets.length - 1 && <Separator />}
+            </div>
           ))}
 
           {loading && (
-            <div className="flex items-center justify-center py-6 font-mono text-sm uppercase text-[#888888]">
-              <svg className="h-5 w-5 animate-spin text-[var(--color-terminal-green)]" viewBox="0 0 24 24" fill="none">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                />
-              </svg>
-              <span className="ml-2">loading more</span>
+            <div className="flex items-center justify-center gap-2 py-6">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <span className="font-mono text-sm uppercase text-muted-foreground">loading more</span>
             </div>
           )}
 
           {hasMore && !loading && onLoadMore && (
             <div className="flex justify-center py-6">
-              <button
-                type="button"
-                onClick={onLoadMore}
-                className="border border-[#333333] bg-black px-4 py-2 font-mono text-sm uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
-              >
+              <Button variant="outline" size="sm" onClick={onLoadMore} className="font-mono uppercase">
                 load more
-              </button>
+              </Button>
             </div>
           )}
         </div>
       )}
-    </div>
+    </ScrollArea>
   );
 }
