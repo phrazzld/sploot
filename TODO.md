@@ -390,21 +390,35 @@
   - Build passes, type-check passes
   ```
 
-- [~] Create search overlay with Dialog + Command
+- [x] Create search overlay with Dialog + Command
   ```
-  Files: components/chrome/search-overlay.tsx:1-187
+  Files: components/chrome/search-overlay.tsx:1-165
   Approach: Combine shadcn Dialog + Command for fullscreen search
   Pattern: Dialog contains Command, passes search results to parent
-  Remove: Custom modal styling, manual focus management
+  Remove: Custom modal styling, manual focus management, custom SVG icons
   Success: Overlay opens, search works, ESC closes, results display
   Test: Focus trapped in dialog, keyboard nav works, results clickable
   Module: Search overlay—fullscreen search experience
   Time: 1hr
+  Commit: dd8f63a
+  Work Log:
+  - Replaced custom backdrop/modal with shadcn Dialog
+  - Embedded Command component for search interface
+  - Replaced custom SVG icons with Lucide (Search, X)
+  - Replaced custom input with CommandInput
+  - Replaced hardcoded colors with shadcn tokens
+  - Dialog handles focus trap, ESC key, backdrop click automatically
+  - CommandEmpty shows suggestions when no query entered
+  - CommandItem shows "Search for" action when query exists
+  - Used Button component for primary search action
+  - Simplified from 235 to 165 lines (30% reduction, 70 lines removed)
+  - Automatic accessibility from Radix UI Dialog
+  - Build passes, type-check passes
   ```
 
 ### 2.3 Controls and Filters
 
-- [ ] Rebuild Sort Dropdown with DropdownMenu
+- [~] Rebuild Sort Dropdown with DropdownMenu
   ```
   Files: components/chrome/sort-dropdown.tsx:1-143
   Approach: Replace custom dropdown with shadcn DropdownMenu + RadioGroup
