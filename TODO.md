@@ -620,7 +620,7 @@
 
 ### 3.2 Upload Components
 
-- [~] Rebuild UploadZone with shadcn Card + Progress
+- [x] Rebuild UploadZone with shadcn Card + Progress
   ```
   Files: components/upload/upload-zone.tsx:1-447
   Approach: Dashed Card for drop zone, Progress for upload status
@@ -632,9 +632,19 @@
   Test: Drag-drop works, multiple files queue, errors display
   Module: Upload zone—file drop and upload interface
   Time: 2hr
+
+  Work Log:
+  - Migrated drop zone to Card with border-dashed, hover/drag states
+  - Replaced all progress bars with shadcn Progress component
+  - Used Badge for status indicators (uploading, success, error, queued)
+  - Added Alert for background sync status and recovery notifications
+  - Replaced terminal colors with semantic tokens (primary, destructive, muted)
+  - Maintained all upload logic: virtual scrolling, adaptive concurrency, error handling
+  - Preserved deep module: simple Card/Progress API hiding complex upload orchestration
+  - Type check passed, build ready
   ```
 
-- [ ] Migrate Upload Progress Header with Card + Progress
+- [~] Migrate Upload Progress Header with Card + Progress
   ```
   Files: components/upload/upload-progress-header.tsx:1-89
   Approach: Card header with overall Progress bar

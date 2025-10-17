@@ -2,6 +2,10 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Button } from '@/components/ui/button';
+import { CheckCircle2, AlertCircle, ChevronDown } from 'lucide-react';
 
 export interface ProgressStats {
   totalFiles: number;
@@ -114,9 +118,9 @@ export function UploadProgressHeader({
   const hasFailures = stats.failed > 0;
 
   return (
-    <div
+    <Card
       className={cn(
-        'fixed top-4 right-4 z-50 w-96  border border-[#2A2F37] bg-[#14171A] shadow-2xl transition-all duration-300',
+        'fixed top-4 right-4 z-50 w-96 shadow-2xl transition-all duration-300',
         isCollapsed && 'w-auto',
         className
       )}
@@ -137,22 +141,24 @@ export function UploadProgressHeader({
                   cx="12"
                   cy="12"
                   r="10"
-                  stroke="#2A2F37"
+                  stroke="currentColor"
                   strokeWidth="2"
                   fill="none"
+                  className="text-muted"
                 />
                 <circle
                   cx="12"
                   cy="12"
                   r="10"
-                  stroke={hasFailures ? '#FF4D4D' : '#7C5CFF'}
+                  stroke="currentColor"
                   strokeWidth="2"
                   fill="none"
                   strokeDasharray={`${animationProgress * 0.628} 62.8`}
                   strokeLinecap="round"
+                  className={hasFailures ? 'text-destructive' : 'text-primary'}
                 />
               </svg>
-              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-white">
+              <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold">
                 {Math.round(animationProgress)}
               </span>
             </div>
@@ -161,24 +167,20 @@ export function UploadProgressHeader({
           {isComplete && (
             <div
               className={cn(
-                'flex h-6 w-6 items-center justify-center ',
-                hasFailures ? 'bg-[#FF4D4D]' : 'bg-[#B6FF6E]'
+                'flex h-6 w-6 items-center justify-center rounded-sm',
+                hasFailures ? 'bg-destructive text-destructive-foreground' : 'bg-green-500 text-white'
               )}
             >
               {hasFailures ? (
-                <svg className="h-3.5 w-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
+                <AlertCircle className="h-3.5 w-3.5" />
               ) : (
-                <svg className="h-3.5 w-3.5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                </svg>
+                <CheckCircle2 className="h-3.5 w-3.5" />
               )}
             </div>
           )}
 
           <div>
-            <h3 className="text-sm font-semibold text-[#E6E8EB]">
+            <h3 className="text-sm font-semibold">
               {isComplete
                 ? hasFailures
                   ? `${stats.ready} completed, ${stats.failed} failed`
@@ -186,105 +188,96 @@ export function UploadProgressHeader({
                 : `Processing ${stats.totalFiles} ${stats.totalFiles === 1 ? 'file' : 'files'}`}
             </h3>
             {!isCollapsed && !isComplete && (
-              <p className="text-xs text-[#B3B7BE]">{getEstimatedTime()}</p>
+              <p className="text-xs text-muted-foreground">{getEstimatedTime()}</p>
             )}
           </div>
         </div>
 
-        <button
+        <Button
           type="button"
-          className="p-1 text-[#B3B7BE] transition-colors hover:bg-[#1B1F24] hover:text-[#E6E8EB]"
+          variant="ghost"
+          size="icon-sm"
+          className="shrink-0"
         >
-          <svg
+          <ChevronDown
             className={cn('h-4 w-4 transition-transform', isCollapsed && 'rotate-180')}
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+          />
+        </Button>
       </div>
 
       {/* Expanded content */}
       {!isCollapsed && (
-        <div className="border-t border-[#2A2F37] p-4">
+        <div className="border-t p-4">
           {/* Stats grid */}
           <div className="mb-4 grid grid-cols-4 gap-2 text-center">
             <div>
-              <p className="text-xs text-[#B3B7BE]">Uploaded</p>
-              <p className="text-sm font-semibold text-[#E6E8EB]">{stats.uploaded}</p>
+              <p className="text-xs text-muted-foreground">Uploaded</p>
+              <p className="text-sm font-semibold">{stats.uploaded}</p>
             </div>
             <div>
-              <p className="text-xs text-[#B3B7BE]">Processing</p>
-              <p className="text-sm font-semibold text-[#7C5CFF]">{stats.processingEmbeddings}</p>
+              <p className="text-xs text-muted-foreground">Processing</p>
+              <p className="text-sm font-semibold text-primary">{stats.processingEmbeddings}</p>
             </div>
             <div>
-              <p className="text-xs text-[#B3B7BE]">Ready</p>
-              <p className="text-sm font-semibold text-[#B6FF6E]">{stats.ready}</p>
+              <p className="text-xs text-muted-foreground">Ready</p>
+              <p className="text-sm font-semibold text-green-500">{stats.ready}</p>
             </div>
             <div>
-              <p className="text-xs text-[#B3B7BE]">Failed</p>
-              <p className="text-sm font-semibold text-[#FF4D4D]">{stats.failed}</p>
+              <p className="text-xs text-muted-foreground">Failed</p>
+              <p className="text-sm font-semibold text-destructive">{stats.failed}</p>
             </div>
           </div>
 
-          {/* Dual-layer progress bar */}
-          <div className="space-y-2">
+          {/* Dual-layer progress bars */}
+          <div className="space-y-3">
             <div>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-[#B3B7BE]">Upload Progress</span>
-                <span className="font-semibold text-[#E6E8EB]">{uploadProgress}%</span>
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Upload Progress</span>
+                <span className="font-semibold">{uploadProgress}%</span>
               </div>
-              <div className="relative h-2 overflow-hidden bg-[#1B1F24]">
-                <div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#7C5CFF] to-[#9B7DFF] transition-all duration-300"
-                  style={{ width: `${uploadProgress}%` }}
-                />
-              </div>
+              <Progress value={uploadProgress} className="h-2" />
             </div>
 
             <div>
-              <div className="mb-1 flex items-center justify-between text-xs">
-                <span className="text-[#B3B7BE]">Embedding Progress</span>
-                <span className="font-semibold text-[#E6E8EB]">{embeddingProgress}%</span>
+              <div className="mb-1.5 flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">Embedding Progress</span>
+                <span className="font-semibold">{embeddingProgress}%</span>
               </div>
-              <div className="relative h-2 overflow-hidden bg-[#1B1F24]">
-                <div
-                  className="absolute inset-y-0 left-0 bg-gradient-to-r from-[#B6FF6E] to-[#8FFF3B] transition-all duration-300"
-                  style={{ width: `${embeddingProgress}%` }}
-                />
-              </div>
+              <Progress value={embeddingProgress} className="h-2 [&>div]:bg-green-500" />
             </div>
           </div>
 
           {/* Action buttons */}
           {isComplete && (
             <div className="mt-4 flex gap-2">
-              <button
+              <Button
                 type="button"
-                className="flex-1 bg-[#1B1F24] px-3 py-1.5 text-xs font-medium text-[#B3B7BE] transition-colors hover:bg-[#2A2F37] hover:text-[#E6E8EB]"
+                variant="outline"
+                size="sm"
+                className="flex-1"
                 onClick={() => window.location.href = '/app'}
               >
                 View Library
-              </button>
+              </Button>
               {hasFailures && (
-                <button
+                <Button
                   type="button"
-                  className="flex-1 bg-[#FF4D4D]/10 px-3 py-1.5 text-xs font-medium text-[#FF4D4D] transition-colors hover:bg-[#FF4D4D]/20"
+                  variant="destructive"
+                  size="sm"
+                  className="flex-1"
                   onClick={() => {
                     // Trigger retry for failed items
                     console.log('Retrying failed uploads...');
                   }}
                 >
                   Retry Failed
-                </button>
+                </Button>
               )}
             </div>
           )}
         </div>
       )}
-    </div>
+    </Card>
   );
 }
 
