@@ -364,20 +364,33 @@
   - SearchTrigger updated with Lucide icon, shadcn colors
   ```
 
-- [~] Rebuild Command Palette with shadcn Command
+- [x] Rebuild Command Palette with shadcn Command
   ```
-  Files: components/chrome/command-palette.tsx:1-241
+  Files: components/chrome/command-palette.tsx:1-183
   Approach: Replace entire component with shadcn Command primitive
   Pattern: Follow shadcn Command docs, use CommandDialog wrapper
-  Remove: Custom keyboard handling, manual filtering, custom styling
-  Add: CommandEmpty, CommandGroup, CommandSeparator for structure
+  Remove: Custom keyboard handling, manual filtering, custom styling, custom SVG icons
+  Add: CommandEmpty, CommandGroup, CommandSeparator for structure, Lucide icons
   Success: Cmd+K opens palette, arrow keys navigate, Enter executes
   Test: Keyboard shortcuts work, commands filter correctly, dialog closes
   Module: Command palette—keyboard-driven action menu
   Time: 1.5hr
+  Commit: 23a8cc7
+  Work Log:
+  - Replaced entire component with shadcn CommandDialog
+  - Replaced custom keyboard handling with cmdk built-in navigation
+  - Replaced custom filtering with automatic fuzzy search
+  - Replaced custom SVG icons with Lucide (Upload, Settings, Search, etc.)
+  - Organized into 4 groups: Actions, View Density, Navigation, Account
+  - Used CommandSeparator for visual separation
+  - Used CommandShortcut for keyboard hints
+  - Preserved useCommandPalette hook (state management)
+  - Automatic features: arrow key nav, Enter executes, Esc closes
+  - Simplified from 286 to 183 lines (36% reduction, 103 lines removed)
+  - Build passes, type-check passes
   ```
 
-- [ ] Create search overlay with Dialog + Command
+- [~] Create search overlay with Dialog + Command
   ```
   Files: components/chrome/search-overlay.tsx:1-187
   Approach: Combine shadcn Dialog + Command for fullscreen search
