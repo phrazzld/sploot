@@ -338,20 +338,33 @@
 
 ### 2.2 Search and Command Components
 
-- [~] Rebuild SearchBar with shadcn Input
+- [x] Rebuild SearchBar with shadcn Input
   ```
-  Files: components/chrome/search-bar-elastic.tsx:1-203
+  Files: components/chrome/search-bar-elastic.tsx:1-236
   Approach: Replace custom input with shadcn Input component
   Pattern: Keep debounce logic, search state management in parent
-  Remove: Custom border animations, elastic behavior
-  Add: Badge for search state (loading, success, error), Icon prefix
+  Remove: Custom border animations, custom SVG icons
+  Add: Badge for search state (loading, success, error), Lucide icons
   Success: Search input works, debouncing preserved, state indicators display
   Test: Search executes on Enter, debounce prevents excessive queries
   Module: Search input—primary search interface
   Time: 1hr
+  Commit: 8068a99
+  Work Log:
+  - Replaced custom input with shadcn Input component
+  - Replaced custom SVG icons with Lucide (Search, X)
+  - Added Badge for "Searching..." state indicator
+  - Replaced terminal colors with shadcn tokens:
+    - text-primary (focus), text-muted-foreground (default)
+    - text-destructive (clear hover), bg-background/border-border (kbd)
+  - Preserved elastic width expansion (200→400px)
+  - Preserved URL state, keyboard shortcuts (/, Enter, Esc)
+  - Preserved click-outside collapse behavior
+  - Simplified from 262 to 236 lines (10% reduction)
+  - SearchTrigger updated with Lucide icon, shadcn colors
   ```
 
-- [ ] Rebuild Command Palette with shadcn Command
+- [~] Rebuild Command Palette with shadcn Command
   ```
   Files: components/chrome/command-palette.tsx:1-241
   Approach: Replace entire component with shadcn Command primitive
