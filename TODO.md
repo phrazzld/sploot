@@ -128,9 +128,9 @@
 
 ### 1.3 Migrate Design System Tokens
 
-- [~] Replace custom CSS with shadcn color variables
+- [x] Replace custom CSS with shadcn color variables
   ```
-  Files: app/globals.css:3-13
+  Files: app/globals.css:6-8 (removed lines 7-13)
   Approach: Remove terminal color system, add shadcn HSL variables
   Replace:
     --color-terminal-green, --color-terminal-red, etc.
@@ -140,9 +140,16 @@
   Test: Button variants render with correct semantic colors
   Module: Design tokens—semantic color system
   Time: 30min
+  Commit: 30f4cc1
+  Work Log:
+  - Removed terminal color variables (green, red, yellow, gray)
+  - shadcn variables already present from init (lines 9-45)
+  - Dark mode variants defined (lines 260-292)
+  - 24 components reference terminal colors - will be fixed in Phase 2-4
+  - Build passes, shadcn test pages render correctly
   ```
 
-- [ ] Remove custom animations and add shadcn animations
+- [~] Remove custom animations and add shadcn animations
   ```
   Files: app/globals.css:28-198
   Approach: Delete shimmer, fadeInScale, slideDown animations

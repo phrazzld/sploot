@@ -79,7 +79,7 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
-/* Custom animations */
+/* Basic animations - keep for backward compatibility during migration */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -106,81 +106,8 @@
   animation: fadeOut 300ms ease-out forwards;
 }
 
-@keyframes scaleIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-scale-in {
-  animation: scaleIn 200ms ease-out;
-}
-
-@keyframes fadeInScale {
-  from {
-    opacity: 0;
-    transform: scale(0.5);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
-.animate-fade-in-scale {
-  animation: fadeInScale 300ms ease-out;
-}
-
-/* Skeleton loader shimmer animation */
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.skeleton-shimmer {
-  background: linear-gradient(
-    90deg,
-    #1B1F24 0%,
-    #242931 20%,
-    #1B1F24 40%,
-    #1B1F24 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite ease-in-out;
-  will-change: background-position;
-}
-
-/* Slide down animation for banner */
-@keyframes slideDown {
-  from {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.animate-slide-down {
-  animation: slideDown 300ms ease-out;
-}
-
-/* Optimized transitions for 60fps */
-.transition-skeleton {
-  transition: opacity 300ms ease-out, transform 300ms ease-out;
-  transform: translateZ(0); /* Force hardware acceleration */
-  backface-visibility: hidden; /* Prevent flickering */
-}
+/* shadcn/ui animations provided by tailwindcss-animate plugin */
+/* Radix UI components use: animate-in, animate-out, fade-in, fade-out, zoom-in, slide-in, etc. */
 
 /* Focus-visible styles for keyboard navigation */
 /* Remove default outline for mouse clicks/taps */
@@ -217,38 +144,6 @@ textarea:focus-visible,
 select:focus-visible {
   outline: 2px solid #7C5CFF;
   outline-offset: 0; /* No offset for form fields to avoid layout shift */
-}
-
-/* Dropdown menu animations */
-@keyframes dropdownFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dropdown-animate-in {
-  animation: dropdownFadeIn 140ms cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-/* For dropdowns that open upward (like footer dropdowns) */
-@keyframes dropdownFadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.dropdown-animate-in-up {
-  animation: dropdownFadeInUp 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .dark {
