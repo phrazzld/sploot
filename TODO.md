@@ -644,7 +644,7 @@
   - Type check passed, build ready
   ```
 
-- [~] Migrate Upload Progress Header with Card + Progress
+- [x] Migrate Upload Progress Header with Card + Progress
   ```
   Files: components/upload/upload-progress-header.tsx:1-89
   Approach: Card header with overall Progress bar
@@ -654,9 +654,18 @@
   Test: Progress bar fills as uploads complete, stats accurate
   Module: Upload header—overall upload status
   Time: 30min
+
+  Work Log:
+  - Migrated fixed header card to shadcn Card component
+  - Replaced manual progress bars with shadcn Progress (dual-layer: upload + embedding)
+  - Used Button variants (ghost for collapse, outline/destructive for actions)
+  - Swapped SVG icons with Lucide components (CheckCircle2, AlertCircle, ChevronDown)
+  - Replaced terminal colors with semantic tokens (primary, green-500, destructive, muted-foreground)
+  - Maintained smooth animation, time estimation, and useUploadProgress hook
+  - Type check passed
   ```
 
-- [ ] Update File List to use ScrollArea
+- [~] Update File List to use ScrollArea
   ```
   Files: components/upload/file-list-virtual.tsx:1-267
   Approach: Wrap virtual list in shadcn ScrollArea

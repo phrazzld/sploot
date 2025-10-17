@@ -8,6 +8,12 @@ import { UploadErrorDisplay } from './upload-error-display';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Loader2 } from 'lucide-react';
 
 interface FileListVirtualProps {
   fileMetadata: Map<string, FileMetadata>;
@@ -53,16 +59,16 @@ function FileRow({
       className="px-2"
       data-index={style.top}
     >
-      <div
+      <Card
         className={cn(
-          "bg-[#1B1F24]  p-3 border border-[#2A2F37] flex items-center transition-all",
-          hasError && "border-red-500/30"
+          "p-3 flex items-center transition-all",
+          hasError && "border-destructive/30"
         )}
         style={{ minHeight: `${baseHeight + errorHeight}px` }}
       >
         <div className="flex items-center gap-3 w-full">
           {/* File icon/preview */}
-          <div className="w-12 h-12 bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="w-12 h-12 bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 rounded">
             {file.blobUrl ? (
               <Image
                 src={file.blobUrl}
@@ -78,10 +84,10 @@ function FileRow({
 
           {/* File info */}
           <div className="flex-1 min-w-0">
-            <p className="text-[#E6E8EB] text-sm font-medium truncate">
+            <p className="text-sm font-medium truncate">
               {file.name}
             </p>
-            <p className="text-[#B3B7BE] text-xs">
+            <p className="text-muted-foreground text-xs">
               {formatFileSize(file.size)}
             </p>
           </div>
@@ -89,19 +95,17 @@ function FileRow({
           {/* Status */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {file.status === 'uploading' && (
-              <>
-                <div className="w-24 h-1 bg-[#2A2F37] overflow-hidden">
-                  <div
-                    className="h-full bg-[#7C5CFF] transition-all duration-300"
-                    style={{ width: `${file.progress}%` }}
-                  />
-                </div>
-                <span className="text-[#7C5CFF] text-xs">{file.progress}%</span>
-              </>
+              <div className="flex items-center gap-2">
+                <Progress value={file.progress} className="w-24 h-1" />
+                <Badge variant="default" className="gap-1">
+                  <Loader2 className="size-3 animate-spin" />
+                  {file.progress}%
+                </Badge>
+              </div>
             )}
 
             {file.status === 'queued' && (
-              <span className="text-[#B3B7BE] text-xs">Queued</span>
+              <Badge variant="outline">Queued</Badge>
             )}
 
             {file.status === 'success' && (
@@ -113,16 +117,21 @@ function FileRow({
 
             {file.status === 'duplicate' && (
               <div className="flex items-center gap-2 text-xs">
-                <span className="text-[#FFB020]">already exists</span>
+                <Badge variant="secondary" className="text-yellow-500">Already exists</Badge>
                 {file.needsEmbedding ? (
-                  <span className="text-[#7C5CFF]">• indexing...</span>
+                  <Badge variant="default" className="gap-1">
+                    <Loader2 className="size-3 animate-spin" />
+                    Indexing
+                  </Badge>
                 ) : (
-                  <button
+                  <Button
                     onClick={onViewDuplicate}
-                    className="text-[#7C5CFF] hover:text-[#9B7FFF] font-medium underline"
+                    size="sm"
+                    variant="link"
+                    className="h-auto p-0 underline"
                   >
                     view
-                  </button>
+                  </Button>
                 )}
               </div>
             )}
@@ -138,11 +147,11 @@ function FileRow({
             )}
 
             {file.status === 'pending' && (
-              <span className="text-[#B3B7BE] text-xs">Waiting...</span>
+              <Badge variant="outline">Waiting...</Badge>
             )}
           </div>
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -227,53 +236,55 @@ export function FileListVirtual({
   // Show empty state
   if (filesArray.length === 0) {
     return (
-      <div className="flex items-center justify-center h-[400px] text-[#B3B7BE]">
+      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
         <p>No files uploaded yet</p>
       </div>
     );
   }
 
   return (
-    <div
-      ref={parentRef}
-      className="h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-[#2A2F37] scrollbar-track-[#14171A]"
-      style={{
-        contain: 'strict', // CSS containment for better performance
-      }}
-    >
+    <ScrollArea className="h-[400px]">
       <div
+        ref={parentRef}
+        className="h-[400px] overflow-y-auto"
         style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
+          contain: 'strict', // CSS containment for better performance
         }}
       >
-        {virtualItems.map((virtualItem) => {
-          const file = filesArray[virtualItem.index];
-          if (!file) return null;
+        <div
+          style={{
+            height: `${virtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
+        >
+          {virtualItems.map((virtualItem) => {
+            const file = filesArray[virtualItem.index];
+            if (!file) return null;
 
-          return (
-            <FileRow
-              key={file.id}
-              file={file}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                transform: `translateY(${virtualItem.start}px)`,
-              }}
-              formatFileSize={formatFileSize}
-              onStatusChange={(status, error) => handleStatusChange(file.id, status, error)}
-              onRetry={() => retryUpload(file)}
-              onRemove={() => removeFile(file.id)}
-              onViewDuplicate={() => handleViewDuplicate(file.assetId || '')}
-              measureElement={virtualizer.measureElement}
-            />
-          );
-        })}
+            return (
+              <FileRow
+                key={file.id}
+                file={file}
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualItem.start}px)`,
+                }}
+                formatFileSize={formatFileSize}
+                onStatusChange={(status, error) => handleStatusChange(file.id, status, error)}
+                onRetry={() => retryUpload(file)}
+                onRemove={() => removeFile(file.id)}
+                onViewDuplicate={() => handleViewDuplicate(file.assetId || '')}
+                measureElement={virtualizer.measureElement}
+              />
+            );
+          })}
+        </div>
       </div>
-    </div>
+    </ScrollArea>
   );
 }
 
