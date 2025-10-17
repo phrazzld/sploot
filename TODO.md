@@ -463,19 +463,29 @@
   - Type-check passes
   ```
 
-- [~] Migrate View Mode Toggle to Tabs
+- [x] Migrate View Mode Toggle to Tabs
   ```
-  Files: components/chrome/view-mode-toggle.tsx:1-71
-  Approach: Replace with shadcn Tabs or create custom with Button variants
-  Pattern: Two buttons (grid/list) with active state, toggle on click
+  Files: components/chrome/view-mode-toggle.tsx:1-130
+  Approach: Replace with shadcn Button variants in toggle group pattern
+  Pattern: Two buttons (grid/list) with active state, bg-muted container
   Remove: Custom toggle styling, manual active state classes
   Success: Toggle switches views, active state highlights current view
   Test: Click toggles view mode, keyboard nav works (Tab + Enter)
   Module: View controls—grid/list view switcher
   Time: 30min
+  Commit: 93043e1
+  Work Log:
+  - Replaced custom toggle buttons with shadcn Button variants
+  - Replaced custom SVG icons with Lucide (LayoutGrid, List)
+  - Replaced hardcoded colors with shadcn tokens (bg-muted container)
+  - Used variant="default" for active, variant="ghost" for inactive
+  - ViewModeCycle uses icon button variants (icon-sm, icon, icon-lg)
+  - Container uses bg-muted with p-0.5 and gap-0.5 for pill group effect
+  - Simplified from 217 to 130 lines (40% reduction, 87 lines removed)
+  - Type-check passes
   ```
 
-- [ ] Create Keyboard Shortcuts Help dialog
+- [~] Create Keyboard Shortcuts Help dialog
   ```
   Files: components/chrome/keyboard-shortcuts-help.tsx:1-171
   Approach: Rebuild with shadcn Dialog + custom content layout
