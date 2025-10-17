@@ -783,7 +783,7 @@
   - Type check passed
   ```
 
-- [~] Migrate Similarity Score Legend to Card + Badge
+- [x] Migrate Similarity Score Legend to Card + Badge
   ```
   Files: components/search/similarity-score-legend.tsx:1-51
   Approach: Card with color-coded Badges for score ranges
@@ -793,9 +793,21 @@
   Test: Legend renders, colors match similarity scores on tiles
   Module: Score legend—similarity score reference
   Time: 30min
+
+  Work Log:
+  - Migrated to Card with CardContent for container structure
+  - High match: Badge with green-500 background (custom color)
+  - Medium match: Badge (secondary variant) with yellow-500 text
+  - Standard: Badge (outline variant)
+  - Dismiss button: Button (ghost, sm) with Lucide X icon
+  - Replaced border color boxes with Badge components for consistency
+  - Swapped hardcoded colors with semantic tokens (muted-foreground)
+  - Added Tailwind animate-in for smooth appearance
+  - Preserved localStorage dismissal logic
+  - Type check passed
   ```
 
-- [ ] Rebuild Search Loading Screen with Skeleton
+- [~] Rebuild Search Loading Screen with Skeleton
   ```
   Files: components/search/search-loading-screen.tsx:1-32
   Approach: Grid of shadcn Skeleton components
