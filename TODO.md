@@ -314,21 +314,31 @@
   - Build passes, type-check passes
   ```
 
-- [~] Simplify Logo/Wordmark component
+- [x] Simplify Logo/Wordmark component
   ```
-  Files: components/chrome/logo-wordmark.tsx:1-89
+  Files: components/chrome/logo-wordmark.tsx:1-65, navbar.tsx:52-70
   Approach: Keep SVG, remove custom size variants, use Tailwind directly
   Pattern: Minimal component, just SVG + text, no abstraction needed
-  Remove: Size props, custom variant logic
+  Remove: Size props, custom variant logic, showTagline prop
   Success: Logo renders at correct size, responsive breakpoints work
   Test: Logo displays on mobile and desktop, scales correctly
   Module: Branding—simple logo display
   Time: 20min
+  Commit: 452c612
+  Work Log:
+  - Removed variant prop (default/compact/icon-only)
+  - Removed size prop (sm/md/lg) - now handled by Tailwind responsive classes
+  - Removed showTagline prop (never used in codebase)
+  - Built-in responsive: mobile shows 's', desktop shows 'sploot'
+  - Replaced terminal colors with shadcn tokens (bg-primary, text-foreground)
+  - Simplified from 148 lines to 65 lines (56% reduction)
+  - Updated navbar to use single LogoWordmark (removed conditional mobile/desktop)
+  - Module value improved: simpler interface, same functionality
   ```
 
 ### 2.2 Search and Command Components
 
-- [ ] Rebuild SearchBar with shadcn Input
+- [~] Rebuild SearchBar with shadcn Input
   ```
   Files: components/chrome/search-bar-elastic.tsx:1-203
   Approach: Replace custom input with shadcn Input component
