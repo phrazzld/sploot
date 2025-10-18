@@ -831,7 +831,7 @@
 
 ### 4.2 Tags Components
 
-- [~] Rebuild Tag Input with Input + Badge + Popover
+- [x] Rebuild Tag Input with Input + Badge + Popover
   ```
   Files: components/tags/tag-input.tsx:1-189
   Approach: Input for new tags, Badges for existing, Popover for suggestions
@@ -842,13 +842,25 @@
   Test: Enter adds tag, click badge removes tag, suggestions selectable
   Module: Tag input—tag management interface
   Time: 1hr
+
+  Work Log:
+  - Tag chips: Badge (secondary variant) with primary text color
+  - Remove buttons: Button (ghost, icon-sm) with Lucide X icon
+  - Input: shadcn Input with borderless styling inside container
+  - Container: div with focus-within ring matching Input focus states
+  - Suggestions: Popover with filtered Button list
+  - Implemented tag suggestions feature (was TODO)
+  - Added suggestions prop for autocomplete
+  - Replaced hardcoded colors with semantic tokens (primary, border, muted-foreground)
+  - Maintained keyboard shortcuts (Enter, comma, Tab, Backspace)
+  - Type check passed
   ```
 
 ### 4.3 Modals and Dialogs
 
-- [ ] Migrate Delete Confirmation Modal to AlertDialog
+- [x] Migrate Delete Confirmation Modal to AlertDialog
   ```
-  Files: components/ui/delete-confirmation-modal.tsx:1-214
+  Files: components/ui/delete-confirmation-modal.tsx:1-168
   Approach: Replace entirely with shadcn AlertDialog
   Pattern: AlertDialog > AlertDialogHeader + AlertDialogFooter with actions
   Remove: Custom modal component and hook
@@ -857,6 +869,20 @@
   Test: Dialog blocks UI, ESC cancels, Delete button triggers callback
   Module: Delete confirmation—destructive action warning
   Time: 45min
+  Commit: [pending]
+
+  Work Log:
+  - Migrated to AlertDialog with AlertDialogContent container
+  - Replaced manual backdrop/ESC handling with Radix primitives
+  - Replaced custom checkbox with shadcn Checkbox + Label
+  - Used AlertDialogAction with destructive variant for delete button
+  - Added Lucide Loader2 icon for loading state
+  - Replaced hardcoded colors with semantic tokens (bg-muted, text-foreground, bg-destructive)
+  - Preserved useDeleteConfirmation hook interface (no breaking changes)
+  - Preserved localStorage "skipDeleteConfirmation" preference
+  - Radix provides automatic focus trap, ESC handling, backdrop click close
+  - Simplified from 259 to 168 lines (35% reduction, 91 lines removed)
+  - Type-check passes
   ```
 
 ### 4.4 Feedback and Status Components
