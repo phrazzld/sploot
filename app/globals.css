@@ -105,6 +105,17 @@
   animation: fadeOut 300ms ease-out forwards;
 }
 
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* shadcn/ui animations provided by tailwindcss-animate plugin */
 /* Radix UI components use: animate-in, animate-out, fade-in, fade-out, zoom-in, slide-in, etc. */
 
@@ -186,4 +197,21 @@ select:focus-visible {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+/* Override Tailwind rounded-* classes to use CSS variable for consistent radius */
+.rounded-sm {
+  border-radius: var(--radius-sm) !important;
+}
+
+.rounded-md {
+  border-radius: var(--radius-md) !important;
+}
+
+.rounded-lg {
+  border-radius: var(--radius-lg) !important;
+}
+
+.rounded-xl {
+  border-radius: var(--radius-xl) !important;
 }

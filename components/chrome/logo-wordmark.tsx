@@ -19,7 +19,7 @@ export function LogoWordmark({ className }: LogoWordmarkProps) {
       aria-label="Sploot - Home"
     >
       {/* Logo icon */}
-      <div className="flex items-center justify-center size-8 bg-primary border border-primary">
+      <div className="flex items-center justify-center size-8 bg-primary border border-primary rounded-lg">
         <span className="font-mono font-bold text-primary-foreground text-xs">
           S
         </span>
@@ -48,7 +48,7 @@ export function LogoIcon({ className, size = 32 }: { className?: string; size?: 
   return (
     <div
       className={cn(
-        'flex items-center justify-center bg-primary border border-primary',
+        'flex items-center justify-center bg-primary border border-primary rounded-lg',
         className
       )}
       style={{ width: size, height: size }}
