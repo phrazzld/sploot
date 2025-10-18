@@ -869,7 +869,7 @@
   Test: Dialog blocks UI, ESC cancels, Delete button triggers callback
   Module: Delete confirmation—destructive action warning
   Time: 45min
-  Commit: [pending]
+  Commit: fa67f69
 
   Work Log:
   - Migrated to AlertDialog with AlertDialogContent container
@@ -887,9 +887,9 @@
 
 ### 4.4 Feedback and Status Components
 
-- [ ] Replace Toast with Sonner integration
+- [x] Replace Toast with Sonner integration
   ```
-  Files: components/ui/toast.tsx:1-158, app/layout.tsx:5
+  Files: components/ui/toast.tsx:1-39, app/layout.tsx:5, app/app/page.tsx:151,262
   Approach: Remove custom toast, install and configure sonner
   Pattern: Add Toaster component to layout, use toast() function
   Remove: Custom toast component and ToastContainer
@@ -898,6 +898,20 @@
   Test: Multiple toasts stack, variants styled correctly, actions work
   Module: Toast system—transient notifications
   Time: 45min
+  Commit: [pending]
+
+  Work Log:
+  - Installed sonner 2.0.7 package
+  - Replaced entire custom toast implementation with Sonner wrapper
+  - Maintained backward-compatible showToast() function signature
+  - Removed 4th parameter (terminalStyle) - not needed with Sonner
+  - Updated 2 call sites in app/app/page.tsx (removed terminalStyle arg)
+  - Replaced ToastContainer with Toaster in app/layout.tsx
+  - Type mapping: success/complete → toast.success, error → toast.error, info → toast.info, processing → toast.loading
+  - Re-exported toast function for direct usage
+  - Simplified from 180 to 39 lines (78% reduction, 141 lines removed)
+  - Sonner provides automatic stacking, animations, dark mode support
+  - Type-check passes
   ```
 
 - [ ] Simplify Status Line with Badge + Separator

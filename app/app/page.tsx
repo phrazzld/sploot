@@ -148,7 +148,7 @@ function AppPageClient() {
 
       // Show a subtle notification that library was refreshed
       if (event.detail?.filename) {
-        showToast(`[COMPLETE] Indexed: ${event.detail.filename}`, 'complete', 3000, true);
+        showToast(`[COMPLETE] Indexed: ${event.detail.filename}`, 'complete', 3000);
       }
     };
 
@@ -258,8 +258,7 @@ function AppPageClient() {
             showToast(
               `[COMPLETE] Retried ${completed} ${completed === 1 ? 'meme' : 'memes'}`,
               'complete',
-              3000,
-              true
+              3000
             );
           }, 1000);
         }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/client";
-import { ToastContainer } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/toast";
 import { EmbeddingStatusProvider } from "@/contexts/embedding-status-context";
 import { ThemeProvider } from "@/components/theme-provider";
 
@@ -129,7 +129,7 @@ export default function RootLayout({
               disableTransitionOnChange
             >
               {children}
-              <ToastContainer />
+              <Toaster />
             </ThemeProvider>
           </body>
         </html>
