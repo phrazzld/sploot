@@ -360,9 +360,7 @@ function ImageTileComponent({
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
                   className={cn(
                     'h-full w-full',
-                    preserveAspectRatio ? 'object-contain' : 'object-cover',
-                    imageLoaded ? 'opacity-100' : 'opacity-0',
-                    'transition-opacity duration-300 ease-out'
+                    preserveAspectRatio ? 'object-contain' : 'object-cover'
                   )}
                   loading="lazy"
                   onLoad={() => {
