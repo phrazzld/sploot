@@ -924,7 +924,7 @@
   Test: Stats update correctly, separators visible, layout responsive
   Module: Status line—system metrics display
   Time: 30min
-  Commit: [pending]
+  Commit: 67b8b0a
 
   Work Log:
   - Migrated to shadcn Badge (outline variant) for all metrics
@@ -940,9 +940,9 @@
   - Type-check passes
   ```
 
-- [ ] Rebuild Stats Display with Badge or Card
+- [x] Rebuild Stats Display with Badge or Card
   ```
-  Files: components/chrome/stats-display.tsx:1-54
+  Files: components/chrome/stats-display.tsx:1-129
   Approach: Inline Badge components or small Card for grouped stats
   Pattern: Badge for single stat, Card for multiple related stats
   Remove: Custom stats styling
@@ -950,6 +950,19 @@
   Test: Stats display correct values, colors indicate status
   Module: Stats display—data visualization
   Time: 20min
+  Commit: [pending]
+
+  Work Log:
+  - Migrated both StatsDisplay and StatsCompact to shadcn Badge components
+  - Each stat wrapped in Badge variant="outline" with font-mono and tabular-nums
+  - Used Separator (vertical, h-4) between stat badges
+  - Replaced hardcoded colors (var(--color-terminal-gray)) with semantic tokens (text-muted-foreground for labels)
+  - Preserved all animation logic: useAnimatedNumber, useAnimatedSize hooks
+  - Preserved formatSizeCompact logic in StatsCompact
+  - Preserved showLabels prop and conditional label rendering
+  - Removed manual opacity/tracking-wide classes (handled by Badge styling)
+  - Simplified from 127 to 129 lines (nearly identical, cleaner structure)
+  - Type-check passes
   ```
 
 **Phase 4 Deliverable**: All domain-specific components rebuilt on shadcn primitives. Search and tagging functional.
