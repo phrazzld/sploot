@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface StatusLineProps {
   assetCount?: number;
@@ -13,7 +15,7 @@ interface StatusLineProps {
 }
 
 /**
- * Terminal-style status line showing real-time system metrics
+ * Status line showing real-time system metrics using shadcn Badge components
  * Format: VIEW: DENSE GRID | 247 ASSETS | 843MB | LAST: 2m | Q:3
  * Reads view mode and density from URL params for display
  */
@@ -76,38 +78,43 @@ export function StatusLine({
   return (
     <div
       className={cn(
-        'flex items-center gap-2 text-xs font-mono text-[#888888]',
+        'flex items-center gap-2',
         'select-none',
         className
       )}
       title={`Assets: ${assetCount} | Storage: ${formatStorage(storageUsed)} | Last upload: ${formatTimestamp(lastUploadTime)} | Queue: ${queueDepth}`}
     >
       {/* View Mode Indicator */}
-      <span className="hidden xl:inline flex items-center gap-1">
-        <span className="text-[#666666]">VIEW:</span>
-        <span className="text-white">{formatViewMode()}</span>
-      </span>
-      <span className="hidden xl:inline text-[#333333]">|</span>
+      <Badge variant="outline" className="hidden xl:flex items-center gap-1 font-mono text-xs">
+        <span className="text-muted-foreground">VIEW:</span>
+        <span>{formatViewMode()}</span>
+      </Badge>
+      <Separator orientation="vertical" className="hidden xl:block h-4" />
 
-      <span className="hidden lg:inline">
-        {assetCount} <span className="text-[#666666]">ASSETS</span>
-      </span>
-      <span className="hidden lg:inline text-[#333333]">|</span>
-      <span className="hidden md:inline">{formatStorage(storageUsed)}</span>
+      <Badge variant="outline" className="hidden lg:inline-block font-mono text-xs">
+        {assetCount} <span className="text-muted-foreground">ASSETS</span>
+      </Badge>
+      <Separator orientation="vertical" className="hidden lg:block h-4" />
+
+      <Badge variant="outline" className="hidden md:inline-block font-mono text-xs">
+        {formatStorage(storageUsed)}
+      </Badge>
+
       {lastUploadTime && (
         <>
-          <span className="hidden md:inline text-[#333333]">|</span>
-          <span className="hidden xl:inline">
-            <span className="text-[#666666]">LAST:</span> {relativeTime}
-          </span>
+          <Separator orientation="vertical" className="hidden md:block h-4" />
+          <Badge variant="outline" className="hidden xl:inline-block font-mono text-xs">
+            <span className="text-muted-foreground">LAST:</span> {relativeTime}
+          </Badge>
         </>
       )}
+
       {queueDepth > 0 && (
         <>
-          <span className="text-[#333333]">|</span>
-          <span className="text-[var(--color-terminal-yellow)]">
-            <span className="text-[#666666]">Q:</span>{queueDepth}
-          </span>
+          <Separator orientation="vertical" className="h-4" />
+          <Badge variant="secondary" className="font-mono text-xs text-yellow-500">
+            <span className="text-muted-foreground">Q:</span>{queueDepth}
+          </Badge>
         </>
       )}
     </div>

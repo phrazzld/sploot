@@ -898,7 +898,7 @@
   Test: Multiple toasts stack, variants styled correctly, actions work
   Module: Toast system—transient notifications
   Time: 45min
-  Commit: [pending]
+  Commit: a56faf0
 
   Work Log:
   - Installed sonner 2.0.7 package
@@ -914,9 +914,9 @@
   - Type-check passes
   ```
 
-- [ ] Simplify Status Line with Badge + Separator
+- [x] Simplify Status Line with Badge + Separator
   ```
-  Files: components/chrome/status-line.tsx:1-73
+  Files: components/chrome/status-line.tsx:1-123
   Approach: Simple Badge components with Separator between items
   Pattern: Horizontal layout of Badge components showing system stats
   Remove: Custom status line styling
@@ -924,6 +924,20 @@
   Test: Stats update correctly, separators visible, layout responsive
   Module: Status line—system metrics display
   Time: 30min
+  Commit: [pending]
+
+  Work Log:
+  - Migrated to shadcn Badge (outline variant) for all metrics
+  - Used Separator (vertical orientation) between items
+  - Replaced hardcoded colors (#888888, #666666, #333333) with semantic tokens (text-muted-foreground)
+  - Queue depth uses Badge variant="secondary" with text-yellow-500
+  - Preserved all business logic: formatStorage, getRelativeTime, formatViewMode
+  - Preserved responsive breakpoints (hidden md:, lg:, xl:)
+  - Preserved monospace font (font-mono class)
+  - Preserved tooltip with full ISO timestamp
+  - Separator height set to h-4 for consistent visual weight
+  - Simplified from 116 to 123 lines (slightly longer due to explicit Badge/Separator elements)
+  - Type-check passes
   ```
 
 - [ ] Rebuild Stats Display with Badge or Card
