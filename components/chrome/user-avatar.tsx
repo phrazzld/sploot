@@ -99,7 +99,7 @@ export function UserAvatar({
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="font-mono text-sm font-medium leading-none uppercase">
+            <p className="font-mono text-sm font-medium leading-none">
               {getUserDisplay()}
             </p>
             <p className="font-mono text-xs leading-none text-muted-foreground">
@@ -112,18 +112,18 @@ export function UserAvatar({
           onClick={() => {
             window.location.href = '/app/settings';
           }}
-          className="font-mono text-xs uppercase cursor-pointer"
+          className="font-mono text-xs cursor-pointer"
         >
           <Settings className="mr-2 size-4" />
-          <span>Settings</span>
+          <span>settings</span>
         </DropdownMenuItem>
         <DropdownMenuItem
           onClick={handleSignOut}
           variant="destructive"
-          className="font-mono text-xs uppercase cursor-pointer"
+          className="font-mono text-xs cursor-pointer"
         >
           <LogOut className="mr-2 size-4" />
-          <span>Sign out</span>
+          <span>sign out</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

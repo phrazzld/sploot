@@ -38,18 +38,18 @@ export function UploadButton({
       fontSize: 'text-xs',
     },
     md: {
-      height: 'h-10',
+      height: 'h-9',
       padding: showLabel ? 'px-4' : 'px-3',
       icon: 'w-5 h-5',
       gap: 'gap-2',
       fontSize: 'text-sm',
     },
     lg: {
-      height: 'h-12',
-      padding: showLabel ? 'px-5' : 'px-4',
-      icon: 'w-6 h-6',
-      gap: 'gap-2.5',
-      fontSize: 'text-base',
+      height: 'h-10',
+      padding: showLabel ? 'px-6' : 'px-4',
+      icon: 'w-5 h-5',
+      gap: 'gap-2',
+      fontSize: 'text-sm',
     },
   };
 
@@ -73,7 +73,7 @@ export function UploadButton({
       className={cn(
         // Base styles
         'group relative flex items-center justify-center',
-        ' font-medium transition-colors duration-200',
+        'rounded-md font-medium transition-colors duration-200',
 
         // Fixed width as specified
         showLabel && 'w-[100px]',
@@ -107,8 +107,6 @@ export function UploadButton({
       <svg
         className={cn(
           config.icon,
-          'transition-transform duration-200',
-          'group-hover:rotate-12',
           showLabel && '-ml-0.5'
         )}
         fill="none"
@@ -125,7 +123,7 @@ export function UploadButton({
 
       {showLabel && (
         <span className={cn(config.fontSize, 'font-semibold')}>
-          Upload
+          upload
         </span>
       )}
 
@@ -175,7 +173,7 @@ export function UploadButtonFloating({
       }}
       className={cn(
         'flex items-center justify-center',
-        'w-14 h-14 ',
+        'w-14 h-14 rounded-md',
         'bg-[#B6FF6E] text-[#0B0C0E]',
         'hover:bg-[#C5FF85] active:bg-[#A8F060]',
         'shadow-lg hover:shadow-xl',

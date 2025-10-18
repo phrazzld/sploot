@@ -28,23 +28,23 @@ export function FilterChips({
   const filters = [
     {
       value: 'all' as FilterType,
-      label: 'All',
+      label: 'all',
       icon: null,
     },
     {
       value: 'favorites' as FilterType,
-      label: 'Favorites',
+      label: 'bangers',
       icon: Star,
     },
     {
       value: 'recent' as FilterType,
-      label: 'Recent',
+      label: 'recent',
       icon: Clock,
     },
   ];
 
   // Map custom size to Button size prop
-  const buttonSize = size === 'md' ? 'default' : size;
+  const buttonSize = size === 'md' ? 'default' : size === 'lg' ? 'lg' : size;
 
   return (
     <div
@@ -105,7 +105,7 @@ export function FilterChip({
   size?: 'sm' | 'md' | 'lg';
 }) {
   // Map custom size to Button size prop
-  const buttonSize = size === 'md' ? 'default' : size;
+  const buttonSize = size === 'md' ? 'default' : size === 'lg' ? 'lg' : size;
 
   return (
     <Button

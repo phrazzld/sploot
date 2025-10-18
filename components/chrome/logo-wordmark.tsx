@@ -27,13 +27,13 @@ export function LogoWordmark({ className }: LogoWordmarkProps) {
 
       {/* Wordmark - hidden on mobile */}
       <div className="hidden sm:flex flex-col">
-        <span className="font-mono font-bold uppercase text-foreground tracking-wider leading-tight text-2xl hover:text-primary transition-colors">
+        <span className="font-mono font-bold text-foreground tracking-wider leading-tight text-2xl hover:text-primary transition-colors">
           sploot
         </span>
       </div>
 
       {/* Mobile - just show 's' */}
-      <span className="sm:hidden font-mono font-bold uppercase text-foreground tracking-wider text-xl">
+      <span className="sm:hidden font-mono font-bold text-foreground tracking-wider text-xl">
         s
       </span>
     </Link>

@@ -68,7 +68,7 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
             return (
               <div key={category.id}>
                 {categoryIndex > 0 && <Separator className="mb-4" />}
-                <h3 className="text-sm font-semibold mb-3 text-muted-foreground uppercase tracking-wider">
+                <h3 className="text-sm font-semibold mb-3 text-muted-foreground tracking-wider">
                   {category.label}
                 </h3>
                 <div className="space-y-2">

@@ -175,7 +175,7 @@ export function SearchBar({
             className={`
               w-full h-[56px] pl-6 pr-12 text-base font-mono
               bg-black text-[#E6E8EB] placeholder-[#666666]
-              border-2
+              border-2 rounded-md
               focus:outline-none
               ${searchState === 'typing' ? 'border-[var(--color-terminal-green)]' : ''}
               ${searchState === 'loading' ? 'border-[var(--color-terminal-green)]' : ''}
@@ -221,21 +221,21 @@ export function SearchBar({
           ref={dropdownRef}
           className="
             absolute top-full mt-2 w-full
-            bg-black border border-[#333333]
+            bg-black border border-[#333333] rounded-md
             overflow-hidden z-50
           "
         >
           {/* History header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[#333333]">
-            <span className="font-mono text-xs uppercase text-[#888888]">Recent Searches</span>
+            <span className="font-mono text-xs text-[#888888]">recent searches</span>
             <button
               onClick={() => {
                 clearHistory();
                 setShowHistory(false);
               }}
-              className="font-mono text-xs uppercase text-[#666666] hover:text-[var(--color-terminal-red)]"
+              className="font-mono text-xs text-[#666666] hover:text-[var(--color-terminal-red)]"
             >
-              Clear history
+              clear history
             </button>
           </div>
 

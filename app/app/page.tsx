@@ -22,6 +22,13 @@ import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from '@/components/ch
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
 import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
+import { UploadButton } from '@/components/chrome/upload-button';
+import { FilterChips, type FilterType } from '@/components/chrome/filter-chips';
+import { SortDropdown } from '@/components/chrome/sort-dropdown';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RotateCcw, X } from 'lucide-react';
 
 function AppPageClient() {
   const router = useRouter();
@@ -45,7 +52,6 @@ function AppPageClient() {
 
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
 
   // Command palette state
@@ -190,21 +196,6 @@ function AppPageClient() {
 
   // Also add "/" key shortcut to focus search
   useSlashSearchShortcut(focusSearchBar);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.sort-dropdown-container')) {
-        setShowSortDropdown(false);
-      }
-    };
-
-    if (showSortDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showSortDropdown]);
 
   // Monitor failed embeddings
   useEffect(() => {
@@ -580,7 +571,7 @@ function AppPageClient() {
           <header className="flex flex-col gap-4">
             {/* Title bar with inline stats */}
             <div className="flex items-baseline gap-2 flex-wrap">
-              <h1 className="font-mono text-2xl uppercase text-[#E6E8EB]">your library</h1>
+              <h1 className="font-mono text-2xl text-[#E6E8EB]">your library</h1>
               {stats.total > 0 && (
                 <span className="text-sm text-[#888888] font-mono flex items-center gap-2">
                   <span>{stats.total} <span className="text-[#666666]">ASSETS</span></span>
@@ -619,46 +610,38 @@ function AppPageClient() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Left group: Primary actions */}
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
+                <UploadButton
                   onClick={() => setShowUploadPanel((prev) => !prev)}
-                  className={cn(
-                    'inline-flex items-center gap-2 px-4 h-10 text-xs font-mono uppercase border',
-                    showUploadPanel
-                      ? 'bg-[var(--color-terminal-green)] text-black border-[var(--color-terminal-green)]'
-                      : 'bg-black text-[var(--color-terminal-green)] border-[var(--color-terminal-green)] hover:bg-[var(--color-terminal-green)] hover:text-black'
-                  )}
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v12M4 10h12" />
-                  </svg>
-                  {showUploadPanel ? 'close' : 'upload'}
-                </button>
+                  isActive={showUploadPanel}
+                  size="lg"
+                  showLabel={true}
+                />
                 {failedEmbeddings.length > 0 && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="lg"
                     onClick={handleBulkRetry}
-                    className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-4 h-10 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
+                    className="gap-2"
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                    <RotateCcw className="h-4 w-4" />
                     retry ({failedEmbeddings.length})
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  onClick={toggleFavoritesOnly}
-                  className={cn(
-                    'inline-flex items-center gap-2 border px-4 h-10 text-xs font-mono uppercase',
-                    favoritesOnly
-                      ? 'border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] text-black'
-                      : 'border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]'
-                  )}
-                >
-                  <HeartIcon className="h-4 w-4" filled={favoritesOnly} />
-                  {favoritesOnly ? 'bangers' : 'all'}
-                </button>
+                <FilterChips
+                  activeFilter={isRecentFilter ? 'recent' : favoritesOnly ? 'favorites' : 'all'}
+                  onFilterChange={(filter) => {
+                    if (filter === 'favorites') {
+                      if (!favoritesOnly) toggleFavoritesOnly();
+                    } else if (filter === 'all') {
+                      if (favoritesOnly) toggleFavoritesOnly();
+                    } else if (filter === 'recent') {
+                      // Navigate to recent view
+                      updateUrlParams({ filter: 'recent' });
+                    }
+                  }}
+                  size="lg"
+                  showLabels={true}
+                />
               </div>
 
               {/* Right group: View controls */}
@@ -666,98 +649,44 @@ function AppPageClient() {
                 <ViewModeToggle
                   value={viewMode}
                   onChange={handleViewModeChange}
-                  size="md"
+                  size="lg"
                   showLabels={false}
                 />
 
-                <div className="relative sort-dropdown-container">
-                  <button
-                    type="button"
-                    onClick={() => setShowSortDropdown((prev) => !prev)}
-                    className="flex items-center gap-2 border border-[#333333] bg-black px-4 h-10 text-xs font-mono uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
-                    </svg>
-                    <span className="hidden sm:inline">
-                      {sortBy === 'recent' || sortBy === 'date' ? 'date' : sortBy === 'size' ? 'size' : sortBy === 'name' ? 'name' : 'date'}
-                    </span>
-                    <span>{sortOrder === 'desc' ? '↓' : '↑'}</span>
-                  </button>
-
-                  {showSortDropdown && (
-                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden border border-[#333333] bg-black">
-                      <div className="py-1">
-                        <button
-                          onClick={() => {
-                            handleSortChange('date', sortBy === 'date' && sortOrder === 'desc' ? 'asc' : 'desc');
-                            setShowSortDropdown(false);
-                          }}
-                          className={cn(
-                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
-                            sortBy === 'date' || sortBy === 'recent' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
-                          )}
-                        >
-                          date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleSortChange('size', sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
-                            setShowSortDropdown(false);
-                          }}
-                          className={cn(
-                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
-                            sortBy === 'size' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
-                          )}
-                        >
-                          size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleSortChange('name', sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
-                            setShowSortDropdown(false);
-                          }}
-                          className={cn(
-                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
-                            sortBy === 'name' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
-                          )}
-                        >
-                          name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <SortDropdown
+                  value={sortBy === 'recent' ? 'recent' : sortBy as any}
+                  direction={sortOrder}
+                  onChange={handleSortChange}
+                />
 
                 {tagIdParam && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="lg"
                     onClick={clearTagFilter}
-                    className="inline-flex items-center gap-1 border border-[var(--color-terminal-yellow)] bg-black px-3 py-2 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
+                    className="gap-1"
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="h-4 w-4" />
                     <span className="hidden sm:inline">clear</span>
                     <span>#{activeTagName ?? 'tag'}</span>
-                  </button>
+                  </Button>
                 )}
               </div>
 
             </div>
 
             {(!isSearching && (favoritesOnly || tagIdParam)) && (
-              <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase">
+              <div className="flex flex-wrap items-center gap-2">
                 {favoritesOnly && (
-                  <span className="inline-flex items-center gap-1 border border-[var(--color-terminal-green)] bg-black px-3 py-1 text-[var(--color-terminal-green)]">
+                  <Badge variant="outline" className="gap-1">
                     <HeartIcon className="h-3.5 w-3.5" filled />
                     bangers only
-                  </span>
+                  </Badge>
                 )}
                 {tagIdParam && (
-                  <span className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-3 py-1 text-[var(--color-terminal-yellow)]">
-                    filtering tag <span className="font-medium text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>
-                  </span>
+                  <Badge variant="outline" className="gap-2">
+                    filtering tag <span className="font-medium">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>
+                  </Badge>
                 )}
               </div>
             )}
@@ -802,33 +731,35 @@ function AppPageClient() {
                 )}
 
                 {searchError && (
-                  <div className="border border-[var(--color-terminal-red)] bg-black p-4 font-mono text-sm uppercase text-[var(--color-terminal-red)]">
-                    {searchError}
-                  </div>
+                  <Alert variant="destructive">
+                    <AlertDescription>{searchError}</AlertDescription>
+                  </Alert>
                 )}
 
                 {!searchError && !searchLoading && filteredSearchAssets.length > 0 && (
                   <>
-                    <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
-                      <span className="flex flex-col gap-1">
+                    <Alert>
+                      <AlertDescription className="flex flex-col gap-1">
                         <span>
-                          showing <span className="text-[var(--color-terminal-green)]">{searchHitCount}</span> matches for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
+                          showing <span className="font-semibold">{searchHitCount}</span> matches for &quot;<span className="font-medium">{trimmedLibraryQuery}</span>&quot;
                         </span>
                         {searchMetadata?.thresholdFallback && (
-                          <span className="text-xs text-[var(--color-terminal-yellow)]">
-                            pulled a few low-sim homies so your vibes aren&apos;t empty.
+                          <span className="text-xs text-muted-foreground">
+                            pulled a few low-similarity results to avoid empty results.
                           </span>
                         )}
-                      </span>
-                    </div>
+                      </AlertDescription>
+                    </Alert>
                     <SimilarityScoreLegend />
                   </>
                 )}
 
                 {!searchError && !searchLoading && searchHitCount === 0 && (
-                  <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
-                    no matches yet for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;. remix the prompt and try again.
-                  </div>
+                  <Alert>
+                    <AlertDescription>
+                      no matches yet for &quot;<span className="font-medium">{trimmedLibraryQuery}</span>&quot;. try adjusting your search.
+                    </AlertDescription>
+                  </Alert>
                 )}
               </div>
             )}

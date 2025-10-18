@@ -141,7 +141,7 @@ export function EmptyState({
               <ImageIcon className="h-8 w-8 text-primary" />
             </div>
           </div>
-          <CardTitle className="font-mono text-base uppercase">{message.title}</CardTitle>
+          <CardTitle className="font-mono text-base">{message.title}</CardTitle>
           {message.description && <CardDescription className="font-mono text-sm">{message.description}</CardDescription>}
         </CardHeader>
 
@@ -155,12 +155,12 @@ export function EmptyState({
             <div className="flex items-center gap-2">
               <span className="font-mono text-xs text-muted-foreground">or</span>
               {onUploadClick ? (
-                <Button onClick={onUploadClick} className="gap-1.5 font-mono uppercase" aria-label="Upload images">
+                <Button onClick={onUploadClick} className="gap-1.5 font-mono" aria-label="Upload images">
                   <Plus className="h-3.5 w-3.5" />
                   upload
                 </Button>
               ) : (
-                <Button asChild className="gap-1.5 font-mono uppercase">
+                <Button asChild className="gap-1.5 font-mono">
                   <Link href="/app?upload=1" aria-label="Upload images">
                     <Plus className="h-3.5 w-3.5" />
                     upload

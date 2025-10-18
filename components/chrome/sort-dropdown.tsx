@@ -71,7 +71,7 @@ export function SortDropdown({
       <DropdownMenuTrigger asChild>
         <Button
           variant="outline"
-          size="sm"
+          size="lg"
           className={cn('gap-1', className)}
           aria-label="Sort options"
           title={`Sort by ${getCurrentLabel()}`}

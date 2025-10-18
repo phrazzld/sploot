@@ -299,13 +299,13 @@ export function ImageList({
           {loading && (
             <div className="flex items-center justify-center gap-2 py-6">
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              <span className="font-mono text-sm uppercase text-muted-foreground">loading more</span>
+              <span className="font-mono text-sm text-muted-foreground">loading more</span>
             </div>
           )}
 
           {hasMore && !loading && onLoadMore && (
             <div className="flex justify-center py-6">
-              <Button variant="outline" size="sm" onClick={onLoadMore} className="font-mono uppercase">
+              <Button variant="outline" size="sm" onClick={onLoadMore} className="font-mono">
                 load more
               </Button>
             </div>

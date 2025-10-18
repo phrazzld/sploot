@@ -46,7 +46,7 @@ export function ViewModeToggle({
   ];
 
   // Map custom size to Button size prop
-  const buttonSize = size === 'md' ? 'default' : size;
+  const buttonSize = size === 'md' ? 'default' : size === 'lg' ? 'lg' : size;
 
   return (
     <div

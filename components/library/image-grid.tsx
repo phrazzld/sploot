@@ -287,14 +287,14 @@ export function ImageGrid({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                <span className="font-mono text-sm uppercase">Loading more...</span>
+                <span className="font-mono text-sm">loading more...</span>
               </div>
             </div>
           )}
 
           {/* End of list indicator */}
           {!hasMore && assets.length > 0 && (
-            <div className="py-6 text-center font-mono text-xs uppercase tracking-wide text-[#666666]">
+            <div className="py-6 text-center font-mono text-xs tracking-wide text-[#666666]">
               no more memes in this view
             </div>
           )}
@@ -375,7 +375,7 @@ export function ImageGrid({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span className="font-mono text-sm uppercase">Loading more...</span>
+              <span className="font-mono text-sm">loading more...</span>
             </div>
           </div>
         )}
@@ -383,8 +383,8 @@ export function ImageGrid({
         {/* End of list indicator */}
         {!hasMore && assets.length > 0 && (
           <div className="py-8 text-center">
-            <p className="font-mono text-sm uppercase text-[#666666]">
-              That&apos;s all your memes | {assets.length} total
+            <p className="font-mono text-sm text-[#666666]">
+              that&apos;s all your memes | {assets.length} total
             </p>
           </div>
         )}
