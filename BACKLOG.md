@@ -73,30 +73,64 @@
 
 ### API Performance
 
-- **Create dedicated `/api/stats` endpoint** - Currently `useStatusStats` hook fetches **all assets** (limit=1000) every 500ms-5s just to calculate aggregate stats (count, size, lastUpload). This is wasteful and could cause performance issues at scale.
+- **Create dedicated `/api/stats` endpoint** - Currently `useStatusStats` hook fetches **all assets** (limit=1000) every 2s-10s just to calculate aggregate stats (count, size, lastUpload). This is wasteful and could cause performance issues at scale.
   - **Rationale for deferring**: Status stats work but are inefficient; optimization can happen post-merge
   - **Effort**: Medium (~2-3 hours including testing)
   - **Priority**: High (affects production performance)
-  - **Current Issue**: `hooks/use-status-stats.ts:29` - `fetch('/api/assets?limit=1000')` every 500ms when queue active
-  - **Impact**: 120 API requests/minute, unnecessary DB queries, bandwidth waste
-  - **Proposed Solution**:
+  - **Current Issue**: `hooks/use-status-stats.ts:31` - `fetch('/api/assets?limit=1000')` every 2s when queue active
+  - **Temporary Fix Applied**: Reduced polling from 500ms/5s to 2s/10s (~75% reduction in load)
+  - **Impact**: Still 30 API requests/minute when active, fetching 1000 assets + embeddings + tags each time
+  - **Proper Solution - New `/api/stats` Endpoint**:
     ```typescript
-    // New endpoint: GET /api/stats
-    // Returns only: { assetCount, totalSize, lastUploadTime, queueDepth }
-    // Single lightweight aggregate query instead of fetching all assets
+    // app/api/stats/route.ts
+    export async function GET(req: NextRequest) {
+      const { userId } = await getAuthWithUser();
+      if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+      // Single efficient aggregate query
+      const stats = await prisma.asset.aggregate({
+        where: { ownerUserId: userId, deletedAt: null },
+        _count: { id: true },
+        _sum: { size: true },
+        _max: { createdAt: true },
+      });
+
+      // Separate count for favorites (used by StatsDisplay)
+      const favoriteCount = await prisma.asset.count({
+        where: { ownerUserId: userId, deletedAt: null, favorite: true }
+      });
+
+      return NextResponse.json({
+        assetCount: stats._count.id,
+        totalSize: stats._sum.size || 0,
+        lastUploadTime: stats._max.createdAt,
+        favoriteCount,
+        // queueDepth comes from in-memory queue manager (no DB query)
+      });
+    }
     ```
+  - **Migration Steps**:
+    1. Create `/app/api/stats/route.ts` with aggregate query above
+    2. Update `hooks/use-status-stats.ts` to fetch from `/api/stats` instead of `/api/assets`
+    3. Simplify `useStatusStats` - remove client-side sorting/reduction logic
+    4. Update `StatsDisplay` component to also use this endpoint (eliminates duplicate calculation)
+  - **Expected Impact**:
+    - Reduces queries from 5 to 2 (aggregate + favorite count)
+    - Reduces data transfer from ~500KB to <100 bytes per poll
+    - 99% reduction in DB load while maintaining same polling frequency
   - **PR Reference**: PR #3 Review - All 4 reviews flagged this as performance concern
 
-- **Refactor useStatusStats interval pattern** - The recursive interval setup (lines 77-85) creates unnecessary overhead and timing drift. Replace with simpler, more efficient pattern.
+- **Refactor useStatusStats interval pattern** - The recursive interval setup (lines 82-89) creates unnecessary overhead and timing drift. Replace with simpler, more efficient pattern.
   - **Rationale for deferring**: Works but could be cleaner; not causing bugs currently
-  - **Effort**: Small (~30 min)
-  - **Priority**: Medium
-  - **Current Issue**: `hooks/use-status-stats.ts:77-85` - Clears and recreates interval on every tick
+  - **Effort**: Small (~30 min) - becomes obsolete once `/api/stats` endpoint is implemented
+  - **Priority**: Low (will be replaced by `/api/stats` work above)
+  - **Current Issue**: `hooks/use-status-stats.ts:82-89` - Clears and recreates interval on every tick
   - **Proposed Solution**:
     ```typescript
     // Use simple setInterval with adaptive timing based on ref-tracked queue state
     // Or use WebSocket/SSE for real-time updates instead of polling
     ```
+  - **Note**: Consider skipping this optimization and going straight to `/api/stats` implementation
   - **PR Reference**: PR #3 Review - Performance section
 
 ### React Optimizations

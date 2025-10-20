@@ -7,12 +7,11 @@ import Image from 'next/image';
 import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
-import { ImageList } from '@/components/library/image-list';
 import { AssetIntegrityBanner } from '@/components/library/asset-integrity-banner';
 import { SearchBar, SearchLoadingScreen, SimilarityScoreLegend, QuerySyntaxIndicator } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
-import { HeartIcon } from '@/components/icons/heart-icon';
+import { Heart } from 'lucide-react';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
@@ -21,7 +20,6 @@ import { CommandPalette, useCommandPalette } from '@/components/chrome/command-p
 import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from '@/components/chrome/keyboard-shortcuts-help';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
-import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
 import { UploadButton } from '@/components/chrome/upload-button';
 import { FilterChips, type FilterType } from '@/components/chrome/filter-chips';
 import { SortDropdown } from '@/components/chrome/sort-dropdown';
@@ -47,8 +45,6 @@ function AppPageClient() {
     clearTagFilter,
     setTagFilter,
   } = useFilter();
-  const viewModeParam = searchParams.get('view') as ViewMode | null;
-  const viewMode = viewModeParam || 'grid'; // Default to grid if not specified
 
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
@@ -73,7 +69,6 @@ function AppPageClient() {
 
   // Use local state for search, URL for persistence/sharing
   const libraryQuery = localSearchQuery;
-  const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingScrollTopRef = useRef<number | null>(null);
@@ -381,49 +376,6 @@ function AppPageClient() {
     }
   }, []);
 
-  const handleViewModeChange = useCallback(
-    (mode: ViewMode) => {
-      if (mode === viewMode) return;
-
-      captureScrollPosition();
-      setIsViewModeTransitioning(true);
-
-      // Update URL params to include view mode
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('view', mode);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [captureScrollPosition, viewMode, searchParams, pathname, router]
-  );
-
-  // Number key shortcuts for view mode switching with debouncing
-  const viewModeSwitchRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const handleViewModeShortcut = useCallback((mode: ViewMode) => {
-    // Clear any existing timeout
-    if (viewModeSwitchRef.current) {
-      clearTimeout(viewModeSwitchRef.current);
-    }
-
-    // Debounce for 100ms to prevent rapid switching
-    viewModeSwitchRef.current = setTimeout(() => {
-      handleViewModeChange(mode);
-    }, 100);
-  }, [handleViewModeChange]);
-
-  // Key 1 for grid view
-  useKeyboardShortcut({
-    key: '1',
-    callback: () => handleViewModeShortcut('grid'),
-    enabled: true,
-  });
-
-  // Key 2 for list view
-  useKeyboardShortcut({
-    key: '2',
-    callback: () => handleViewModeShortcut('list'),
-    enabled: true,
-  });
-
   // ? for keyboard shortcuts help
   useKeyboardShortcut({
     key: '?',
@@ -431,37 +383,7 @@ function AppPageClient() {
     enabled: true,
   });
 
-  // Cleanup debounce timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (viewModeSwitchRef.current) {
-        clearTimeout(viewModeSwitchRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    restoreScrollPosition();
-  }, [viewMode, restoreScrollPosition]);
-
-  useEffect(() => {
-    if (!isViewModeTransitioning) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setIsViewModeTransitioning(false);
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [isViewModeTransitioning]);
-
-  const gridContainerClassName = useMemo(
-    () =>
-      cn(
-        'h-full overflow-y-auto overflow-x-hidden transition-opacity duration-200 ease-in-out',
-        isViewModeTransitioning ? 'opacity-0' : 'opacity-100'
-      ),
-    [isViewModeTransitioning]
-  );
+  const gridContainerClassName = 'h-full overflow-y-auto overflow-x-hidden';
 
   // Sort assets by filename if needed (since API doesn't support it)
   const sortedAssets = useMemo(() => {
@@ -646,13 +568,6 @@ function AppPageClient() {
 
               {/* Right group: View controls */}
               <div className="flex flex-wrap items-center gap-2">
-                <ViewModeToggle
-                  value={viewMode}
-                  onChange={handleViewModeChange}
-                  size="lg"
-                  showLabels={false}
-                />
-
                 <SortDropdown
                   value={sortBy === 'recent' ? 'recent' : sortBy as any}
                   direction={sortOrder}
@@ -679,7 +594,7 @@ function AppPageClient() {
               <div className="flex flex-wrap items-center gap-2">
                 {favoritesOnly && (
                   <Badge variant="outline" className="gap-1">
-                    <HeartIcon className="h-3.5 w-3.5" filled />
+                    <Heart className="h-3.5 w-3.5" fill="currentColor" strokeWidth={2} />
                     bangers only
                   </Badge>
                 )}
@@ -784,8 +699,10 @@ function AppPageClient() {
         <div className="flex-1 overflow-hidden">
           <div className="mx-auto flex h-full w-full flex-col overflow-hidden 2xl:max-w-[1920px]">
             <div className="h-full flex-1 overflow-hidden">
-              {viewMode === 'list' ? (
-                <ImageList
+              <ImageGridErrorBoundary
+                onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
+              >
+                <ImageGrid
                   assets={activeAssets}
                   loading={activeLoading}
                   hasMore={activeHasMore}
@@ -793,29 +710,12 @@ function AppPageClient() {
                   onAssetUpdate={handleAssetUpdate}
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
-                  onScrollContainerReady={handleScrollContainerReady}
                   containerClassName={cn(gridContainerClassName, 'w-full')}
+                  onScrollContainerReady={handleScrollContainerReady}
                   onUploadClick={() => setShowUploadPanel(true)}
+                  showSimilarityScores={isSearching}
                 />
-              ) : (
-                <ImageGridErrorBoundary
-                  onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
-                >
-                  <ImageGrid
-                    assets={activeAssets}
-                    loading={activeLoading}
-                    hasMore={activeHasMore}
-                    onLoadMore={handleLoadMore}
-                    onAssetUpdate={handleAssetUpdate}
-                    onAssetDelete={handleAssetDelete}
-                    onAssetSelect={setSelectedAsset}
-                    containerClassName={cn(gridContainerClassName, 'w-full')}
-                    onScrollContainerReady={handleScrollContainerReady}
-                    onUploadClick={() => setShowUploadPanel(true)}
-                    showSimilarityScores={isSearching}
-                  />
-                </ImageGridErrorBoundary>
-              )}
+              </ImageGridErrorBoundary>
             </div>
           </div>
         </div>

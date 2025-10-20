@@ -35,10 +35,10 @@ export function SortDropdown({
 }: SortDropdownProps) {
   // Sort option configurations
   const sortOptions: Array<{ value: SortOption; label: string }> = [
-    { value: 'recent', label: 'Recent' },
-    { value: 'date', label: 'Date Added' },
-    { value: 'size', label: 'File Size' },
-    { value: 'name', label: 'Name' },
+    { value: 'recent', label: 'recent' },
+    { value: 'date', label: 'date added' },
+    { value: 'size', label: 'file size' },
+    { value: 'name', label: 'name' },
   ];
 
   // Handle sort option selection
@@ -81,7 +81,7 @@ export function SortDropdown({
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" side="top" className="w-[160px]">
-        <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+        <DropdownMenuLabel>sort by</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup value={value} onValueChange={handleSortChange}>
           {sortOptions.map((option) => (
@@ -102,7 +102,7 @@ export function SortDropdown({
         <DropdownMenuSeparator />
         <div className="px-2 py-1.5">
           <p className="text-xs text-muted-foreground">
-            Click again to reverse order
+            click again to reverse order
           </p>
         </div>
       </DropdownMenuContent>

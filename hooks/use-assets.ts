@@ -29,6 +29,8 @@ export function useAssets(options: UseAssetsOptions = {}) {
   const hasMoreRef = useRef(true);
   const hasLoadedRef = useRef(false); // Track if initial load has been attempted
   const abortControllerRef = useRef<AbortController | null>(null);
+  const authRetryCountRef = useRef(0); // Track auth retry attempts
+  const authRetryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Keep hasMore ref in sync with state
   useEffect(() => {
@@ -151,6 +153,9 @@ export function useAssets(options: UseAssetsOptions = {}) {
 
         setTotal(data.pagination?.total || 0);
         setHasMore(data.pagination?.hasMore || false);
+
+        // Reset auth retry count on successful load
+        authRetryCountRef.current = 0;
       } catch (err) {
         // Ignore abort errors
         if (err instanceof Error && err.name === 'AbortError') {
@@ -165,7 +170,33 @@ export function useAssets(options: UseAssetsOptions = {}) {
 
         // Only update error state if this request wasn't aborted
         if (!controller.signal.aborted) {
-          setError(err instanceof Error ? err.message : 'Failed to load assets');
+          const errorMessage = err instanceof Error ? err.message : 'Failed to load assets';
+          setError(errorMessage);
+
+          // Retry logic for auth errors (401)
+          // This handles race condition where assets load before auth is ready
+          if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+            if (authRetryCountRef.current < 3) {
+              authRetryCountRef.current++;
+              const retryDelay = 500 * authRetryCountRef.current; // Exponential backoff: 500ms, 1s, 1.5s
+
+              if (process.env.NODE_ENV === 'development') {
+                console.log(`[useAssets] Auth not ready, retrying in ${retryDelay}ms (attempt ${authRetryCountRef.current}/3)`);
+              }
+
+              // Clear any existing retry timeout
+              if (authRetryTimeoutRef.current) {
+                clearTimeout(authRetryTimeoutRef.current);
+              }
+
+              // Schedule retry
+              authRetryTimeoutRef.current = setTimeout(() => {
+                loadAssets(true);
+              }, retryDelay);
+            } else if (process.env.NODE_ENV === 'development') {
+              console.warn('[useAssets] Max auth retry attempts reached. User may need to refresh.');
+            }
+          }
         }
       } finally {
         // Only update loading state if this request wasn't aborted
@@ -265,6 +296,9 @@ export function useAssets(options: UseAssetsOptions = {}) {
     return () => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
+      }
+      if (authRetryTimeoutRef.current) {
+        clearTimeout(authRetryTimeoutRef.current);
       }
     };
   }, []);

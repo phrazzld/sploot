@@ -2,7 +2,7 @@
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Star, Clock } from 'lucide-react';
+import { Clock, Heart } from 'lucide-react';
 
 export type FilterType = 'all' | 'favorites' | 'recent';
 
@@ -34,7 +34,7 @@ export function FilterChips({
     {
       value: 'favorites' as FilterType,
       label: 'bangers',
-      icon: Star,
+      icon: Heart,
     },
     {
       value: 'recent' as FilterType,
@@ -72,10 +72,11 @@ export function FilterChips({
             title={filter.label}
           >
             {Icon && (
-              <Icon className={cn(
-                'h-4 w-4',
-                isActive && filter.value === 'favorites' && 'fill-current'
-              )} />
+              <Icon
+                className="h-4 w-4"
+                fill={filter.value === 'favorites' && isActive ? 'currentColor' : 'none'}
+                strokeWidth={2}
+              />
             )}
             {showLabels && <span>{filter.label}</span>}
           </Button>

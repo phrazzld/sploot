@@ -12,7 +12,11 @@ interface StatusStats {
 
 /**
  * Hook to fetch and maintain status line statistics
- * Updates every 500ms when queue is active, every 5s when idle
+ * Updates every 2s when queue is active, every 10s when idle
+ *
+ * TODO: This fetches all assets (limit=1000) to calculate simple aggregates.
+ * Should be replaced with dedicated /api/stats endpoint using Prisma aggregates.
+ * See BACKLOG.md "Create dedicated /api/stats endpoint" for details.
  */
 export function useStatusStats(): StatusStats {
   const [stats, setStats] = useState<StatusStats>({
@@ -26,6 +30,8 @@ export function useStatusStats(): StatusStats {
     const fetchStats = async () => {
       try {
         // Fetch assets from API
+        // Note: We fetch first 1000 for storage calculation
+        // Total count comes from pagination.total for accuracy
         const response = await fetch('/api/assets?limit=1000');
         if (!response.ok) return;
 
@@ -33,7 +39,9 @@ export function useStatusStats(): StatusStats {
         const assets = data.assets || [];
 
         // Calculate stats
-        const assetCount = assets.length;
+        // Use pagination.total for accurate count (not assets.length which is limited to 1000)
+        const assetCount = data.pagination?.total || assets.length;
+        // Storage is approximate for large libraries (calculated from first 1000 assets)
         const storageUsed = assets.reduce((sum: number, asset: any) => sum + (asset.size || 0), 0);
 
         // Find most recent upload
@@ -71,7 +79,9 @@ export function useStatusStats(): StatusStats {
       const queueManager = getEmbeddingQueueManager();
       const status = queueManager.getStatus();
       const queueDepth = status.queued + status.processing;
-      return queueDepth > 0 ? 500 : 5000; // 500ms when active, 5s when idle
+      // Reduced from 500ms/5s to 2s/10s to ease DB load
+      // Still fetching 1000 assets per poll - see TODO at top for proper fix
+      return queueDepth > 0 ? 2000 : 10000; // 2s when active, 10s when idle
     };
 
     let intervalId: NodeJS.Timeout;

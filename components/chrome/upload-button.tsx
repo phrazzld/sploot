@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Upload } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useSpringScale } from '@/hooks/use-spring-animation';
 
@@ -14,7 +16,7 @@ interface UploadButtonProps {
 
 /**
  * Upload button component for the navbar
- * Fixed 100px width with primary accent background
+ * Uses shadcn Button with upload variant
  */
 export function UploadButton({
   onClick,
@@ -29,34 +31,13 @@ export function UploadButton({
   // Spring physics for scale animation
   const scale = useSpringScale(isHovered, isPressed);
 
-  const sizeConfig = {
-    sm: {
-      height: 'h-8',
-      padding: showLabel ? 'px-3' : 'px-2',
-      icon: 'w-4 h-4',
-      gap: 'gap-1.5',
-      fontSize: 'text-xs',
-    },
-    md: {
-      height: 'h-9',
-      padding: showLabel ? 'px-4' : 'px-3',
-      icon: 'w-5 h-5',
-      gap: 'gap-2',
-      fontSize: 'text-sm',
-    },
-    lg: {
-      height: 'h-10',
-      padding: showLabel ? 'px-6' : 'px-4',
-      icon: 'w-5 h-5',
-      gap: 'gap-2',
-      fontSize: 'text-sm',
-    },
-  };
-
-  const config = sizeConfig[size];
+  // Map custom size to Button size
+  const buttonSize = size === 'md' ? 'default' : size;
 
   return (
-    <button
+    <Button
+      variant={isActive ? 'outline' : 'upload'}
+      size={buttonSize}
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
@@ -71,73 +52,28 @@ export function UploadButton({
         transform: `scale(${scale})`,
       }}
       className={cn(
-        // Base styles
-        'group relative flex items-center justify-center',
-        'rounded-md font-medium transition-colors duration-200',
-
-        // Fixed width as specified
+        'relative touch-manipulation',
         showLabel && 'w-[100px]',
-
-        // Size
-        config.height,
-        config.padding,
-
-        // Colors - Primary accent (#B6FF6E) background
-        isActive
-          ? 'bg-[#B6FF6E]/20 text-[#B6FF6E] ring-1 ring-[#B6FF6E]/40'
-          : 'bg-[#B6FF6E] text-[#0B0C0E] hover:bg-[#C5FF85] active:bg-[#A8F060]',
-
-        // Shadow effects (keep transition for shadow)
-        'hover:shadow-lg hover:shadow-[#B6FF6E]/20',
-
-        // Focus states
-        'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2',
-        'focus-visible:outline-[#B6FF6E]',
-
-        // Touch optimization
-        'touch-manipulation',
-
-        // Custom classes
+        isActive && 'bg-[#B6FF6E]/20 text-[#B6FF6E] ring-1 ring-[#B6FF6E]/40',
         className
       )}
       aria-label={showLabel ? undefined : 'Upload'}
       title={showLabel ? undefined : 'Upload new meme'}
     >
-      {/* Upload icon */}
-      <svg
-        className={cn(
-          config.icon,
-          showLabel && '-ml-0.5'
-        )}
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.5}
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 4v16m8-8H4"
-        />
-      </svg>
-
-      {showLabel && (
-        <span className={cn(config.fontSize, 'font-semibold')}>
-          upload
-        </span>
-      )}
+      <Upload className="h-4 w-4" strokeWidth={2} />
+      {showLabel && 'upload'}
 
       {/* Pulse animation when active */}
       {isActive && (
-        <div className="absolute inset-0 bg-[#B6FF6E]/10 animate-pulse" />
+        <div className="absolute inset-0 bg-[#B6FF6E]/10 animate-pulse rounded-md" />
       )}
-    </button>
+    </Button>
   );
 }
 
 /**
  * Floating upload button for mobile or alternative layouts
- * Can be positioned absolutely or fixed
+ * Uses shadcn Button with upload variant and icon size
  */
 export function UploadButtonFloating({
   onClick,
@@ -157,7 +93,9 @@ export function UploadButtonFloating({
   });
 
   return (
-    <button
+    <Button
+      variant="upload"
+      size="icon-lg"
       onClick={onClick}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => {
@@ -171,31 +109,10 @@ export function UploadButtonFloating({
       style={{
         transform: `scale(${scale})`,
       }}
-      className={cn(
-        'flex items-center justify-center',
-        'w-14 h-14 rounded-md',
-        'bg-[#B6FF6E] text-[#0B0C0E]',
-        'hover:bg-[#C5FF85] active:bg-[#A8F060]',
-        'shadow-lg hover:shadow-xl',
-        'transition-colors transition-shadow duration-200',
-        'group',
-        className
-      )}
+      className={cn('shadow-lg hover:shadow-xl group', className)}
       aria-label="Upload new meme"
     >
-      <svg
-        className="w-7 h-7 transition-transform duration-200 group-hover:rotate-90"
-        fill="none"
-        stroke="currentColor"
-        strokeWidth={2.5}
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          d="M12 4v16m8-8H4"
-        />
-      </svg>
-    </button>
+      <Upload className="h-6 w-6 group-hover:scale-110 transition-transform" strokeWidth={2} />
+    </Button>
   );
 }

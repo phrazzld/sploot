@@ -49,12 +49,12 @@ export function StatsDisplay({
     >
       <Badge variant="outline" className="font-mono text-xs tabular-nums">
         {animatedAssets}
-        {showLabels && <span className="ml-1 text-muted-foreground">ASSETS</span>}
+        {showLabels && <span className="ml-1 text-muted-foreground">assets</span>}
       </Badge>
       <Separator orientation="vertical" className="h-4" />
       <Badge variant="outline" className="font-mono text-xs tabular-nums">
         {animatedFavorites}
-        {showLabels && <span className="ml-1 text-muted-foreground">FAVORITES</span>}
+        {showLabels && <span className="ml-1 text-muted-foreground">favorites</span>}
       </Badge>
       <Separator orientation="vertical" className="h-4" />
       <Badge variant="outline" className="font-mono text-xs tabular-nums">
