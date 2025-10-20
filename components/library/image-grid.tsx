@@ -63,17 +63,24 @@ export function ImageGrid({
 
   // Calculate grid row span for each asset based on aspect ratio
   const getRowSpan = useCallback((asset: Asset) => {
+    // Action bar adds ~43px height (py-1.5 padding + h-7 button + border)
+    // With gridAutoRows: 10px, this equals ~5 rows
+    const ACTION_BAR_ROWS = 5;
+
     if (!asset.width || !asset.height || asset.width <= 0 || asset.height <= 0) {
-      return 30; // Default for missing dimensions (~300px tall)
+      return 35; // Default for missing dimensions (~300px image + ~50px action bar)
     }
 
     const aspectRatio = asset.height / asset.width;
     // Base row count is 30 (for ~300px tall at 1:1 aspect)
-    // Multiply by aspect ratio to get appropriate height
-    const rows = Math.ceil(aspectRatio * 30);
+    // Multiply by aspect ratio to get appropriate image height
+    const imageRows = Math.ceil(aspectRatio * 30);
 
-    // Clamp to reasonable bounds (min 15 for very wide, max 60 for very tall)
-    return Math.max(15, Math.min(rows, 60));
+    // Add action bar height to prevent overlapping tiles
+    const totalRows = imageRows + ACTION_BAR_ROWS;
+
+    // Clamp to reasonable bounds (min 20 for very wide, max 65 for very tall)
+    return Math.max(20, Math.min(totalRows, 65));
   }, []);
 
   // Masonry grid styles
@@ -81,7 +88,7 @@ export function ImageGrid({
     display: 'grid',
     gridTemplateColumns: `repeat(auto-fill, minmax(280px, 1fr))`,
     gridAutoRows: '10px', // Fine-grained row unit for precise height control
-    gap: '8px', // 8px spacing
+    gap: '2px', // 2px spacing for ultra-dense Pinterest-style layout
   };
 
   // Update container width on resize

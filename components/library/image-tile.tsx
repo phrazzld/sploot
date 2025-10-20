@@ -8,7 +8,6 @@ import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { useEmbeddingRetry } from '@/hooks/use-embedding-retry';
 import { useBlobCircuitBreaker } from '@/contexts/blob-circuit-breaker-context';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Heart, Trash2, ImageOff, Loader2, AlertCircle, Clock } from 'lucide-react';
@@ -318,15 +317,11 @@ function ImageTileComponent({
 
   return (
     <>
-      <Card
+      <div
         onClick={onClick || (() => onSelect?.(asset))}
-        className={cn(
-          'group relative overflow-hidden cursor-pointer border transition-colors',
-          !showSimilarityScore && 'hover:border-primary',
-          scoreBorderStyle
-        )}
+        className="group overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
       >
-        <CardContent className="p-0">
+        <div className="relative">
           {/* Image container */}
           <div
             className={cn('relative bg-muted overflow-hidden', !preserveAspectRatio && 'aspect-square')}
@@ -388,42 +383,6 @@ function ImageTileComponent({
               </>
             )}
 
-            {/* Floating actions */}
-            <div className="absolute top-2 left-2 z-10 flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={asset.favorite ? 'default' : 'secondary'}
-                      size="icon"
-                      className={cn(
-                        'h-10 w-10 bg-black/95 backdrop-blur-sm transition-all',
-                        asset.favorite && 'bg-green-500/90 hover:bg-green-500 border-green-500 ring-2 ring-green-500 shadow-lg shadow-green-500/50'
-                      )}
-                      onClick={handleFavoriteToggle}
-                      disabled={isLoading}
-                      aria-pressed={asset.favorite}
-                    >
-                      <Heart className={cn('h-5 w-5', asset.favorite && 'fill-current')} />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{asset.favorite ? 'drop from bangers' : 'crown as banger'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <Button
-                variant="secondary"
-                size="icon"
-                className="h-10 w-10 bg-black/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive hover:text-destructive-foreground"
-                onClick={handleDelete}
-                disabled={isLoading}
-                title="rage delete"
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            </div>
 
             {/* Similarity score overlay */}
             {similarityScore !== null && (
@@ -434,41 +393,6 @@ function ImageTileComponent({
               </div>
             )}
 
-            {/* Hover overlay with metadata */}
-            <div className="absolute inset-0 bg-black/85 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity">
-              <div className="absolute bottom-0 left-0 right-0 p-1.5">
-                <div className="flex flex-col gap-0.5">
-                  <div className="flex items-center justify-between">
-                    <div className="text-white/90 text-xs font-mono truncate">{asset.filename}</div>
-                    <div className="text-xs font-mono ml-2 shrink-0">
-                      {embeddingStatusInfo.icon && (
-                        <span className={cn('flex items-center gap-1', embeddingStatusInfo.color)}>
-                          {embeddingStatusInfo.label}
-                        </span>
-                      )}
-                      {!embeddingStatusInfo.icon && embeddingStatus === 'ready' && (
-                        <span className={embeddingStatusInfo.color}>{embeddingStatusInfo.label}</span>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-white/70 text-xs font-mono">
-                    <span className="truncate">
-                      {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
-                    </span>
-                    {typeof asset.relevance === 'number' && (
-                      <span
-                        className={cn(
-                          'font-semibold tabular-nums ml-2',
-                          asset.belowThreshold ? 'text-orange-400' : 'text-green-400'
-                        )}
-                      >
-                        {Math.round(asset.relevance)}%
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
 
             {/* Embedding status indicator */}
             {embeddingStatus !== 'ready' && (
@@ -507,9 +431,86 @@ function ImageTileComponent({
             )}
           </div>
 
+          {/* Action bar below image */}
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#000000] border-t border-[#111111]">
+            {/* Left: Actions */}
+            <div className="flex items-center gap-1">
+              {/* Banger button - always visible */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={cn(
+                        'h-7 w-7 transition-colors',
+                        asset.favorite
+                          ? 'text-green-500 hover:text-green-400'
+                          : 'text-[#666666] hover:text-green-500'
+                      )}
+                      onClick={handleFavoriteToggle}
+                      disabled={isLoading}
+                      aria-pressed={asset.favorite}
+                    >
+                      <Heart className={cn('h-4 w-4', asset.favorite && 'fill-current')} />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{asset.favorite ? 'drop from bangers' : 'crown as banger'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Delete button - on hover */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-[#666666] hover:text-red-500"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDelete(e);
+                }}
+                disabled={isLoading}
+                title="rage delete"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+
+            {/* Right: Metadata */}
+            <div className="flex flex-col items-end gap-0.5 min-w-0 flex-1">
+              <div className="flex items-center gap-2 w-full justify-end">
+                <span className="font-mono text-xs text-[#888888] truncate">
+                  {asset.filename}
+                </span>
+                {/* Embedding status indicator */}
+                {embeddingStatus !== 'ready' && (
+                  <span className={cn('text-xs font-mono shrink-0', embeddingStatusInfo.color)}>
+                    {embeddingStatusInfo.label}
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-mono text-xs text-[#666666] whitespace-nowrap">
+                  {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
+                </span>
+                {typeof asset.relevance === 'number' && (
+                  <span
+                    className={cn(
+                      'font-mono text-xs font-semibold tabular-nums',
+                      asset.belowThreshold ? 'text-orange-400' : 'text-green-400'
+                    )}
+                  >
+                    {Math.round(asset.relevance)}%
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Debug info overlay */}
           {isDebugMode && (embeddingStatus !== 'ready' || debugInfo.apiResponseTime) && (
-            <div className="absolute bottom-0 left-0 right-0 p-1 bg-black/80 text-[9px] font-mono text-muted-foreground">
+            <div className="px-2 py-1 bg-black/80 text-[9px] font-mono text-muted-foreground border-t border-[#1B1F24]">
               <div className="flex items-center gap-2">
                 <span className="text-primary">Debug:</span>
                 <span>{embeddingStatus}</span>
@@ -518,8 +519,8 @@ function ImageTileComponent({
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Delete Confirmation Modal */}
       {deleteConfirmation.targetAsset && (
