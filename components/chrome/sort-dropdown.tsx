@@ -11,9 +11,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
-import { ArrowDown, ArrowUp, ArrowDownAZ, ArrowUpAZ } from 'lucide-react';
+import { ArrowDown, ArrowUp, ArrowDownAZ, ArrowUpAZ, Shuffle } from 'lucide-react';
 
-export type SortOption = 'recent' | 'date' | 'size' | 'name';
+export type SortOption = 'recent' | 'date' | 'size' | 'name' | 'shuffle';
 export type SortDirection = 'asc' | 'desc';
 
 interface SortDropdownProps {
@@ -39,6 +39,7 @@ export function SortDropdown({
     { value: 'date', label: 'date added' },
     { value: 'size', label: 'file size' },
     { value: 'name', label: 'name' },
+    { value: 'shuffle', label: 'shuffle' },
   ];
 
   // Handle sort option selection
@@ -64,7 +65,7 @@ export function SortDropdown({
   };
 
   // Get arrow icon component for current direction
-  const ArrowIcon = direction === 'desc' ? ArrowDown : ArrowUp;
+  const ArrowIcon = value === 'shuffle' ? Shuffle : direction === 'desc' ? ArrowDown : ArrowUp;
 
   return (
     <DropdownMenu>
@@ -91,7 +92,7 @@ export function SortDropdown({
               className="gap-2"
             >
               <span className="flex-1">{option.label}</span>
-              {value === option.value && (
+              {value === option.value && option.value !== 'shuffle' && (
                 <span className="text-xs text-muted-foreground">
                   {direction === 'desc' ? '↓' : '↑'}
                 </span>

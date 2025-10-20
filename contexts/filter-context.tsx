@@ -12,7 +12,6 @@ interface FilterContextType {
 
   // Derived states
   isFavoritesOnly: boolean;
-  isRecentFilter: boolean;
   hasActiveFilters: boolean;
 
   // Actions
@@ -40,11 +39,10 @@ export function FilterProvider({ children }: FilterProviderProps) {
 
   // Parse initial state from URL params
   const urlFavorite = searchParams.get('favorite') === 'true';
-  const urlRecent = searchParams.get('filter') === 'recent';
   const urlTagId = searchParams.get('tagId');
 
   // Determine initial filter type from URL params
-  const initialFilterType: FilterType = urlFavorite ? 'favorites' : urlRecent ? 'recent' : 'all';
+  const initialFilterType: FilterType = urlFavorite ? 'favorites' : 'all';
 
   // Core state
   const [filterType, setFilterTypeState] = useState<FilterType>(initialFilterType);
@@ -54,10 +52,9 @@ export function FilterProvider({ children }: FilterProviderProps) {
   // Sync filter type with URL params when they change
   useEffect(() => {
     const newFavorite = searchParams.get('favorite') === 'true';
-    const newRecent = searchParams.get('filter') === 'recent';
     const newTagId = searchParams.get('tagId');
 
-    const newFilterType: FilterType = newFavorite ? 'favorites' : newRecent ? 'recent' : 'all';
+    const newFilterType: FilterType = newFavorite ? 'favorites' : 'all';
     setFilterTypeState(newFilterType);
     setTagIdState(newTagId);
   }, [searchParams]);
@@ -89,17 +86,14 @@ export function FilterProvider({ children }: FilterProviderProps) {
       // Update URL params based on filter type
       const updates: Record<string, string | null> = {};
 
-      // Clear both params first
+      // Clear favorite param
       updates.favorite = null;
-      updates.filter = null;
 
       // Set appropriate param based on type
       if (type === 'favorites') {
         updates.favorite = 'true';
-      } else if (type === 'recent') {
-        updates.filter = 'recent';
       }
-      // 'all' clears both params (already done above)
+      // 'all' clears param (already done above)
 
       updateUrlParams(updates);
     },
@@ -134,7 +128,6 @@ export function FilterProvider({ children }: FilterProviderProps) {
 
   // Derived states
   const isFavoritesOnly = filterType === 'favorites';
-  const isRecentFilter = filterType === 'recent';
   const hasActiveFilters = filterType !== 'all' || tagId !== null;
 
   const value: FilterContextType = {
@@ -145,7 +138,6 @@ export function FilterProvider({ children }: FilterProviderProps) {
 
     // Derived states
     isFavoritesOnly,
-    isRecentFilter,
     hasActiveFilters,
 
     // Actions
@@ -176,13 +168,12 @@ export function useFilter() {
  * Useful for components that only need to read filter state
  */
 export function useFilterState() {
-  const { filterType, tagId, tagName, isFavoritesOnly, isRecentFilter, hasActiveFilters } = useFilter();
+  const { filterType, tagId, tagName, isFavoritesOnly, hasActiveFilters } = useFilter();
   return {
     filterType,
     tagId,
     tagName,
     isFavoritesOnly,
-    isRecentFilter,
     hasActiveFilters,
   };
 }

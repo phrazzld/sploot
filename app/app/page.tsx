@@ -40,7 +40,6 @@ function AppPageClient() {
     tagId: tagIdParam,
     tagName: contextTagName,
     isFavoritesOnly: favoritesOnly,
-    isRecentFilter,
     toggleFavorites,
     clearTagFilter,
     setTagFilter,
@@ -81,9 +80,8 @@ function AppPageClient() {
   const pendingRefreshRef = useRef<boolean>(false);
 
   // Get the actual database column for sorting
-  // When recent filter is active, always sort by createdAt desc
-  const actualSortBy = isRecentFilter ? 'createdAt' : getSortColumn(sortBy);
-  const actualSortOrder = isRecentFilter ? 'desc' : sortOrder;
+  const actualSortBy = getSortColumn(sortBy);
+  const actualSortOrder = sortOrder;
 
   // Sync URL parameter to local state (for browser navigation)
   // but NOT during typing to prevent sync loops
@@ -385,23 +383,45 @@ function AppPageClient() {
 
   const gridContainerClassName = 'h-full overflow-y-auto overflow-x-hidden';
 
-  // Sort assets by filename if needed (since API doesn't support it)
+  // Sort assets by filename or shuffle if needed (since API doesn't support these)
   const sortedAssets = useMemo(() => {
-    // Only apply client-side sorting for filename since DB doesn't sort by it
-    if (sortBy !== 'name') return assets;
+    // Shuffle: Fisher-Yates algorithm with persistent seed
+    if (sortBy === 'shuffle') {
+      // Use a seed based on assets length and first asset ID for consistency during session
+      const seed = assets.length > 0 ? assets[0].id.charCodeAt(0) + assets.length : 0;
 
-    const sorted = [...assets].sort((a, b) => {
-      const nameA = a.filename.toLowerCase();
-      const nameB = b.filename.toLowerCase();
+      // Seeded random number generator
+      let s = seed;
+      const seededRandom = () => {
+        s = (s * 9301 + 49297) % 233280;
+        return s / 233280;
+      };
 
-      if (actualSortOrder === 'asc') {
-        return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
-      } else {
-        return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+      const shuffled = [...assets];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(seededRandom() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-    });
+      return shuffled;
+    }
 
-    return sorted;
+    // Name sorting: client-side since DB doesn't support it
+    if (sortBy === 'name') {
+      const sorted = [...assets].sort((a, b) => {
+        const nameA = a.filename.toLowerCase();
+        const nameB = b.filename.toLowerCase();
+
+        if (actualSortOrder === 'asc') {
+          return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+        } else {
+          return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+        }
+      });
+      return sorted;
+    }
+
+    // All other sorts handled by API
+    return assets;
   }, [assets, sortBy, actualSortOrder]);
 
   const trimmedLibraryQuery = libraryQuery.trim();
@@ -550,15 +570,12 @@ function AppPageClient() {
                   </Button>
                 )}
                 <FilterChips
-                  activeFilter={isRecentFilter ? 'recent' : favoritesOnly ? 'favorites' : 'all'}
+                  activeFilter={favoritesOnly ? 'favorites' : 'all'}
                   onFilterChange={(filter) => {
                     if (filter === 'favorites') {
                       if (!favoritesOnly) toggleFavoritesOnly();
                     } else if (filter === 'all') {
                       if (favoritesOnly) toggleFavoritesOnly();
-                    } else if (filter === 'recent') {
-                      // Navigate to recent view
-                      updateUrlParams({ filter: 'recent' });
                     }
                   }}
                   size="lg"

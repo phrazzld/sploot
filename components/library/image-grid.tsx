@@ -61,50 +61,28 @@ export function ImageGrid({
     }
   }, [loading, assets.length]);
 
-  // Use virtual scrolling only for large collections
-  // Threshold set high to avoid layout issues during normal usage
-  // Virtual scrolling mainly benefits collections with 500+ items
-  const USE_VIRTUAL_SCROLLING_THRESHOLD = 500;
-  const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
+  // Calculate grid row span for each asset based on aspect ratio
+  const getRowSpan = useCallback((asset: Asset) => {
+    if (!asset.width || !asset.height || asset.width <= 0 || asset.height <= 0) {
+      return 30; // Default for missing dimensions (~300px tall)
+    }
 
-  // Fixed column count matching Tailwind breakpoints
-  // grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6
-  const columnCount = useMemo(() => {
-    if (!containerWidth) return 1;
+    const aspectRatio = asset.height / asset.width;
+    // Base row count is 30 (for ~300px tall at 1:1 aspect)
+    // Multiply by aspect ratio to get appropriate height
+    const rows = Math.ceil(aspectRatio * 30);
 
-    // Match Tailwind responsive grid breakpoints
-    if (containerWidth >= 1280) return 6; // xl
-    if (containerWidth >= 1024) return 5; // lg
-    if (containerWidth >= 768) return 4;  // md
-    if (containerWidth >= 640) return 3;  // sm
-    return 2; // default
-  }, [containerWidth]);
+    // Clamp to reasonable bounds (min 15 for very wide, max 60 for very tall)
+    return Math.max(15, Math.min(rows, 60));
+  }, []);
 
-  // Calculate rows based on items and columns
-  const rows = useMemo(() => {
-    const rowCount = Math.ceil(assets.length / columnCount);
-    return Array.from({ length: rowCount }, (_, i) => {
-      const start = i * columnCount;
-      return assets.slice(start, start + columnCount);
-    });
-  }, [assets, columnCount]);
-
-  // Fixed gap for terminal strict grid aesthetic
-  const gapClass = 'gap-2'; // 8px - terminal aesthetic spacing
-
-  // Fixed 6-column grid layout - terminal strict grid aesthetic
-  const gridColsClass = 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
-
-  // Virtual scrolling setup - hook must always be called
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => containerRef.current,
-    estimateSize: () => 320, // Estimated row height (reduced since no metadata)
-    overscan: 2, // Render 2 rows outside viewport
-  });
-
-  // Only use virtualizer when needed
-  const activeVirtualizer = useVirtualScrolling ? virtualizer : null;
+  // Masonry grid styles
+  const gridStyle: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: `repeat(auto-fill, minmax(280px, 1fr))`,
+    gridAutoRows: '10px', // Fine-grained row unit for precise height control
+    gap: '8px', // 8px spacing
+  };
 
   // Update container width on resize
   useEffect(() => {
@@ -231,21 +209,24 @@ export function ImageGrid({
     );
   }
 
-  // Render simple grid for small collections
-  if (!useVirtualScrolling) {
-    return (
-      <div className="h-full">
-        <div
-          ref={setContainerRef}
-          className={cn('h-full overflow-auto', containerClassName)}
-          style={{ scrollbarGutter: 'stable' }}
-        >
-          <div className={cn("grid", gridColsClass, gapClass)}>
-            {assets.map((asset, index) => (
+  // Render masonry grid layout
+  return (
+    <div className="h-full">
+      <div
+        ref={setContainerRef}
+        className={cn('h-full overflow-auto p-4', containerClassName)}
+        style={{ scrollbarGutter: 'stable' }}
+      >
+        <div style={gridStyle}>
+          {assets.map((asset, index) => {
+            const rowSpan = getRowSpan(asset);
+
+            return (
               <div
                 key={asset.id}
                 className="transition-skeleton"
                 style={{
+                  gridRowEnd: `span ${rowSpan}`,
                   animation: `fadeInScale 300ms ease-out ${index * 30}ms forwards`,
                   opacity: 0,
                 }}
@@ -258,95 +239,9 @@ export function ImageGrid({
                     onSelect={onAssetSelect}
                     onAssetUpdate={onAssetUpdate}
                     showSimilarityScore={showSimilarityScores}
+                    preserveAspectRatio
                   />
                 </ImageTileErrorBoundary>
-              </div>
-            ))}
-          </div>
-
-          {/* Loading indicator */}
-          {loading && (
-            <div className="py-8 text-center">
-              <div className="inline-flex items-center gap-2 text-[var(--color-terminal-green)]">
-                <svg
-                  className="animate-spin h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span className="font-mono text-sm">loading more...</span>
-              </div>
-            </div>
-          )}
-
-          {/* End of list indicator */}
-          {!hasMore && assets.length > 0 && (
-            <div className="py-6 text-center font-mono text-xs tracking-wide text-[#666666]">
-              no more memes in this view
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render virtualized grid for large collections
-  return (
-    <div className="h-full">
-      <div
-        ref={setContainerRef}
-        className={cn('h-full overflow-auto', containerClassName)}
-        style={{ scrollbarGutter: 'stable' }}
-      >
-        <div
-          style={{
-            height: activeVirtualizer!.getTotalSize(),
-            width: '100%',
-            position: 'relative',
-          }}
-        >
-          {activeVirtualizer!.getVirtualItems().map((virtualRow) => {
-            const row = rows[virtualRow.index];
-            if (!row) return null;
-
-            return (
-              <div
-                key={virtualRow.key}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div className={cn("grid", gridColsClass, gapClass)}>
-                  {row.map((asset) => (
-                    <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
-                      <ImageTile
-                        asset={asset}
-                        onFavorite={handleFavoriteToggle}
-                        onDelete={onAssetDelete}
-                        onSelect={onAssetSelect}
-                        onAssetUpdate={onAssetUpdate}
-                        showSimilarityScore={showSimilarityScores}
-                      />
-                    </ImageTileErrorBoundary>
-                  ))}
-                </div>
               </div>
             );
           })}
@@ -382,10 +277,8 @@ export function ImageGrid({
 
         {/* End of list indicator */}
         {!hasMore && assets.length > 0 && (
-          <div className="py-8 text-center">
-            <p className="font-mono text-sm text-[#666666]">
-              that&apos;s all your memes | {assets.length} total
-            </p>
+          <div className="py-6 text-center font-mono text-xs tracking-wide text-[#666666]">
+            no more memes in this view
           </div>
         )}
       </div>

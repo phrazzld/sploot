@@ -2,9 +2,9 @@
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Clock, Heart } from 'lucide-react';
+import { Heart } from 'lucide-react';
 
-export type FilterType = 'all' | 'favorites' | 'recent';
+export type FilterType = 'all' | 'favorites';
 
 interface FilterChipsProps {
   activeFilter?: FilterType;
@@ -28,18 +28,13 @@ export function FilterChips({
   const filters = [
     {
       value: 'all' as FilterType,
-      label: 'all',
+      label: 'library',
       icon: null,
     },
     {
       value: 'favorites' as FilterType,
       label: 'bangers',
       icon: Heart,
-    },
-    {
-      value: 'recent' as FilterType,
-      label: 'recent',
-      icon: Clock,
     },
   ];
 

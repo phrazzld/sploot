@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { LogoWordmark } from './logo-wordmark';
 import { UserAvatar } from './user-avatar';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
@@ -57,10 +58,13 @@ export function Navbar({
         {/* Spacer to push user menu to the right */}
         <div className="flex-1" />
 
-        {/* Right section: Status line and user menu */}
+        {/* Right section: Status line, theme toggle, and user menu */}
         <div className="flex items-center gap-4">
           {/* Terminal-style status line */}
           {statusLine}
+
+          {/* Theme toggle */}
+          <ThemeToggle />
 
           {/* User avatar - 32px circle with 8px margin from right edge */}
           {showUserAvatar && (

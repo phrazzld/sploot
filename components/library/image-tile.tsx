@@ -34,7 +34,7 @@ function ImageTileComponent({
   onDelete,
   onSelect,
   onToggleFavorite,
-  preserveAspectRatio = false,
+  preserveAspectRatio = true,
   onClick,
   onAssetUpdate,
   showSimilarityScore = false,
@@ -397,14 +397,14 @@ function ImageTileComponent({
                       variant={asset.favorite ? 'default' : 'secondary'}
                       size="icon"
                       className={cn(
-                        'h-8 w-8 bg-black/80 backdrop-blur-sm',
-                        asset.favorite && 'bg-green-500/80 hover:bg-green-500 border-green-500'
+                        'h-10 w-10 bg-black/95 backdrop-blur-sm transition-all',
+                        asset.favorite && 'bg-green-500/90 hover:bg-green-500 border-green-500 ring-2 ring-green-500 shadow-lg shadow-green-500/50'
                       )}
                       onClick={handleFavoriteToggle}
                       disabled={isLoading}
                       aria-pressed={asset.favorite}
                     >
-                      <Heart className={cn('h-4 w-4', asset.favorite && 'fill-current')} />
+                      <Heart className={cn('h-5 w-5', asset.favorite && 'fill-current')} />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -416,12 +416,12 @@ function ImageTileComponent({
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-8 w-8 bg-black/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive hover:text-destructive-foreground"
+                className="h-10 w-10 bg-black/95 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-destructive hover:text-destructive-foreground"
                 onClick={handleDelete}
                 disabled={isLoading}
                 title="rage delete"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-5 w-5" />
               </Button>
             </div>
 
