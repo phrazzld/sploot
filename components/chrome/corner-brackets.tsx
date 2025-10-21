@@ -14,7 +14,6 @@ interface CornerBracketsProps {
  * Fixed positioning with 8px inset from viewport edges
  */
 export function CornerBrackets({ className }: CornerBracketsProps) {
-  const strokeColor = '#888888';
   const strokeWidth = 2;
   const size = 24;
   const armLength = 16; // Length of each bracket arm
@@ -29,7 +28,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
     >
       {/* Top-left bracket */}
       <svg
-        className="absolute top-2 left-2"
+        className="absolute top-2 left-2 text-muted-foreground"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
@@ -38,7 +37,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
       >
         <path
           d={`M ${armLength} ${strokeWidth} L ${strokeWidth} ${strokeWidth} L ${strokeWidth} ${armLength}`}
-          stroke={strokeColor}
+          stroke="currentColor"
           strokeWidth={strokeWidth}
           strokeLinecap="square"
           strokeLinejoin="miter"
@@ -47,7 +46,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
 
       {/* Top-right bracket */}
       <svg
-        className="absolute top-2 right-2"
+        className="absolute top-2 right-2 text-muted-foreground"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
@@ -56,7 +55,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
       >
         <path
           d={`M ${size - armLength} ${strokeWidth} L ${size - strokeWidth} ${strokeWidth} L ${size - strokeWidth} ${armLength}`}
-          stroke={strokeColor}
+          stroke="currentColor"
           strokeWidth={strokeWidth}
           strokeLinecap="square"
           strokeLinejoin="miter"
@@ -65,7 +64,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
 
       {/* Bottom-left bracket */}
       <svg
-        className="absolute bottom-2 left-2"
+        className="absolute bottom-2 left-2 text-muted-foreground"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
@@ -74,7 +73,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
       >
         <path
           d={`M ${strokeWidth} ${size - armLength} L ${strokeWidth} ${size - strokeWidth} L ${armLength} ${size - strokeWidth}`}
-          stroke={strokeColor}
+          stroke="currentColor"
           strokeWidth={strokeWidth}
           strokeLinecap="square"
           strokeLinejoin="miter"
@@ -83,7 +82,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
 
       {/* Bottom-right bracket */}
       <svg
-        className="absolute bottom-2 right-2"
+        className="absolute bottom-2 right-2 text-muted-foreground"
         width={size}
         height={size}
         viewBox={`0 0 ${size} ${size}`}
@@ -92,7 +91,7 @@ export function CornerBrackets({ className }: CornerBracketsProps) {
       >
         <path
           d={`M ${size - armLength} ${size - strokeWidth} L ${size - strokeWidth} ${size - strokeWidth} L ${size - strokeWidth} ${size - armLength}`}
-          stroke={strokeColor}
+          stroke="currentColor"
           strokeWidth={strokeWidth}
           strokeLinecap="square"
           strokeLinejoin="miter"

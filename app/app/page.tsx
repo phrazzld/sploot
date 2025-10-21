@@ -145,10 +145,7 @@ function AppPageClient() {
       // Refresh the asset list
       refresh();
 
-      // Show a subtle notification that library was refreshed
-      if (event.detail?.filename) {
-        showToast(`[COMPLETE] Indexed: ${event.detail.filename}`, 'complete', 3000);
-      }
+      // Note: Toast removed to avoid duplicates - onUploadComplete shows summary toast
     };
 
     // Listen for the custom event from upload zone
@@ -508,22 +505,22 @@ function AppPageClient() {
   return (
     <div className="flex h-[calc(100vh-56px)] flex-col">
       {/* Container with ultra-wide support - max-width at 1920px+ */}
-      <div className="px-6 pb-6 pt-6 md:px-10 2xl:px-12 border-b border-[#1B1F24]">
+      <div className="px-6 pb-6 pt-6 md:px-10 2xl:px-12 border-b border-border">
         <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1920px]">
           <header className="flex flex-col gap-4">
             {/* Title bar with inline stats */}
             <div className="flex items-baseline gap-2 flex-wrap">
-              <h1 className="font-mono text-2xl text-[#E6E8EB]">your library</h1>
+              <h1 className="font-mono text-2xl text-foreground">your library</h1>
               {stats.total > 0 && (
-                <span className="text-sm text-[#888888] font-mono flex items-center gap-2">
-                  <span>{stats.total} <span className="text-[#666666]">ASSETS</span></span>
+                <span className="text-sm text-muted-foreground font-mono flex items-center gap-2">
+                  <span>{stats.total} <span className="text-muted-foreground/70">ASSETS</span></span>
                   {stats.favorites > 0 && (
                     <>
-                      <span className="text-[#333333]">|</span>
-                      <span>{stats.favorites} <span className="text-[#666666]">BANGERS</span></span>
+                      <span className="text-border">|</span>
+                      <span>{stats.favorites} <span className="text-muted-foreground/70">BANGERS</span></span>
                     </>
                   )}
-                  <span className="text-[#333333]">|</span>
+                  <span className="text-border">|</span>
                   <span>{stats.sizeFormatted}</span>
                 </span>
               )}
@@ -624,7 +621,7 @@ function AppPageClient() {
             )}
 
             {showUploadPanel && (
-              <div className="border border-dashed border-[#2A2F37] bg-[#111419] p-5">
+              <div className="border border-dashed border-border bg-muted p-5">
                 <UploadZone
                   isOnDashboard={true}
                   onUploadComplete={(stats) => {
@@ -784,8 +781,8 @@ function AppPageClient() {
       {/* Retry Progress Modal */}
       {showRetryModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#14171A] border border-[#2A2F37] p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="text-lg font-semibold text-[#E6E8EB] mb-4">
+          <div className="bg-card border border-border p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               regenerating embeddings
             </h3>
 
@@ -797,7 +794,7 @@ function AppPageClient() {
                       cx="48"
                       cy="48"
                       r="36"
-                      stroke="#2A2F37"
+                      className="stroke-border"
                       strokeWidth="8"
                       fill="none"
                     />
@@ -805,16 +802,16 @@ function AppPageClient() {
                       cx="48"
                       cy="48"
                       r="36"
-                      stroke="#7C5CFF"
+                      className="stroke-primary"
                       strokeWidth="8"
                       fill="none"
                       strokeDasharray={226}
                       strokeDashoffset={226 - (226 * retryProgress.current) / retryProgress.total}
-                      className="transition-all duration-500 ease-out"
+                      style={{ transition: 'stroke-dashoffset 500ms ease-out' }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-[#E6E8EB]">
+                    <span className="text-2xl font-bold text-foreground">
                       {retryProgress.current}/{retryProgress.total}
                     </span>
                   </div>
@@ -823,27 +820,27 @@ function AppPageClient() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#B3B7BE]">progress</span>
-                  <span className="text-[#E6E8EB] font-medium">
+                  <span className="text-muted-foreground">progress</span>
+                  <span className="text-foreground font-medium">
                     {Math.round((retryProgress.current / retryProgress.total) * 100)}%
                   </span>
                 </div>
-                <div className="w-full bg-[#1F2328] h-2 overflow-hidden">
+                <div className="w-full bg-muted h-2 overflow-hidden">
                   <div
-                    className="bg-[var(--color-terminal-green)] h-full transition-all duration-500 ease-out"
+                    className="bg-green-600 h-full transition-all duration-500 ease-out"
                     style={{ width: `${(retryProgress.current / retryProgress.total) * 100}%` }}
                   />
                 </div>
               </div>
 
               {retryProgress.processing && (
-                <p className="text-sm text-[#B3B7BE] text-center animate-pulse">
+                <p className="text-sm text-muted-foreground text-center animate-pulse">
                   processing embeddings...
                 </p>
               )}
 
               {!retryProgress.processing && retryProgress.current === retryProgress.total && (
-                <p className="text-sm text-[#B6FF6E] text-center font-medium">
+                <p className="text-sm text-green-600 text-center font-medium">
                   ✓ all embeddings regenerated
                 </p>
               )}
@@ -873,7 +870,7 @@ export default function AppPage() {
   return (
     <Suspense fallback={
       <div className="flex h-[calc(100vh-56px)] flex-col items-center justify-center">
-        <div className="text-[#B3B7BE]">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     }>
       <AppPageClient />

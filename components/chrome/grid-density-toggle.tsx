@@ -124,7 +124,7 @@ export function GridDensityToggle({
       className={cn(
         'flex items-center',
         config.gap,
-        'bg-[#1B1F24]  p-0.5',
+        'bg-muted p-0.5',
         className
       )}
       role="radiogroup"
@@ -148,8 +148,8 @@ export function GridDensityToggle({
 
               // Colors and states
               isActive
-                ? 'bg-[#7C5CFF] text-white shadow-lg shadow-[#7C5CFF]/20'
-                : 'text-[#B3B7BE] hover:text-[#E6E8EB] hover:bg-[#2A2F37]',
+                ? 'bg-primary text-white shadow-lg shadow-primary/20'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted',
 
               // Touch target optimization
               'touch-manipulation',
@@ -172,7 +172,7 @@ export function GridDensityToggle({
             {/* Active indicator dot */}
             {isActive && (
               <div className="absolute -bottom-1 left-1/2 -translate-x-1/2">
-                <div className="w-1 h-1 bg-[var(--color-terminal-green)]" />
+                <div className="w-1 h-1 bg-green-600" />
               </div>
             )}
           </button>

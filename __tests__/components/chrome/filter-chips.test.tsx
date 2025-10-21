@@ -70,7 +70,7 @@ describe('FilterChips', () => {
 
       const allButton = screen.getByLabelText('All');
       expect(allButton).toHaveAttribute('aria-pressed', 'true');
-      expect(allButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      expect(allButton).toHaveClass('bg-primary', 'text-white');
     });
 
     it('should mark Favorites as active when activeFilter is "favorites"', () => {
@@ -78,7 +78,7 @@ describe('FilterChips', () => {
 
       const favoritesButton = screen.getByLabelText('Favorites');
       expect(favoritesButton).toHaveAttribute('aria-pressed', 'true');
-      expect(favoritesButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      expect(favoritesButton).toHaveClass('bg-primary', 'text-white');
 
       const allButton = screen.getByLabelText('All');
       expect(allButton).toHaveAttribute('aria-pressed', 'false');
@@ -89,7 +89,7 @@ describe('FilterChips', () => {
 
       const recentButton = screen.getByLabelText('Recent');
       expect(recentButton).toHaveAttribute('aria-pressed', 'true');
-      expect(recentButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      expect(recentButton).toHaveClass('bg-primary', 'text-white');
     });
 
     it('should fill favorites icon when active', () => {
@@ -244,7 +244,7 @@ describe('FilterChip', () => {
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-pressed', 'false');
-      expect(button).toHaveClass('bg-[#1B1F24]', 'text-[#B3B7BE]');
+      expect(button).toHaveClass('bg-muted', 'text-muted-foreground');
     });
 
     it('should show active state when isActive is true', () => {
@@ -252,7 +252,7 @@ describe('FilterChip', () => {
 
       const button = screen.getByRole('button');
       expect(button).toHaveAttribute('aria-pressed', 'true');
-      expect(button).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      expect(button).toHaveClass('bg-primary', 'text-white');
     });
   });
 

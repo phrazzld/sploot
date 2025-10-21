@@ -257,7 +257,7 @@ export function ImageGrid({
         {/* Loading indicator */}
         {loading && (
           <div className="py-8 text-center">
-            <div className="inline-flex items-center gap-2 text-[var(--color-terminal-green)]">
+            <div className="inline-flex items-center gap-2 text-green-600">
               <svg
                 className="animate-spin h-5 w-5"
                 fill="none"
@@ -284,7 +284,7 @@ export function ImageGrid({
 
         {/* End of list indicator */}
         {!hasMore && assets.length > 0 && (
-          <div className="py-6 text-center font-mono text-xs tracking-wide text-[#666666]">
+          <div className="py-6 text-center font-mono text-xs tracking-wide text-muted-foreground/60">
             no more memes in this view
           </div>
         )}

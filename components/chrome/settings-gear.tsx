@@ -40,7 +40,7 @@ export function SettingsGear({
       size={buttonSize}
       onClick={handleClick}
       className={cn(
-        'text-[#B3B7BE] hover:text-[#E6E8EB]',
+        'text-muted-foreground hover:text-foreground',
         'transition-all duration-200',
         'hover:rotate-90',
         'mr-2',

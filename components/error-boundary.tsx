@@ -62,15 +62,15 @@ export class ErrorBoundary extends Component<Props, State> {
                 />
               </svg>
             </div>
-            <h2 className="text-xl font-semibold text-[#E6E8EB] mb-2">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
               Something went wrong
             </h2>
-            <p className="text-[#B3B7BE] text-sm mb-6">
+            <p className="text-muted-foreground text-sm mb-6">
               {this.state.error?.message || 'An unexpected error occurred'}
             </p>
             <button
               onClick={this.reset}
-              className="px-6 py-2.5 bg-[#7C5CFF] text-white text-sm font-medium hover:bg-[#6B4FE6] active:bg-[#5941CC] transition-all duration-200"
+              className="px-6 py-2.5 bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 active:bg-primary/80 transition-all duration-200"
             >
               Try Again
             </button>

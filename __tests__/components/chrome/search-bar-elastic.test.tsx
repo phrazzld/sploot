@@ -291,11 +291,11 @@ describe('SearchBarElastic', () => {
       const input = screen.getByPlaceholderText('Search memes...');
       const icon = container.querySelector('svg');
 
-      expect(icon).toHaveClass('text-[#666666]');
+      expect(icon).toHaveClass('text-muted-foreground');
 
       await user.click(input);
 
-      expect(icon).toHaveClass('text-[var(--color-terminal-green)]');
+      expect(icon).toHaveClass('text-green-600');
     });
 
     it('should change border color when focused', async () => {
@@ -304,11 +304,11 @@ describe('SearchBarElastic', () => {
 
       const input = screen.getByPlaceholderText('Search memes...');
 
-      expect(input).toHaveClass('border-[#333333]');
+      expect(input).toHaveClass('border-border');
 
       await user.click(input);
 
-      expect(input).toHaveClass('border-[var(--color-terminal-green)]');
+      expect(input).toHaveClass('border-green-600');
     });
   });
 

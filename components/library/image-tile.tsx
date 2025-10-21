@@ -432,7 +432,7 @@ function ImageTileComponent({
           </div>
 
           {/* Action bar below image */}
-          <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-[#000000] border-t border-[#111111]">
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-card border-t border-border">
             {/* Left: Actions */}
             <div className="flex items-center gap-1">
               {/* Banger button - always visible */}
@@ -446,7 +446,7 @@ function ImageTileComponent({
                         'h-7 w-7 transition-colors',
                         asset.favorite
                           ? 'text-green-500 hover:text-green-400'
-                          : 'text-[#666666] hover:text-green-500'
+                          : 'text-muted-foreground/60 hover:text-green-500'
                       )}
                       onClick={handleFavoriteToggle}
                       disabled={isLoading}
@@ -465,7 +465,7 @@ function ImageTileComponent({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-[#666666] hover:text-red-500"
+                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/60 hover:text-red-500"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(e);
@@ -480,7 +480,7 @@ function ImageTileComponent({
             {/* Right: Metadata */}
             <div className="flex flex-col items-end gap-0.5 min-w-0 flex-1">
               <div className="flex items-center gap-2 w-full justify-end">
-                <span className="font-mono text-xs text-[#888888] truncate">
+                <span className="font-mono text-xs text-muted-foreground truncate">
                   {asset.filename}
                 </span>
                 {/* Embedding status indicator */}
@@ -491,7 +491,7 @@ function ImageTileComponent({
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-[#666666] whitespace-nowrap">
+                <span className="font-mono text-xs text-muted-foreground/60 whitespace-nowrap">
                   {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
                 </span>
                 {typeof asset.relevance === 'number' && (
@@ -510,7 +510,7 @@ function ImageTileComponent({
 
           {/* Debug info overlay */}
           {isDebugMode && (embeddingStatus !== 'ready' || debugInfo.apiResponseTime) && (
-            <div className="px-2 py-1 bg-black/80 text-[9px] font-mono text-muted-foreground border-t border-[#1B1F24]">
+            <div className="px-2 py-1 bg-black/80 text-[9px] font-mono text-muted-foreground border-t border-border">
               <div className="flex items-center gap-2">
                 <span className="text-primary">Debug:</span>
                 <span>{embeddingStatus}</span>

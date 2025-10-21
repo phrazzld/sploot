@@ -54,7 +54,7 @@ export function UploadButton({
       className={cn(
         'relative touch-manipulation',
         showLabel && 'w-[100px]',
-        isActive && 'bg-[#B6FF6E]/20 text-[#B6FF6E] ring-1 ring-[#B6FF6E]/40',
+        isActive && 'bg-green-600/20 text-green-600 ring-1 ring-green-600/40',
         className
       )}
       aria-label={showLabel ? undefined : 'Upload'}
@@ -65,7 +65,7 @@ export function UploadButton({
 
       {/* Pulse animation when active */}
       {isActive && (
-        <div className="absolute inset-0 bg-[#B6FF6E]/10 animate-pulse rounded-md" />
+        <div className="absolute inset-0 bg-green-600/10 animate-pulse rounded-md" />
       )}
     </Button>
   );

@@ -104,10 +104,10 @@ export default function TagPage({
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0B0C0E] p-8">
+      <div className="min-h-screen bg-background p-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-[#1B1F24] rounded w-48 mb-4" />
-          <div className="h-4 bg-[#1B1F24] rounded w-32" />
+          <div className="h-8 bg-muted rounded w-48 mb-4" />
+          <div className="h-4 bg-muted rounded w-32" />
         </div>
       </div>
     );
@@ -118,13 +118,13 @@ export default function TagPage({
   }
 
   return (
-    <div className="min-h-screen bg-[#0B0C0E]">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="bg-[#14171A] border-b border-[#2A2F37] px-8 py-6">
+      <header className="bg-card border-b border-border px-8 py-6">
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-2xl font-bold text-[#E6E8EB]">
+              <h1 className="text-2xl font-bold text-foreground">
                 {tag.name}
               </h1>
               {tag.color && (
@@ -134,7 +134,7 @@ export default function TagPage({
                 />
               )}
             </div>
-            <p className="text-[#B3B7BE] text-sm">
+            <p className="text-muted-foreground text-sm">
               {assets.length} {assets.length === 1 ? 'image' : 'images'}
             </p>
           </div>

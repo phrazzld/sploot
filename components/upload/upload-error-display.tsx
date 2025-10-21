@@ -111,11 +111,11 @@ export function UploadErrorDisplay({
   const getErrorColor = () => {
     switch (error.type) {
       case UploadErrorType.DUPLICATE:
-        return 'text-[#FFB020] border-[#FFB020]/20 bg-[#FFB020]/10';
+        return 'text-orange-500 border-orange-500/20 bg-orange-500/10';
       case UploadErrorType.PROCESSING_FAILED:
-        return 'text-[#FFA500] border-[#FFA500]/20 bg-[#FFA500]/10';
+        return 'text-orange-500 border-orange-500/20 bg-orange-500/10';
       default:
-        return 'text-[#FF4D4D] border-[#FF4D4D]/20 bg-[#FF4D4D]/10';
+        return 'text-destructive border-destructive/20 bg-destructive/10';
     }
   };
 

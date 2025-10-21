@@ -21,15 +21,15 @@ export default async function AppLayout({
   return (
     <OfflineProvider>
       <Suspense fallback={
-        <div className="min-h-screen bg-[#0B0C0E]">
+        <div className="min-h-screen bg-background">
           <div className="flex h-screen items-center justify-center">
-            <div className="text-[#B3B7BE]">Loading...</div>
+            <div className="text-muted-foreground">Loading...</div>
           </div>
         </div>
       }>
         <BlobCircuitBreakerProvider>
           <FilterProvider>
-            <div className="min-h-screen bg-[#0B0C0E]">
+            <div className="min-h-screen bg-background">
               <BlobErrorBanner />
               <AppChrome>
                 {children}
