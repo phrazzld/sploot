@@ -88,7 +88,7 @@ export function ImageGrid({
     display: 'grid',
     gridTemplateColumns: `repeat(auto-fill, minmax(280px, 1fr))`,
     gridAutoRows: '10px', // Fine-grained row unit for precise height control
-    gap: '2px', // 2px spacing for ultra-dense Pinterest-style layout
+    gap: '4px', // Minimal spacing - borders provide visual separation
   };
 
   // Update container width on resize

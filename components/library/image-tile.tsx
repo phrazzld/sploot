@@ -41,6 +41,8 @@ function ImageTileComponent({
   const [isLoading, setIsLoading] = useState(false);
   const [imageError, setImageError] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageSrc, setImageSrc] = useState(asset.thumbnailUrl || asset.blobUrl);
+  const [hasTriedFallback, setHasTriedFallback] = useState(false);
   const [isGeneratingEmbedding, setIsGeneratingEmbedding] = useState(false);
   const [hasEmbedding, setHasEmbedding] = useState(!!asset.embedding);
   const [embeddingStatus, setEmbeddingStatus] = useState<EmbeddingStatusType>(() => {
@@ -64,6 +66,14 @@ function ImageTileComponent({
     }
     return false;
   });
+
+  // Reset image src when asset changes (e.g., component reused)
+  useEffect(() => {
+    setImageSrc(asset.thumbnailUrl || asset.blobUrl);
+    setHasTriedFallback(false);
+    setImageError(false);
+    setImageLoaded(false);
+  }, [asset.id, asset.blobUrl, asset.thumbnailUrl]);
 
   // Simulate queue position in debug mode
   useEffect(() => {
@@ -319,7 +329,7 @@ function ImageTileComponent({
     <>
       <div
         onClick={onClick || (() => onSelect?.(asset))}
-        className="group overflow-hidden cursor-pointer hover:opacity-90 transition-opacity"
+        className="group overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border rounded-md border-border dark:border-white/15"
       >
         <div className="relative">
           {/* Image container */}
@@ -348,8 +358,8 @@ function ImageTileComponent({
                   </div>
                 )}
                 <Image
-                  key={asset.blobUrl}
-                  src={asset.thumbnailUrl || asset.blobUrl}
+                  key={imageSrc}
+                  src={imageSrc}
                   alt={asset.filename || asset.pathname?.split('/').pop() || 'Uploaded image'}
                   fill
                   sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
@@ -363,6 +373,16 @@ function ImageTileComponent({
                     recordBlobSuccess();
                   }}
                   onError={(e) => {
+                    // If thumbnail failed and we haven't tried the main blob yet
+                    if (imageSrc === asset.thumbnailUrl && asset.blobUrl && !hasTriedFallback) {
+                      console.log(`[image-fallback] Thumbnail failed for ${asset.id}, falling back to main blob`);
+                      setHasTriedFallback(true);
+                      setImageSrc(asset.blobUrl);
+                      // Don't set imageError yet - give the fallback a chance
+                      return;
+                    }
+
+                    // Both failed (or only had one URL)
                     setImageError(true);
                     setImageLoaded(true);
                     recordBlobError(404);
@@ -373,9 +393,10 @@ function ImageTileComponent({
                       headers: { 'Content-Type': 'application/json' },
                       body: JSON.stringify({
                         assetId: asset.id,
-                        blobUrl: asset.thumbnailUrl || asset.blobUrl,
+                        blobUrl: imageSrc,
                         errorType: 'blob_load_failure',
                         timestamp: Date.now(),
+                        fallbackAttempted: hasTriedFallback,
                       }),
                     }).catch(() => {});
                   }}
@@ -432,7 +453,7 @@ function ImageTileComponent({
           </div>
 
           {/* Action bar below image */}
-          <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-card border-t border-border">
+          <div className="flex items-center justify-between gap-2 px-2 py-1.5 bg-card dark:bg-muted border-t border-border dark:border-white/20">
             {/* Left: Actions */}
             <div className="flex items-center gap-1">
               {/* Banger button - always visible */}
@@ -446,7 +467,7 @@ function ImageTileComponent({
                         'h-7 w-7 transition-colors',
                         asset.favorite
                           ? 'text-green-500 hover:text-green-400'
-                          : 'text-muted-foreground/60 hover:text-green-500'
+                          : 'text-muted-foreground/80 hover:text-green-500'
                       )}
                       onClick={handleFavoriteToggle}
                       disabled={isLoading}
@@ -465,7 +486,7 @@ function ImageTileComponent({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/60 hover:text-red-500"
+                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/80 hover:text-red-500"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(e);
@@ -480,7 +501,7 @@ function ImageTileComponent({
             {/* Right: Metadata */}
             <div className="flex flex-col items-end gap-0.5 min-w-0 flex-1">
               <div className="flex items-center gap-2 w-full justify-end">
-                <span className="font-mono text-xs text-muted-foreground truncate">
+                <span className="font-mono text-xs text-muted-foreground/90 truncate">
                   {asset.filename}
                 </span>
                 {/* Embedding status indicator */}
@@ -491,7 +512,7 @@ function ImageTileComponent({
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <span className="font-mono text-xs text-muted-foreground/60 whitespace-nowrap">
+                <span className="font-mono text-xs text-muted-foreground/70 whitespace-nowrap">
                   {asset.width}×{asset.height} | {formatFileSize(asset.size || 0)}
                 </span>
                 {typeof asset.relevance === 'number' && (

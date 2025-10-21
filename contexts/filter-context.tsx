@@ -12,6 +12,7 @@ interface FilterContextType {
 
   // Derived states
   isFavoritesOnly: boolean;
+  isRecentFilter: boolean;
   hasActiveFilters: boolean;
 
   // Actions
@@ -39,10 +40,16 @@ export function FilterProvider({ children }: FilterProviderProps) {
 
   // Parse initial state from URL params
   const urlFavorite = searchParams.get('favorite') === 'true';
+  const urlFilter = searchParams.get('filter');
   const urlTagId = searchParams.get('tagId');
 
   // Determine initial filter type from URL params
-  const initialFilterType: FilterType = urlFavorite ? 'favorites' : 'all';
+  // Priority: favorite param > filter param > default 'all'
+  const initialFilterType: FilterType = urlFavorite
+    ? 'favorites'
+    : urlFilter === 'recent'
+    ? 'recent'
+    : 'all';
 
   // Core state
   const [filterType, setFilterTypeState] = useState<FilterType>(initialFilterType);
@@ -52,9 +59,15 @@ export function FilterProvider({ children }: FilterProviderProps) {
   // Sync filter type with URL params when they change
   useEffect(() => {
     const newFavorite = searchParams.get('favorite') === 'true';
+    const newFilter = searchParams.get('filter');
     const newTagId = searchParams.get('tagId');
 
-    const newFilterType: FilterType = newFavorite ? 'favorites' : 'all';
+    // Priority: favorite param > filter param > default 'all'
+    const newFilterType: FilterType = newFavorite
+      ? 'favorites'
+      : newFilter === 'recent'
+      ? 'recent'
+      : 'all';
     setFilterTypeState(newFilterType);
     setTagIdState(newTagId);
   }, [searchParams]);
@@ -86,14 +99,17 @@ export function FilterProvider({ children }: FilterProviderProps) {
       // Update URL params based on filter type
       const updates: Record<string, string | null> = {};
 
-      // Clear favorite param
+      // Clear both params first
       updates.favorite = null;
+      updates.filter = null;
 
       // Set appropriate param based on type
       if (type === 'favorites') {
         updates.favorite = 'true';
+      } else if (type === 'recent') {
+        updates.filter = 'recent';
       }
-      // 'all' clears param (already done above)
+      // 'all' clears both params (already done above)
 
       updateUrlParams(updates);
     },
@@ -128,6 +144,7 @@ export function FilterProvider({ children }: FilterProviderProps) {
 
   // Derived states
   const isFavoritesOnly = filterType === 'favorites';
+  const isRecentFilter = filterType === 'recent';
   const hasActiveFilters = filterType !== 'all' || tagId !== null;
 
   const value: FilterContextType = {
@@ -138,6 +155,7 @@ export function FilterProvider({ children }: FilterProviderProps) {
 
     // Derived states
     isFavoritesOnly,
+    isRecentFilter,
     hasActiveFilters,
 
     // Actions
@@ -168,12 +186,13 @@ export function useFilter() {
  * Useful for components that only need to read filter state
  */
 export function useFilterState() {
-  const { filterType, tagId, tagName, isFavoritesOnly, hasActiveFilters } = useFilter();
+  const { filterType, tagId, tagName, isFavoritesOnly, isRecentFilter, hasActiveFilters } = useFilter();
   return {
     filterType,
     tagId,
     tagName,
     isFavoritesOnly,
+    isRecentFilter,
     hasActiveFilters,
   };
 }

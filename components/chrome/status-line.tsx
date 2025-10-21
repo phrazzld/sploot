@@ -17,8 +17,7 @@ interface StatusLineProps {
 /**
  * Status line showing real-time system status using shadcn Badge components
  * Format: DENSE | LAST: 2m | Q:3
- * Shows app state (density, activity, queue) - library stats shown in page body
- * Reads density from URL params for display
+ * Shows app state (activity, queue) - library stats shown in page body
  */
 export function StatusLine({
   assetCount = 0,
@@ -28,10 +27,6 @@ export function StatusLine({
   className,
 }: StatusLineProps) {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const searchParams = useSearchParams();
-
-  // Read density state from URL params
-  const density = (searchParams.get('density') || 'dense') as 'compact' | 'dense' | 'comfortable';
 
   // Update current time every second for relative display
   useEffect(() => {
@@ -40,14 +35,6 @@ export function StatusLine({
     }, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  const formatStorage = (bytes: number): string => {
-    if (bytes === 0) return '0 MB';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
-  };
 
   const formatTimestamp = (time: Date | string | null): string => {
     if (!time) return 'NEVER';
@@ -75,14 +62,8 @@ export function StatusLine({
         'select-none',
         className
       )}
-      title={`Density: ${density} | Last upload: ${formatTimestamp(lastUploadTime)} | Queue: ${queueDepth}`}
+      title={`Last upload: ${formatTimestamp(lastUploadTime)} | Queue: ${queueDepth}`}
     >
-      {/* Density Indicator */}
-      <Badge variant="outline" className="hidden xl:flex items-center gap-1 font-mono text-xs">
-        <span className="text-muted-foreground">density:</span>
-        <span>{density}</span>
-      </Badge>
-
       {lastUploadTime && (
         <>
           <Separator orientation="vertical" className="hidden xl:block h-4" />

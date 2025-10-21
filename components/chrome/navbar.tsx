@@ -39,7 +39,7 @@ export function Navbar({
         // Height: 56px
         'h-14',
         // Background and border - using shadcn design tokens
-        'bg-background border-b border-border',
+        'bg-background border-b border-border backdrop-blur-sm',
         // Layout
         'flex items-center',
         // Padding - progressive increase for larger screens
@@ -52,7 +52,11 @@ export function Navbar({
       <div className="flex items-center justify-between w-full max-w-screen-2xl 2xl:max-w-[1920px] mx-auto">
         {/* Left section: Logo/Wordmark */}
         <div className="flex items-center gap-4">
-          <LogoWordmark />
+          {/* Mobile variant (compact, sm) - hidden on md and up */}
+          <LogoWordmark variant="compact" size="sm" className="md:hidden" />
+
+          {/* Desktop variant (default, md) - hidden below md */}
+          <LogoWordmark variant="default" size="md" className="hidden md:inline-flex" />
         </div>
 
         {/* Spacer to push user menu to the right */}
