@@ -39,8 +39,8 @@ function AppPageClient() {
     filterType,
     tagId: tagIdParam,
     tagName: contextTagName,
-    isFavoritesOnly: favoritesOnly,
-    toggleFavorites,
+    isBangersOnly: bangersOnly,
+    toggleBangers,
     clearTagFilter,
     setTagFilter,
   } = useFilter();
@@ -133,7 +133,7 @@ function AppPageClient() {
     sortBy: actualSortBy as 'createdAt' | 'size' | 'favorite' | undefined,
     sortOrder: actualSortOrder as 'asc' | 'desc',
     autoLoad: true,
-    filterFavorites: favoritesOnly ? true : undefined,
+    filterFavorites: bangersOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,
   });
 
@@ -285,14 +285,14 @@ function AppPageClient() {
 
   const filteredSearchAssets = useMemo(() => {
     let results = searchAssets;
-    if (favoritesOnly) {
+    if (bangersOnly) {
       results = results.filter((asset) => asset.favorite);
     }
     if (tagIdParam) {
       results = results.filter((asset) => asset.tags?.some((tag) => tag.id === tagIdParam));
     }
     return results;
-  }, [searchAssets, favoritesOnly, tagIdParam]);
+  }, [searchAssets, bangersOnly, tagIdParam]);
 
   const searchHitCount = filteredSearchAssets.length;
 
@@ -329,7 +329,7 @@ function AppPageClient() {
   }, [updateUrlParams]);
 
   // Use filter actions from context (they handle URL updates internally)
-  const toggleFavoritesOnly = toggleFavorites;
+  const toggleBangersOnly = toggleBangers;
 
   const handleScrollContainerReady = useCallback((node: HTMLDivElement | null) => {
     gridScrollRef.current = node;
@@ -459,7 +459,7 @@ function AppPageClient() {
     const prev = filtersRef.current;
     const current = {
       tagId: tagIdParam ?? null,
-      favorites: favoritesOnly,
+      favorites: bangersOnly,
       sortBy: actualSortBy,
       sortDirection: actualSortOrder as 'asc' | 'desc',
     };
@@ -488,7 +488,7 @@ function AppPageClient() {
     }
 
     filtersRef.current = current;
-  }, [tagIdParam, favoritesOnly, actualSortBy, actualSortOrder, isSearching, refresh]);
+  }, [tagIdParam, bangersOnly, actualSortBy, actualSortOrder, isSearching, refresh]);
 
   useEffect(() => {
     if (!trimmedLibraryQuery) {
@@ -513,15 +513,15 @@ function AppPageClient() {
               <h1 className="font-mono text-2xl text-foreground">your library</h1>
               {stats.total > 0 && (
                 <span className="text-sm text-muted-foreground font-mono flex items-center gap-2">
-                  <span>{stats.total} <span className="text-muted-foreground/70">ASSETS</span></span>
+                  <span>{stats.total} <span className="text-muted-foreground/70">assets</span></span>
                   {stats.favorites > 0 && (
                     <>
                       <span className="text-border">|</span>
-                      <span>{stats.favorites} <span className="text-muted-foreground/70">BANGERS</span></span>
+                      <span>{stats.favorites} <span className="text-muted-foreground/70">bangers</span></span>
                     </>
                   )}
                   <span className="text-border">|</span>
-                  <span>{stats.sizeFormatted}</span>
+                  <span className="lowercase">{stats.sizeFormatted}</span>
                 </span>
               )}
             </div>
@@ -567,12 +567,12 @@ function AppPageClient() {
                   </Button>
                 )}
                 <FilterChips
-                  activeFilter={favoritesOnly ? 'favorites' : 'all'}
+                  activeFilter={bangersOnly ? 'bangers' : 'all'}
                   onFilterChange={(filter) => {
-                    if (filter === 'favorites') {
-                      if (!favoritesOnly) toggleFavoritesOnly();
+                    if (filter === 'bangers') {
+                      if (!bangersOnly) toggleBangers();
                     } else if (filter === 'all') {
-                      if (favoritesOnly) toggleFavoritesOnly();
+                      if (bangersOnly) toggleBangers();
                     }
                   }}
                   size="lg"
@@ -604,9 +604,9 @@ function AppPageClient() {
 
             </div>
 
-            {(!isSearching && (favoritesOnly || tagIdParam)) && (
+            {(!isSearching && (bangersOnly || tagIdParam)) && (
               <div className="flex flex-wrap items-center gap-2">
-                {favoritesOnly && (
+                {bangersOnly && (
                   <Badge variant="outline" className="gap-1">
                     <Heart className="h-3.5 w-3.5" fill="currentColor" strokeWidth={2} />
                     bangers only
@@ -652,7 +652,7 @@ function AppPageClient() {
                     query={trimmedLibraryQuery}
                     resultCount={searchHitCount}
                     filters={{
-                      favorites: favoritesOnly || undefined,
+                      favorites: bangersOnly || undefined,
                       tagName: activeTagName || undefined,
                     }}
                     latencyMs={searchMetadata?.latencyMs}

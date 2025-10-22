@@ -67,13 +67,12 @@ describe('FilterContext', () => {
       expect(result.current.filterType).toBe('all');
       expect(result.current.tagId).toBeNull();
       expect(result.current.tagName).toBeNull();
-      expect(result.current.isFavoritesOnly).toBe(false);
-      expect(result.current.isRecentFilter).toBe(false);
+      expect(result.current.isBangersOnly).toBe(false);
       expect(result.current.hasActiveFilters).toBe(false);
     });
 
-    it('should initialize with filterType "favorites" when favorite=true in URL', () => {
-      mockSearchParams.set('favorite', 'true');
+    it('should initialize with filterType "bangers" when bangers=true in URL', () => {
+      mockSearchParams.set('bangers', 'true');
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <FilterProvider>{children}</FilterProvider>
@@ -81,24 +80,8 @@ describe('FilterContext', () => {
 
       const { result } = renderHook(() => useFilter(), { wrapper });
 
-      expect(result.current.filterType).toBe('favorites');
-      expect(result.current.isFavoritesOnly).toBe(true);
-      expect(result.current.isRecentFilter).toBe(false);
-      expect(result.current.hasActiveFilters).toBe(true);
-    });
-
-    it('should initialize with filterType "recent" when filter=recent in URL', () => {
-      mockSearchParams.set('filter', 'recent');
-
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <FilterProvider>{children}</FilterProvider>
-      );
-
-      const { result } = renderHook(() => useFilter(), { wrapper });
-
-      expect(result.current.filterType).toBe('recent');
-      expect(result.current.isFavoritesOnly).toBe(false);
-      expect(result.current.isRecentFilter).toBe(true);
+      expect(result.current.filterType).toBe('bangers');
+      expect(result.current.isBangersOnly).toBe(true);
       expect(result.current.hasActiveFilters).toBe(true);
     });
 
@@ -114,25 +97,10 @@ describe('FilterContext', () => {
       expect(result.current.tagId).toBe('tag-123');
       expect(result.current.hasActiveFilters).toBe(true);
     });
-
-    it('should prioritize favorite over recent when both in URL', () => {
-      mockSearchParams.set('favorite', 'true');
-      mockSearchParams.set('filter', 'recent');
-
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <FilterProvider>{children}</FilterProvider>
-      );
-
-      const { result } = renderHook(() => useFilter(), { wrapper });
-
-      expect(result.current.filterType).toBe('favorites');
-      expect(result.current.isFavoritesOnly).toBe(true);
-      expect(result.current.isRecentFilter).toBe(false);
-    });
   });
 
   describe('setFilterType', () => {
-    it('should update filterType and URL when set to "favorites"', () => {
+    it('should update filterType and URL when set to "bangers"', () => {
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <FilterProvider>{children}</FilterProvider>
       );
@@ -140,36 +108,18 @@ describe('FilterContext', () => {
       const { result } = renderHook(() => useFilter(), { wrapper });
 
       act(() => {
-        result.current.setFilterType('favorites');
+        result.current.setFilterType('bangers');
       });
 
-      expect(result.current.filterType).toBe('favorites');
-      expect(result.current.isFavoritesOnly).toBe(true);
+      expect(result.current.filterType).toBe('bangers');
+      expect(result.current.isBangersOnly).toBe(true);
 
       // Verify router.replace called with correct URL
-      expect(mockReplace).toHaveBeenCalledWith('/library?favorite=true', { scroll: false });
-    });
-
-    it('should update filterType and URL when set to "recent"', () => {
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <FilterProvider>{children}</FilterProvider>
-      );
-
-      const { result } = renderHook(() => useFilter(), { wrapper });
-
-      act(() => {
-        result.current.setFilterType('recent');
-      });
-
-      expect(result.current.filterType).toBe('recent');
-      expect(result.current.isRecentFilter).toBe(true);
-
-      // Verify router.replace called with correct URL
-      expect(mockReplace).toHaveBeenCalledWith('/library?filter=recent', { scroll: false });
+      expect(mockReplace).toHaveBeenCalledWith('/library?bangers=true', { scroll: false });
     });
 
     it('should clear URL params when set to "all"', () => {
-      mockSearchParams.set('favorite', 'true');
+      mockSearchParams.set('bangers', 'true');
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <FilterProvider>{children}</FilterProvider>
@@ -177,14 +127,14 @@ describe('FilterContext', () => {
 
       const { result } = renderHook(() => useFilter(), { wrapper });
 
-      expect(result.current.filterType).toBe('favorites');
+      expect(result.current.filterType).toBe('bangers');
 
       act(() => {
         result.current.setFilterType('all');
       });
 
       expect(result.current.filterType).toBe('all');
-      expect(result.current.isFavoritesOnly).toBe(false);
+      expect(result.current.isBangersOnly).toBe(false);
       expect(result.current.hasActiveFilters).toBe(false);
 
       // Verify router.replace called with URL without params
@@ -235,7 +185,7 @@ describe('FilterContext', () => {
     });
 
     it('should preserve other URL params when setting tag', () => {
-      mockSearchParams.set('favorite', 'true');
+      mockSearchParams.set('bangers', 'true');
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <FilterProvider>{children}</FilterProvider>
@@ -247,15 +197,15 @@ describe('FilterContext', () => {
         result.current.setTagFilter('tag-789', 'funny');
       });
 
-      // Should preserve favorite param
+      // Should preserve bangers param
       const callArg = mockReplace.mock.calls[0][0];
-      expect(callArg).toContain('favorite=true');
+      expect(callArg).toContain('bangers=true');
       expect(callArg).toContain('tagId=tag-789');
     });
   });
 
-  describe('toggleFavorites', () => {
-    it('should toggle from "all" to "favorites"', () => {
+  describe('toggleBangers', () => {
+    it('should toggle from "all" to "bangers"', () => {
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <FilterProvider>{children}</FilterProvider>
       );
@@ -265,15 +215,15 @@ describe('FilterContext', () => {
       expect(result.current.filterType).toBe('all');
 
       act(() => {
-        result.current.toggleFavorites();
+        result.current.toggleBangers();
       });
 
-      expect(result.current.filterType).toBe('favorites');
-      expect(result.current.isFavoritesOnly).toBe(true);
+      expect(result.current.filterType).toBe('bangers');
+      expect(result.current.isBangersOnly).toBe(true);
     });
 
-    it('should toggle from "favorites" to "all"', () => {
-      mockSearchParams.set('favorite', 'true');
+    it('should toggle from "bangers" to "all"', () => {
+      mockSearchParams.set('bangers', 'true');
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
         <FilterProvider>{children}</FilterProvider>
@@ -281,32 +231,14 @@ describe('FilterContext', () => {
 
       const { result } = renderHook(() => useFilter(), { wrapper });
 
-      expect(result.current.filterType).toBe('favorites');
+      expect(result.current.filterType).toBe('bangers');
 
       act(() => {
-        result.current.toggleFavorites();
+        result.current.toggleBangers();
       });
 
       expect(result.current.filterType).toBe('all');
-      expect(result.current.isFavoritesOnly).toBe(false);
-    });
-
-    it('should toggle from "recent" to "favorites"', () => {
-      mockSearchParams.set('filter', 'recent');
-
-      const wrapper = ({ children }: { children: React.ReactNode }) => (
-        <FilterProvider>{children}</FilterProvider>
-      );
-
-      const { result } = renderHook(() => useFilter(), { wrapper });
-
-      expect(result.current.filterType).toBe('recent');
-
-      act(() => {
-        result.current.toggleFavorites();
-      });
-
-      expect(result.current.filterType).toBe('favorites');
+      expect(result.current.isBangersOnly).toBe(false);
     });
   });
 
@@ -333,7 +265,7 @@ describe('FilterContext', () => {
 
   describe('clearAllFilters', () => {
     it('should reset all filters to defaults', () => {
-      mockSearchParams.set('favorite', 'true');
+      mockSearchParams.set('bangers', 'true');
       mockSearchParams.set('tagId', 'tag-123');
 
       const wrapper = ({ children }: { children: React.ReactNode }) => (
@@ -342,7 +274,7 @@ describe('FilterContext', () => {
 
       const { result } = renderHook(() => useFilter(), { wrapper });
 
-      expect(result.current.filterType).toBe('favorites');
+      expect(result.current.filterType).toBe('bangers');
       expect(result.current.tagId).toBe('tag-123');
       expect(result.current.hasActiveFilters).toBe(true);
 
@@ -353,8 +285,7 @@ describe('FilterContext', () => {
       expect(result.current.filterType).toBe('all');
       expect(result.current.tagId).toBeNull();
       expect(result.current.tagName).toBeNull();
-      expect(result.current.isFavoritesOnly).toBe(false);
-      expect(result.current.isRecentFilter).toBe(false);
+      expect(result.current.isBangersOnly).toBe(false);
       expect(result.current.hasActiveFilters).toBe(false);
 
       // Verify router.replace was called (clearAllFilters calls setFilterType and setTagFilter)
@@ -376,9 +307,9 @@ describe('FilterContext', () => {
       // No filters active
       expect(result.current.hasActiveFilters).toBe(false);
 
-      // Favorites active
+      // Bangers active
       act(() => {
-        result.current.setFilterType('favorites');
+        result.current.setFilterType('bangers');
       });
       expect(result.current.hasActiveFilters).toBe(true);
 
@@ -406,12 +337,12 @@ describe('FilterContext', () => {
       const { result } = renderHook(() => useFilterState(), { wrapper });
 
       expect(result.current.filterType).toBeDefined();
-      expect(result.current.isFavoritesOnly).toBeDefined();
+      expect(result.current.isBangersOnly).toBeDefined();
       expect(result.current.hasActiveFilters).toBeDefined();
 
       // Should not include actions
       expect((result.current as any).setFilterType).toBeUndefined();
-      expect((result.current as any).toggleFavorites).toBeUndefined();
+      expect((result.current as any).toggleBangers).toBeUndefined();
     });
   });
 
@@ -425,13 +356,13 @@ describe('FilterContext', () => {
 
       expect(result.current.setFilterType).toBeDefined();
       expect(result.current.setTagFilter).toBeDefined();
-      expect(result.current.toggleFavorites).toBeDefined();
+      expect(result.current.toggleBangers).toBeDefined();
       expect(result.current.clearAllFilters).toBeDefined();
       expect(result.current.clearTagFilter).toBeDefined();
 
       // Should not include state
       expect((result.current as any).filterType).toBeUndefined();
-      expect((result.current as any).isFavoritesOnly).toBeUndefined();
+      expect((result.current as any).isBangersOnly).toBeUndefined();
     });
   });
 
@@ -444,7 +375,7 @@ describe('FilterContext', () => {
       const { result } = renderHook(() => useFilter(), { wrapper });
 
       act(() => {
-        result.current.setFilterType('favorites');
+        result.current.setFilterType('bangers');
       });
 
       // Verify scroll: false option
@@ -459,7 +390,7 @@ describe('FilterContext', () => {
       const { result } = renderHook(() => useFilter(), { wrapper });
 
       act(() => {
-        result.current.setFilterType('favorites');
+        result.current.setFilterType('bangers');
       });
 
       act(() => {
@@ -469,10 +400,10 @@ describe('FilterContext', () => {
       // Should have made multiple calls
       expect(mockReplace).toHaveBeenCalledTimes(2);
 
-      // First call for favorites
-      expect(mockReplace.mock.calls[0][0]).toContain('favorite=true');
+      // First call for bangers
+      expect(mockReplace.mock.calls[0][0]).toContain('bangers=true');
 
-      // Second call for tag (also preserves favorite from searchParams)
+      // Second call for tag (also preserves bangers from searchParams)
       const secondCall = mockReplace.mock.calls[1][0];
       expect(secondCall).toContain('tagId=tag-abc');
     });

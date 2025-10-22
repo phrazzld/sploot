@@ -54,7 +54,7 @@ export function StatsDisplay({
       <Separator orientation="vertical" className="h-4" />
       <Badge variant="outline" className="font-mono text-xs tabular-nums">
         {animatedFavorites}
-        {showLabels && <span className="ml-1 text-muted-foreground">favorites</span>}
+        {showLabels && <span className="ml-1 text-muted-foreground">bangers</span>}
       </Badge>
       <Separator orientation="vertical" className="h-4" />
       <Badge variant="outline" className="font-mono text-xs tabular-nums">
