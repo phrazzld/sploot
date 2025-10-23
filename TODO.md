@@ -268,7 +268,7 @@
 
 ## Phase 5: Share Button UI
 
-- [ ] Create ShareButton component
+- [x] Create ShareButton component
   ```
   Files: components/library/share-button.tsx (new file)
   Pattern: Follow components/ui/button.tsx and existing Lucide icon usage
@@ -331,7 +331,7 @@
   Estimated: 1h
   ```
 
-- [ ] Integrate ShareButton into ImageTile hover actions
+- [x] Integrate ShareButton into ImageTile hover actions
   ```
   Files: components/library/image-tile.tsx
   Location: Find existing hover action buttons (Heart, Trash2 around lines 200-300)
