@@ -60,7 +60,7 @@ export function EmbeddingStatusIndicator({
 
   // If embedding is not needed or status is hidden, show simple success
   if (!file.needsEmbedding || !showStatus) {
-    return <span className="text-[#B6FF6E] text-sm">✓</span>;
+    return <span className="text-green-500 text-sm">✓</span>;
   }
 
   // Retry handler for failed embeddings
@@ -75,16 +75,16 @@ export function EmbeddingStatusIndicator({
     case 'pending':
       return (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#B6FF6E]">✓ Uploaded</span>
-          <span className="text-[#FFB020]">• Preparing search...</span>
+          <span className="text-green-500">✓ Uploaded</span>
+          <span className="text-orange-400">• Preparing search...</span>
         </div>
       );
 
     case 'processing':
       return (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#B6FF6E]">✓ Uploaded</span>
-          <span className="text-[#7C5CFF] flex items-center gap-1">
+          <span className="text-green-500">✓ Uploaded</span>
+          <span className="text-primary flex items-center gap-1">
             • Indexing
             <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
@@ -101,18 +101,18 @@ export function EmbeddingStatusIndicator({
     case 'ready':
       return (
         <div className="flex items-center gap-2 text-xs animate-fade-in">
-          <span className="text-[#B6FF6E]">✓ Ready to search</span>
+          <span className="text-green-500">✓ Ready to search</span>
         </div>
       );
 
     case 'failed':
       return (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#FFB020]">⚠️ Upload complete</span>
-          <span className="text-[#FF4D4D]">• Search prep failed</span>
+          <span className="text-orange-400">⚠️ Upload complete</span>
+          <span className="text-destructive">• Search prep failed</span>
           <button
             onClick={handleRetry}
-            className="text-[#7C5CFF] hover:text-[#9B7FFF] underline font-medium"
+            className="text-primary hover:text-primary/80 underline font-medium"
             disabled={!embeddingStatus.retry}
           >
             Retry
@@ -121,6 +121,6 @@ export function EmbeddingStatusIndicator({
       );
 
     default:
-      return <span className="text-[#B6FF6E] text-sm">✓</span>;
+      return <span className="text-green-500 text-sm">✓</span>;
   }
 }

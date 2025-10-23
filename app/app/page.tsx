@@ -7,12 +7,11 @@ import Image from 'next/image';
 import { useAssets, useSearchAssets } from '@/hooks/use-assets';
 import { ImageGrid } from '@/components/library/image-grid';
 import { ImageGridErrorBoundary } from '@/components/library/image-grid-error-boundary';
-import { ImageList } from '@/components/library/image-list';
 import { AssetIntegrityBanner } from '@/components/library/asset-integrity-banner';
 import { SearchBar, SearchLoadingScreen, SimilarityScoreLegend, QuerySyntaxIndicator } from '@/components/search';
 import { cn } from '@/lib/utils';
 import { UploadZone } from '@/components/upload/upload-zone';
-import { HeartIcon } from '@/components/icons/heart-icon';
+import { Heart } from 'lucide-react';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
@@ -21,7 +20,13 @@ import { CommandPalette, useCommandPalette } from '@/components/chrome/command-p
 import { KeyboardShortcutsHelp, useKeyboardShortcutsHelp } from '@/components/chrome/keyboard-shortcuts-help';
 import { useSortPreferences } from '@/hooks/use-sort-preferences';
 import { useFilter } from '@/contexts/filter-context';
-import { ViewModeToggle, type ViewMode } from '@/components/chrome/view-mode-toggle';
+import { UploadButton } from '@/components/chrome/upload-button';
+import { FilterChips, type FilterType } from '@/components/chrome/filter-chips';
+import { SortDropdown } from '@/components/chrome/sort-dropdown';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { RotateCcw, X } from 'lucide-react';
 
 function AppPageClient() {
   const router = useRouter();
@@ -34,18 +39,14 @@ function AppPageClient() {
     filterType,
     tagId: tagIdParam,
     tagName: contextTagName,
-    isFavoritesOnly: favoritesOnly,
-    isRecentFilter,
-    toggleFavorites,
+    isBangersOnly: bangersOnly,
+    toggleBangers,
     clearTagFilter,
     setTagFilter,
   } = useFilter();
-  const viewModeParam = searchParams.get('view') as ViewMode | null;
-  const viewMode = viewModeParam || 'grid'; // Default to grid if not specified
 
   const [isClient, setIsClient] = useState(false);
   const [selectedAsset, setSelectedAsset] = useState<any>(null);
-  const [showSortDropdown, setShowSortDropdown] = useState(false);
   const [showMetadata, setShowMetadata] = useState(false);
 
   // Command palette state
@@ -67,7 +68,6 @@ function AppPageClient() {
 
   // Use local state for search, URL for persistence/sharing
   const libraryQuery = localSearchQuery;
-  const [isViewModeTransitioning, setIsViewModeTransitioning] = useState(false);
   const [showUploadPanel, setShowUploadPanel] = useState(false);
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
   const pendingScrollTopRef = useRef<number | null>(null);
@@ -80,9 +80,8 @@ function AppPageClient() {
   const pendingRefreshRef = useRef<boolean>(false);
 
   // Get the actual database column for sorting
-  // When recent filter is active, always sort by createdAt desc
-  const actualSortBy = isRecentFilter ? 'createdAt' : getSortColumn(sortBy);
-  const actualSortOrder = isRecentFilter ? 'desc' : sortOrder;
+  const actualSortBy = getSortColumn(sortBy);
+  const actualSortOrder = sortOrder;
 
   // Sync URL parameter to local state (for browser navigation)
   // but NOT during typing to prevent sync loops
@@ -134,7 +133,7 @@ function AppPageClient() {
     sortBy: actualSortBy as 'createdAt' | 'size' | 'favorite' | undefined,
     sortOrder: actualSortOrder as 'asc' | 'desc',
     autoLoad: true,
-    filterFavorites: favoritesOnly ? true : undefined,
+    filterFavorites: bangersOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,
   });
 
@@ -146,10 +145,7 @@ function AppPageClient() {
       // Refresh the asset list
       refresh();
 
-      // Show a subtle notification that library was refreshed
-      if (event.detail?.filename) {
-        showToast(`[COMPLETE] Indexed: ${event.detail.filename}`, 'complete', 3000, true);
-      }
+      // Note: Toast removed to avoid duplicates - onUploadComplete shows summary toast
     };
 
     // Listen for the custom event from upload zone
@@ -190,21 +186,6 @@ function AppPageClient() {
 
   // Also add "/" key shortcut to focus search
   useSlashSearchShortcut(focusSearchBar);
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest('.sort-dropdown-container')) {
-        setShowSortDropdown(false);
-      }
-    };
-
-    if (showSortDropdown) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [showSortDropdown]);
 
   // Monitor failed embeddings
   useEffect(() => {
@@ -258,8 +239,7 @@ function AppPageClient() {
             showToast(
               `[COMPLETE] Retried ${completed} ${completed === 1 ? 'meme' : 'memes'}`,
               'complete',
-              3000,
-              true
+              3000
             );
           }, 1000);
         }
@@ -305,14 +285,14 @@ function AppPageClient() {
 
   const filteredSearchAssets = useMemo(() => {
     let results = searchAssets;
-    if (favoritesOnly) {
+    if (bangersOnly) {
       results = results.filter((asset) => asset.favorite);
     }
     if (tagIdParam) {
       results = results.filter((asset) => asset.tags?.some((tag) => tag.id === tagIdParam));
     }
     return results;
-  }, [searchAssets, favoritesOnly, tagIdParam]);
+  }, [searchAssets, bangersOnly, tagIdParam]);
 
   const searchHitCount = filteredSearchAssets.length;
 
@@ -349,7 +329,7 @@ function AppPageClient() {
   }, [updateUrlParams]);
 
   // Use filter actions from context (they handle URL updates internally)
-  const toggleFavoritesOnly = toggleFavorites;
+  const toggleBangersOnly = toggleBangers;
 
   const handleScrollContainerReady = useCallback((node: HTMLDivElement | null) => {
     gridScrollRef.current = node;
@@ -391,49 +371,6 @@ function AppPageClient() {
     }
   }, []);
 
-  const handleViewModeChange = useCallback(
-    (mode: ViewMode) => {
-      if (mode === viewMode) return;
-
-      captureScrollPosition();
-      setIsViewModeTransitioning(true);
-
-      // Update URL params to include view mode
-      const params = new URLSearchParams(searchParams.toString());
-      params.set('view', mode);
-      router.push(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [captureScrollPosition, viewMode, searchParams, pathname, router]
-  );
-
-  // Number key shortcuts for view mode switching with debouncing
-  const viewModeSwitchRef = useRef<NodeJS.Timeout | undefined>(undefined);
-  const handleViewModeShortcut = useCallback((mode: ViewMode) => {
-    // Clear any existing timeout
-    if (viewModeSwitchRef.current) {
-      clearTimeout(viewModeSwitchRef.current);
-    }
-
-    // Debounce for 100ms to prevent rapid switching
-    viewModeSwitchRef.current = setTimeout(() => {
-      handleViewModeChange(mode);
-    }, 100);
-  }, [handleViewModeChange]);
-
-  // Key 1 for grid view
-  useKeyboardShortcut({
-    key: '1',
-    callback: () => handleViewModeShortcut('grid'),
-    enabled: true,
-  });
-
-  // Key 2 for list view
-  useKeyboardShortcut({
-    key: '2',
-    callback: () => handleViewModeShortcut('list'),
-    enabled: true,
-  });
-
   // ? for keyboard shortcuts help
   useKeyboardShortcut({
     key: '?',
@@ -441,55 +378,47 @@ function AppPageClient() {
     enabled: true,
   });
 
-  // Cleanup debounce timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (viewModeSwitchRef.current) {
-        clearTimeout(viewModeSwitchRef.current);
-      }
-    };
-  }, []);
+  const gridContainerClassName = 'h-full overflow-y-auto overflow-x-hidden';
 
-  useEffect(() => {
-    restoreScrollPosition();
-  }, [viewMode, restoreScrollPosition]);
-
-  useEffect(() => {
-    if (!isViewModeTransitioning) return;
-
-    const frame = window.requestAnimationFrame(() => {
-      setIsViewModeTransitioning(false);
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [isViewModeTransitioning]);
-
-  const gridContainerClassName = useMemo(
-    () =>
-      cn(
-        'h-full overflow-y-auto overflow-x-hidden transition-opacity duration-200 ease-in-out',
-        isViewModeTransitioning ? 'opacity-0' : 'opacity-100'
-      ),
-    [isViewModeTransitioning]
-  );
-
-  // Sort assets by filename if needed (since API doesn't support it)
+  // Sort assets by filename or shuffle if needed (since API doesn't support these)
   const sortedAssets = useMemo(() => {
-    // Only apply client-side sorting for filename since DB doesn't sort by it
-    if (sortBy !== 'name') return assets;
+    // Shuffle: Fisher-Yates algorithm with persistent seed
+    if (sortBy === 'shuffle') {
+      // Use a seed based on assets length and first asset ID for consistency during session
+      const seed = assets.length > 0 ? assets[0].id.charCodeAt(0) + assets.length : 0;
 
-    const sorted = [...assets].sort((a, b) => {
-      const nameA = a.filename.toLowerCase();
-      const nameB = b.filename.toLowerCase();
+      // Seeded random number generator
+      let s = seed;
+      const seededRandom = () => {
+        s = (s * 9301 + 49297) % 233280;
+        return s / 233280;
+      };
 
-      if (actualSortOrder === 'asc') {
-        return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
-      } else {
-        return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+      const shuffled = [...assets];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(seededRandom() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
       }
-    });
+      return shuffled;
+    }
 
-    return sorted;
+    // Name sorting: client-side since DB doesn't support it
+    if (sortBy === 'name') {
+      const sorted = [...assets].sort((a, b) => {
+        const nameA = a.filename.toLowerCase();
+        const nameB = b.filename.toLowerCase();
+
+        if (actualSortOrder === 'asc') {
+          return nameA < nameB ? -1 : nameA > nameB ? 1 : 0;
+        } else {
+          return nameA > nameB ? -1 : nameA < nameB ? 1 : 0;
+        }
+      });
+      return sorted;
+    }
+
+    // All other sorts handled by API
+    return assets;
   }, [assets, sortBy, actualSortOrder]);
 
   const trimmedLibraryQuery = libraryQuery.trim();
@@ -530,7 +459,7 @@ function AppPageClient() {
     const prev = filtersRef.current;
     const current = {
       tagId: tagIdParam ?? null,
-      favorites: favoritesOnly,
+      favorites: bangersOnly,
       sortBy: actualSortBy,
       sortDirection: actualSortOrder as 'asc' | 'desc',
     };
@@ -559,7 +488,7 @@ function AppPageClient() {
     }
 
     filtersRef.current = current;
-  }, [tagIdParam, favoritesOnly, actualSortBy, actualSortOrder, isSearching, refresh]);
+  }, [tagIdParam, bangersOnly, actualSortBy, actualSortOrder, isSearching, refresh]);
 
   useEffect(() => {
     if (!trimmedLibraryQuery) {
@@ -576,23 +505,23 @@ function AppPageClient() {
   return (
     <div className="flex h-[calc(100vh-56px)] flex-col">
       {/* Container with ultra-wide support - max-width at 1920px+ */}
-      <div className="px-6 pb-6 pt-6 md:px-10 2xl:px-12 border-b border-[#1B1F24]">
+      <div className="px-6 pb-6 pt-6 md:px-10 2xl:px-12 border-b border-border">
         <div className="mx-auto w-full max-w-7xl 2xl:max-w-[1920px]">
           <header className="flex flex-col gap-4">
             {/* Title bar with inline stats */}
             <div className="flex items-baseline gap-2 flex-wrap">
-              <h1 className="font-mono text-2xl uppercase text-[#E6E8EB]">your library</h1>
+              <h1 className="font-mono text-2xl text-foreground">your library</h1>
               {stats.total > 0 && (
-                <span className="text-sm text-[#888888] font-mono flex items-center gap-2">
-                  <span>{stats.total} <span className="text-[#666666]">ASSETS</span></span>
+                <span className="text-sm text-muted-foreground font-mono flex items-center gap-2">
+                  <span>{stats.total} <span className="text-muted-foreground/70">assets</span></span>
                   {stats.favorites > 0 && (
                     <>
-                      <span className="text-[#333333]">|</span>
-                      <span>{stats.favorites} <span className="text-[#666666]">BANGERS</span></span>
+                      <span className="text-border">|</span>
+                      <span>{stats.favorites} <span className="text-muted-foreground/70">bangers</span></span>
                     </>
                   )}
-                  <span className="text-[#333333]">|</span>
-                  <span>{stats.sizeFormatted}</span>
+                  <span className="text-border">|</span>
+                  <span className="lowercase">{stats.sizeFormatted}</span>
                 </span>
               )}
             </div>
@@ -620,151 +549,79 @@ function AppPageClient() {
             <div className="flex flex-wrap items-center justify-between gap-3">
               {/* Left group: Primary actions */}
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
+                <UploadButton
                   onClick={() => setShowUploadPanel((prev) => !prev)}
-                  className={cn(
-                    'inline-flex items-center gap-2 px-4 h-10 text-xs font-mono uppercase border',
-                    showUploadPanel
-                      ? 'bg-[var(--color-terminal-green)] text-black border-[var(--color-terminal-green)]'
-                      : 'bg-black text-[var(--color-terminal-green)] border-[var(--color-terminal-green)] hover:bg-[var(--color-terminal-green)] hover:text-black'
-                  )}
-                >
-                  <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v12M4 10h12" />
-                  </svg>
-                  {showUploadPanel ? 'close' : 'upload'}
-                </button>
+                  isActive={showUploadPanel}
+                  size="lg"
+                  showLabel={true}
+                />
                 {failedEmbeddings.length > 0 && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="lg"
                     onClick={handleBulkRetry}
-                    className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-4 h-10 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
+                    className="gap-2"
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.8}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                    </svg>
+                    <RotateCcw className="h-4 w-4" />
                     retry ({failedEmbeddings.length})
-                  </button>
+                  </Button>
                 )}
-                <button
-                  type="button"
-                  onClick={toggleFavoritesOnly}
-                  className={cn(
-                    'inline-flex items-center gap-2 border px-4 h-10 text-xs font-mono uppercase',
-                    favoritesOnly
-                      ? 'border-[var(--color-terminal-green)] bg-[var(--color-terminal-green)] text-black'
-                      : 'border-[#333333] bg-black text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]'
-                  )}
-                >
-                  <HeartIcon className="h-4 w-4" filled={favoritesOnly} />
-                  {favoritesOnly ? 'bangers' : 'all'}
-                </button>
+                <FilterChips
+                  activeFilter={bangersOnly ? 'bangers' : 'all'}
+                  onFilterChange={(filter) => {
+                    if (filter === 'bangers') {
+                      if (!bangersOnly) toggleBangers();
+                    } else if (filter === 'all') {
+                      if (bangersOnly) toggleBangers();
+                    }
+                  }}
+                  size="lg"
+                  showLabels={true}
+                />
               </div>
 
               {/* Right group: View controls */}
               <div className="flex flex-wrap items-center gap-2">
-                <ViewModeToggle
-                  value={viewMode}
-                  onChange={handleViewModeChange}
-                  size="md"
-                  showLabels={false}
+                <SortDropdown
+                  value={sortBy === 'recent' ? 'recent' : sortBy as any}
+                  direction={sortOrder}
+                  onChange={handleSortChange}
                 />
 
-                <div className="relative sort-dropdown-container">
-                  <button
-                    type="button"
-                    onClick={() => setShowSortDropdown((prev) => !prev)}
-                    className="flex items-center gap-2 border border-[#333333] bg-black px-4 h-10 text-xs font-mono uppercase text-[#888888] hover:border-[var(--color-terminal-green)] hover:text-[var(--color-terminal-green)]"
-                  >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h12M4 12h8m-8 6h4m6-6l4-4m0 0l4 4m-4-4v10" />
-                    </svg>
-                    <span className="hidden sm:inline">
-                      {sortBy === 'recent' || sortBy === 'date' ? 'date' : sortBy === 'size' ? 'size' : sortBy === 'name' ? 'name' : 'date'}
-                    </span>
-                    <span>{sortOrder === 'desc' ? '↓' : '↑'}</span>
-                  </button>
-
-                  {showSortDropdown && (
-                    <div className="absolute right-0 z-10 mt-2 w-48 overflow-hidden border border-[#333333] bg-black">
-                      <div className="py-1">
-                        <button
-                          onClick={() => {
-                            handleSortChange('date', sortBy === 'date' && sortOrder === 'desc' ? 'asc' : 'desc');
-                            setShowSortDropdown(false);
-                          }}
-                          className={cn(
-                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
-                            sortBy === 'date' || sortBy === 'recent' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
-                          )}
-                        >
-                          date {(sortBy === 'date' || sortBy === 'recent') && (sortOrder === 'desc' ? '(newest)' : '(oldest)')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleSortChange('size', sortBy === 'size' && sortOrder === 'desc' ? 'asc' : 'desc');
-                            setShowSortDropdown(false);
-                          }}
-                          className={cn(
-                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
-                            sortBy === 'size' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
-                          )}
-                        >
-                          size {sortBy === 'size' && (sortOrder === 'desc' ? '(largest)' : '(smallest)')}
-                        </button>
-                        <button
-                          onClick={() => {
-                            handleSortChange('name', sortBy === 'name' && sortOrder === 'asc' ? 'desc' : 'asc');
-                            setShowSortDropdown(false);
-                          }}
-                          className={cn(
-                            'block w-full px-4 py-2 text-left text-xs font-mono uppercase hover:bg-[#0A0A0A]',
-                            sortBy === 'name' ? 'text-[var(--color-terminal-green)]' : 'text-[#888888]'
-                          )}
-                        >
-                          name {sortBy === 'name' && (sortOrder === 'asc' ? '(a-z)' : '(z-a)')}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
                 {tagIdParam && (
-                  <button
-                    type="button"
+                  <Button
+                    variant="outline"
+                    size="lg"
                     onClick={clearTagFilter}
-                    className="inline-flex items-center gap-1 border border-[var(--color-terminal-yellow)] bg-black px-3 py-2 text-xs font-mono uppercase text-[var(--color-terminal-yellow)] hover:bg-[var(--color-terminal-yellow)] hover:text-black"
+                    className="gap-1"
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
+                    <X className="h-4 w-4" />
                     <span className="hidden sm:inline">clear</span>
                     <span>#{activeTagName ?? 'tag'}</span>
-                  </button>
+                  </Button>
                 )}
               </div>
 
             </div>
 
-            {(!isSearching && (favoritesOnly || tagIdParam)) && (
-              <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase">
-                {favoritesOnly && (
-                  <span className="inline-flex items-center gap-1 border border-[var(--color-terminal-green)] bg-black px-3 py-1 text-[var(--color-terminal-green)]">
-                    <HeartIcon className="h-3.5 w-3.5" filled />
+            {(!isSearching && (bangersOnly || tagIdParam)) && (
+              <div className="flex flex-wrap items-center gap-2">
+                {bangersOnly && (
+                  <Badge variant="outline" className="gap-1">
+                    <Heart className="h-3.5 w-3.5" fill="currentColor" strokeWidth={2} />
                     bangers only
-                  </span>
+                  </Badge>
                 )}
                 {tagIdParam && (
-                  <span className="inline-flex items-center gap-2 border border-[var(--color-terminal-yellow)] bg-black px-3 py-1 text-[var(--color-terminal-yellow)]">
-                    filtering tag <span className="font-medium text-[#E6E8EB]">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>
-                  </span>
+                  <Badge variant="outline" className="gap-2">
+                    filtering tag <span className="font-medium">#{activeTagName ?? tagIdParam.slice(0, 6)}</span>
+                  </Badge>
                 )}
               </div>
             )}
 
             {showUploadPanel && (
-              <div className="border border-dashed border-[#2A2F37] bg-[#111419] p-5">
+              <div className="border border-dashed border-border bg-muted p-5">
                 <UploadZone
                   isOnDashboard={true}
                   onUploadComplete={(stats) => {
@@ -795,7 +652,7 @@ function AppPageClient() {
                     query={trimmedLibraryQuery}
                     resultCount={searchHitCount}
                     filters={{
-                      favorites: favoritesOnly || undefined,
+                      favorites: bangersOnly || undefined,
                       tagName: activeTagName || undefined,
                     }}
                     latencyMs={searchMetadata?.latencyMs}
@@ -803,33 +660,35 @@ function AppPageClient() {
                 )}
 
                 {searchError && (
-                  <div className="border border-[var(--color-terminal-red)] bg-black p-4 font-mono text-sm uppercase text-[var(--color-terminal-red)]">
-                    {searchError}
-                  </div>
+                  <Alert variant="destructive">
+                    <AlertDescription>{searchError}</AlertDescription>
+                  </Alert>
                 )}
 
                 {!searchError && !searchLoading && filteredSearchAssets.length > 0 && (
                   <>
-                    <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
-                      <span className="flex flex-col gap-1">
+                    <Alert>
+                      <AlertDescription className="flex flex-col gap-1">
                         <span>
-                          showing <span className="text-[var(--color-terminal-green)]">{searchHitCount}</span> matches for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;.
+                          showing <span className="font-semibold">{searchHitCount}</span> matches for &quot;<span className="font-medium">{trimmedLibraryQuery}</span>&quot;
                         </span>
                         {searchMetadata?.thresholdFallback && (
-                          <span className="text-xs text-[var(--color-terminal-yellow)]">
-                            pulled a few low-sim homies so your vibes aren&apos;t empty.
+                          <span className="text-xs text-muted-foreground">
+                            pulled a few low-similarity results to avoid empty results.
                           </span>
                         )}
-                      </span>
-                    </div>
+                      </AlertDescription>
+                    </Alert>
                     <SimilarityScoreLegend />
                   </>
                 )}
 
                 {!searchError && !searchLoading && searchHitCount === 0 && (
-                  <div className="border border-[#333333] bg-black p-4 font-mono text-sm text-[#888888]">
-                    no matches yet for &quot;<span className="text-[#E6E8EB]">{trimmedLibraryQuery}</span>&quot;. remix the prompt and try again.
-                  </div>
+                  <Alert>
+                    <AlertDescription>
+                      no matches yet for &quot;<span className="font-medium">{trimmedLibraryQuery}</span>&quot;. try adjusting your search.
+                    </AlertDescription>
+                  </Alert>
                 )}
               </div>
             )}
@@ -854,8 +713,10 @@ function AppPageClient() {
         <div className="flex-1 overflow-hidden">
           <div className="mx-auto flex h-full w-full flex-col overflow-hidden 2xl:max-w-[1920px]">
             <div className="h-full flex-1 overflow-hidden">
-              {viewMode === 'list' ? (
-                <ImageList
+              <ImageGridErrorBoundary
+                onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
+              >
+                <ImageGrid
                   assets={activeAssets}
                   loading={activeLoading}
                   hasMore={activeHasMore}
@@ -863,29 +724,12 @@ function AppPageClient() {
                   onAssetUpdate={handleAssetUpdate}
                   onAssetDelete={handleAssetDelete}
                   onAssetSelect={setSelectedAsset}
-                  onScrollContainerReady={handleScrollContainerReady}
                   containerClassName={cn(gridContainerClassName, 'w-full')}
+                  onScrollContainerReady={handleScrollContainerReady}
                   onUploadClick={() => setShowUploadPanel(true)}
+                  showSimilarityScores={isSearching}
                 />
-              ) : (
-                <ImageGridErrorBoundary
-                  onRetry={isSearching ? () => runInlineSearch() : () => loadAssets()}
-                >
-                  <ImageGrid
-                    assets={activeAssets}
-                    loading={activeLoading}
-                    hasMore={activeHasMore}
-                    onLoadMore={handleLoadMore}
-                    onAssetUpdate={handleAssetUpdate}
-                    onAssetDelete={handleAssetDelete}
-                    onAssetSelect={setSelectedAsset}
-                    containerClassName={cn(gridContainerClassName, 'w-full')}
-                    onScrollContainerReady={handleScrollContainerReady}
-                    onUploadClick={() => setShowUploadPanel(true)}
-                    showSimilarityScores={isSearching}
-                  />
-                </ImageGridErrorBoundary>
-              )}
+              </ImageGridErrorBoundary>
             </div>
           </div>
         </div>
@@ -897,6 +741,18 @@ function AppPageClient() {
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedAsset(null)}
         >
+          {/* Close button - positioned at viewport level to never obscure image */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedAsset(null);
+            }}
+            className="fixed top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-[60]"
+            aria-label="Close preview"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
           <div
             className="max-w-4xl max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
@@ -913,14 +769,6 @@ function AppPageClient() {
                 priority
               />
             </div>
-            <button
-              onClick={() => setSelectedAsset(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
             <div className={cn(
               "absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300",
               showMetadata ? 'opacity-100' : 'opacity-0'
@@ -937,8 +785,8 @@ function AppPageClient() {
       {/* Retry Progress Modal */}
       {showRetryModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-[#14171A] border border-[#2A2F37] p-6 max-w-sm w-full shadow-2xl">
-            <h3 className="text-lg font-semibold text-[#E6E8EB] mb-4">
+          <div className="bg-card border border-border p-6 max-w-sm w-full shadow-2xl">
+            <h3 className="text-lg font-semibold text-foreground mb-4">
               regenerating embeddings
             </h3>
 
@@ -950,7 +798,7 @@ function AppPageClient() {
                       cx="48"
                       cy="48"
                       r="36"
-                      stroke="#2A2F37"
+                      className="stroke-border"
                       strokeWidth="8"
                       fill="none"
                     />
@@ -958,16 +806,16 @@ function AppPageClient() {
                       cx="48"
                       cy="48"
                       r="36"
-                      stroke="#7C5CFF"
+                      className="stroke-primary"
                       strokeWidth="8"
                       fill="none"
                       strokeDasharray={226}
                       strokeDashoffset={226 - (226 * retryProgress.current) / retryProgress.total}
-                      className="transition-all duration-500 ease-out"
+                      style={{ transition: 'stroke-dashoffset 500ms ease-out' }}
                     />
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-2xl font-bold text-[#E6E8EB]">
+                    <span className="text-2xl font-bold text-foreground">
                       {retryProgress.current}/{retryProgress.total}
                     </span>
                   </div>
@@ -976,27 +824,27 @@ function AppPageClient() {
 
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-[#B3B7BE]">progress</span>
-                  <span className="text-[#E6E8EB] font-medium">
+                  <span className="text-muted-foreground">progress</span>
+                  <span className="text-foreground font-medium">
                     {Math.round((retryProgress.current / retryProgress.total) * 100)}%
                   </span>
                 </div>
-                <div className="w-full bg-[#1F2328] h-2 overflow-hidden">
+                <div className="w-full bg-muted h-2 overflow-hidden">
                   <div
-                    className="bg-[var(--color-terminal-green)] h-full transition-all duration-500 ease-out"
+                    className="bg-green-600 h-full transition-all duration-500 ease-out"
                     style={{ width: `${(retryProgress.current / retryProgress.total) * 100}%` }}
                   />
                 </div>
               </div>
 
               {retryProgress.processing && (
-                <p className="text-sm text-[#B3B7BE] text-center animate-pulse">
+                <p className="text-sm text-muted-foreground text-center animate-pulse">
                   processing embeddings...
                 </p>
               )}
 
               {!retryProgress.processing && retryProgress.current === retryProgress.total && (
-                <p className="text-sm text-[#B6FF6E] text-center font-medium">
+                <p className="text-sm text-green-600 text-center font-medium">
                   ✓ all embeddings regenerated
                 </p>
               )}
@@ -1026,7 +874,7 @@ export default function AppPage() {
   return (
     <Suspense fallback={
       <div className="flex h-[calc(100vh-56px)] flex-col items-center justify-center">
-        <div className="text-[#B3B7BE]">Loading...</div>
+        <div className="text-muted-foreground">Loading...</div>
       </div>
     }>
       <AppPageClient />

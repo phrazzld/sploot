@@ -225,7 +225,7 @@ describe('ImageTileErrorBoundary', () => {
       );
 
       const fallbackContainer = container.querySelector('.aspect-square');
-      expect(fallbackContainer).toHaveClass('bg-[#0F1012]', 'overflow-hidden');
+      expect(fallbackContainer).toHaveClass('bg-card', 'overflow-hidden');
     });
 
     it('should render retry button with primary styling', () => {
@@ -236,7 +236,7 @@ describe('ImageTileErrorBoundary', () => {
       );
 
       const retryButton = screen.getByText('Retry').closest('button');
-      expect(retryButton).toHaveClass('bg-[#7C5CFF]/10', 'text-[#7C5CFF]');
+      expect(retryButton).toHaveClass('bg-primary/10', 'text-primary');
     });
   });
 

@@ -1,7 +1,20 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
 import { useAuthActions, useAuthUser } from '@/lib/auth/client';
+import { Settings, LogOut } from 'lucide-react';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
 interface UserAvatarProps {
@@ -13,7 +26,7 @@ interface UserAvatarProps {
 
 /**
  * User avatar component for the navbar
- * 32px circle with dropdown functionality
+ * Uses shadcn Avatar + DropdownMenu primitives
  */
 export function UserAvatar({
   className,
@@ -23,38 +36,15 @@ export function UserAvatar({
 }: UserAvatarProps) {
   const { signOut } = useAuthActions();
   const { user } = useAuthUser();
-  const [isOpen, setIsOpen] = useState(false);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Avatar size configurations
-  const sizeConfig = {
-    sm: 'w-7 h-7 text-xs',
-    md: 'w-8 h-8 text-sm', // 32px as specified
-    lg: 'w-10 h-10 text-base',
+  const sizeClasses = {
+    sm: 'size-7',
+    md: 'size-8', // 32px as specified
+    lg: 'size-10',
   };
 
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    if (!isOpen) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        buttonRef.current &&
-        !buttonRef.current.contains(event.target as Node) &&
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setIsOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [isOpen]);
-
   const handleSignOut = async () => {
-    setIsOpen(false);
     if (onSignOut) {
       onSignOut();
     } else {
@@ -74,115 +64,69 @@ export function UserAvatar({
     return user?.emailAddresses?.[0]?.emailAddress || '';
   };
 
-  return (
-    <div className={cn('relative', className)}>
-      <button
-        ref={buttonRef}
-        onClick={() => showDropdown && setIsOpen(!isOpen)}
-        className={cn(
-          // Avatar square
-          'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
-          'flex items-center justify-center',
-          'font-mono text-black font-bold',
-          'focus-visible:outline focus-visible:outline-2',
-          'focus-visible:outline-offset-2 focus-visible:outline-[var(--color-terminal-green)]',
-          sizeConfig[avatarSize],
-          showDropdown && 'cursor-pointer'
-        )}
-        aria-label="User menu"
-        title={getUserDisplay()}
-      >
-        {getUserInitial()}
-      </button>
+  if (!showDropdown) {
+    return (
+      <Avatar className={cn(sizeClasses[avatarSize], className)}>
+        <AvatarImage
+          src={user?.imageUrl}
+          alt={getUserDisplay()}
+        />
+        <AvatarFallback className="bg-primary text-primary-foreground font-mono font-bold">
+          {getUserInitial()}
+        </AvatarFallback>
+      </Avatar>
+    );
+  }
 
-      {/* Dropdown menu */}
-      {showDropdown && isOpen && (
-        <div
-          ref={dropdownRef}
-          className={cn(
-            'absolute right-0 z-50',
-            'mt-1', // 4px gap
-            'bg-black border border-[#333333]',
-            'min-w-[200px]'
-          )}
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <button
+          className={cn('cursor-pointer focus-visible:outline-none', className)}
+          aria-label="User menu"
         >
-          {/* User info header */}
-          <div className="p-3 border-b border-[#333333]">
-            <p className="font-mono text-sm uppercase text-[#E6E8EB]">
+          <Avatar className={sizeClasses[avatarSize]}>
+            <AvatarImage
+              src={user?.imageUrl}
+              alt={getUserDisplay()}
+            />
+            <AvatarFallback className="bg-primary text-primary-foreground font-mono font-bold">
+              {getUserInitial()}
+            </AvatarFallback>
+          </Avatar>
+        </button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="font-mono text-sm font-medium leading-none">
               {getUserDisplay()}
             </p>
-            <p className="font-mono text-xs text-[#888888] truncate">
+            <p className="font-mono text-xs leading-none text-muted-foreground">
               {getUserEmail()}
             </p>
           </div>
-
-          {/* Menu items */}
-          <div className="py-1">
-            {/* Settings */}
-            <button
-              onClick={() => {
-                setIsOpen(false);
-                // Navigate to settings
-                window.location.href = '/app/settings';
-              }}
-              className={cn(
-                'w-full flex items-center gap-3',
-                'px-3 py-2',
-                'font-mono text-xs uppercase text-[#888888]',
-                'hover:text-[var(--color-terminal-green)] hover:bg-[#0F1012]'
-              )}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                />
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-              <span>Settings</span>
-            </button>
-
-            {/* Sign out */}
-            <button
-              onClick={handleSignOut}
-              className={cn(
-                'w-full flex items-center gap-3',
-                'px-3 py-2',
-                'font-mono text-xs uppercase text-[#888888]',
-                'hover:text-[var(--color-terminal-red)] hover:bg-[#0F1012]'
-              )}
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                />
-              </svg>
-              <span>Sign out</span>
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          onClick={() => {
+            window.location.href = '/app/settings';
+          }}
+          className="font-mono text-xs cursor-pointer"
+        >
+          <Settings className="mr-2 size-4" />
+          <span>settings</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={handleSignOut}
+          variant="destructive"
+          className="font-mono text-xs cursor-pointer"
+        >
+          <LogOut className="mr-2 size-4" />
+          <span>sign out</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -199,27 +143,29 @@ export function AvatarDisplay({
 }) {
   const { user } = useAuthUser();
 
-  const sizeConfig = {
-    sm: 'w-6 h-6 text-xs',
-    md: 'w-8 h-8 text-sm',
-    lg: 'w-10 h-10 text-base',
+  const sizeClasses = {
+    sm: 'size-6',
+    md: 'size-8',
+    lg: 'size-10',
   };
 
   const getUserInitial = () => {
     return user?.firstName?.[0] || user?.username?.[0] || '?';
   };
 
+  const getUserDisplay = () => {
+    return user?.firstName || user?.username || 'User';
+  };
+
   return (
-    <div
-      className={cn(
-        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
-        'flex items-center justify-center',
-        'font-mono text-black font-bold',
-        sizeConfig[size],
-        className
-      )}
-    >
-      {getUserInitial()}
-    </div>
+    <Avatar className={cn(sizeClasses[size], className)}>
+      <AvatarImage
+        src={user?.imageUrl}
+        alt={getUserDisplay()}
+      />
+      <AvatarFallback className="bg-primary text-primary-foreground font-mono font-bold">
+        {getUserInitial()}
+      </AvatarFallback>
+    </Avatar>
   );
 }

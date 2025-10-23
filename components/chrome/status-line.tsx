@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface StatusLineProps {
   assetCount?: number;
@@ -13,9 +15,9 @@ interface StatusLineProps {
 }
 
 /**
- * Terminal-style status line showing real-time system metrics
- * Format: VIEW: DENSE GRID | 247 ASSETS | 843MB | LAST: 2m | Q:3
- * Reads view mode and density from URL params for display
+ * Status line showing real-time system status using shadcn Badge components
+ * Format: DENSE | LAST: 2m | Q:3
+ * Shows app state (activity, queue) - library stats shown in page body
  */
 export function StatusLine({
   assetCount = 0,
@@ -25,11 +27,6 @@ export function StatusLine({
   className,
 }: StatusLineProps) {
   const [currentTime, setCurrentTime] = useState<Date>(new Date());
-  const searchParams = useSearchParams();
-
-  // Read view state from URL params
-  const viewMode = (searchParams.get('view') || 'grid') as 'grid' | 'list';
-  const density = (searchParams.get('density') || 'dense') as 'compact' | 'dense' | 'comfortable';
 
   // Update current time every second for relative display
   useEffect(() => {
@@ -38,14 +35,6 @@ export function StatusLine({
     }, 1000);
     return () => clearInterval(interval);
   }, []);
-
-  const formatStorage = (bytes: number): string => {
-    if (bytes === 0) return '0B';
-    if (bytes < 1024) return `${bytes}B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)}KB`;
-    if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(0)}MB`;
-    return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)}GB`;
-  };
 
   const formatTimestamp = (time: Date | string | null): string => {
     if (!time) return 'NEVER';
@@ -66,48 +55,30 @@ export function StatusLine({
 
   const relativeTime = getRelativeTime(lastUploadTime);
 
-  // Format view mode for display
-  const formatViewMode = () => {
-    const densityLabel = density.toUpperCase();
-    const viewLabel = viewMode === 'grid' ? 'GRID' : 'LIST';
-    return `${densityLabel} ${viewLabel}`;
-  };
-
   return (
     <div
       className={cn(
-        'flex items-center gap-2 text-xs font-mono text-[#888888]',
+        'flex items-center gap-2',
         'select-none',
         className
       )}
-      title={`Assets: ${assetCount} | Storage: ${formatStorage(storageUsed)} | Last upload: ${formatTimestamp(lastUploadTime)} | Queue: ${queueDepth}`}
+      title={`Last upload: ${formatTimestamp(lastUploadTime)} | Queue: ${queueDepth}`}
     >
-      {/* View Mode Indicator */}
-      <span className="hidden xl:inline flex items-center gap-1">
-        <span className="text-[#666666]">VIEW:</span>
-        <span className="text-white">{formatViewMode()}</span>
-      </span>
-      <span className="hidden xl:inline text-[#333333]">|</span>
-
-      <span className="hidden lg:inline">
-        {assetCount} <span className="text-[#666666]">ASSETS</span>
-      </span>
-      <span className="hidden lg:inline text-[#333333]">|</span>
-      <span className="hidden md:inline">{formatStorage(storageUsed)}</span>
       {lastUploadTime && (
         <>
-          <span className="hidden md:inline text-[#333333]">|</span>
-          <span className="hidden xl:inline">
-            <span className="text-[#666666]">LAST:</span> {relativeTime}
-          </span>
+          <Separator orientation="vertical" className="hidden xl:block h-4" />
+          <Badge variant="outline" className="hidden xl:inline-block font-mono text-xs">
+            <span className="text-muted-foreground">last:</span> {relativeTime}
+          </Badge>
         </>
       )}
+
       {queueDepth > 0 && (
         <>
-          <span className="text-[#333333]">|</span>
-          <span className="text-[var(--color-terminal-yellow)]">
-            <span className="text-[#666666]">Q:</span>{queueDepth}
-          </span>
+          <Separator orientation="vertical" className="h-4" />
+          <Badge variant="secondary" className="font-mono text-xs text-yellow-500">
+            <span className="text-muted-foreground">q:</span>{queueDepth}
+          </Badge>
         </>
       )}
     </div>

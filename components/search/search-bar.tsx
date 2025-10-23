@@ -174,15 +174,15 @@ export function SearchBar({
             autoFocus={autoFocus}
             className={`
               w-full h-[56px] pl-6 pr-12 text-base font-mono
-              bg-black text-[#E6E8EB] placeholder-[#666666]
-              border-2
+              bg-card text-foreground placeholder-muted-foreground/60
+              border-2 rounded-md
               focus:outline-none
-              ${searchState === 'typing' ? 'border-[var(--color-terminal-green)]' : ''}
-              ${searchState === 'loading' ? 'border-[var(--color-terminal-green)]' : ''}
-              ${searchState === 'success' ? 'border-[var(--color-terminal-green)]' : ''}
-              ${searchState === 'no-results' ? 'border-[var(--color-terminal-yellow)]' : ''}
-              ${searchState === 'error' ? 'border-[var(--color-terminal-red)]' : ''}
-              ${searchState === 'idle' ? 'border-[#333333] focus:border-[var(--color-terminal-green)]' : ''}
+              ${searchState === 'typing' ? 'border-green-600' : ''}
+              ${searchState === 'loading' ? 'border-green-600' : ''}
+              ${searchState === 'success' ? 'border-green-600' : ''}
+              ${searchState === 'no-results' ? 'border-orange-500' : ''}
+              ${searchState === 'error' ? 'border-destructive' : ''}
+              ${searchState === 'idle' ? 'border-border focus:border-green-600' : ''}
             `}
           />
 
@@ -192,7 +192,7 @@ export function SearchBar({
             {query && (
               <button
                 onClick={handleClear}
-                className="p-1.5 text-[#666666] hover:text-[var(--color-terminal-red)]"
+                className="p-1.5 text-muted-foreground/80 hover:text-destructive"
                 aria-label="clear search"
                 title="clear search (esc)"
               >
@@ -221,21 +221,21 @@ export function SearchBar({
           ref={dropdownRef}
           className="
             absolute top-full mt-2 w-full
-            bg-black border border-[#333333]
+            bg-card border border-border rounded-md
             overflow-hidden z-50
           "
         >
           {/* History header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-[#333333]">
-            <span className="font-mono text-xs uppercase text-[#888888]">Recent Searches</span>
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+            <span className="font-mono text-xs text-muted-foreground">recent searches</span>
             <button
               onClick={() => {
                 clearHistory();
                 setShowHistory(false);
               }}
-              className="font-mono text-xs uppercase text-[#666666] hover:text-[var(--color-terminal-red)]"
+              className="font-mono text-xs text-muted-foreground/80 hover:text-destructive"
             >
-              Clear history
+              clear history
             </button>
           </div>
 
@@ -246,14 +246,14 @@ export function SearchBar({
                 key={item.timestamp}
                 className={`
                   flex items-center justify-between px-4 py-3
-                  hover:bg-[#0F1012] cursor-pointer group
-                  ${selectedIndex === index ? 'bg-[#0F1012] border-l-2 border-[var(--color-terminal-green)]' : ''}
+                  hover:bg-muted cursor-pointer group
+                  ${selectedIndex === index ? 'bg-muted border-l-2 border-green-600' : ''}
                 `}
                 onClick={() => handleHistorySelect(item.query)}
               >
                 <div className="flex items-center gap-3 flex-1">
                   <svg
-                    className="w-4 h-4 text-[#666666] flex-shrink-0"
+                    className="w-4 h-4 text-muted-foreground/80 flex-shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -265,11 +265,11 @@ export function SearchBar({
                       d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <span className="font-mono text-sm text-[#E6E8EB] truncate">{item.query}</span>
+                  <span className="font-mono text-sm text-foreground truncate">{item.query}</span>
                 </div>
                 <button
                   onClick={(e) => handleHistoryRemove(e, item.query)}
-                  className="p-1 text-[#666666] hover:text-[var(--color-terminal-red)] opacity-0 group-hover:opacity-100"
+                  className="p-1 text-muted-foreground/80 hover:text-destructive opacity-0 group-hover:opacity-100"
                   aria-label="Remove from history"
                 >
                   <svg

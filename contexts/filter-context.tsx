@@ -11,14 +11,13 @@ interface FilterContextType {
   tagName: string | null;
 
   // Derived states
-  isFavoritesOnly: boolean;
-  isRecentFilter: boolean;
+  isBangersOnly: boolean;
   hasActiveFilters: boolean;
 
   // Actions
   setFilterType: (type: FilterType) => void;
   setTagFilter: (tagId: string | null, tagName?: string | null) => void;
-  toggleFavorites: () => void;
+  toggleBangers: () => void;
   clearAllFilters: () => void;
   clearTagFilter: () => void;
 }
@@ -39,12 +38,11 @@ export function FilterProvider({ children }: FilterProviderProps) {
   const searchParams = useSearchParams();
 
   // Parse initial state from URL params
-  const urlFavorite = searchParams.get('favorite') === 'true';
-  const urlRecent = searchParams.get('filter') === 'recent';
+  const urlBangers = searchParams.get('bangers') === 'true';
   const urlTagId = searchParams.get('tagId');
 
   // Determine initial filter type from URL params
-  const initialFilterType: FilterType = urlFavorite ? 'favorites' : urlRecent ? 'recent' : 'all';
+  const initialFilterType: FilterType = urlBangers ? 'bangers' : 'all';
 
   // Core state
   const [filterType, setFilterTypeState] = useState<FilterType>(initialFilterType);
@@ -53,11 +51,10 @@ export function FilterProvider({ children }: FilterProviderProps) {
 
   // Sync filter type with URL params when they change
   useEffect(() => {
-    const newFavorite = searchParams.get('favorite') === 'true';
-    const newRecent = searchParams.get('filter') === 'recent';
+    const newBangers = searchParams.get('bangers') === 'true';
     const newTagId = searchParams.get('tagId');
 
-    const newFilterType: FilterType = newFavorite ? 'favorites' : newRecent ? 'recent' : 'all';
+    const newFilterType: FilterType = newBangers ? 'bangers' : 'all';
     setFilterTypeState(newFilterType);
     setTagIdState(newTagId);
   }, [searchParams]);
@@ -89,17 +86,14 @@ export function FilterProvider({ children }: FilterProviderProps) {
       // Update URL params based on filter type
       const updates: Record<string, string | null> = {};
 
-      // Clear both params first
-      updates.favorite = null;
-      updates.filter = null;
+      // Clear bangers param first
+      updates.bangers = null;
 
-      // Set appropriate param based on type
-      if (type === 'favorites') {
-        updates.favorite = 'true';
-      } else if (type === 'recent') {
-        updates.filter = 'recent';
+      // Set bangers param if type is bangers
+      if (type === 'bangers') {
+        updates.bangers = 'true';
       }
-      // 'all' clears both params (already done above)
+      // 'all' clears the param (already done above)
 
       updateUrlParams(updates);
     },
@@ -116,9 +110,9 @@ export function FilterProvider({ children }: FilterProviderProps) {
     [updateUrlParams]
   );
 
-  // Toggle favorites filter
-  const toggleFavorites = useCallback(() => {
-    setFilterType(filterType === 'favorites' ? 'all' : 'favorites');
+  // Toggle bangers filter
+  const toggleBangers = useCallback(() => {
+    setFilterType(filterType === 'bangers' ? 'all' : 'bangers');
   }, [filterType, setFilterType]);
 
   // Clear tag filter
@@ -133,8 +127,7 @@ export function FilterProvider({ children }: FilterProviderProps) {
   }, [setFilterType, setTagFilter]);
 
   // Derived states
-  const isFavoritesOnly = filterType === 'favorites';
-  const isRecentFilter = filterType === 'recent';
+  const isBangersOnly = filterType === 'bangers';
   const hasActiveFilters = filterType !== 'all' || tagId !== null;
 
   const value: FilterContextType = {
@@ -144,14 +137,13 @@ export function FilterProvider({ children }: FilterProviderProps) {
     tagName,
 
     // Derived states
-    isFavoritesOnly,
-    isRecentFilter,
+    isBangersOnly,
     hasActiveFilters,
 
     // Actions
     setFilterType,
     setTagFilter,
-    toggleFavorites,
+    toggleBangers,
     clearAllFilters,
     clearTagFilter,
   };
@@ -176,13 +168,12 @@ export function useFilter() {
  * Useful for components that only need to read filter state
  */
 export function useFilterState() {
-  const { filterType, tagId, tagName, isFavoritesOnly, isRecentFilter, hasActiveFilters } = useFilter();
+  const { filterType, tagId, tagName, isBangersOnly, hasActiveFilters } = useFilter();
   return {
     filterType,
     tagId,
     tagName,
-    isFavoritesOnly,
-    isRecentFilter,
+    isBangersOnly,
     hasActiveFilters,
   };
 }
@@ -192,11 +183,11 @@ export function useFilterState() {
  * Useful for components that only need to modify filters
  */
 export function useFilterActions() {
-  const { setFilterType, setTagFilter, toggleFavorites, clearAllFilters, clearTagFilter } = useFilter();
+  const { setFilterType, setTagFilter, toggleBangers, clearAllFilters, clearTagFilter } = useFilter();
   return {
     setFilterType,
     setTagFilter,
-    toggleFavorites,
+    toggleBangers,
     clearAllFilters,
     clearTagFilter,
   };

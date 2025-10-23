@@ -2,7 +2,10 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Search, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 
 interface SearchBarElasticProps {
@@ -16,7 +19,7 @@ interface SearchBarElasticProps {
 
 /**
  * Elastic search bar that expands on focus
- * Transitions from collapsed to expanded width with smooth animation
+ * Uses shadcn Input with expansion animation
  */
 export function SearchBarElastic({
   collapsedWidth = 200,
@@ -132,36 +135,24 @@ export function SearchBarElastic({
       ref={containerRef}
       className={cn(
         'relative flex items-center',
-        'transition-[width] duration-[180ms] will-change-[width]', // Only transition width, use will-change for optimization
+        'transition-[width] duration-[180ms] will-change-[width]',
         className
       )}
       style={{
         width: isExpanded ? expandedWidth : collapsedWidth,
-        transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)', // Custom easing for smooth expansion
+        transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)',
       }}
     >
       {/* Search Icon */}
-      <div className="absolute left-3 pointer-events-none">
-        <svg
-          className={cn(
-            'w-4 h-4',
-            isFocused ? 'text-[var(--color-terminal-green)]' : 'text-[#666666]'
-          )}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-          />
-        </svg>
+      <div className="absolute left-3 pointer-events-none z-10">
+        <Search className={cn(
+          'size-4',
+          isFocused ? 'text-primary' : 'text-muted-foreground'
+        )} />
       </div>
 
       {/* Input Field */}
-      <input
+      <Input
         ref={inputRef}
         type="text"
         value={query}
@@ -171,47 +162,41 @@ export function SearchBarElastic({
         onKeyDown={handleKeyDown}
         placeholder={placeholder}
         className={cn(
-          'w-full h-10 pl-10 pr-10 font-mono',
-          'bg-black text-[#E6E8EB]',
-          'border',
-          isFocused ? 'border-[var(--color-terminal-green)]' : 'border-[#333333]',
-          'placeholder:text-[#666666]',
-          'focus:outline-none'
+          'w-full h-10 pl-10 pr-20 font-mono',
+          isSearching && 'animate-pulse'
         )}
         aria-label="Search"
       />
 
-      {/* Clear/Action Button */}
-      {query && (
+      {/* Search State Badge */}
+      {isSearching && (
+        <Badge
+          variant="outline"
+          className="absolute right-10 pointer-events-none"
+        >
+          Searching...
+        </Badge>
+      )}
+
+      {/* Clear Button */}
+      {query && !isSearching && (
         <button
           onClick={clearSearch}
           className={cn(
-            'absolute right-3',
-            'p-1',
-            'text-[#666666] hover:text-[var(--color-terminal-red)]'
+            'absolute right-3 p-1',
+            'text-muted-foreground hover:text-destructive',
+            'transition-colors'
           )}
           aria-label="Clear search"
         >
-          <svg
-            className="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M6 18L18 6M6 6l12 12"
-            />
-          </svg>
+          <X className="size-4" />
         </button>
       )}
 
       {/* Keyboard Shortcut Hint */}
-      {!isFocused && !query && (
+      {!isFocused && !query && !isSearching && (
         <div className="absolute right-3 pointer-events-none">
-          <kbd className="px-1.5 py-0.5 font-mono text-[10px] text-[#666666] bg-black border border-[#333333]">
+          <kbd className="px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground bg-background border border-border rounded">
             /
           </kbd>
         </div>
@@ -235,28 +220,16 @@ export function SearchTrigger({
     <button
       onClick={onClick}
       className={cn(
-        'p-2.5 ',
-        'bg-[#1B1F24] hover:bg-[#2A2F37]',
-        'text-[#B3B7BE] hover:text-[#7C5CFF]',
+        'p-2.5',
+        'bg-secondary hover:bg-secondary/80',
+        'text-secondary-foreground hover:text-primary',
         'transition-all duration-200',
         'group',
         className
       )}
       aria-label="Search"
     >
-      <svg
-        className="w-5 h-5 transition-transform group-hover:scale-110"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth={2}
-          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-        />
-      </svg>
+      <Search className="size-5 transition-transform group-hover:scale-110" />
     </button>
   );
 }

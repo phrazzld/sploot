@@ -22,17 +22,17 @@ export function ImageGridErrorBoundary({
         <div className="flex items-center justify-center min-h-[600px] p-8">
           <div className="text-center max-w-md">
             {/* Error Icon */}
-            <div className="w-24 h-24 mx-auto mb-6 bg-[#1B1F24] flex items-center justify-center">
+            <div className="w-24 h-24 mx-auto mb-6 bg-muted flex items-center justify-center">
               <span className="text-4xl">⚠️</span>
             </div>
 
             {/* Error Title */}
-            <h2 className="text-xl font-semibold text-[#E6E8EB] mb-2">
+            <h2 className="text-xl font-semibold text-foreground mb-2">
               Unable to load your memes
             </h2>
 
             {/* Error Description */}
-            <p className="text-[#B3B7BE] text-sm mb-2">
+            <p className="text-muted-foreground text-sm mb-2">
               {error.message.includes('network') || error.message.includes('fetch')
                 ? "There seems to be a connection issue. Please check your internet and try again."
                 : error.message.includes('permission') || error.message.includes('auth')
@@ -44,10 +44,10 @@ export function ImageGridErrorBoundary({
 
             {/* Technical Details (collapsible) */}
             <details className="mt-4 mb-6 text-left">
-              <summary className="text-xs text-[#6A6E78] cursor-pointer hover:text-[#B3B7BE] transition-colors">
+              <summary className="text-xs text-muted-foreground/80 cursor-pointer hover:text-muted-foreground transition-colors">
                 Technical details
               </summary>
-              <pre className="mt-2 p-3 bg-[#14171A] text-xs text-[#6A6E78] overflow-x-auto">
+              <pre className="mt-2 p-3 bg-card text-xs text-muted-foreground/80 overflow-x-auto">
                 {error.name}: {error.message}
                 {error.stack && '\n\nStack trace:\n' + error.stack}
               </pre>
@@ -60,7 +60,7 @@ export function ImageGridErrorBoundary({
                   reset();
                   onRetry?.();
                 }}
-                className="px-6 py-2.5 bg-[#7C5CFF] text-white text-sm font-medium hover:bg-[#6B4FE6] active:bg-[#5941CC] transition-all duration-200 flex items-center gap-2"
+                className="px-6 py-2.5 bg-primary text-white text-sm font-medium hover:bg-primary/90 active:bg-primary/80 transition-all duration-200 flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -80,14 +80,14 @@ export function ImageGridErrorBoundary({
 
               <button
                 onClick={() => window.location.reload()}
-                className="px-6 py-2.5 bg-[#1B1F24] text-[#B3B7BE] text-sm font-medium border border-[#2A2F37] hover:bg-[#2A2F37] hover:text-[#E6E8EB] transition-all duration-200"
+                className="px-6 py-2.5 bg-muted text-muted-foreground text-sm font-medium border border-border hover:bg-muted/80 hover:text-foreground transition-all duration-200"
               >
                 Refresh Page
               </button>
             </div>
 
             {/* Help Text */}
-            <p className="mt-6 text-xs text-[#6A6E78]">
+            <p className="mt-6 text-xs text-muted-foreground/80">
               If this problem persists, try clearing your browser cache or contact support.
             </p>
           </div>

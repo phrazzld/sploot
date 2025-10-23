@@ -2,6 +2,14 @@
 
 import { useState, useCallback } from 'react';
 import { cn } from '@/lib/utils';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Separator } from '@/components/ui/separator';
 
 interface KeyboardShortcutsHelpProps {
   isOpen: boolean;
@@ -15,12 +23,10 @@ interface ShortcutItem {
 }
 
 /**
- * Terminal-style keyboard shortcuts help modal
- * Opens with ? key
+ * Keyboard shortcuts help dialog
+ * Opens with ? key, displays all available shortcuts organized by category
  */
 export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelpProps) {
-  if (!isOpen) return null;
-
   const shortcuts: ShortcutItem[] = [
     // Navigation
     { keys: ['⌘', 'K'], description: 'Command Palette', category: 'navigation' },
@@ -39,107 +45,82 @@ export function KeyboardShortcutsHelp({ isOpen, onClose }: KeyboardShortcutsHelp
   ];
 
   const categories = [
-    { id: 'navigation', label: 'NAVIGATION' },
-    { id: 'view', label: 'VIEW MODES' },
-    { id: 'lists', label: 'LIST NAVIGATION' },
+    { id: 'navigation', label: 'Navigation' },
+    { id: 'view', label: 'View Modes' },
+    { id: 'lists', label: 'List Navigation' },
   ];
 
   return (
-    <>
-      {/* Backdrop */}
-      <div
-        className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] animate-fade-in"
-        onClick={onClose}
-        aria-hidden="true"
-      />
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Keyboard Shortcuts</DialogTitle>
+          <DialogDescription>
+            Navigate and control the application using keyboard shortcuts
+          </DialogDescription>
+        </DialogHeader>
 
-      {/* Help Modal */}
-      <div className="fixed inset-0 z-[100] flex items-start justify-center pt-[15vh]">
-        <div
-          className={cn(
-            'bg-black border border-[#1A1A1A]',
-            'w-full max-w-2xl mx-4',
-            'shadow-2xl shadow-[#7C5CFF]/10 animate-scale-in',
-            'overflow-hidden'
-          )}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Header */}
-          <div className="px-6 py-4 border-b border-[#1A1A1A]">
-            <div className="flex items-center justify-between">
-              <h2 className="text-white font-mono text-sm uppercase tracking-wider">
-                Keyboard Shortcuts
-              </h2>
-              <button
-                onClick={onClose}
-                className="text-[#888888] hover:text-white transition-colors"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
+        <div className="space-y-6 overflow-y-auto pr-2 max-h-[60vh]">
+          {categories.map((category, categoryIndex) => {
+            const categoryShortcuts = shortcuts.filter((s) => s.category === category.id);
+            if (categoryShortcuts.length === 0) return null;
 
-          {/* Shortcuts List */}
-          <div className="px-6 py-4 max-h-[60vh] overflow-y-auto">
-            {categories.map((category) => {
-              const categoryShortcuts = shortcuts.filter(s => s.category === category.id);
-              if (categoryShortcuts.length === 0) return null;
-
-              return (
-                <div key={category.id} className="mb-6 last:mb-0">
-                  <h3 className="text-[#666666] font-mono text-xs uppercase tracking-wider mb-3">
-                    {category.label}
-                  </h3>
-                  <div className="space-y-2">
-                    {categoryShortcuts.map((shortcut, index) => (
-                      <div
-                        key={`${category.id}-${index}`}
-                        className="flex items-center justify-between gap-4 py-2 px-3 bg-[#0A0A0A] hover:bg-[#111111] transition-colors"
-                      >
-                        <span className="text-[#888888] font-mono text-sm flex-1">
-                          {shortcut.description}
-                        </span>
-                        <div className="flex items-center gap-1">
-                          {shortcut.keys.map((key, keyIndex) => (
-                            <span key={keyIndex} className="flex items-center gap-1">
-                              <kbd
-                                className={cn(
-                                  'inline-flex items-center justify-center',
-                                  'min-w-[28px] px-2 py-1',
-                                  'bg-black border border-[#1A1A1A]',
-                                  'text-white font-mono text-xs',
-                                  'shadow-sm'
-                                )}
-                              >
-                                {key}
-                              </kbd>
-                              {keyIndex < shortcut.keys.length - 1 && (
-                                <span className="text-[#333333] font-mono text-xs mx-0.5">+</span>
+            return (
+              <div key={category.id}>
+                {categoryIndex > 0 && <Separator className="mb-4" />}
+                <h3 className="text-sm font-semibold mb-3 text-muted-foreground tracking-wider">
+                  {category.label}
+                </h3>
+                <div className="space-y-2">
+                  {categoryShortcuts.map((shortcut, index) => (
+                    <div
+                      key={`${category.id}-${index}`}
+                      className="flex items-center justify-between gap-4 py-2 px-3 rounded-md bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <span className="text-sm flex-1">{shortcut.description}</span>
+                      <div className="flex items-center gap-1">
+                        {shortcut.keys.map((key, keyIndex) => (
+                          <span key={keyIndex} className="flex items-center gap-1">
+                            <kbd
+                              className={cn(
+                                'inline-flex items-center justify-center',
+                                'min-w-[28px] px-2 py-1',
+                                'bg-background border border-border',
+                                'text-foreground font-mono text-xs',
+                                'rounded shadow-sm'
                               )}
-                            </span>
-                          ))}
-                        </div>
+                            >
+                              {key}
+                            </kbd>
+                            {keyIndex < shortcut.keys.length - 1 && (
+                              <span className="text-muted-foreground text-xs mx-0.5">+</span>
+                            )}
+                          </span>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-3 border-t border-[#1A1A1A]">
-            <p className="text-[#666666] font-mono text-xs">
-              Press <kbd className="px-1.5 py-0.5 bg-[#0A0A0A] border border-[#1A1A1A] text-[#888888]">esc</kbd> or{' '}
-              <kbd className="px-1.5 py-0.5 bg-[#0A0A0A] border border-[#1A1A1A] text-[#888888]">?</kbd> to close
-            </p>
-          </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
-    </>
+
+        <Separator />
+
+        <div className="text-sm text-muted-foreground">
+          Press{' '}
+          <kbd className="px-1.5 py-0.5 bg-muted border border-border rounded text-foreground font-mono text-xs">
+            esc
+          </kbd>{' '}
+          or{' '}
+          <kbd className="px-1.5 py-0.5 bg-muted border border-border rounded text-foreground font-mono text-xs">
+            ?
+          </kbd>{' '}
+          to close
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -151,7 +132,7 @@ export function useKeyboardShortcutsHelp() {
 
   const openHelp = useCallback(() => setIsOpen(true), []);
   const closeHelp = useCallback(() => setIsOpen(false), []);
-  const toggleHelp = useCallback(() => setIsOpen(prev => !prev), []);
+  const toggleHelp = useCallback(() => setIsOpen((prev) => !prev), []);
 
   return {
     isOpen,

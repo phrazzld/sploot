@@ -246,6 +246,16 @@ global.IntersectionObserver = vi.fn().mockImplementation(() => ({
   disconnect: vi.fn(),
 }));
 
+// Mock ResizeObserver (required by cmdk and other components)
+global.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
+}));
+
+// Mock scrollIntoView (required by cmdk keyboard navigation)
+Element.prototype.scrollIntoView = vi.fn();
+
 // Mock crypto (use Object.defineProperty to override readonly property)
 Object.defineProperty(global, 'crypto', {
   value: {

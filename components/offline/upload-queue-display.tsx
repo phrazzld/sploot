@@ -13,14 +13,14 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
 
   return (
     <div className="fixed bottom-20 md:bottom-6 left-4 right-4 md:left-6 md:right-auto md:w-96 z-40">
-      <div className="bg-[#14171A] border border-[#2A2F37] p-4 shadow-2xl">
+      <div className="bg-card border border-border p-4 shadow-2xl">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-[#E6E8EB] font-semibold">
+          <h3 className="text-foreground font-semibold">
             Upload Queue ({queue.length})
           </h3>
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-[#FFA500] animate-pulse" />
-            <span className="text-xs text-[#B3B7BE]">Queued</span>
+            <div className="w-2 h-2 bg-orange-500 animate-pulse" />
+            <span className="text-xs text-muted-foreground">Queued</span>
           </div>
         </div>
 
@@ -28,13 +28,13 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
           {queue.map((item) => (
             <div
               key={item.id}
-              className="flex items-center gap-3 p-2 bg-[#1B1F24]"
+              className="flex items-center gap-3 p-2 bg-muted"
             >
               {/* File icon */}
-              <div className="w-10 h-10 bg-[#2A2F37] flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 bg-border flex items-center justify-center flex-shrink-0">
                 {item.status === 'uploading' ? (
                   <svg
-                    className="w-5 h-5 text-[#7C5CFF] animate-spin"
+                    className="w-5 h-5 text-primary animate-spin"
                     fill="none"
                     viewBox="0 0 24 24"
                   >
@@ -54,7 +54,7 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
                   </svg>
                 ) : item.status === 'error' ? (
                   <svg
-                    className="w-5 h-5 text-[#FF4D4D]"
+                    className="w-5 h-5 text-destructive"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -68,7 +68,7 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
                   </svg>
                 ) : item.status === 'success' ? (
                   <svg
-                    className="w-5 h-5 text-[#B6FF6E]"
+                    className="w-5 h-5 text-green-500"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -82,7 +82,7 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
                   </svg>
                 ) : (
                   <svg
-                    className="w-5 h-5 text-[#6A6E78]"
+                    className="w-5 h-5 text-muted-foreground/80"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -99,13 +99,13 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
 
               {/* File info */}
               <div className="flex-1 min-w-0">
-                <p className="text-sm text-[#E6E8EB] truncate">
+                <p className="text-sm text-foreground truncate">
                   {item.file.name}
                 </p>
-                <p className="text-xs text-[#6A6E78]">
+                <p className="text-xs text-muted-foreground/80">
                   {(item.file.size / 1024 / 1024).toFixed(2)} MB
                   {item.status === 'error' && item.retryCount > 0 && (
-                    <span className="ml-2 text-[#FF4D4D]">
+                    <span className="ml-2 text-destructive">
                       (Retry {item.retryCount}/{3})
                     </span>
                   )}
@@ -117,7 +117,7 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
                 {item.status === 'error' && onRetry && (
                   <button
                     onClick={() => onRetry(item.id)}
-                    className="p-1.5 text-[#7C5CFF] hover:bg-[#2A2F37] transition-colors"
+                    className="p-1.5 text-primary hover:bg-border transition-colors"
                     title="Retry upload"
                   >
                     <svg
@@ -138,7 +138,7 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
                 {item.status !== 'uploading' && (
                   <button
                     onClick={() => onRemove(item.id)}
-                    className="p-1.5 text-[#6A6E78] hover:text-[#FF4D4D] hover:bg-[#2A2F37] transition-colors"
+                    className="p-1.5 text-muted-foreground/80 hover:text-destructive hover:bg-border transition-colors"
                     title="Remove from queue"
                   >
                     <svg
@@ -161,8 +161,8 @@ export function UploadQueueDisplay({ queue, onRemove, onRetry }: UploadQueueDisp
           ))}
         </div>
 
-        <div className="mt-3 pt-3 border-t border-[#2A2F37]">
-          <p className="text-xs text-[#6A6E78]">
+        <div className="mt-3 pt-3 border-t border-border">
+          <p className="text-xs text-muted-foreground/80">
             Uploads will resume automatically when you&apos;re back online
           </p>
         </div>

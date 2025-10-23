@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/auth/client";
-import { ToastContainer } from "@/components/ui/toast";
+import { Toaster } from "@/components/ui/toast";
 import { EmbeddingStatusProvider } from "@/contexts/embedding-status-context";
+import { ThemeProvider } from "@/components/theme-provider";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -110,7 +111,7 @@ export default function RootLayout({
   return (
     <AuthProvider>
       <EmbeddingStatusProvider>
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
           <head>
             <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
             <link rel="icon" type="image/png" sizes="32x32" href="/icons/favicon-32x32.png" />
@@ -119,10 +120,17 @@ export default function RootLayout({
             <meta name="theme-color" content="#000000" />
           </head>
           <body
-            className={`${geistSans.variable} ${geistMono.variable} ${jetbrainsMono.variable} antialiased`}
+            className={`${geistSans.variable} ${geistMono.variable} ${jetbrainsMono.variable} font-sans antialiased`}
           >
-            {children}
-            <ToastContainer />
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="system"
+              enableSystem
+              disableTransitionOnChange
+            >
+              {children}
+              <Toaster />
+            </ThemeProvider>
           </body>
         </html>
       </EmbeddingStatusProvider>

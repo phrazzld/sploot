@@ -52,11 +52,11 @@ export function SearchBarWithResults({
 
       {/* Search status */}
       {debouncedQuery && (
-        <div className="mt-8 text-sm text-[#B3B7BE]">
+        <div className="mt-8 text-sm text-muted-foreground">
           {loading && (
             <span className="flex items-center gap-2">
               <svg
-                className="animate-spin h-4 w-4 text-[#7C5CFF]"
+                className="animate-spin h-4 w-4 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
               >
@@ -80,10 +80,10 @@ export function SearchBarWithResults({
 
           {!loading && !error && (
             <span>
-              Found <span className="text-[#B6FF6E] font-semibold">{total}</span> results
-              for &ldquo;<span className="text-[#E6E8EB]">{debouncedQuery}</span>&rdquo;
+              Found <span className="text-green-500 font-semibold">{total}</span> results
+              for &ldquo;<span className="text-foreground">{debouncedQuery}</span>&rdquo;
               {metadata?.thresholdFallback && (
-                <span className="ml-2 text-[#FFAA5C]">
+                <span className="ml-2 text-orange-400">
                   Showing additional matches below {Math.round((metadata.requestedThreshold ?? 0) * 100)}% similarity
                 </span>
               )}
@@ -91,7 +91,7 @@ export function SearchBarWithResults({
           )}
 
           {error && (
-            <span className="text-[#FF4D4D]">
+            <span className="text-destructive">
               Error: {error}
             </span>
           )}

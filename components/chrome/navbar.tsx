@@ -3,6 +3,7 @@
 import { ReactNode } from 'react';
 import { LogoWordmark } from './logo-wordmark';
 import { UserAvatar } from './user-avatar';
+import { ThemeToggle } from '@/components/theme-toggle';
 import { cn } from '@/lib/utils';
 
 interface NavbarProps {
@@ -37,10 +38,8 @@ export function Navbar({
         'z-50',
         // Height: 56px
         'h-14',
-        // Background and border - pure black with ultra-subtle separation
-        'bg-black border-b border-[#1A1A1A]',
-        // Backdrop for glass effect
-        'backdrop-blur-sm',
+        // Background and border - using shadcn design tokens
+        'bg-background border-b border-border backdrop-blur-sm',
         // Layout
         'flex items-center',
         // Padding - progressive increase for larger screens
@@ -53,32 +52,23 @@ export function Navbar({
       <div className="flex items-center justify-between w-full max-w-screen-2xl 2xl:max-w-[1920px] mx-auto">
         {/* Left section: Logo/Wordmark */}
         <div className="flex items-center gap-4">
-          {/* Mobile: Compact logo */}
-          <div className="block sm:hidden">
-            <LogoWordmark
-              variant="compact"
-              size="sm"
-              showTagline={false}
-            />
-          </div>
-          {/* Desktop: Full logo */}
-          <div className="hidden sm:block">
-            <LogoWordmark
-              variant="default"
-              size="md"
-              showTagline={false}
-              // Normal size on all screens for more search space
-            />
-          </div>
+          {/* Mobile variant (compact, sm) - hidden on md and up */}
+          <LogoWordmark variant="compact" size="sm" className="md:hidden" />
+
+          {/* Desktop variant (default, md) - hidden below md */}
+          <LogoWordmark variant="default" size="md" className="hidden md:inline-flex" />
         </div>
 
         {/* Spacer to push user menu to the right */}
         <div className="flex-1" />
 
-        {/* Right section: Status line and user menu */}
+        {/* Right section: Status line, theme toggle, and user menu */}
         <div className="flex items-center gap-4">
           {/* Terminal-style status line */}
           {statusLine}
+
+          {/* Theme toggle */}
+          <ThemeToggle />
 
           {/* User avatar - 32px circle with 8px margin from right edge */}
           {showUserAvatar && (

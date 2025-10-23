@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import Masonry from 'react-masonry-css';
 import { ImageTile } from './image-tile';
 import { ImageTileErrorBoundary } from './image-tile-error-boundary';
 import { ImageGridSkeleton } from './image-skeleton';
@@ -38,7 +38,6 @@ export function ImageGrid({
   showSimilarityScores = false,
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
   const [showingTransition, setShowingTransition] = useState(false);
   const [brokenImageCount, setBrokenImageCount] = useState(0);
   const setContainerRef = useCallback(
@@ -61,63 +60,15 @@ export function ImageGrid({
     }
   }, [loading, assets.length]);
 
-  // Use virtual scrolling only for large collections
-  // Threshold set high to avoid layout issues during normal usage
-  // Virtual scrolling mainly benefits collections with 500+ items
-  const USE_VIRTUAL_SCROLLING_THRESHOLD = 500;
-  const useVirtualScrolling = assets.length > USE_VIRTUAL_SCROLLING_THRESHOLD;
-
-  // Fixed column count matching Tailwind breakpoints
-  // grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6
-  const columnCount = useMemo(() => {
-    if (!containerWidth) return 1;
-
-    // Match Tailwind responsive grid breakpoints
-    if (containerWidth >= 1280) return 6; // xl
-    if (containerWidth >= 1024) return 5; // lg
-    if (containerWidth >= 768) return 4;  // md
-    if (containerWidth >= 640) return 3;  // sm
-    return 2; // default
-  }, [containerWidth]);
-
-  // Calculate rows based on items and columns
-  const rows = useMemo(() => {
-    const rowCount = Math.ceil(assets.length / columnCount);
-    return Array.from({ length: rowCount }, (_, i) => {
-      const start = i * columnCount;
-      return assets.slice(start, start + columnCount);
-    });
-  }, [assets, columnCount]);
-
-  // Fixed gap for terminal strict grid aesthetic
-  const gapClass = 'gap-2'; // 8px - terminal aesthetic spacing
-
-  // Fixed 6-column grid layout - terminal strict grid aesthetic
-  const gridColsClass = 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6';
-
-  // Virtual scrolling setup - hook must always be called
-  const virtualizer = useVirtualizer({
-    count: rows.length,
-    getScrollElement: () => containerRef.current,
-    estimateSize: () => 320, // Estimated row height (reduced since no metadata)
-    overscan: 2, // Render 2 rows outside viewport
-  });
-
-  // Only use virtualizer when needed
-  const activeVirtualizer = useVirtualScrolling ? virtualizer : null;
-
-  // Update container width on resize
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.clientWidth);
-      }
-    };
-
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
+  // Responsive column breakpoints for masonry layout
+  // Mobile: 2 cols, Tablet: 3 cols, Desktop: 4 cols
+  const breakpointCols = {
+    default: 4,  // Desktop (>1280px)
+    1280: 4,     // xl
+    1024: 3,     // lg
+    768: 2,      // md
+    640: 2,      // sm
+  };
 
   // Setup CLS (Cumulative Layout Shift) tracking
   // Monitors layout stability of image grid (target: CLS < 0.1)
@@ -231,131 +182,48 @@ export function ImageGrid({
     );
   }
 
-  // Render simple grid for small collections
-  if (!useVirtualScrolling) {
-    return (
-      <div className="h-full">
-        <div
-          ref={setContainerRef}
-          className={cn('h-full overflow-auto', containerClassName)}
-          style={{ scrollbarGutter: 'stable' }}
-        >
-          <div className={cn("grid", gridColsClass, gapClass)}>
-            {assets.map((asset, index) => (
-              <div
-                key={asset.id}
-                className="transition-skeleton"
-                style={{
-                  animation: `fadeInScale 300ms ease-out ${index * 30}ms forwards`,
-                  opacity: 0,
-                }}
-              >
-                <ImageTileErrorBoundary asset={asset} onDelete={onAssetDelete}>
-                  <ImageTile
-                    asset={asset}
-                    onFavorite={handleFavoriteToggle}
-                    onDelete={onAssetDelete}
-                    onSelect={onAssetSelect}
-                    onAssetUpdate={onAssetUpdate}
-                    showSimilarityScore={showSimilarityScores}
-                  />
-                </ImageTileErrorBoundary>
-              </div>
-            ))}
-          </div>
-
-          {/* Loading indicator */}
-          {loading && (
-            <div className="py-8 text-center">
-              <div className="inline-flex items-center gap-2 text-[var(--color-terminal-green)]">
-                <svg
-                  className="animate-spin h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
-                <span className="font-mono text-sm uppercase">Loading more...</span>
-              </div>
-            </div>
-          )}
-
-          {/* End of list indicator */}
-          {!hasMore && assets.length > 0 && (
-            <div className="py-6 text-center font-mono text-xs uppercase tracking-wide text-[#666666]">
-              no more memes in this view
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Render virtualized grid for large collections
+  // Render column-based masonry layout
+  // Perfect vertical spacing within each column, natural tile flow
   return (
     <div className="h-full">
       <div
         ref={setContainerRef}
-        className={cn('h-full overflow-auto', containerClassName)}
+        className={cn('h-full overflow-auto p-4', containerClassName)}
         style={{ scrollbarGutter: 'stable' }}
       >
-        <div
-          style={{
-            height: activeVirtualizer!.getTotalSize(),
-            width: '100%',
-            position: 'relative',
-          }}
+        <Masonry
+          breakpointCols={breakpointCols}
+          className="masonry-grid"
+          columnClassName="masonry-grid-column"
         >
-          {activeVirtualizer!.getVirtualItems().map((virtualRow) => {
-            const row = rows[virtualRow.index];
-            if (!row) return null;
-
-            return (
-              <div
-                key={virtualRow.key}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  transform: `translateY(${virtualRow.start}px)`,
-                }}
-              >
-                <div className={cn("grid", gridColsClass, gapClass)}>
-                  {row.map((asset) => (
-                    <ImageTileErrorBoundary key={asset.id} asset={asset} onDelete={onAssetDelete}>
-                      <ImageTile
-                        asset={asset}
-                        onFavorite={handleFavoriteToggle}
-                        onDelete={onAssetDelete}
-                        onSelect={onAssetSelect}
-                        onAssetUpdate={onAssetUpdate}
-                        showSimilarityScore={showSimilarityScores}
-                      />
-                    </ImageTileErrorBoundary>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+          {assets.map((asset, index) => (
+            <div
+              key={asset.id}
+              className="masonry-item"
+              style={{
+                animation: `fadeInScale 300ms ease-out ${index * 30}ms forwards`,
+                opacity: 0,
+              }}
+            >
+              <ImageTileErrorBoundary asset={asset} onDelete={onAssetDelete}>
+                <ImageTile
+                  asset={asset}
+                  onFavorite={handleFavoriteToggle}
+                  onDelete={onAssetDelete}
+                  onSelect={onAssetSelect}
+                  onAssetUpdate={onAssetUpdate}
+                  showSimilarityScore={showSimilarityScores}
+                  preserveAspectRatio
+                />
+              </ImageTileErrorBoundary>
+            </div>
+          ))}
+        </Masonry>
 
         {/* Loading indicator */}
         {loading && (
           <div className="py-8 text-center">
-            <div className="inline-flex items-center gap-2 text-[var(--color-terminal-green)]">
+            <div className="inline-flex items-center gap-2 text-green-600">
               <svg
                 className="animate-spin h-5 w-5"
                 fill="none"
@@ -375,17 +243,15 @@ export function ImageGrid({
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 />
               </svg>
-              <span className="font-mono text-sm uppercase">Loading more...</span>
+              <span className="font-mono text-sm">loading more...</span>
             </div>
           </div>
         )}
 
         {/* End of list indicator */}
         {!hasMore && assets.length > 0 && (
-          <div className="py-8 text-center">
-            <p className="font-mono text-sm uppercase text-[#666666]">
-              That&apos;s all your memes | {assets.length} total
-            </p>
+          <div className="py-6 text-center font-mono text-xs tracking-wide text-muted-foreground/60">
+            no more memes in this view
           </div>
         )}
       </div>

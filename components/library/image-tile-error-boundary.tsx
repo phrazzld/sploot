@@ -51,10 +51,10 @@ export class ImageTileErrorBoundary extends Component<Props, State> {
       const { asset } = this.props;
 
       return (
-        <div className="group relative bg-[#0F1012] overflow-hidden w-full aspect-square">
-          <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-4 bg-[#14171A]">
+        <div className="group relative bg-card overflow-hidden w-full aspect-square">
+          <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-4 bg-card">
             {/* Tombstone icon */}
-            <div className="flex flex-col items-center gap-2 text-[#B3B7BE]/60">
+            <div className="flex flex-col items-center gap-2 text-muted-foreground/60">
               <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
                   strokeLinecap="round"
@@ -71,7 +71,7 @@ export class ImageTileErrorBoundary extends Component<Props, State> {
               <button
                 type="button"
                 onClick={this.handleRetry}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors bg-[#7C5CFF]/10 text-[#7C5CFF] border border-[#7C5CFF]/30 hover:bg-[#7C5CFF]/20 hover:border-[#7C5CFF]/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#7C5CFF]"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-colors bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20 hover:border-primary/50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
                 title="Retry loading image"
               >
                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -106,7 +106,7 @@ export class ImageTileErrorBoundary extends Component<Props, State> {
             </div>
 
             {/* Filename for context */}
-            <p className="text-[10px] text-[#B3B7BE]/40 text-center truncate max-w-full px-2">
+            <p className="text-[10px] text-muted-foreground/40 text-center truncate max-w-full px-2">
               {asset.filename || asset.pathname?.split('/').pop() || 'Unnamed image'}
             </p>
           </div>

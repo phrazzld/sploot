@@ -15,51 +15,48 @@ describe('FilterChips', () => {
     it('should render all filter buttons', () => {
       render(<FilterChips />);
 
-      expect(screen.getByLabelText('All')).toBeInTheDocument();
-      expect(screen.getByLabelText('Favorites')).toBeInTheDocument();
-      expect(screen.getByLabelText('Recent')).toBeInTheDocument();
+      expect(screen.getByLabelText('all')).toBeInTheDocument();
+      expect(screen.getByLabelText('bangers')).toBeInTheDocument();
     });
 
     it('should render with labels by default', () => {
       render(<FilterChips />);
 
-      expect(screen.getByText('All')).toBeInTheDocument();
-      expect(screen.getByText('Favorites')).toBeInTheDocument();
-      expect(screen.getByText('Recent')).toBeInTheDocument();
+      expect(screen.getByText('all')).toBeInTheDocument();
+      expect(screen.getByText('bangers')).toBeInTheDocument();
     });
 
     it('should render without labels when showLabels is false', () => {
       render(<FilterChips showLabels={false} />);
 
-      expect(screen.queryByText('All')).not.toBeInTheDocument();
-      expect(screen.queryByText('Favorites')).not.toBeInTheDocument();
-      expect(screen.queryByText('Recent')).not.toBeInTheDocument();
+      expect(screen.queryByText('all')).not.toBeInTheDocument();
+      expect(screen.queryByText('bangers')).not.toBeInTheDocument();
 
       // Labels should still exist in aria-label
-      expect(screen.getByLabelText('All')).toBeInTheDocument();
-      expect(screen.getByLabelText('Favorites')).toBeInTheDocument();
-      expect(screen.getByLabelText('Recent')).toBeInTheDocument();
+      expect(screen.getByLabelText('all')).toBeInTheDocument();
+      expect(screen.getByLabelText('bangers')).toBeInTheDocument();
     });
 
-    it('should render filter group with correct role', () => {
-      render(<FilterChips />);
+    it('should render filter group with correct attributes', () => {
+      const { container } = render(<FilterChips />);
 
-      const group = screen.getByRole('group', { name: 'Filter options' });
+      // ToggleGroup renders as a div with data-slot
+      const group = container.querySelector('[data-slot="toggle-group"]');
       expect(group).toBeInTheDocument();
     });
 
-    it('should render icons for Favorites and Recent filters', () => {
+    it('should render icon for bangers filter', () => {
       const { container } = render(<FilterChips />);
 
-      // Should have 2 SVG icons (Favorites and Recent, but not All)
+      // Should have 1 SVG icon (bangers only, not all)
       const icons = container.querySelectorAll('svg');
-      expect(icons.length).toBe(2);
+      expect(icons.length).toBe(1);
     });
 
     it('should apply custom className', () => {
-      render(<FilterChips className="custom-class" />);
+      const { container } = render(<FilterChips className="custom-class" />);
 
-      const group = screen.getByRole('group');
+      const group = container.querySelector('[data-slot="toggle-group"]');
       expect(group).toHaveClass('custom-class');
     });
   });
@@ -68,85 +65,65 @@ describe('FilterChips', () => {
     it('should mark "all" as active by default', () => {
       render(<FilterChips />);
 
-      const allButton = screen.getByLabelText('All');
-      expect(allButton).toHaveAttribute('aria-pressed', 'true');
-      expect(allButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      const allButton = screen.getByLabelText('all');
+      expect(allButton).toHaveAttribute('data-state', 'on');
     });
 
-    it('should mark Favorites as active when activeFilter is "favorites"', () => {
-      render(<FilterChips activeFilter="favorites" />);
+    it('should mark bangers as active when activeFilter is "bangers"', () => {
+      render(<FilterChips activeFilter="bangers" />);
 
-      const favoritesButton = screen.getByLabelText('Favorites');
-      expect(favoritesButton).toHaveAttribute('aria-pressed', 'true');
-      expect(favoritesButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      const bangersButton = screen.getByLabelText('bangers');
+      expect(bangersButton).toHaveAttribute('data-state', 'on');
 
-      const allButton = screen.getByLabelText('All');
-      expect(allButton).toHaveAttribute('aria-pressed', 'false');
+      const allButton = screen.getByLabelText('all');
+      expect(allButton).toHaveAttribute('data-state', 'off');
     });
 
-    it('should mark Recent as active when activeFilter is "recent"', () => {
-      render(<FilterChips activeFilter="recent" />);
+    it('should fill bangers icon when active', () => {
+      const { container } = render(<FilterChips activeFilter="bangers" />);
 
-      const recentButton = screen.getByLabelText('Recent');
-      expect(recentButton).toHaveAttribute('aria-pressed', 'true');
-      expect(recentButton).toHaveClass('bg-[#7C5CFF]', 'text-white');
-    });
-
-    it('should fill favorites icon when active', () => {
-      const { container } = render(<FilterChips activeFilter="favorites" />);
-
-      const favoritesButton = screen.getByLabelText('Favorites');
-      const icon = favoritesButton.querySelector('svg');
+      const bangersButton = screen.getByLabelText('bangers');
+      const icon = bangersButton.querySelector('svg');
 
       expect(icon).toHaveAttribute('fill', 'currentColor');
     });
 
-    it('should not fill favorites icon when inactive', () => {
+    it('should not fill bangers icon when inactive', () => {
       const { container } = render(<FilterChips activeFilter="all" />);
 
-      const favoritesButton = screen.getByLabelText('Favorites');
-      const icon = favoritesButton.querySelector('svg');
+      const bangersButton = screen.getByLabelText('bangers');
+      const icon = bangersButton.querySelector('svg');
 
       expect(icon).toHaveAttribute('fill', 'none');
     });
   });
 
   describe('Click Behavior', () => {
-    it('should call onFilterChange with "all" when All is clicked', async () => {
+    it('should call onFilterChange with "bangers" when bangers is clicked from all', async () => {
       const user = userEvent.setup();
-      render(<FilterChips onFilterChange={mockOnFilterChange} />);
+      render(<FilterChips activeFilter="all" onFilterChange={mockOnFilterChange} />);
 
-      const allButton = screen.getByLabelText('All');
-      await user.click(allButton);
+      const bangersButton = screen.getByLabelText('bangers');
+      await user.click(bangersButton);
 
-      expect(mockOnFilterChange).toHaveBeenCalledWith('all');
+      expect(mockOnFilterChange).toHaveBeenCalledWith('bangers');
     });
 
-    it('should call onFilterChange with "favorites" when Favorites is clicked', async () => {
+    it('should call onFilterChange with "bangers" when bangers is clicked', async () => {
       const user = userEvent.setup();
       render(<FilterChips onFilterChange={mockOnFilterChange} />);
 
-      const favoritesButton = screen.getByLabelText('Favorites');
-      await user.click(favoritesButton);
+      const bangersButton = screen.getByLabelText('bangers');
+      await user.click(bangersButton);
 
-      expect(mockOnFilterChange).toHaveBeenCalledWith('favorites');
-    });
-
-    it('should call onFilterChange with "recent" when Recent is clicked', async () => {
-      const user = userEvent.setup();
-      render(<FilterChips onFilterChange={mockOnFilterChange} />);
-
-      const recentButton = screen.getByLabelText('Recent');
-      await user.click(recentButton);
-
-      expect(mockOnFilterChange).toHaveBeenCalledWith('recent');
+      expect(mockOnFilterChange).toHaveBeenCalledWith('bangers');
     });
 
     it('should not error when onFilterChange is not provided', async () => {
       const user = userEvent.setup();
       render(<FilterChips />);
 
-      const allButton = screen.getByLabelText('All');
+      const allButton = screen.getByLabelText('all');
 
       // Should not throw
       await expect(user.click(allButton)).resolves.not.toThrow();
@@ -157,22 +134,25 @@ describe('FilterChips', () => {
     it('should apply small size classes when size is "sm"', () => {
       render(<FilterChips size="sm" />);
 
-      const allButton = screen.getByLabelText('All');
-      expect(allButton).toHaveClass('h-7', 'text-xs');
+      const allButton = screen.getByLabelText('all');
+      // shadcn ToggleGroup sm size applies h-8
+      expect(allButton).toHaveClass('h-8');
     });
 
     it('should apply medium size classes by default', () => {
       render(<FilterChips />);
 
-      const allButton = screen.getByLabelText('All');
-      expect(allButton).toHaveClass('h-8', 'text-sm');
+      const allButton = screen.getByLabelText('all');
+      // shadcn ToggleGroup default size applies h-9
+      expect(allButton).toHaveClass('h-9');
     });
 
     it('should apply large size classes when size is "lg"', () => {
       render(<FilterChips size="lg" />);
 
-      const allButton = screen.getByLabelText('All');
-      expect(allButton).toHaveClass('h-9', 'text-base');
+      const allButton = screen.getByLabelText('all');
+      // shadcn ToggleGroup lg size applies h-10
+      expect(allButton).toHaveClass('h-10');
     });
   });
 
@@ -180,25 +160,22 @@ describe('FilterChips', () => {
     it('should have accessible labels for all filters', () => {
       render(<FilterChips />);
 
-      expect(screen.getByLabelText('All')).toHaveAccessibleName('All');
-      expect(screen.getByLabelText('Favorites')).toHaveAccessibleName('Favorites');
-      expect(screen.getByLabelText('Recent')).toHaveAccessibleName('Recent');
+      expect(screen.getByLabelText('all')).toHaveAccessibleName('all');
+      expect(screen.getByLabelText('bangers')).toHaveAccessibleName('bangers');
     });
 
-    it('should have correct aria-pressed states', () => {
-      render(<FilterChips activeFilter="favorites" />);
+    it('should have correct data-state attributes', () => {
+      render(<FilterChips activeFilter="bangers" />);
 
-      expect(screen.getByLabelText('All')).toHaveAttribute('aria-pressed', 'false');
-      expect(screen.getByLabelText('Favorites')).toHaveAttribute('aria-pressed', 'true');
-      expect(screen.getByLabelText('Recent')).toHaveAttribute('aria-pressed', 'false');
+      expect(screen.getByLabelText('all')).toHaveAttribute('data-state', 'off');
+      expect(screen.getByLabelText('bangers')).toHaveAttribute('data-state', 'on');
     });
 
     it('should have title attributes for tooltips', () => {
       render(<FilterChips />);
 
-      expect(screen.getByLabelText('All')).toHaveAttribute('title', 'All');
-      expect(screen.getByLabelText('Favorites')).toHaveAttribute('title', 'Favorites');
-      expect(screen.getByLabelText('Recent')).toHaveAttribute('title', 'Recent');
+      expect(screen.getByLabelText('all')).toHaveAttribute('title', 'all');
+      expect(screen.getByLabelText('bangers')).toHaveAttribute('title', 'bangers');
     });
   });
 });
@@ -231,37 +208,35 @@ describe('FilterChip', () => {
     });
 
     it('should apply custom className', () => {
-      render(<FilterChip label="Test" className="custom-class" />);
+      const { container } = render(<FilterChip label="Test" className="custom-class" />);
 
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('custom-class');
+      const group = container.querySelector('[data-slot="toggle-group"]');
+      expect(group).toHaveClass('custom-class');
     });
   });
 
   describe('Active State', () => {
     it('should not be active by default', () => {
-      render(<FilterChip label="Test" />);
+      const { container } = render(<FilterChip label="Test" />);
 
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('aria-pressed', 'false');
-      expect(button).toHaveClass('bg-[#1B1F24]', 'text-[#B3B7BE]');
+      const button = container.querySelector('[data-slot="toggle-group-item"]');
+      expect(button).toHaveAttribute('data-state', 'off');
     });
 
     it('should show active state when isActive is true', () => {
-      render(<FilterChip label="Test" isActive={true} />);
+      const { container } = render(<FilterChip label="Test" isActive={true} />);
 
-      const button = screen.getByRole('button');
-      expect(button).toHaveAttribute('aria-pressed', 'true');
-      expect(button).toHaveClass('bg-[#7C5CFF]', 'text-white');
+      const button = container.querySelector('[data-slot="toggle-group-item"]');
+      expect(button).toHaveAttribute('data-state', 'on');
     });
   });
 
   describe('Click Behavior', () => {
     it('should call onClick when clicked', async () => {
       const user = userEvent.setup();
-      render(<FilterChip label="Test" onClick={mockOnClick} />);
+      const { container } = render(<FilterChip label="Test" onClick={mockOnClick} />);
 
-      const button = screen.getByRole('button');
+      const button = container.querySelector('[data-slot="toggle-group-item"]')!;
       await user.click(button);
 
       expect(mockOnClick).toHaveBeenCalledTimes(1);
@@ -269,9 +244,9 @@ describe('FilterChip', () => {
 
     it('should not error when onClick is not provided', async () => {
       const user = userEvent.setup();
-      render(<FilterChip label="Test" />);
+      const { container } = render(<FilterChip label="Test" />);
 
-      const button = screen.getByRole('button');
+      const button = container.querySelector('[data-slot="toggle-group-item"]')!;
 
       // Should not throw
       await expect(user.click(button)).resolves.not.toThrow();
@@ -280,24 +255,27 @@ describe('FilterChip', () => {
 
   describe('Size Variants', () => {
     it('should apply small size classes when size is "sm"', () => {
-      render(<FilterChip label="Test" size="sm" />);
+      const { container } = render(<FilterChip label="Test" size="sm" />);
 
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('h-7', 'text-xs');
+      const button = container.querySelector('[data-slot="toggle-group-item"]');
+      // shadcn ToggleGroup sm size applies h-8
+      expect(button).toHaveClass('h-8');
     });
 
     it('should apply medium size classes by default', () => {
-      render(<FilterChip label="Test" />);
+      const { container } = render(<FilterChip label="Test" />);
 
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('h-8', 'text-sm');
+      const button = container.querySelector('[data-slot="toggle-group-item"]');
+      // shadcn ToggleGroup default size applies h-9
+      expect(button).toHaveClass('h-9');
     });
 
     it('should apply large size classes when size is "lg"', () => {
-      render(<FilterChip label="Test" size="lg" />);
+      const { container } = render(<FilterChip label="Test" size="lg" />);
 
-      const button = screen.getByRole('button');
-      expect(button).toHaveClass('h-9', 'text-base');
+      const button = container.querySelector('[data-slot="toggle-group-item"]');
+      // shadcn ToggleGroup lg size applies h-10
+      expect(button).toHaveClass('h-10');
     });
   });
 });

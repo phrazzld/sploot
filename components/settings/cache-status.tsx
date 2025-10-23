@@ -97,8 +97,8 @@ export function CacheStatus() {
 
       {/* Cache Details */}
       <div className="bg-lab-surface border border-lab-border p-6">
-        <h4 className="text-sm font-semibold text-lab-text mb-4 uppercase tracking-wider">
-          Cache Details
+        <h4 className="text-sm font-semibold text-lab-text mb-4 tracking-wider">
+          cache details
         </h4>
 
         {Object.keys(cacheStatus).length === 0 ? (
@@ -161,8 +161,8 @@ export function CacheStatus() {
 
       {/* Actions */}
       <div className="bg-lab-surface border border-lab-border p-6">
-        <h4 className="text-sm font-semibold text-lab-text mb-4 uppercase tracking-wider">
-          Cache Management
+        <h4 className="text-sm font-semibold text-lab-text mb-4 tracking-wider">
+          cache management
         </h4>
 
         <div className="flex flex-col sm:flex-row gap-3">
@@ -207,8 +207,8 @@ export function CacheStatus() {
 
       {/* Tips */}
       <div className="bg-lab-surface border border-lab-border p-6">
-        <h4 className="text-sm font-semibold text-lab-text mb-3 uppercase tracking-wider">
-          Optimization Tips
+        <h4 className="text-sm font-semibold text-lab-text mb-3 tracking-wider">
+          optimization tips
         </h4>
         <ul className="space-y-2">
           <li className="flex items-start gap-2">

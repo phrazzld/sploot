@@ -4,7 +4,6 @@ import { ReactNode, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Navbar } from './navbar';
 import { NavbarSpacer } from './chrome-spacers';
-import { CornerBrackets } from './corner-brackets';
 import { StatusLine } from './status-line';
 import { useAuthActions } from '@/lib/auth/client';
 import { useStatusStats } from '@/hooks/use-status-stats';
@@ -31,9 +30,6 @@ export function AppChrome({ children }: AppChromeProps) {
 
   return (
     <>
-      {/* Terminal-style corner brackets for viewport framing */}
-      <CornerBrackets />
-
       {/* Fixed Navbar */}
       <Navbar
         onSignOut={handleSignOut}

@@ -2,6 +2,8 @@
 
 import { cn } from '@/lib/utils';
 import { useAnimatedNumber, formatWithCommas, useAnimatedSize } from '@/hooks/use-animated-number';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
 
 interface StatsDisplayProps {
   totalAssets?: number;
@@ -12,9 +14,9 @@ interface StatsDisplayProps {
 }
 
 /**
- * Stats display component for terminal aesthetic
- * Terminal-style format: "247 ASSETS | 12 FAVORITES | 843MB"
- * Uses monospace typography (JetBrains Mono) and pipe separators
+ * Stats display component using shadcn Badge components
+ * Format: "247 ASSETS | 12 FAVORITES | 843MB"
+ * Uses monospace typography and pipe separators
  */
 export function StatsDisplay({
   totalAssets = 0,
@@ -38,38 +40,33 @@ export function StatsDisplay({
     duration: 300,
   });
 
-  // Terminal-style stats format (no icons, uppercase labels, pipe separators)
-  const stats = [
-    { label: 'ASSETS', value: animatedAssets },
-    { label: 'FAVORITES', value: animatedFavorites },
-    { label: '', value: animatedSize }, // Size already has unit
-  ];
-
   return (
     <div
       className={cn(
         'flex items-center gap-2',
-        'font-mono text-xs text-[var(--color-terminal-gray)]',
-        'tracking-wide',
         className
       )}
     >
-      {stats.map((stat, index) => (
-        <span key={index} className="flex items-center gap-2">
-          {index > 0 && <span className="opacity-40">|</span>}
-          <span className="tabular-nums">
-            {stat.value}
-            {stat.label && showLabels && <span className="ml-1 opacity-80">{stat.label}</span>}
-          </span>
-        </span>
-      ))}
+      <Badge variant="outline" className="font-mono text-xs tabular-nums">
+        {animatedAssets}
+        {showLabels && <span className="ml-1 text-muted-foreground">assets</span>}
+      </Badge>
+      <Separator orientation="vertical" className="h-4" />
+      <Badge variant="outline" className="font-mono text-xs tabular-nums">
+        {animatedFavorites}
+        {showLabels && <span className="ml-1 text-muted-foreground">bangers</span>}
+      </Badge>
+      <Separator orientation="vertical" className="h-4" />
+      <Badge variant="outline" className="font-mono text-xs tabular-nums">
+        {animatedSize}
+      </Badge>
     </div>
   );
 }
 
 /**
  * Compact stats display for mobile or space-constrained layouts
- * Terminal-style monospace format without labels
+ * Monospace format without labels
  */
 export function StatsCompact({
   totalAssets = 0,
@@ -112,16 +109,20 @@ export function StatsCompact({
     <div
       className={cn(
         'flex items-center gap-2',
-        'font-mono text-xs text-[var(--color-terminal-gray)]',
-        'tabular-nums tracking-wide',
         className
       )}
     >
-      <span>{animatedAssets}</span>
-      <span className="opacity-40">|</span>
-      <span>{animatedFavorites}</span>
-      <span className="opacity-40">|</span>
-      <span>{animatedSize}</span>
+      <Badge variant="outline" className="font-mono text-xs tabular-nums">
+        {animatedAssets}
+      </Badge>
+      <Separator orientation="vertical" className="h-4" />
+      <Badge variant="outline" className="font-mono text-xs tabular-nums">
+        {animatedFavorites}
+      </Badge>
+      <Separator orientation="vertical" className="h-4" />
+      <Badge variant="outline" className="font-mono text-xs tabular-nums">
+        {animatedSize}
+      </Badge>
     </div>
   );
 }

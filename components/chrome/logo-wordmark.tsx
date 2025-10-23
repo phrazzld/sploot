@@ -4,121 +4,50 @@ import Link from 'next/link';
 import { cn } from '@/lib/utils';
 
 interface LogoWordmarkProps {
-  variant?: 'default' | 'compact' | 'icon-only';
-  size?: 'sm' | 'md' | 'lg';
-  showTagline?: boolean;
   className?: string;
-  linkClassName?: string;
+  variant?: 'default' | 'compact';
+  size?: 'sm' | 'md' | 'lg';
 }
 
 /**
  * Logo/Wordmark component for sploot
- * Consistent branding across navbar, sidebar, and other locations
+ * Simplified - just SVG + text, responsive sizing via Tailwind
  */
-export function LogoWordmark({
-  variant = 'default',
-  size = 'md',
-  showTagline = false,
-  className,
-  linkClassName,
-}: LogoWordmarkProps) {
-  // Size configurations
-  const sizeConfig = {
-    sm: {
-      icon: 'w-6 h-6',
-      text: 'text-xl',
-      tagline: 'text-[10px]',
-      gap: 'gap-1.5',
-    },
-    md: {
-      icon: 'w-8 h-8',
-      text: 'text-2xl',
-      tagline: 'text-xs',
-      gap: 'gap-2',
-    },
-    lg: {
-      icon: 'w-10 h-10',
-      text: 'text-3xl',
-      tagline: 'text-sm',
-      gap: 'gap-3',
-    },
-  };
-
-  const config = sizeConfig[size];
-
-  // Icon SVG component (can be replaced with actual logo)
-  const LogoIcon = () => (
-    <div
-      className={cn(
-        'flex items-center justify-center',
-        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
-        config.icon
-      )}
-    >
-      <span className="font-mono font-bold text-black text-xs">S</span>
-    </div>
-  );
-
-  // Render based on variant
-  const renderLogo = () => {
-    switch (variant) {
-      case 'icon-only':
-        return (
-          <div className={cn('flex items-center', className)}>
-            <LogoIcon />
-          </div>
-        );
-
-      case 'compact':
-        return (
-          <div className={cn('flex items-center', config.gap, className)}>
-            <LogoIcon />
-            <span
-              className={cn(
-                'font-mono font-bold uppercase text-[#E6E8EB] tracking-wider',
-                config.text
-              )}
-            >
-              s
-            </span>
-          </div>
-        );
-
-      default:
-        return (
-          <div className={cn('flex items-center', config.gap, className)}>
-            <LogoIcon />
-            <div className="flex flex-col">
-              <span
-                className={cn(
-                  'font-mono font-bold uppercase text-[#E6E8EB] tracking-wider leading-tight',
-                  config.text,
-                  'hover:text-[var(--color-terminal-green)]'
-                )}
-              >
-                sploot
-              </span>
-              {showTagline && (
-                <span className={cn('font-mono text-[#888888] mt-0.5 uppercase', config.tagline)}>
-                  Your meme library
-                </span>
-              )}
-            </div>
-          </div>
-        );
-    }
-  };
+export function LogoWordmark({ className, variant = 'default', size = 'md' }: LogoWordmarkProps) {
+  // Size variants
+  const iconSize = size === 'sm' ? 6 : size === 'lg' ? 10 : 8;
+  const iconText = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-xs';
+  const textSize = size === 'sm' ? 'text-xl' : size === 'lg' ? 'text-3xl' : 'text-2xl';
+  const compactTextSize = size === 'sm' ? 'text-base' : size === 'lg' ? 'text-2xl' : 'text-xl';
 
   return (
     <Link
       href="/app"
-      className={cn(
-        'inline-flex items-center group',
-        linkClassName
-      )}
+      className={cn('inline-flex items-center gap-2', className)}
       aria-label="Sploot - Home"
     >
-      {renderLogo()}
+      {/* Logo icon */}
+      <div className={cn(`flex items-center justify-center size-${iconSize} bg-primary border border-primary rounded-lg`)}>
+        <span className={cn('font-mono font-bold text-primary-foreground', iconText)}>
+          S
+        </span>
+      </div>
+
+      {/* Variant: default shows full wordmark */}
+      {variant === 'default' && (
+        <div className="flex flex-col">
+          <span className={cn('font-mono font-bold text-foreground tracking-wider leading-tight hover:text-primary transition-colors', textSize)}>
+            sploot
+          </span>
+        </div>
+      )}
+
+      {/* Variant: compact shows just 's' */}
+      {variant === 'compact' && (
+        <span className={cn('font-mono font-bold text-foreground tracking-wider', compactTextSize)}>
+          s
+        </span>
+      )}
     </Link>
   );
 }
@@ -131,14 +60,13 @@ export function LogoIcon({ className, size = 32 }: { className?: string; size?: 
   return (
     <div
       className={cn(
-        'flex items-center justify-center',
-        'bg-[var(--color-terminal-green)] border border-[var(--color-terminal-green)]',
+        'flex items-center justify-center bg-primary border border-primary rounded-lg',
         className
       )}
       style={{ width: size, height: size }}
     >
       <span
-        className="font-mono font-bold text-black"
+        className="font-mono font-bold text-primary-foreground"
         style={{ fontSize: size * 0.4 }}
       >
         S

@@ -291,11 +291,11 @@ describe('SearchBarElastic', () => {
       const input = screen.getByPlaceholderText('Search memes...');
       const icon = container.querySelector('svg');
 
-      expect(icon).toHaveClass('text-[#666666]');
+      expect(icon).toHaveClass('text-muted-foreground');
 
       await user.click(input);
 
-      expect(icon).toHaveClass('text-[var(--color-terminal-green)]');
+      expect(icon).toHaveClass('text-primary');
     });
 
     it('should change border color when focused', async () => {
@@ -304,11 +304,14 @@ describe('SearchBarElastic', () => {
 
       const input = screen.getByPlaceholderText('Search memes...');
 
-      expect(input).toHaveClass('border-[#333333]');
+      // Check default border styling
+      expect(input).toHaveClass('border-input');
 
       await user.click(input);
 
-      expect(input).toHaveClass('border-[var(--color-terminal-green)]');
+      // focus-visible:border-ring is a Tailwind conditional class
+      // Check that the focus-visible variant is in the class list
+      expect(input.className).toContain('focus-visible:border-ring');
     });
   });
 

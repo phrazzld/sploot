@@ -4,6 +4,7 @@ import { useState, useRef, useCallback, useEffect, useMemo, DragEvent, Clipboard
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { Loader2, Upload, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
@@ -19,6 +20,11 @@ import { showToast } from '@/components/ui/toast';
 import type { ProgressStats } from './upload-progress-header';
 import { FileStreamProcessor } from '@/lib/file-stream-processor';
 import { logger } from '@/lib/logger';
+import { Card, CardContent } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 // Lightweight metadata for display - only ~300 bytes per file vs 5MB for File object
 interface FileMetadata {
@@ -135,7 +141,7 @@ function EmbeddingStatusIndicator({
 
   // If embedding is not needed or status is hidden, show simple success
   if (!file.needsEmbedding || !showStatus) {
-    return <span className="text-[#B6FF6E] text-sm">✓</span>;
+    return <Badge variant="secondary" className="text-green-500 gap-1"><CheckCircle2 className="size-3" />Ready</Badge>;
   }
 
   // Retry handler for failed embeddings
@@ -150,53 +156,49 @@ function EmbeddingStatusIndicator({
     case 'pending':
       return (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#B6FF6E]">✓ Uploaded</span>
-          <span className="text-[#FFB020]">• Preparing search...</span>
+          <Badge variant="secondary" className="text-green-500"><CheckCircle2 className="size-3" />Uploaded</Badge>
+          <Badge variant="secondary" className="text-yellow-500">Preparing...</Badge>
         </div>
       );
 
     case 'processing':
       return (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#B6FF6E]">✓ Uploaded</span>
-          <span className="text-[#7C5CFF] flex items-center gap-1">
-            • Indexing
-            <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path
-                className="opacity-75"
-                fill="currentColor"
-                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-              />
-            </svg>
-          </span>
+          <Badge variant="secondary" className="text-green-500"><CheckCircle2 className="size-3" />Uploaded</Badge>
+          <Badge variant="default" className="gap-1">
+            <Loader2 className="size-3 animate-spin" />
+            Indexing
+          </Badge>
         </div>
       );
 
     case 'ready':
       return (
-        <div className="flex items-center gap-2 text-xs animate-fade-in">
-          <span className="text-[#B6FF6E]">✓ Ready to search</span>
-        </div>
+        <Badge variant="secondary" className="text-green-500 gap-1 animate-in fade-in duration-200">
+          <CheckCircle2 className="size-3" />
+          Ready to search
+        </Badge>
       );
 
     case 'failed':
       return (
         <div className="flex items-center gap-2 text-xs">
-          <span className="text-[#FFB020]">⚠️ Upload complete</span>
-          <span className="text-[#FF4D4D]">• Search prep failed</span>
-          <button
+          <Badge variant="secondary" className="text-yellow-500"><AlertCircle className="size-3" />Upload complete</Badge>
+          <Badge variant="destructive">Search prep failed</Badge>
+          <Button
             onClick={handleRetry}
-            className="text-[#7C5CFF] hover:text-[#9B7FFF] underline font-medium"
+            size="sm"
+            variant="link"
             disabled={!embeddingStatus.retry}
+            className="h-auto p-0 text-primary underline"
           >
             Retry
-          </button>
+          </Button>
         </div>
       );
 
     default:
-      return <span className="text-[#B6FF6E] text-sm">✓</span>;
+      return <Badge variant="secondary" className="text-green-500"><CheckCircle2 className="size-3" /></Badge>;
   }
 }
 
@@ -235,7 +237,7 @@ function VirtualizedFileList({
   return (
     <div
       ref={parentRef}
-      className="h-[400px] overflow-y-auto space-y-2 scrollbar-thin scrollbar-thumb-[#2A2F37] scrollbar-track-[#14171A]"
+      className="h-[400px] overflow-y-auto space-y-2"
       style={{
         contain: 'strict',
       }}
@@ -261,10 +263,10 @@ function VirtualizedFileList({
                 transform: `translateY(${virtualItem.start}px)`,
               }}
             >
-              <div className="bg-[#1B1F24] p-3 border border-[#2A2F37] h-[60px] flex items-center">
+              <Card className="h-[60px] p-3 flex items-center rounded-md">
                 <div className="flex items-center gap-3 w-full">
                   {/* File icon/preview */}
-                  <div className="w-12 h-12 bg-[#14171A] flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="w-12 h-12 bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 rounded">
                     {file.blobUrl ? (
                       <Image
                         src={file.blobUrl}
@@ -280,10 +282,10 @@ function VirtualizedFileList({
 
                   {/* File info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#E6E8EB] text-sm font-medium truncate">
+                    <p className="text-sm font-medium truncate">
                       {file.name}
                     </p>
-                    <p className="text-[#B3B7BE] text-xs">
+                    <p className="text-muted-foreground text-xs">
                       {formatFileSize(file.size)}
                     </p>
                   </div>
@@ -291,19 +293,17 @@ function VirtualizedFileList({
                   {/* Status */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {file.status === 'uploading' && (
-                      <>
-                        <div className="w-24 h-1 bg-[#2A2F37] overflow-hidden">
-                          <div
-                            className="h-full bg-[#7C5CFF] transition-all duration-300"
-                            style={{ width: `${file.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-[#7C5CFF] text-xs">{file.progress}%</span>
-                      </>
+                      <div className="flex items-center gap-2">
+                        <Progress value={file.progress} className="w-24 h-1" />
+                        <Badge variant="default" className="gap-1">
+                          <Loader2 className="size-3 animate-spin" />
+                          {file.progress}%
+                        </Badge>
+                      </div>
                     )}
 
                     {file.status === 'queued' && (
-                      <span className="text-[#B3B7BE] text-xs">Queued</span>
+                      <Badge variant="outline">Queued</Badge>
                     )}
 
                     {file.status === 'success' && (
@@ -328,20 +328,22 @@ function VirtualizedFileList({
 
                     {file.status === 'duplicate' && (
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-[#FFB020]">already exists</span>
+                        <Badge variant="secondary" className="text-yellow-500">Already exists</Badge>
                         {file.needsEmbedding ? (
-                          <span className="text-[#7C5CFF]">• indexing...</span>
+                          <Badge variant="default" className="gap-1"><Loader2 className="size-3 animate-spin" />Indexing</Badge>
                         ) : (
-                          <button
+                          <Button
                             onClick={() => {
                               if (file.assetId) {
                                 router.push(`/app?highlight=${file.assetId}`);
                               }
                             }}
-                            className="text-[#7C5CFF] hover:text-[#9B7FFF] font-medium underline"
+                            size="sm"
+                            variant="link"
+                            className="h-auto p-0 underline"
                           >
                             view
-                          </button>
+                          </Button>
                         )}
                       </div>
                     )}
@@ -357,11 +359,11 @@ function VirtualizedFileList({
                     )}
 
                     {file.status === 'pending' && (
-                      <span className="text-[#B3B7BE] text-xs">Waiting...</span>
+                      <Badge variant="outline">Waiting...</Badge>
                     )}
                   </div>
                 </div>
-              </div>
+              </Card>
             </div>
           );
         })}
@@ -1578,129 +1580,112 @@ export function UploadZone({
     >
       {/* Background sync status (only when enabled) */}
       {showSyncStatus && (
-        <div className="mb-4 bg-[#1B1F24] p-3 border border-[#2A2F37]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4 text-sm">
-              {pendingCount > 0 && (
-                <span className="text-[#B3B7BE]">
-                  Pending: <span className="text-[#E6E8EB] font-medium">{pendingCount}</span>
-                </span>
-              )}
-              {uploadingCount > 0 && (
-                <span className="text-[#7C5CFF]">
-                  Uploading: <span className="font-medium">{uploadingCount}</span>
-                </span>
-              )}
+        <Alert className="mb-4">
+          <AlertDescription>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 text-sm">
+                {pendingCount > 0 && (
+                  <Badge variant="outline">
+                    Pending: {pendingCount}
+                  </Badge>
+                )}
+                {uploadingCount > 0 && (
+                  <Badge variant="default">
+                    Uploading: {uploadingCount}
+                  </Badge>
+                )}
+                {errorCount > 0 && (
+                  <Badge variant="destructive">
+                    Failed: {errorCount}
+                  </Badge>
+                )}
+              </div>
               {errorCount > 0 && (
-                <span className="text-[#FF4D4D]">
-                  Failed: <span className="font-medium">{errorCount}</span>
-                </span>
+                <Button
+                  onClick={() => retryBackgroundSync()}
+                  size="sm"
+                  variant="ghost"
+                >
+                  Retry All
+                </Button>
               )}
             </div>
-            {errorCount > 0 && (
-              <button
-                onClick={() => retryBackgroundSync()}
-                className="text-[#7C5CFF] hover:text-[#9B7FFF] text-sm font-medium"
-              >
-                Retry All
-              </button>
-            )}
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Recovery notification */}
       {showRecoveryNotification && (
-        <div className="mb-4 border border-[#7C5CFF]/30 bg-[#7C5CFF]/10 p-3 animate-fade-in">
-          <div className="flex items-center gap-2">
-            <svg className="h-4 w-4 text-[#7C5CFF] animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            <span className="text-sm text-[#CBB8FF]">
-              resuming {recoveryCount} interrupted {recoveryCount === 1 ? 'upload' : 'uploads'}...
-            </span>
-          </div>
-        </div>
+        <Alert className="mb-4 animate-in fade-in duration-200">
+          <Loader2 className="size-4 animate-spin" />
+          <AlertDescription>
+            Resuming {recoveryCount} interrupted {recoveryCount === 1 ? 'upload' : 'uploads'}...
+          </AlertDescription>
+        </Alert>
       )}
 
       {/* Drop Zone */}
-      <div
+      <Card
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
         className={cn(
-          'relative  border-2 border-dashed transition-all duration-200 cursor-pointer',
-          'hover:border-[#7C5CFF] hover:bg-[#7C5CFF]/5',
+          'relative border-2 border-dashed transition-all duration-200 cursor-pointer',
+          'hover:border-primary hover:bg-primary/5',
           isDragging
-            ? 'border-[#7C5CFF] bg-[#7C5CFF]/10 scale-[1.02]'
-            : 'border-[#2A2F37] bg-[#1B1F24]',
+            ? 'border-primary bg-primary/10 scale-[1.02]'
+            : 'border-border',
           isProcessingPulse && 'animate-pulse'
         )}
       >
         {/* Preparing overlay */}
         {isPreparing && (
-          <div className="absolute inset-0 z-10 bg-[#1B1F24]/95 flex flex-col items-center justify-center animate-fade-in">
-            <svg className="h-8 w-8 text-[#7C5CFF] animate-spin mb-3" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-            </svg>
-            <p className="text-[#E6E8EB] font-medium mb-1">
+          <div className="absolute inset-0 z-10 bg-background/95 flex flex-col items-center justify-center animate-in fade-in duration-200 rounded-xl">
+            <Loader2 className="size-8 text-primary animate-spin mb-3" />
+            <p className="font-medium mb-1">
               Preparing {preparingFileCount} {preparingFileCount === 1 ? 'file' : 'files'}...
             </p>
-            <p className="text-[#B3B7BE] text-sm">
+            <p className="text-muted-foreground text-sm">
               {preparingTotalSize < 1024 * 1024
                 ? `${(preparingTotalSize / 1024).toFixed(0)} KB`
                 : `${(preparingTotalSize / (1024 * 1024)).toFixed(1)} MB`}
             </p>
           </div>
         )}
-        <div className="flex flex-col items-center justify-center py-12 px-6">
+        <CardContent className="flex flex-col items-center justify-center py-12">
           <div className={cn(
-            'w-16 h-16 mb-4  flex items-center justify-center transition-all duration-200',
-            isDragging ? 'bg-[#7C5CFF]/20 scale-110' : 'bg-[#1B1F24]'
+            'size-16 mb-4 rounded-lg flex items-center justify-center transition-all duration-200',
+            isDragging ? 'bg-primary/20 scale-110' : 'bg-muted'
           )}>
-            <svg
-              className={cn('w-8 h-8 transition-colors', isDragging ? 'text-[#7C5CFF]' : 'text-[#B3B7BE]')}
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
+            <Upload className={cn('size-8 transition-colors', isDragging ? 'text-primary' : 'text-muted-foreground')} />
           </div>
 
-          <p className="text-[#E6E8EB] font-medium mb-1">
-            {isDragging ? 'drop your images here' : 'drag & drop images here'}
+          <p className="font-medium mb-1">
+            {isDragging ? 'Drop your images here' : 'Drag & drop images here'}
           </p>
-          <p className="text-[#B3B7BE] text-sm mb-4">
+          <p className="text-muted-foreground text-sm mb-4">
             or click to browse • paste from clipboard
           </p>
-          <p className="text-[#B3B7BE]/60 text-xs">
-            jpeg, png, webp, gif • max 10mb per file
+          <p className="text-muted-foreground/60 text-xs">
+            JPEG, PNG, WebP, GIF • Max 10MB per file
           </p>
           {enableBackgroundSync && supportsBackgroundSync && (
-            <p className="text-[#7C5CFF]/60 text-xs mt-2">
-              background sync enabled • uploads continue offline
-            </p>
+            <Badge variant="outline" className="mt-2 text-xs">
+              Background sync enabled
+            </Badge>
           )}
-        </div>
+        </CardContent>
 
         {/* Accent stripe when dragging */}
         {isDragging && (
-          <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-[#7C5CFF]" />
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#B6FF6E]" />
+          <div className="absolute inset-0 pointer-events-none rounded-xl">
+            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl" />
+            <div className="absolute right-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-xl" />
           </div>
         )}
-      </div>
+      </Card>
 
       {/* Hidden file input */}
       <input
@@ -1716,101 +1701,101 @@ export function UploadZone({
       {filesArray.length > 0 && (
         <div className="mt-6 space-y-4">
           {/* Batch Upload Progress Header */}
-          <div className="bg-[#14171A] border border-[#2A2F37] p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h3 className="text-[#E6E8EB] font-medium text-sm">upload progress</h3>
-                <p className="text-[#B3B7BE] text-xs mt-1">
-                  {(() => {
-                    const stats = getUploadStats();
-                    const parts = [];
-                    if (stats.completed > 0) parts.push(`${stats.completed} completed`);
-                    if (stats.uploading > 0) parts.push(`${stats.uploading} uploading`);
-                    if (stats.pending > 0) parts.push(`${stats.pending} pending`);
-                    if (stats.failed > 0) parts.push(`${stats.failed} failed`);
-                    return parts.join(' • ') || 'no files';
-                  })()}
-                </p>
-              </div>
+          <Card>
+            <CardContent className="py-4">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <h3 className="font-medium text-sm">Upload Progress</h3>
+                  <p className="text-muted-foreground text-xs mt-1">
+                    {(() => {
+                      const stats = getUploadStats();
+                      const parts = [];
+                      if (stats.completed > 0) parts.push(`${stats.completed} completed`);
+                      if (stats.uploading > 0) parts.push(`${stats.uploading} uploading`);
+                      if (stats.pending > 0) parts.push(`${stats.pending} pending`);
+                      if (stats.failed > 0) parts.push(`${stats.failed} failed`);
+                      return parts.join(' • ') || 'No files';
+                    })()}
+                  </p>
+                </div>
 
-              <div className="flex items-center gap-3">
-                {/* Retry all failed button */}
-                {getUploadStats().failed > 0 && (
-                  <button
-                    onClick={retryAllFailed}
-                    className="text-[#7C5CFF] hover:text-[#9B7FFF] text-sm font-medium transition-colors"
-                  >
-                    retry {getUploadStats().failed} failed
-                  </button>
-                )}
+                <div className="flex items-center gap-3">
+                  {/* Retry all failed button */}
+                  {getUploadStats().failed > 0 && (
+                    <Button
+                      onClick={retryAllFailed}
+                      size="sm"
+                      variant="ghost"
+                    >
+                      Retry {getUploadStats().failed} Failed
+                    </Button>
+                  )}
 
-                {/* Cancel button */}
-                {hasActiveUploads && (
-                  <button
-                    onClick={cancelRemainingUploads}
-                    disabled={isCancelling}
-                    className="text-[#FF4D4D] hover:text-[#FF6B6B] text-sm font-medium transition-colors disabled:opacity-50"
-                  >
-                    {isCancelling ? 'cancelling...' : 'cancel remaining'}
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {/* Overall progress bar */}
-            <div className="relative">
-              <div className="w-full h-2 bg-[#1B1F24] overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-[#7C5CFF] to-[#9B7FFF] transition-all duration-500 ease-out"
-                  style={{ width: `${calculateOverallProgress()}%` }}
-                />
-              </div>
-              <div className="flex justify-between mt-2">
-                <span className="text-[#B3B7BE] text-xs">
-                  {getUploadStats().completed} of {filesArray.length} files
-                </span>
-                <span className="text-[#7C5CFF] text-xs font-medium">
-                  {calculateOverallProgress()}%
-                </span>
-              </div>
-            </div>
-
-            {/* Quick stats */}
-            <div className="grid grid-cols-4 gap-2 mt-3">
-              <div className="text-center">
-                <p className="text-[#B6FF6E] text-lg font-semibold">{getUploadStats().completed}</p>
-                <p className="text-[#B3B7BE] text-xs">complete</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[#7C5CFF] text-lg font-semibold">{getUploadStats().uploading}</p>
-                <p className="text-[#B3B7BE] text-xs">uploading</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[#B3B7BE] text-lg font-semibold">{getUploadStats().pending}</p>
-                <p className="text-[#B3B7BE] text-xs">pending</p>
-              </div>
-              <div className="text-center">
-                <p className="text-[#FF4D4D] text-lg font-semibold">{getUploadStats().failed}</p>
-                <p className="text-[#B3B7BE] text-xs">failed</p>
-              </div>
-            </div>
-
-            {/* Error summary by type - show when errors exist */}
-            {getUploadStats().failed > 0 && (
-              <div className="mt-3 pt-3 border-t border-[#2A2F37]">
-                <p className="text-[#B3B7BE] text-xs font-medium mb-2">Error Details:</p>
-                <div className="space-y-1">
-                  {getGroupedErrors().map((group) => (
-                    <div key={group.type} className="flex items-center justify-between text-xs">
-                      <span className="text-[#FF4D4D]">
-                        {group.count} {group.count === 1 ? 'file' : 'files'}: {group.message}
-                      </span>
-                    </div>
-                  ))}
+                  {/* Cancel button */}
+                  {hasActiveUploads && (
+                    <Button
+                      onClick={cancelRemainingUploads}
+                      disabled={isCancelling}
+                      size="sm"
+                      variant="ghost"
+                      className="text-destructive hover:text-destructive"
+                    >
+                      {isCancelling ? 'Cancelling...' : 'Cancel Remaining'}
+                    </Button>
+                  )}
                 </div>
               </div>
-            )}
-          </div>
+
+              {/* Overall progress bar */}
+              <div className="space-y-2">
+                <Progress value={calculateOverallProgress()} className="h-2" />
+                <div className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">
+                    {getUploadStats().completed} of {filesArray.length} files
+                  </span>
+                  <span className="text-primary font-medium">
+                    {calculateOverallProgress()}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Quick stats */}
+              <div className="grid grid-cols-4 gap-2 mt-3">
+                <div className="text-center">
+                  <p className="text-green-500 text-lg font-semibold">{getUploadStats().completed}</p>
+                  <p className="text-muted-foreground text-xs">Complete</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-primary text-lg font-semibold">{getUploadStats().uploading}</p>
+                  <p className="text-muted-foreground text-xs">Uploading</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-muted-foreground text-lg font-semibold">{getUploadStats().pending}</p>
+                  <p className="text-muted-foreground text-xs">Pending</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-destructive text-lg font-semibold">{getUploadStats().failed}</p>
+                  <p className="text-muted-foreground text-xs">Failed</p>
+                </div>
+              </div>
+
+              {/* Error summary by type - show when errors exist */}
+              {getUploadStats().failed > 0 && (
+                <div className="mt-3 pt-3 border-t">
+                  <p className="text-muted-foreground text-xs font-medium mb-2">Error Details:</p>
+                  <div className="space-y-1">
+                    {getGroupedErrors().map((group) => (
+                      <div key={group.type} className="flex items-center justify-between text-xs">
+                        <span className="text-destructive">
+                          {group.count} {group.count === 1 ? 'file' : 'files'}: {group.message}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* File list - use virtual scrolling when > 20 files */}
           {filesArray.length > 20 ? (
@@ -1825,13 +1810,13 @@ export function UploadZone({
           ) : (
             <div className="space-y-2">
               {filesArray.map((file) => (
-              <div
+              <Card
                 key={file.id}
-                className="bg-[#1B1F24] p-3 border border-[#2A2F37]"
+                className="p-3"
               >
                 <div className="flex items-center gap-3">
                   {/* File icon/preview */}
-                  <div className="w-12 h-12 bg-[#14171A] flex items-center justify-center overflow-hidden">
+                  <div className="w-12 h-12 bg-muted flex items-center justify-center overflow-hidden rounded">
                     {file.blobUrl ? (
                       <Image
                         src={file.blobUrl}
@@ -1847,10 +1832,10 @@ export function UploadZone({
 
                   {/* File info */}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[#E6E8EB] text-sm font-medium truncate">
+                    <p className="text-sm font-medium truncate">
                       {file.name}
                     </p>
-                    <p className="text-[#B3B7BE] text-xs">
+                    <p className="text-muted-foreground text-xs">
                       {formatFileSize(file.size)}
                     </p>
                   </div>
@@ -1858,19 +1843,17 @@ export function UploadZone({
                   {/* Status */}
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {file.status === 'uploading' && (
-                      <>
-                        <div className="w-24 h-1 bg-[#2A2F37] overflow-hidden">
-                          <div
-                            className="h-full bg-[#7C5CFF] transition-all duration-300"
-                            style={{ width: `${file.progress}%` }}
-                          />
-                        </div>
-                        <span className="text-[#7C5CFF] text-xs">{file.progress}%</span>
-                      </>
+                      <div className="flex items-center gap-2">
+                        <Progress value={file.progress} className="w-24 h-1" />
+                        <Badge variant="default" className="gap-1">
+                          <Loader2 className="size-3 animate-spin" />
+                          {file.progress}%
+                        </Badge>
+                      </div>
                     )}
 
                     {file.status === 'queued' && (
-                      <span className="text-[#B3B7BE] text-xs">Queued</span>
+                      <Badge variant="outline">Queued</Badge>
                     )}
 
                     {file.status === 'success' && (
@@ -1895,41 +1878,44 @@ export function UploadZone({
 
                     {file.status === 'duplicate' && (
                       <div className="flex items-center gap-2 text-xs">
-                        <span className="text-[#FFB020]">already exists</span>
+                        <Badge variant="secondary" className="text-yellow-500">Already exists</Badge>
                         {file.needsEmbedding ? (
-                          <span className="text-[#7C5CFF]">• indexing...</span>
+                          <Badge variant="default" className="gap-1"><Loader2 className="size-3 animate-spin" />Indexing</Badge>
                         ) : (
-                          <button
+                          <Button
                             onClick={() => {
                               if (file.assetId) {
                                 router.push(`/app?highlight=${file.assetId}`);
                               }
                             }}
-                            className="text-[#7C5CFF] hover:text-[#9B7FFF] font-medium underline"
+                            size="sm"
+                            variant="link"
+                            className="h-auto p-0 underline"
                           >
                             view
-                          </button>
+                          </Button>
                         )}
                       </div>
                     )}
 
                     {file.status === 'error' && (
-                      <button
+                      <Button
                         onClick={() => retryUpload(file)}
-                        className="text-[#FF4D4D] hover:text-[#FF6B6B] text-xs underline"
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive hover:text-destructive underline"
                       >
-                        retry
-                      </button>
+                        Retry
+                      </Button>
                     )}
 
-                    <button
+                    <Button
                       onClick={() => removeFile(file.id)}
-                      className="text-[#B3B7BE] hover:text-[#E6E8EB] transition-colors"
+                      size="icon-sm"
+                      variant="ghost"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
+                      <X className="size-4" />
+                    </Button>
                   </div>
                 </div>
 
@@ -1946,67 +1932,62 @@ export function UploadZone({
                   </div>
                 )}
                 {file.error && !file.errorDetails && (
-                  <p className="text-[#FF4D4D] text-xs mt-2">{file.error}</p>
+                  <p className="text-destructive text-xs mt-2">{file.error}</p>
                 )}
-              </div>
+              </Card>
               ))}
             </div>
           )}
 
           {hasSuccessfulUploads && (
-            <div className="flex flex-col gap-3 border border-[#2A2F37] bg-[#14171A] p-4 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center bg-[#B6FF6E]/10 text-[#B6FF6E]">
-                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path
-                      d="M5 13l4 4L19 7"
-                      stroke="currentColor"
-                      strokeWidth="2.5"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
+            <Card>
+              <CardContent className="py-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex size-10 items-center justify-center bg-green-500/10 text-green-500 rounded-lg">
+                      <CheckCircle2 className="size-5" />
+                    </div>
+                    <div>
+                      {(() => {
+                        const newImages = successfulUploads.filter(f => !f.isDuplicate).length;
+                        const duplicates = successfulUploads.filter(f => f.isDuplicate).length;
+
+                        let message = '';
+                        if (newImages > 0 && duplicates > 0) {
+                          message = `${newImages} ${newImages === 1 ? 'image' : 'images'} added, ${duplicates} already existed`;
+                        } else if (newImages > 0) {
+                          message = `${newImages} ${newImages === 1 ? 'image' : 'images'} added to your library`;
+                        } else if (duplicates > 0) {
+                          message = `${duplicates} ${duplicates === 1 ? 'image' : 'images'} already in your library`;
+                        }
+
+                        return (
+                          <>
+                            <p className="text-sm font-medium">{message}</p>
+                            {hasActiveUploads ? (
+                              <p className="text-xs text-muted-foreground">Finishing remaining uploads...</p>
+                            ) : isOnDashboard ? (
+                              <p className="text-xs text-muted-foreground">Your library will refresh automatically.</p>
+                            ) : (
+                              <p className="text-xs text-muted-foreground">Jump back to browse everything in your collection.</p>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  </div>
+
+                  {!isOnDashboard && (
+                    <Button
+                      onClick={handleViewLibrary}
+                      disabled={hasActiveUploads}
+                    >
+                      View in Library
+                    </Button>
+                  )}
                 </div>
-                <div>
-                  {(() => {
-                    const newImages = successfulUploads.filter(f => !f.isDuplicate).length;
-                    const duplicates = successfulUploads.filter(f => f.isDuplicate).length;
-
-                    let message = '';
-                    if (newImages > 0 && duplicates > 0) {
-                      message = `${newImages} ${newImages === 1 ? 'image' : 'images'} added, ${duplicates} already existed`;
-                    } else if (newImages > 0) {
-                      message = `${newImages} ${newImages === 1 ? 'image' : 'images'} added to your library`;
-                    } else if (duplicates > 0) {
-                      message = `${duplicates} ${duplicates === 1 ? 'image' : 'images'} already in your library`;
-                    }
-
-                    return (
-                      <>
-                        <p className="text-sm font-medium text-[#E6E8EB]">{message}</p>
-                        {hasActiveUploads ? (
-                          <p className="text-xs text-[#B3B7BE]">Finishing remaining uploads...</p>
-                        ) : isOnDashboard ? (
-                          <p className="text-xs text-[#B3B7BE]">Your library will refresh automatically.</p>
-                        ) : (
-                          <p className="text-xs text-[#B3B7BE]">Jump back to browse everything in your collection.</p>
-                        )}
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-
-              {!isOnDashboard && (
-                <button
-                  onClick={handleViewLibrary}
-                  className="inline-flex items-center justify-center bg-[#7C5CFF] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#6B4FE0] disabled:cursor-not-allowed disabled:bg-[#2A2F37] disabled:text-[#6A6E78]"
-                  disabled={hasActiveUploads}
-                >
-                  view in library
-                </button>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       )}
