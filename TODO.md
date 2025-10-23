@@ -228,7 +228,7 @@
   Estimated: 1h
   ```
 
-- [ ] Extend middleware for short link redirects with caching
+- [x] Extend middleware for short link redirects with caching
   ```
   Files: middleware.ts:1-33
   Changes:
