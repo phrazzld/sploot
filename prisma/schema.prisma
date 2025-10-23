@@ -49,6 +49,7 @@ model Asset {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   deletedAt       DateTime? @map("deleted_at")
+  shareSlug       String?   @unique @map("share_slug") // Short ID for public sharing URLs
 
   // Relations
   owner     User            @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
@@ -60,6 +61,7 @@ model Asset {
   @@index([ownerUserId, deletedAt])
   @@index([createdAt])
   @@index([favorite])
+  @@index([shareSlug])
   @@map("assets")
 }
 
