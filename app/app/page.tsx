@@ -741,6 +741,18 @@ function AppPageClient() {
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedAsset(null)}
         >
+          {/* Close button - positioned at viewport level to never obscure image */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setSelectedAsset(null);
+            }}
+            className="fixed top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-[60]"
+            aria-label="Close preview"
+          >
+            <X className="w-6 h-6" />
+          </button>
+
           <div
             className="max-w-4xl max-h-[90vh] relative"
             onClick={(e) => e.stopPropagation()}
@@ -757,14 +769,6 @@ function AppPageClient() {
                 priority
               />
             </div>
-            <button
-              onClick={() => setSelectedAsset(null)}
-              className="absolute top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
             <div className={cn(
               "absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300",
               showMetadata ? 'opacity-100' : 'opacity-0'

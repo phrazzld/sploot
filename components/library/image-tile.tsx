@@ -329,7 +329,7 @@ function ImageTileComponent({
     <>
       <div
         onClick={onClick || (() => onSelect?.(asset))}
-        className="group overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border rounded-md border-border dark:border-white/15"
+        className="group overflow-hidden cursor-pointer hover:opacity-90 transition-opacity border-2 rounded-md border-white/30 dark:border-white/30 shadow-[0_0_0_1px_rgba(0,0,0,0.5)]"
       >
         <div className="relative">
           {/* Image container */}

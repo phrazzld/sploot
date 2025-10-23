@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef, useMemo, useEffect, useState, useCallback } from 'react';
-import { useVirtualizer } from '@tanstack/react-virtual';
+import { useRef, useEffect, useState, useCallback } from 'react';
+import Masonry from 'react-masonry-css';
 import { ImageTile } from './image-tile';
 import { ImageTileErrorBoundary } from './image-tile-error-boundary';
 import { ImageGridSkeleton } from './image-skeleton';
@@ -38,7 +38,6 @@ export function ImageGrid({
   showSimilarityScores = false,
 }: ImageGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [containerWidth, setContainerWidth] = useState(0);
   const [showingTransition, setShowingTransition] = useState(false);
   const [brokenImageCount, setBrokenImageCount] = useState(0);
   const setContainerRef = useCallback(
@@ -61,48 +60,15 @@ export function ImageGrid({
     }
   }, [loading, assets.length]);
 
-  // Calculate grid row span for each asset based on aspect ratio
-  const getRowSpan = useCallback((asset: Asset) => {
-    // Action bar adds ~43px height (py-1.5 padding + h-7 button + border)
-    // With gridAutoRows: 10px, this equals ~5 rows
-    const ACTION_BAR_ROWS = 5;
-
-    if (!asset.width || !asset.height || asset.width <= 0 || asset.height <= 0) {
-      return 35; // Default for missing dimensions (~300px image + ~50px action bar)
-    }
-
-    const aspectRatio = asset.height / asset.width;
-    // Base row count is 30 (for ~300px tall at 1:1 aspect)
-    // Multiply by aspect ratio to get appropriate image height
-    const imageRows = Math.ceil(aspectRatio * 30);
-
-    // Add action bar height to prevent overlapping tiles
-    const totalRows = imageRows + ACTION_BAR_ROWS;
-
-    // Clamp to reasonable bounds (min 20 for very wide, max 65 for very tall)
-    return Math.max(20, Math.min(totalRows, 65));
-  }, []);
-
-  // Masonry grid styles
-  const gridStyle: React.CSSProperties = {
-    display: 'grid',
-    gridTemplateColumns: `repeat(auto-fill, minmax(280px, 1fr))`,
-    gridAutoRows: '10px', // Fine-grained row unit for precise height control
-    gap: '4px', // Minimal spacing - borders provide visual separation
+  // Responsive column breakpoints for masonry layout
+  // Mobile: 2 cols, Tablet: 3 cols, Desktop: 4 cols
+  const breakpointCols = {
+    default: 4,  // Desktop (>1280px)
+    1280: 4,     // xl
+    1024: 3,     // lg
+    768: 2,      // md
+    640: 2,      // sm
   };
-
-  // Update container width on resize
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) {
-        setContainerWidth(containerRef.current.clientWidth);
-      }
-    };
-
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, []);
 
   // Setup CLS (Cumulative Layout Shift) tracking
   // Monitors layout stability of image grid (target: CLS < 0.1)
@@ -216,7 +182,8 @@ export function ImageGrid({
     );
   }
 
-  // Render masonry grid layout
+  // Render column-based masonry layout
+  // Perfect vertical spacing within each column, natural tile flow
   return (
     <div className="h-full">
       <div
@@ -224,35 +191,34 @@ export function ImageGrid({
         className={cn('h-full overflow-auto p-4', containerClassName)}
         style={{ scrollbarGutter: 'stable' }}
       >
-        <div style={gridStyle}>
-          {assets.map((asset, index) => {
-            const rowSpan = getRowSpan(asset);
-
-            return (
-              <div
-                key={asset.id}
-                className="transition-skeleton"
-                style={{
-                  gridRowEnd: `span ${rowSpan}`,
-                  animation: `fadeInScale 300ms ease-out ${index * 30}ms forwards`,
-                  opacity: 0,
-                }}
-              >
-                <ImageTileErrorBoundary asset={asset} onDelete={onAssetDelete}>
-                  <ImageTile
-                    asset={asset}
-                    onFavorite={handleFavoriteToggle}
-                    onDelete={onAssetDelete}
-                    onSelect={onAssetSelect}
-                    onAssetUpdate={onAssetUpdate}
-                    showSimilarityScore={showSimilarityScores}
-                    preserveAspectRatio
-                  />
-                </ImageTileErrorBoundary>
-              </div>
-            );
-          })}
-        </div>
+        <Masonry
+          breakpointCols={breakpointCols}
+          className="masonry-grid"
+          columnClassName="masonry-grid-column"
+        >
+          {assets.map((asset, index) => (
+            <div
+              key={asset.id}
+              className="masonry-item"
+              style={{
+                animation: `fadeInScale 300ms ease-out ${index * 30}ms forwards`,
+                opacity: 0,
+              }}
+            >
+              <ImageTileErrorBoundary asset={asset} onDelete={onAssetDelete}>
+                <ImageTile
+                  asset={asset}
+                  onFavorite={handleFavoriteToggle}
+                  onDelete={onAssetDelete}
+                  onSelect={onAssetSelect}
+                  onAssetUpdate={onAssetUpdate}
+                  showSimilarityScore={showSimilarityScores}
+                  preserveAspectRatio
+                />
+              </ImageTileErrorBoundary>
+            </div>
+          ))}
+        </Masonry>
 
         {/* Loading indicator */}
         {loading && (
