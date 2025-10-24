@@ -82,7 +82,7 @@
   - Preserve all existing search logic, threshold handling, and response formatting - only change cache access method
   - Success criteria: Search results still cached with 5min TTL, cache hits return immediately, cache misses perform vector search and populate cache
 
-- [ ] Update `app/api/search/advanced/route.ts` to use new CacheService
+- [x] Update `app/api/search/advanced/route.ts` to use new CacheService
   - Replace import statement from multi-layer-cache to `import { getCacheService } from '@/lib/cache'`
   - Replace cache initialization (likely around line 40-60) with `const cache = getCacheService()`
   - Update getSearchResults call to use cache.getSearchResults with appropriate filters parameter including all advanced search filters (mimeTypes, tags, dateRange, favorites, etc.)
