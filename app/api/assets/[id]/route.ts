@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { unstable_rethrow } from 'next/navigation';
-import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
+import { getCacheService } from '@/lib/cache';
 import { getAuth } from '@/lib/auth/server';
 import { prisma } from '@/lib/db';
 
@@ -177,10 +177,10 @@ export async function PATCH(
       },
     });
 
-    // Invalidate user cache after update (favorites affect search results)
+    // Invalidate cache after update (favorites affect search results)
     if (favorite !== undefined) {
-      const multiCache = getMultiLayerCache() || createMultiLayerCache();
-      await multiCache.invalidateUserData(userId);
+      const cache = getCacheService();
+      await cache.clear();
     }
 
     return NextResponse.json({
@@ -265,9 +265,9 @@ export async function DELETE(
         where: { id },
       });
 
-      // Invalidate user cache after deletion
-      const multiCache = getMultiLayerCache() || createMultiLayerCache();
-      await multiCache.invalidateUserData(userId);
+      // Invalidate cache after deletion
+      const cache = getCacheService();
+      await cache.clear();
 
       return NextResponse.json({
         message: 'Asset permanently deleted',
@@ -280,9 +280,9 @@ export async function DELETE(
         },
       });
 
-      // Invalidate user cache after soft deletion
-      const multiCache = getMultiLayerCache() || createMultiLayerCache();
-      await multiCache.invalidateUserData(userId);
+      // Invalidate cache after soft deletion
+      const cache = getCacheService();
+      await cache.clear();
 
       return NextResponse.json({
         message: 'Asset soft deleted',

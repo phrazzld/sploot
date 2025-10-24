@@ -99,7 +99,7 @@
   - Update cache.get and cache.set calls to match new interface
   - Success criteria: Asset list responses still cached with 30min TTL, pagination parameters included in cache key
 
-- [ ] Update `app/api/assets/[id]/route.ts` for single asset caching
+- [x] Update `app/api/assets/[id]/route.ts` for single asset caching
   - Replace multi-layer-cache import with `import { getCacheService } from '@/lib/cache'`
   - Update cache access in asset detail endpoint (likely GET handler)
   - Replace cache initialization with `const cache = getCacheService()`
