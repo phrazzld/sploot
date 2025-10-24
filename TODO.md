@@ -177,7 +177,7 @@
 
 ### Test Updates
 
-- [ ] Update `__tests__/api/cache-stats.test.ts` for new CacheService
+- [x] Update `__tests__/api/cache-stats.test.ts` for new CacheService
   - Update import: `import { getCacheService, createCacheService } from '@/lib/cache'`
   - Update mock setup: replace `vi.mock('@/lib/multi-layer-cache')` with appropriate mocking strategy
   - Update test that checks cache stats API response to expect new CacheStats shape
