@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
     );
 
     if (cachedResults) {
-      const cachedFallbackUsed = cachedResults.some((result) => Boolean(result?.belowThreshold));
+      const cachedFallbackUsed = cachedResults.some((result: any) => Boolean(result?.belowThreshold));
       // Cache hit for search
       return NextResponse.json({
         results: cachedResults,

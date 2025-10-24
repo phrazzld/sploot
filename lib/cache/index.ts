@@ -13,6 +13,9 @@ export type { ICacheBackend, CacheStats, SearchFilters } from './types';
 export { CacheService } from './CacheService';
 export { MemoryBackend } from './MemoryBackend';
 
+// Import for singleton
+import { CacheService } from './CacheService';
+
 // Singleton instance
 let cacheServiceInstance: CacheService | null = null;
 

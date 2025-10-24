@@ -2,7 +2,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { error as logError } from '@/lib/logger';
-import { getSearchCache } from '@/lib/search-cache';
 import type { Asset, UseAssetsOptions } from '@/lib/types';
 
 export function useAssets(options: UseAssetsOptions = {}) {
@@ -351,20 +350,6 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
       return;
     }
 
-    // Check cache first
-    const cache = getSearchCache();
-    const cachedResult = cache.get(query, limit, threshold);
-
-    if (cachedResult) {
-      // Use cached results immediately
-      setAssets(cachedResult.results);
-      setTotal(cachedResult.total);
-      setMetadata(cachedResult.metadata);
-      setError(null);
-      setLoading(false);
-      return;
-    }
-
     // Create new AbortController for this request
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -425,8 +410,8 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
         setTotal(total);
         setMetadata(searchMetadata);
 
-        // Store in cache for future use
-        cache.set(query, results, total, searchMetadata, limit, threshold);
+        // Server-side caching handles all caching now
+        // No client-side cache needed
 
         // Clear any previous errors on success
         setError(null);
