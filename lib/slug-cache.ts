@@ -5,6 +5,10 @@ import { prisma } from './db';
 /**
  * Three-tier caching for share slug resolution
  *
+ * ⚠️ RUNTIME REQUIREMENT: Node.js only (uses Prisma Client)
+ * Do NOT import in edge middleware or edge routes
+ * Use in: API routes, server components, server actions
+ *
  * Tier 1: Memory (0ms) - LRU cache for hot slugs
  * Tier 2: Vercel KV (~5-10ms) - Edge-cached for viral shares
  * Tier 3: Database (~20-50ms) - Authoritative source
