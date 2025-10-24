@@ -157,19 +157,19 @@
 
 ### Remove Consolidated Files
 
-- [ ] Delete `lib/cache.ts` (290 lines, legacy singleton implementation)
+- [x] Delete `lib/cache.ts` (290 lines, legacy singleton implementation)
   - Verify no remaining imports of this file: `git grep -n "from.*lib/cache'" --exclude-dir=node_modules --exclude-dir=.git`
   - Verify singleton `cacheService` instance from this file is not referenced anywhere
   - Delete file only after confirming all consumers migrated to new cache
   - Success criteria: Zero references to old cache.ts in codebase
 
-- [ ] Delete `lib/multi-layer-cache.ts` (372 lines, primary implementation being replaced)
+- [x] Delete `lib/multi-layer-cache.ts` (372 lines, primary implementation being replaced)
   - Verify no remaining imports: `git grep -n "multi-layer-cache" --exclude-dir=node_modules --exclude-dir=.git`
   - Confirm all 9 consumers updated to use new CacheService
   - Delete file only after migration complete and tests passing
   - Success criteria: Zero references to multi-layer-cache.ts in codebase
 
-- [ ] Delete `lib/search-cache.ts` (210 lines, unused Map-based implementation)
+- [x] Delete `lib/search-cache.ts` (210 lines, unused Map-based implementation)
   - Verify no imports: `git grep -n "search-cache" --exclude-dir=node_modules --exclude-dir=.git`
   - Confirm this file had no active consumers in current codebase
   - Delete file
