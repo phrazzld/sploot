@@ -111,13 +111,13 @@ export class MemoryBackend implements ICacheBackend {
     }
 
     // Clear specific namespace
-    if (namespace === 'txt:' || namespace === 'text') {
+    if (namespace === 'txt' || namespace === 'txt:' || namespace === 'text') {
       this.textEmbeddings.clear();
-    } else if (namespace === 'img:' || namespace === 'image') {
+    } else if (namespace === 'img' || namespace === 'img:' || namespace === 'image') {
       this.imageEmbeddings.clear();
-    } else if (namespace === 'search:' || namespace === 'search') {
+    } else if (namespace === 'search' || namespace === 'search:') {
       this.searchResults.clear();
-    } else if (namespace === 'assets:' || namespace === 'assets') {
+    } else if (namespace === 'assets' || namespace === 'assets:') {
       this.assetMetadata.clear();
     }
   }
