@@ -239,6 +239,29 @@ WARMING: {
 
 ## Nice-to-Have Improvements
 
+### Testing Infrastructure Enhancements (from PR #7 review)
+**Value:** Improved test coverage and developer experience
+**Trigger:** Implementing Redis/KV backend or debugging cache issues
+**Effort:** ~3 hours total
+**Source:** PR #7 code review feedback
+
+**Memory Leak Prevention (10 min):**
+- Add `resetCacheService()` function to `lib/cache/index.ts` for test cleanup
+- Allows tests to start with fresh cache state
+- Prevents singleton accumulating stale data across test runs
+
+**Additional Test Scenarios (2-3 hours):**
+- LRU eviction testing: Verify max size limits trigger eviction
+- TTL expiration testing: Advance time mocks to verify expiration behavior
+- Concurrent stress testing: High-volume parallel reads/writes
+- Would use test-specific backends or time mocking
+
+**TTL Behavior Documentation (15 min):**
+- Clarify per-item vs cache-wide TTL in `ICacheBackend` interface JSDoc
+- Current: Interface suggests per-item TTL, implementation uses cache-wide defaults
+- Document that `MemoryBackend` supports per-item TTL via LRUCache options
+- Future Redis/KV backends would naturally support per-item TTL
+
 ### Cache Key Versioning
 **Value:** Invalidate all cache entries when embedding model changes
 **Effort:** ~30 minutes
