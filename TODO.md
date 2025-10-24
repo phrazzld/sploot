@@ -116,7 +116,7 @@
 
 ### Library and Service Migrations
 
-- [ ] Update `lib/embeddings.ts` (ReplicateEmbeddingService) to use new cache
+- [x] Update `lib/embeddings.ts` (ReplicateEmbeddingService) to use new cache
   - Replace line 2 import `import { createMultiLayerCache, getMultiLayerCache } from './multi-layer-cache'` with `import { getCacheService } from './cache'`
   - In `embedText` method (lines 54-67), replace line 58 `const cache = getMultiLayerCache() || createMultiLayerCache()` with `const cache = getCacheService()`
   - Replace line 59 `await cache.getTextEmbedding(query)` with `await cache.getTextEmbedding(query)` - interface unchanged, should work directly

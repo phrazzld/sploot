@@ -1,5 +1,5 @@
 import Replicate from 'replicate';
-import { createMultiLayerCache, getMultiLayerCache } from './multi-layer-cache';
+import { getCacheService } from './cache';
 
 // Updated to working CLIP model (SigLIP model was deprecated)
 export const CLIP_MODEL = 'krthr/clip-embeddings:1c0371070cb827ec3c7f2f28adcdde54b50dcd239aa6faea0bc98b174ef03fb4';
@@ -55,7 +55,7 @@ export class ReplicateEmbeddingService {
     const startTime = Date.now();
 
     // Check cache first
-    const cache = getMultiLayerCache() || createMultiLayerCache();
+    const cache = getCacheService();
     const cachedEmbedding = await cache.getTextEmbedding(query);
     if (cachedEmbedding) {
       return {
@@ -120,7 +120,7 @@ export class ReplicateEmbeddingService {
     const startTime = Date.now();
 
     // Check cache first if we have a checksum
-    const cache = getMultiLayerCache() || createMultiLayerCache();
+    const cache = getCacheService();
     if (checksum) {
       const cachedEmbedding = await cache.getImageEmbedding(checksum);
       if (cachedEmbedding) {
