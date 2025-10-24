@@ -90,7 +90,7 @@
   - Ensure filters object is serializable (no functions, circular refs) for JSON stringification in key generation
   - Success criteria: Advanced search caching preserves all filter parameters in cache key, different filter combinations create distinct cache entries
 
-- [ ] Update `app/api/assets/route.ts` to use new CacheService
+- [x] Update `app/api/assets/route.ts` to use new CacheService
   - Replace multi-layer-cache import with `import { getCacheService } from '@/lib/cache'`
   - Locate asset list caching logic (likely in GET handler around line 50-100)
   - Replace cache initialization with `const cache = getCacheService()`

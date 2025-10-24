@@ -3,7 +3,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { isValidFileType, isValidFileSize } from '@/lib/blob';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';
-import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
+import { getCacheService } from '@/lib/cache';
 import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, upsertAssetEmbedding } from '@/lib/db';
 import logger from '@/lib/logger';
@@ -127,9 +127,10 @@ export async function POST(req: NextRequest) {
       embeddingError = error instanceof EmbeddingError ? error.message : 'Embedding service not configured';
     }
 
-    // Invalidate user cache after creating new asset
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
-    await multiCache.invalidateUserData(userId);
+    // Invalidate cache after creating new asset
+    // Note: Using global clear for simplicity. Future: implement user-specific invalidation
+    const cache = getCacheService();
+    await cache.clear();
 
     return NextResponse.json({
       asset: {
