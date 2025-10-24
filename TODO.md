@@ -57,7 +57,7 @@
   - Add private method `incrementHit()` and `incrementMiss()` to update stats consistently
   - Success criteria: Interface exposes only domain methods (embeddings, search), completely hides key generation, namespacing, and backend details from consumers
 
-- [ ] Create `lib/cache/index.ts` barrel export and singleton management
+- [x] Create `lib/cache/index.ts` barrel export and singleton management
   - Export all types from './types'
   - Export `CacheService` class from './CacheService'
   - Export `MemoryBackend` class from './MemoryBackend'
