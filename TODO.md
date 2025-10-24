@@ -426,7 +426,7 @@
   Estimated: 1.5h
   ```
 
-- [ ] Add automated OG metadata validation test
+- [x] Add automated OG metadata validation test
   ```
   Files: __tests__/app/m/metadata.test.ts (new file)
   Purpose: Verify OG tags without manual social debugger testing
@@ -485,19 +485,19 @@
 
 Implementation complete when:
 - [x] shareSlug column added to Asset model with unique index
-- [ ] Share API endpoint returns consistent URLs for same asset
-- [ ] Non-owners receive 401 when attempting to share
-- [ ] Soft-deleted assets return 404 on all public routes
-- [ ] Short links (/s/*) redirect to public pages (/m/*) in <50ms p95
-- [ ] Invalid short links return 404
-- [ ] Public meme pages render without auth requirement
-- [ ] OG metadata validates correctly (automated test)
-- [ ] Share button appears on image tiles and copies link
-- [ ] Toast notifications confirm successful sharing
-- [ ] Three-tier caching reduces DB queries to <1% of traffic
-- [ ] All integration tests pass
-- [ ] Type checking clean (pnpm type-check)
-- [ ] Build succeeds (pnpm build)
+- [x] Share API endpoint returns consistent URLs for same asset
+- [x] Non-owners receive 401 when attempting to share
+- [x] Soft-deleted assets return 404 on all public routes
+- [x] Short links (/s/*) redirect to public pages (/m/*) in <50ms p95
+- [x] Invalid short links return 404
+- [x] Public meme pages render without auth requirement
+- [x] OG metadata validates correctly (automated test)
+- [x] Share button appears on image tiles and copies link
+- [x] Toast notifications confirm successful sharing
+- [x] Three-tier caching reduces DB queries to <1% of traffic
+- [x] All integration tests pass (11/11)
+- [x] Type checking clean (pnpm type-check)
+- [x] Build succeeds (pnpm build)
 
 ---
 
