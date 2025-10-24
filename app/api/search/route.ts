@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unstable_rethrow } from 'next/navigation';
 import { prisma, vectorSearch, logSearch } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
-import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
+import { getCacheService } from '@/lib/cache';
 import { getAuthWithUser } from '@/lib/auth/server';
 
 const MIN_SIMILAR_RESULTS = 10;
@@ -48,17 +48,14 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Initialize multi-layer cache
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
+    // Get cache service
+    const cache = getCacheService();
 
-    let cachedResults: any[] | null = null;
-    if (multiCache) {
-      cachedResults = await multiCache.getSearchResults(
-        userId,
-        query,
-        { limit: effectiveLimit, threshold }
-      );
-    }
+    const cachedResults = await cache.getSearchResults(
+      userId,
+      query,
+      { limit: effectiveLimit, threshold }
+    );
 
     if (cachedResults) {
       const cachedFallbackUsed = cachedResults.some((result) => Boolean(result?.belowThreshold));
@@ -183,12 +180,12 @@ export async function POST(req: NextRequest) {
     const queryTime = Date.now() - startTime;
 
     // Cache the search results
-    if (formattedResults.length > 0 && multiCache) {
-      await multiCache.setSearchResults(
+    if (formattedResults.length > 0) {
+      await cache.setSearchResults(
         userId,
         query,
-        formattedResults,
-        { limit: effectiveLimit, threshold }
+        { limit: effectiveLimit, threshold },
+        formattedResults
       );
     }
 

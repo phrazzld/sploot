@@ -73,7 +73,7 @@
 
 ### API Route Migrations
 
-- [ ] Update `app/api/search/route.ts` to use new CacheService
+- [x] Update `app/api/search/route.ts` to use new CacheService
   - Replace import `import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache'` with `import { getCacheService } from '@/lib/cache'`
   - Replace lines 52-53 initialization `const multiCache = getMultiLayerCache() || createMultiLayerCache()` with `const cache = getCacheService()`
   - Replace lines 56-61 `await multiCache.getSearchResults(userId, query, { limit: effectiveLimit, threshold })` with `await cache.getSearchResults(userId, query, { limit: effectiveLimit, threshold })`
