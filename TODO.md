@@ -128,27 +128,22 @@
 
 ### Frontend Hook Migrations
 
-- [ ] Update `hooks/use-assets.ts` custom React hook for asset caching
-  - Locate any multi-layer-cache imports (may not exist if this is pure client-side)
-  - If this hook uses server actions or API routes that access cache, no changes needed (caching happens server-side)
-  - If this hook has client-side cache logic (uncommon for Next.js), evaluate if it should be removed in favor of server-side caching
-  - Review file to confirm it only calls API routes, doesn't directly instantiate cache
+- [x] Update `hooks/use-assets.ts` custom React hook for asset caching
+  - ✅ COMPLETED: Removed old `search-cache` import in commit 5f676d0
+  - ✅ Client-side hook calls API endpoints only, server-side caching via CacheService
+  - ✅ No direct cache instantiation, works with cached API responses
   - Success criteria: Hook continues to work with cached API responses from server-side CacheService
 
-- [ ] Update `components/settings/cache-status.tsx` component displaying cache statistics
-  - Review component to identify cache stats data source (likely fetches from `/api/cache/stats`)
-  - No code changes needed if component only consumes API endpoint
-  - Verify component handles new CacheStats shape: `{ hits, misses, totalRequests, hitRate, lastReset }`
-  - If component displays additional stats (cache sizes, entry counts) that are no longer available, either: (a) add equivalent methods to CacheService to expose LRU cache sizes, or (b) remove those UI elements
-  - Check for any direct cache imports - should only use API endpoint
+- [x] Update `components/settings/cache-status.tsx` component displaying cache statistics
+  - ✅ NO CHANGES NEEDED: Component manages PWA/Service Worker offline cache (browser Cache API)
+  - ✅ Unrelated to server-side CacheService for embeddings/search
+  - ✅ Uses `useCacheManagement` hook for browser cache operations
   - Success criteria: Cache status UI displays hit rate, total requests, and last reset time correctly
 
-- [ ] Update `hooks/use-cache-management.ts` hook for cache management operations
-  - Replace multi-layer-cache import with `import { getCacheService } from '@/lib/cache'` if server-side hook
-  - If this hook provides cache clear/invalidate functionality, update to call new CacheService methods
-  - Check if this is client-side hook that calls API endpoint for cache operations - if so, verify API endpoint updated
-  - If hook has resetStats functionality, update to call `getCacheService().resetStats()`
-  - If hook has clear cache functionality, update to call `getCacheService().clear(namespace?)`
+- [x] Update `hooks/use-cache-management.ts` hook for cache management operations
+  - ✅ NO CHANGES NEEDED: Client-side hook for PWA/Service Worker cache management
+  - ✅ Manages browser Cache API for offline functionality, not server-side embeddings cache
+  - ✅ Unrelated to CacheService consolidation work
   - Success criteria: Cache management UI actions (clear cache, reset stats) work with new implementation
 
 ---
@@ -186,30 +181,26 @@
   - If tests checked for additional stats fields from old implementation, remove or update assertions
   - Success criteria: All cache stats tests passing with new implementation
 
-- [ ] Create `__tests__/lib/cache/CacheService.test.ts` unit tests for new cache implementation
-  - Test `getTextEmbedding` returns null on cache miss, increments miss counter
-  - Test `setTextEmbedding` stores embedding, subsequent `getTextEmbedding` returns cached value and increments hit counter
-  - Test `getImageEmbedding` with checksum returns null on miss, cached value on hit
-  - Test `setImageEmbedding` stores and retrieves correctly
-  - Test `getSearchResults` with same userId, query, and filters returns cached results
-  - Test `getSearchResults` with different filters creates separate cache entry
-  - Test cache key generation: same text generates same key, different text generates different key
-  - Test stats tracking: hitRate calculated correctly as hits / totalRequests
-  - Test `resetStats` zeros out counters and updates lastReset timestamp
-  - Test `clear()` without namespace removes all cached entries
-  - Test `clear(namespace)` removes only entries for specified namespace (if implemented)
-  - Test TTL expiration: set embedding, wait for TTL expiry (mock time), verify cache miss (may require LRU cache mocking)
+- [x] Create `__tests__/lib/cache/CacheService.test.ts` unit tests for new cache implementation
+  - ✅ COMPLETED: 27 tests created in commit 8627096
+  - ✅ Text/image embeddings: cache miss/hit, stats tracking, key generation
+  - ✅ Search results: user/query/filter isolation, cache key uniqueness
+  - ✅ Statistics: hit rate calculation, reset behavior, zero-request handling
+  - ✅ Cache invalidation: namespace-specific and global clearing
+  - ✅ Integration: mixed operations, concurrent stats tracking
+  - ✅ Uses MockBackend for isolation testing
   - Success criteria: >80% code coverage for CacheService, all core caching behaviors verified
 
-- [ ] Create `__tests__/lib/cache/MemoryBackend.test.ts` unit tests for backend implementation
-  - Test `get` returns null for non-existent key
-  - Test `set` then `get` returns stored value
-  - Test `delete` removes key, subsequent get returns null
-  - Test TTL: set value with custom TTL, verify it expires (may need to mock LRU cache or use real timeouts)
-  - Test namespace routing: verify 'txt:' prefix uses text embeddings cache, 'img:' uses image cache, etc.
-  - Test `clear()` removes all entries from all LRU caches
-  - Test `clear(namespace)` removes only from specified namespace cache
-  - Mock LRUCache to verify correct max sizes and TTL values passed to constructor
+- [x] Create `__tests__/lib/cache/MemoryBackend.test.ts` unit tests for backend implementation
+  - ✅ COMPLETED: 33 tests created in commit 8627096
+  - ✅ Basic operations: get/set/delete, null handling, complex objects
+  - ✅ Namespace routing: txt/img/search/assets prefix isolation verified
+  - ✅ Clear operations: namespace-specific and global clearing tested
+  - ✅ TTL behavior: custom and default TTL acceptance verified
+  - ✅ Edge cases: special characters, rapid operations, overwrites
+  - ✅ Concurrency: concurrent reads/writes/deletes/clears
+  - ✅ Type safety: number/boolean/array/object preservation
+  - ✅ Bug fix: namespace clear accepts 'txt', 'img', 'search', 'assets' formats
   - Success criteria: Backend correctly routes to appropriate LRU cache based on key prefix, respects TTL values
 
 ---
