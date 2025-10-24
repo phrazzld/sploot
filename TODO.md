@@ -106,7 +106,7 @@
   - Preserve any asset metadata caching behavior
   - Success criteria: Individual asset fetches use cache when available, updates invalidate cached asset
 
-- [ ] Update `app/api/cache/stats/route.ts` to expose new cache statistics
+- [x] Update `app/api/cache/stats/route.ts` to expose new cache statistics
   - Replace multi-layer-cache import with `import { getCacheService } from '@/lib/cache'`
   - Replace cache.getStats() call with `getCacheService().getStats()`
   - Ensure response format matches existing API contract expected by frontend components
