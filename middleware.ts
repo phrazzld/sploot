@@ -13,7 +13,9 @@ const isPublicRoute = createRouteMatcher([
   '/',
   '/sign-in(.*)',
   '/sign-up(.*)',
-  '/api/health'
+  '/api/health',
+  '/s(.*)',  // Short share links
+  '/m(.*)'   // Public meme pages
 ])
 
 export default clerkMiddleware(async (auth, req) => {

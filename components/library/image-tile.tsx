@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Heart, Trash2, ImageOff, Loader2, AlertCircle, Clock } from 'lucide-react';
 import type { Asset } from '@/lib/types';
+import { ShareButton } from './share-button';
 
 interface ImageTileProps {
   asset: Asset;
@@ -478,6 +479,22 @@ function ImageTileComponent({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{asset.favorite ? 'drop from bangers' : 'crown as banger'}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              {/* Share button - on hover */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <ShareButton
+                      assetId={asset.id}
+                      size="icon"
+                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/80 hover:text-primary"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <p>share</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
