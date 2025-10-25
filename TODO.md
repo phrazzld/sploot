@@ -6,7 +6,7 @@
 
 ## Critical Fixes (Merge-Blocking)
 
-- [ ] **Fix SearchFilters type safety** (`lib/cache/types.ts:67`)
+- [x] **Fix SearchFilters type safety** (`lib/cache/types.ts:67`)
   - **Issue:** Using `Record<string, any>` defeats TypeScript type safety
   - **Current:** `export type SearchFilters = Record<string, any>;`
   - **Required:** Define proper interface based on actual filter properties
@@ -14,7 +14,7 @@
   - **Add:** `[key: string]: unknown;` for extensibility
   - **Success criteria:** No `any` types, all filter properties properly typed, TypeScript compilation passes
 
-- [ ] **Fix cache key collision risk** (`lib/cache/CacheService.ts:29-30`)
+- [~] **Fix cache key collision risk** (`lib/cache/CacheService.ts:29-30`)
   - **Issue:** `hashString(query + filters)` can cause collisions ("cat"+"meme" = "catm"+"eme")
   - **Current:** ```typescript
     SEARCH_RESULTS: (userId: string, query: string, filters: string) =>
@@ -31,64 +31,33 @@
 
 ## High Priority Improvements
 
-- [ ] **Add error handling for future backend compatibility**
+- [x] **Add error handling for future backend compatibility**
   - **Files:** `lib/cache/CacheService.ts`, `lib/cache/MemoryBackend.ts`
-  - **Issue:** No try-catch blocks; future Redis/KV backends could throw network errors
-  - **Implementation:**
-    - Wrap all `backend.get()`, `backend.set()`, `backend.delete()`, `backend.clear()` calls in try-catch
-    - On error: log with context (key, operation, error message)
-    - Return graceful fallback: `null` for get, `void` for set/delete/clear
-    - Use console.error with structured logging format: `[CacheService] Operation failed: { method, key, error }`
-  - **Example:**
-    ```typescript
-    async getTextEmbedding(text: string): Promise<number[] | null> {
-      try {
-        const key = CACHE_KEYS.TEXT_EMBEDDING(text);
-        this.stats.totalRequests++;
-        const embedding = await this.backend.get<number[]>(key);
-        if (embedding) {
-          this.incrementHit();
-          return embedding;
-        }
-        this.incrementMiss();
-        return null;
-      } catch (error) {
-        console.error('[CacheService] getTextEmbedding failed:', { text: text.substring(0, 50), error });
-        this.incrementMiss(); // Count as miss
-        return null; // Graceful degradation
-      }
-    }
-    ```
-  - **Success criteria:** All backend operations wrapped, errors logged, graceful degradation verified
+  - **Status:** COMPLETED (commit f9f71d5)
+  - **Implementation:** All backend operations wrapped in try-catch with graceful fallback
+  - **Result:** Prepared for Redis/KV migration with proper error handling
 
-- [ ] **Fix stats tracking race condition** (`lib/cache/CacheService.ts:63-72`)
-  - **Issue:** `totalRequests++` incremented before async operation, but hit/miss after
-  - **Impact:** Temporary inconsistency under concurrent load
-  - **Current:** `totalRequests` incremented in each method, hit/miss in private methods
-  - **Solution:** Move `totalRequests++` into `incrementHit()` and `incrementMiss()`
-  - **Changes:**
-    - Remove `this.stats.totalRequests++` from all public methods (6 locations)
-    - Add `this.stats.totalRequests++` to `incrementHit()` method
-    - Add `this.stats.totalRequests++` to `incrementMiss()` method
-  - **Success criteria:** Stats always consistent, hit + miss = totalRequests at any point in time
+- [x] **Fix stats tracking race condition** (`lib/cache/CacheService.ts:63-72`)
+  - **Status:** COMPLETED (commit b93e82a)
+  - **Solution:** Moved `totalRequests++` into `incrementHit()` and `incrementMiss()` methods
+  - **Result:** Stats always consistent, hit + miss = totalRequests atomically
 
-- [ ] **Optimize cache invalidation to use namespace-specific clearing**
+- [x] **Optimize cache invalidation to use namespace-specific clearing**
   - **Files:** `app/api/assets/[id]/route.ts` (3 locations), `app/api/assets/route.ts` (1 location)
-  - **Issue:** Using global `cache.clear()` clears expensive embeddings unnecessarily
-  - **Current:** `await cache.clear();` after favorite toggle, soft delete, permanent delete, asset creation
-  - **Solution:** Clear only affected namespaces
-    ```typescript
-    // Clear only asset and search caches (preserve embeddings)
-    await cache.clear('assets');
-    await cache.clear('search');
-    ```
-  - **Rationale:** Text/image embeddings don't change when assets are favorited/deleted
-  - **Locations to update:**
-    - `app/api/assets/[id]/route.ts:183` (favorite toggle)
-    - `app/api/assets/[id]/route.ts:270` (permanent delete)
-    - `app/api/assets/[id]/route.ts:285` (soft delete)
-    - `app/api/assets/route.ts` (check for invalidation after asset list operations)
-  - **Success criteria:** Only necessary cache namespaces cleared, embeddings preserved
+  - **Status:** COMPLETED (commit af237a8)
+  - **Implementation:** Changed from `cache.clear()` to `cache.clear('assets')` + `cache.clear('search')`
+  - **Locations updated:**
+    - `app/api/assets/[id]/route.ts:186` (favorite toggle)
+    - `app/api/assets/[id]/route.ts:274` (permanent delete)
+    - `app/api/assets/[id]/route.ts:291` (soft delete)
+    - `app/api/assets/route.ts:134` (asset creation)
+  - **Result:** Text/image embeddings preserved, only affected namespaces cleared
+
+  **Note on Codex P1 Feedback:**
+  - Codex bot raised valid concern: namespace clearing affects ALL users, not just current user
+  - **Design Decision:** Acceptable for single-user scope (per CLAUDE.md: "Single-user private library")
+  - **Future Work:** User-scoped invalidation required for multi-user (see BACKLOG.md)
+  - **References:** 4 Codex inline comments on PR #7 (app/api/assets/route.ts:134, app/api/assets/[id]/route.ts:186,274,291)
 
 ---
 

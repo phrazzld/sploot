@@ -4,6 +4,87 @@
 
 ---
 
+## Multi-User Readiness
+
+### User-Scoped Cache Invalidation
+**Value:** Prevent one user's actions from evicting other users' caches
+**Trigger:** Multi-user launch (when sharing features added)
+**Effort:** ~2 hours
+**Context:** PR #7 Codex P1 feedback (4 inline comments)
+**Priority:** Required before multi-user release
+
+**Current Limitation:**
+- `cache.clear('assets')` clears ALL users' asset caches globally
+- `cache.clear('search')` clears ALL users' search results globally
+- One user favoriting an asset evicts cached data for everyone
+- Acceptable for single-user scope (per CLAUDE.md), regression for multi-user
+
+**Previous Implementation:**
+- Used `invalidateUserData(userId)` function
+- Cleared only keys prefixed with specific userId
+- Example: cleared `search:user123:*` without affecting `search:user456:*`
+
+**Required Implementation:**
+
+1. **Add user-scoped clear method to ICacheBackend:**
+   ```typescript
+   interface ICacheBackend {
+     // ... existing methods
+     clearUserData(userId: string, namespace?: string): Promise<void>;
+   }
+   ```
+
+2. **Implement in MemoryBackend:**
+   ```typescript
+   async clearUserData(userId: string, namespace?: string): Promise<void> {
+     const caches = namespace ? [this.getCacheForNamespace(namespace)] :
+                               [this.searchResults, this.assetMetadata];
+
+     for (const cache of caches) {
+       // LRU cache iteration: delete keys starting with namespace:userId:
+       for (const key of cache.keys()) {
+         if (key.startsWith(`search:${userId}:`) ||
+             key.startsWith(`assets:${userId}:`)) {
+           cache.delete(key);
+         }
+       }
+     }
+   }
+   ```
+
+3. **Update asset mutation routes** (4 locations):
+   - `app/api/assets/route.ts:134` (asset creation)
+   - `app/api/assets/[id]/route.ts:186` (favorite toggle)
+   - `app/api/assets/[id]/route.ts:274` (permanent delete)
+   - `app/api/assets/[id]/route.ts:291` (soft delete)
+
+   ```typescript
+   // Change from:
+   await cache.clear('assets');
+   await cache.clear('search');
+
+   // To:
+   await cache.clearUserData(userId, 'assets');
+   await cache.clearUserData(userId, 'search');
+   ```
+
+**Redis/KV Alternative:**
+- Redis: Use `SCAN` + `DEL` with pattern `search:${userId}:*`
+- Vercel KV: Use `scan()` with cursor and pattern matching
+- More efficient than LRU iteration for large datasets
+
+**Testing Requirements:**
+- Verify user A's cache unaffected when user B modifies assets
+- Test concurrent operations: user A and B both favoriting simultaneously
+- Measure performance impact of cache iteration (should be <10ms for 1000 entries)
+
+**Success Criteria:**
+- Cache hit rate remains high under multi-user load
+- One user's mutations don't evict other users' cached data
+- Backwards compatible with single-user behavior
+
+---
+
 ## Future Backend Implementations
 
 ### Vercel KV Backend (When Multi-User Scale Reached)
