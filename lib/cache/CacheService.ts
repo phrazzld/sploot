@@ -20,14 +20,14 @@ function hashString(str: string): string {
 }
 
 /**
- * Cache key generators matching multi-layer-cache.ts exactly
- * Preserves existing key patterns for compatibility
+ * Cache key generators
+ * Uses delimited hashing to prevent collisions
  */
 const CACHE_KEYS = {
   TEXT_EMBEDDING: (text: string) => `txt:${hashString(text)}`,
   IMAGE_EMBEDDING: (checksum: string) => `img:${checksum}`,
   SEARCH_RESULTS: (userId: string, query: string, filters: string) =>
-    `search:${userId}:${hashString(query + filters)}`,
+    `search:${userId}:${hashString(query)}:${hashString(filters)}`,
   ASSET_LIST: (userId: string, params: string) =>
     `assets:${userId}:${hashString(params)}`,
 } as const;
