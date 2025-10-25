@@ -61,7 +61,34 @@ export interface CacheStats {
 
 /**
  * Search filters for cache key generation
- * Uses Record<string, any> to match existing multi-layer-cache.ts implementation
+ * Defines filter properties used in search operations
  * Filters are serialized to JSON for cache key generation
  */
-export type SearchFilters = Record<string, any>;
+export interface SearchFilters {
+  /** Maximum number of results to return */
+  limit?: number;
+
+  /** Similarity threshold for search results (0-1) */
+  threshold?: number;
+
+  /** Filter by MIME types (e.g., ['image/jpeg', 'image/png']) */
+  mimeTypes?: string[];
+
+  /** Filter by creation date from (ISO 8601 string) */
+  dateFrom?: string;
+
+  /** Filter by creation date to (ISO 8601 string) */
+  dateTo?: string;
+
+  /** Filter by favorite status */
+  favorites?: boolean;
+
+  /** Filter by minimum image width in pixels */
+  minWidth?: number;
+
+  /** Filter by minimum image height in pixels */
+  minHeight?: number;
+
+  /** Extensibility: allow additional filter properties */
+  [key: string]: unknown;
+}
