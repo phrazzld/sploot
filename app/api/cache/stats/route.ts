@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
+import { getCacheService } from '@/lib/cache';
 import { getAuth } from '@/lib/auth/server';
 
 // GET /api/cache/stats - Get cache statistics
@@ -13,31 +13,27 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
-    const health = await multiCache.isHealthy();
-    const stats = multiCache.getStats();
+    const cache = getCacheService();
+    const stats = cache.getStats();
 
     // Calculate cache effectiveness metrics
     const effectiveHitRate = stats.totalRequests > 0
-      ? (stats.hits / stats.totalRequests * 100).toFixed(2)
+      ? (stats.hitRate * 100).toFixed(2)
       : '0.00';
 
     return NextResponse.json({
       status: 'healthy',
       cache: {
-        status: health.l1 ? 'active' : 'inactive',
+        status: 'active',
         hits: stats.hits,
         misses: stats.misses,
-        hitRate: stats.totalRequests > 0
-          ? ((stats.hits / stats.totalRequests) * 100).toFixed(2)
-          : '0.00',
+        hitRate: (stats.hitRate * 100).toFixed(2),
       },
       overall: {
         totalRequests: stats.totalRequests,
         totalHits: stats.hits,
         totalMisses: stats.misses,
         hitRate: `${effectiveHitRate}%`,
-        avgLatency: `${stats.avgLatency.toFixed(2)}ms`,
       },
       performance: {
         meetsTarget: parseFloat(effectiveHitRate) >= 80,
@@ -69,58 +65,37 @@ export async function POST(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const action = searchParams.get('action');
 
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
+    const cache = getCacheService();
 
     switch (action) {
       case 'reset-stats':
-        multiCache.resetStats();
+        cache.resetStats();
         return NextResponse.json({
           message: 'Cache statistics reset successfully',
           timestamp: new Date(),
         });
 
       case 'clear-l1':
-        multiCache.clearL1Cache();
-        return NextResponse.json({
-          message: 'L1 cache cleared successfully',
-          timestamp: new Date(),
-        });
-
       case 'clear-l2':
-        await multiCache.clearL2Cache();
-        return NextResponse.json({
-          message: 'L2 cache cleared successfully',
-          timestamp: new Date(),
-        });
-
       case 'clear-all':
-        await multiCache.clearAllCaches();
+      case 'invalidate':
+        // Unified memory cache - all clear operations do the same thing
+        await cache.clear();
         return NextResponse.json({
-          message: 'All caches cleared successfully',
+          message: 'Cache cleared successfully',
           timestamp: new Date(),
         });
 
       case 'warm':
-        // Start cache warming for the user
-        multiCache.startAutoWarming(userId);
+        // Cache warming not implemented in MVP (documented in BACKLOG.md)
         return NextResponse.json({
-          message: 'Cache warming started',
-          userId,
+          message: 'Cache warming not available in memory-only mode',
           timestamp: new Date(),
-        });
-
-      case 'invalidate':
-        // Invalidate user-specific cache entries
-        await multiCache.invalidateUserData(userId);
-        return NextResponse.json({
-          message: 'User cache invalidated',
-          userId,
-          timestamp: new Date(),
-        });
+        }, { status: 501 });
 
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Use: reset-stats, clear-l1, clear-l2, clear-all, warm, or invalidate' },
+          { error: 'Invalid action. Use: reset-stats, clear-all, or invalidate' },
           { status: 400 }
         );
     }

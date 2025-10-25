@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { unstable_rethrow } from 'next/navigation';
 import { prisma } from '@/lib/db';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
-import { createMultiLayerCache, getMultiLayerCache } from '@/lib/multi-layer-cache';
+import { getCacheService } from '@/lib/cache';
 import { getAuth } from '@/lib/auth/server';
 
 interface SearchFilters {
@@ -57,8 +57,8 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Initialize multi-layer cache
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
+    // Get cache service
+    const cache = getCacheService();
 
     // Check cache for advanced search results
     const cacheKey = {
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       threshold,
       sortBy,
     };
-    const cachedResults = await multiCache.getSearchResults(userId, query, cacheKey);
+    const cachedResults = await cache.getSearchResults(userId, query, cacheKey);
 
     if (cachedResults) {
       // Cache hit for advanced search
@@ -266,7 +266,7 @@ export async function POST(req: NextRequest) {
         threshold,
         sortBy,
       };
-      await multiCache.setSearchResults(userId, query, formattedResults, cacheKey);
+      await cache.setSearchResults(userId, query, cacheKey, formattedResults);
     }
 
     // Log search

@@ -1,664 +1,431 @@
-# BACKLOG
+# BACKLOG: Cache Consolidation Future Enhancements
 
-Last groomed: 2025-10-22
-Analyzed by: 7 specialized perspectives (complexity, architecture, security, performance, maintainability, UX, product)
+**Context:** Cache consolidation completed with memory-only backend and strategy pattern. These items deferred for multi-user scale or specific performance needs.
 
 ---
 
-## Future Enhancements: Public Sharing
+## Multi-User Readiness
 
-### Keyboard Shortcut for Share
+### User-Scoped Cache Invalidation
+**Value:** Prevent one user's actions from evicting other users' caches
+**Trigger:** Multi-user launch (when sharing features added)
+**Effort:** ~2 hours
+**Context:** PR #7 Codex P1 feedback (4 inline comments)
+**Priority:** Required before multi-user release
 
-**Description**: Add Cmd/Ctrl + Shift + S keyboard shortcut to share focused meme
+**Current Limitation:**
+- `cache.clear('assets')` clears ALL users' asset caches globally
+- `cache.clear('search')` clears ALL users' search results globally
+- One user favoriting an asset evicts cached data for everyone
+- Acceptable for single-user scope (per CLAUDE.md), regression for multi-user
 
-**Value**: Power user convenience, faster workflow for frequent sharers
+**Previous Implementation:**
+- Used `invalidateUserData(userId)` function
+- Cleared only keys prefixed with specific userId
+- Example: cleared `search:user123:*` without affecting `search:user456:*`
 
-**Complexity**: Medium-High
-- Requires focus management state (which meme is "selected")
-- Browser keyboard handling varies
-- Must work across different view modes (grid, list)
-- Integration with existing keyboard shortcuts (search, command palette)
+**Required Implementation:**
 
-**Estimated Effort**: 45min-1h implementation + testing
+1. **Add user-scoped clear method to ICacheBackend:**
+   ```typescript
+   interface ICacheBackend {
+     // ... existing methods
+     clearUserData(userId: string, namespace?: string): Promise<void>;
+   }
+   ```
 
-**Decision Rationale**: Deferred from MVP per ultrathink review
-- Adds focus management complexity with unclear ROI
-- Share button on hover is sufficient for most users
-- Should validate demand with user feedback before building
-- Focus management is hard to get right across browsers/devices
+2. **Implement in MemoryBackend:**
+   ```typescript
+   async clearUserData(userId: string, namespace?: string): Promise<void> {
+     const caches = namespace ? [this.getCacheForNamespace(namespace)] :
+                               [this.searchResults, this.assetMetadata];
 
-**Implementation Notes** (when prioritized):
+     for (const cache of caches) {
+       // LRU cache iteration: delete keys starting with namespace:userId:
+       for (const key of cache.keys()) {
+         if (key.startsWith(`search:${userId}:`) ||
+             key.startsWith(`assets:${userId}:`)) {
+           cache.delete(key);
+         }
+       }
+     }
+   }
+   ```
+
+3. **Update asset mutation routes** (4 locations):
+   - `app/api/assets/route.ts:134` (asset creation)
+   - `app/api/assets/[id]/route.ts:186` (favorite toggle)
+   - `app/api/assets/[id]/route.ts:274` (permanent delete)
+   - `app/api/assets/[id]/route.ts:291` (soft delete)
+
+   ```typescript
+   // Change from:
+   await cache.clear('assets');
+   await cache.clear('search');
+
+   // To:
+   await cache.clearUserData(userId, 'assets');
+   await cache.clearUserData(userId, 'search');
+   ```
+
+**Redis/KV Alternative:**
+- Redis: Use `SCAN` + `DEL` with pattern `search:${userId}:*`
+- Vercel KV: Use `scan()` with cursor and pattern matching
+- More efficient than LRU iteration for large datasets
+
+**Testing Requirements:**
+- Verify user A's cache unaffected when user B modifies assets
+- Test concurrent operations: user A and B both favoriting simultaneously
+- Measure performance impact of cache iteration (should be <10ms for 1000 entries)
+
+**Success Criteria:**
+- Cache hit rate remains high under multi-user load
+- One user's mutations don't evict other users' cached data
+- Backwards compatible with single-user behavior
+
+---
+
+## Future Backend Implementations
+
+### Vercel KV Backend (When Multi-User Scale Reached)
+**Value:** Persistent cache across deployments, shared across serverless function instances
+**Trigger:** Multi-user launch or hitting memory limits (>1GB cache footprint)
+**Effort:** ~2-3 hours
+
+**Implementation:**
+- Create `lib/cache/VercelKVBackend.ts` implementing `ICacheBackend`
+- Use existing `@vercel/kv` package (already in dependencies)
+- Implement get/set/delete using `kv.get()`, `kv.set()`, `kv.del()`
+- Handle JSON serialization/deserialization for complex objects
+- Map TTL seconds to KV's `ex` parameter
+- Add error handling for KV connection failures (fallback to memory or fail gracefully)
+
+**Swap:** Single line change in `lib/cache/index.ts`:
 ```typescript
-// Needs:
-// 1. Focus/selection state in FilterContext or new FocusContext
-// 2. useKeyboardShortcut hook integration
-// 3. Visual focus indicator on selected tile
-// 4. Keyboard navigation between tiles (arrow keys)
-
-useKeyboardShortcut({
-  key: 's',
-  metaKey: true,
-  shiftKey: true,
-  onTrigger: () => {
-    if (focusedAssetId) {
-      handleShare(focusedAssetId)
-    }
-  }
-})
+const cacheServiceInstance = new CacheService(new VercelKVBackend());
 ```
 
-**Success Metrics** (when built):
-- Shortcut works in grid and list views
-- Visual indicator shows which meme is focused
-- Works on Mac (Cmd) and Windows/Linux (Ctrl)
-- Doesn't conflict with browser shortcuts
+**Cost Consideration:** Upstash free tier = 256MB + 500k commands/month. Estimate usage before adopting.
 
 ---
 
-### Manual OG Tag Testing Checklist
+### Redis Backend (Self-Hosted or Cloud Redis)
+**Value:** Full control over caching infrastructure, no vendor lock-in
+**Trigger:** Need for advanced Redis features (pub/sub, streams) or cost optimization at scale
+**Effort:** ~3-4 hours
 
-**Description**: Manual validation of link previews on actual social platforms
+**Implementation:**
+- Add `ioredis` package dependency
+- Create `lib/cache/RedisBackend.ts` implementing `ICacheBackend`
+- Connection string from `REDIS_URL` environment variable
+- Handle connection pooling, reconnection logic
+- Implement pipelining for batch operations (future optimization)
+- Add health check method to verify Redis connectivity
 
-**Platforms**:
-- iMessage (iOS/macOS)
-- WhatsApp (iOS/Android)
-- Twitter/X
-- Facebook
-- Discord
-- Slack
-
-**Process**:
-1. Deploy to Vercel preview environment
-2. Share test link in each platform
-3. Verify image displays correctly
-4. Verify title and description appear
-5. Test on both mobile and desktop
-
-**Tools**:
-- Facebook Sharing Debugger: https://developers.facebook.com/tools/debug/
-- Twitter Card Validator: https://cards-dev.twitter.com/validator
-- LinkedIn Post Inspector: https://www.linkedin.com/post-inspector/
-
-**Timing**: After automated OG tests pass, before production release
-
-**Estimated Effort**: 30-45min per full platform sweep
-
-**Why Deferred**:
-- Automated OG structure tests catch 90% of issues
-- Manual testing is slow and hard to CI
-- Can validate in staging before each release
-- Platform-specific issues are rare with standard OG tags
+**Benefits over Vercel KV:**
+- Lower cost at high scale (self-hosted)
+- Advanced features: pub/sub for cache invalidation across instances
+- Better observability/monitoring options
 
 ---
 
-### Mobile Device Testing
+### Hybrid Two-Tier Backend (Memory L1 + KV/Redis L2)
+**Value:** Best of both worlds - 0ms L1 hits, persistent L2 cache
+**Trigger:** High cache hit rate (>70%) with need for persistence
+**Effort:** ~4-5 hours
+**Pattern:** Copy from existing `lib/slug-cache.ts` three-tier implementation
 
-**Description**: Comprehensive mobile-specific UX validation
+**Implementation:**
+- Create `lib/cache/HybridBackend.ts` implementing `ICacheBackend`
+- Wrap existing MemoryBackend as L1 cache
+- Wrap VercelKVBackend or RedisBackend as L2 cache
+- On `get`: check L1 → if miss, check L2 → if hit, warm L1 → return
+- On `set`: write to both L1 and L2 in parallel
+- On `delete`: invalidate both L1 and L2
+- Add config for L1 TTL (shorter) vs L2 TTL (longer)
 
-**Test Cases**:
-- [ ] Share button touch target adequate (min 44x44px)
-- [ ] Clipboard API works on iOS Safari
-- [ ] Clipboard API works on Chrome Android
-- [ ] Toast notifications visible and dismissible
-- [ ] Public page responsive on small screens (320px width)
-- [ ] Public page responsive on large phones (414px width)
-- [ ] Public page responsive on tablets (768px width)
-- [ ] Link preview loads correctly in iMessage
-- [ ] Link preview loads correctly in WhatsApp
-- [ ] No HTTPS errors on clipboard access
+**Optimization:** Async L2 writes - return immediately after L1 write, queue L2 write in background
 
-**Devices to Test**:
-- iPhone (Safari)
-- Android phone (Chrome)
-- iPad (Safari)
-
-**Estimated Effort**: 30-45min per full device sweep
-
-**Why Deferred**:
-- Component works in browser dev tools mobile simulation
-- Clipboard API is standard across modern mobile browsers
-- Can validate in beta with real users before full launch
-- Desktop testing covers core functionality
+**Success Metrics:** L1 hit rate >70%, L2 hit rate >20%, combined latency <10ms p95
 
 ---
 
-### Share Analytics & View Tracking
+## Cache Warming Strategies
 
-**Description**: Track share link views, click-through rates, and conversion to signup
+### Popular Query Pre-Warming (Multi-User Context)
+**Value:** Avoid cold cache performance hits after deployment
+**Trigger:** Multiple users experiencing cache misses for same popular searches
+**Effort:** ~2 hours
 
-**Metrics to Track**:
-- Share link generations per day
-- Unique views per shared meme
-- Geographic distribution of viewers
-- Referrer sources (iMessage, Twitter, Discord, etc.)
-- Click-through to signup page
-- Share-to-signup conversion rate
+**Implementation:**
+- Track search query frequency in database (or analytics)
+- Identify top 20 most common queries per user
+- After deployment, background job warms cache by generating embeddings for top queries
+- Schedule: Run on deployment, every 6 hours to refresh
 
-**Implementation**:
+**Code from `multi-layer-cache.ts` WARMING config** (lines 24-28):
 ```typescript
-// Add to /m/[id]/page.tsx
-await logShareView({
-  assetId: id,
-  viewerIp: req.ip,
-  referrer: req.headers.referer,
-  userAgent: req.headers['user-agent']
-})
-
-// New table: share_views
-model ShareView {
-  id        String   @id @default(cuid())
-  assetId   String
-  viewedAt  DateTime @default(now())
-  viewerIp  String   // Hashed for privacy
-  referrer  String?
-  userAgent String?
-
-  @@index([assetId, viewedAt])
+WARMING: {
+  POPULAR_QUERIES_COUNT: 20,
+  RECENT_ASSETS_COUNT: 100,
+  REFRESH_INTERVAL: 15 * 60 * 1000, // 15 minutes
 }
 ```
 
-**Value**:
-- Understand viral potential
-- Measure feature success
-- Identify popular share sources
-- Optimize for conversion
-
-**Estimated Effort**: 3-4h (database, API, analytics dashboard)
-
-**Why Deferred**:
-- MVP doesn't need analytics to function
-- Should validate feature works before adding instrumentation
-- Analytics can be added retroactively
-- Adds database writes to public route (performance consideration)
-
-**Privacy Considerations**:
-- Hash IP addresses before storage
-- Aggregate data after 30 days (delete raw logs)
-- No PII collection
-- Comply with GDPR/CCPA
+**Metrics to Track:** Cache hit rate before/after warming, time to first search result
 
 ---
 
-### Rate Limiting for Public Routes
+### Asset Metadata Pre-Loading
+**Value:** Faster asset list rendering on homepage
+**Trigger:** Users complain about slow initial page load (>1s)
+**Effort:** ~1 hour
 
-**Description**: Implement per-IP rate limiting on /s/* and /m/* routes
+**Implementation:**
+- On user login, background job fetches recent 100 assets and caches metadata
+- Populate `assets:${userId}:recent` cache key
+- Expire after 30 minutes to ensure freshness
 
-**Current**: No rate limiting on public routes
+**Trade-off:** Increased database load on login vs faster initial render
 
-**Proposal**:
-```typescript
-// lib/rate-limit.ts
-import { Ratelimit } from '@upstash/ratelimit'
-import { kv } from '@vercel/kv'
+---
 
-export const publicRateLimit = new Ratelimit({
-  redis: kv,
-  limiter: Ratelimit.slidingWindow(100, '1m'), // 100 requests per minute
-  analytics: true
-})
+## Observability Enhancements
 
-// In middleware.ts
-if (req.nextUrl.pathname.startsWith('/s/') || req.nextUrl.pathname.startsWith('/m/')) {
-  const ip = req.ip ?? '127.0.0.1'
-  const { success } = await publicRateLimit.limit(ip)
-  if (!success) {
-    return new NextResponse('Too many requests', { status: 429 })
-  }
+### Prometheus Metrics Export
+**Value:** Production monitoring, alerting on low cache hit rates
+**Trigger:** Multi-user production deployment
+**Effort:** ~3 hours
+
+**Implementation:**
+- Add `prom-client` package
+- Create `lib/cache/ObservableCache.ts` decorator wrapping CacheService
+- Track metrics: cache hits/misses (counter), cache latency (histogram), cache size (gauge)
+- Export `/api/metrics` endpoint for Prometheus scraping
+- Set up Grafana dashboard for visualization
+
+**Metrics:**
+- `cache_requests_total{namespace, status}` - counter (hit/miss)
+- `cache_latency_ms{namespace, operation}` - histogram (get/set)
+- `cache_size_bytes{namespace}` - gauge (current size)
+
+---
+
+### Structured Logging with Context
+**Value:** Debug cache issues in production
+**Trigger:** Unexplained cache behavior or performance degradation
+**Effort:** ~1 hour
+
+**Implementation:**
+- Add logging to CacheService: debug level for hits/misses, error level for failures
+- Include context: userId, query snippet (first 50 chars), cache key hash
+- Use structured logger (Winston or Pino) for JSON output
+- Log to Vercel logging or external service (Datadog, Sentry)
+
+**Example Log:**
+```json
+{
+  "level": "debug",
+  "msg": "Cache hit",
+  "namespace": "text-embeddings",
+  "keyHash": "a3f2c1",
+  "querySnippet": "funny cat meme...",
+  "userId": "user_123",
+  "timestamp": "2025-10-23T12:34:56Z"
 }
 ```
 
-**Limits**:
-- 100 requests per minute per IP
-- 1000 requests per hour per IP
-- Whitelist Vercel's crawler IPs
-- More lenient for OG crawlers (Facebook, Twitter bots)
+---
 
-**Value**:
-- Prevent scraping
-- Protect against DDoS
-- Reduce abuse
+## Performance Optimizations
 
-**Estimated Effort**: 2-3h (implementation, testing, monitoring)
+### Batch Cache Operations
+**Value:** Reduce RTT for multiple cache lookups
+**Trigger:** Routes fetching embeddings for multiple images/texts in single request
+**Effort:** ~2 hours
 
-**Why Deferred**:
-- Not critical for MVP
-- Vercel has DDoS protection at edge
-- Can monitor traffic and add if abuse detected
-- Want to see real traffic patterns before setting limits
+**Implementation:**
+- Add methods to ICacheBackend: `getMany(keys: string[]): Promise<Map<string, T>>`
+- Add methods to CacheService: `getTextEmbeddings(texts: string[]): Promise<Map<string, number[]>>`
+- For MemoryBackend: loop over keys (no real benefit, already in-process)
+- For RedisBackend: use MGET command or pipeline
+- For VercelKVBackend: parallelize with `Promise.all(keys.map(k => kv.get(k)))`
+
+**Use Case:** Upload endpoint generating embeddings for 10 images - batch fetch existing embeddings in single call
 
 ---
 
-### Public Meme Collections (Phase 2 Feature)
+### Compression for Large Values
+**Value:** Reduce memory footprint and network transfer for cached embeddings
+**Trigger:** Cache using >500MB memory or Vercel KV approaching storage limits
+**Effort:** ~2 hours
 
-**Description**: Allow users to create public collections of memes with shareable URLs
+**Implementation:**
+- Add compression layer in CacheService before backend.set()
+- Use `lz4` or `zstd` for fast compression (embeddings are floating point arrays, compress well)
+- Compress on set, decompress on get
+- Add `compressed: boolean` flag to cached values to handle migration
 
-**Use Case**: "Check out my favorite reaction memes" or "Office humor collection"
-
-**URL Structure**: `/c/[collectionSlug]` → grid view of memes in collection
-
-**Features**:
-- Create named collections
-- Add multiple memes to collection
-- Generate shareable collection URL
-- Public collection page shows grid + collection name
-- OG tags show collection preview (grid of 4 memes)
-
-**Schema**:
-```prisma
-model Collection {
-  id          String   @id @default(cuid())
-  ownerUserId String
-  name        String
-  shareSlug   String?  @unique
-  public      Boolean  @default(false)
-  createdAt   DateTime @default(now())
-
-  assets      CollectionAsset[]
-}
-
-model CollectionAsset {
-  collectionId String
-  assetId      String
-  order        Int
-
-  @@id([collectionId, assetId])
-}
-```
-
-**Value**:
-- Increases share virality (more memes per share)
-- Differentiates from competitors
-- Premium feature potential
-
-**Estimated Effort**: 8-10h
-
-**Why Deferred**: Phase 2 feature, single meme sharing must work first
+**Expected Savings:** 768-dim float32 embeddings compress ~40-60% (3KB → 1.5KB)
 
 ---
 
-### Share Link Expiration
+### Smart TTL Adjustment Based on Access Patterns
+**Value:** Keep frequently accessed items longer, evict stale items faster
+**Trigger:** Cache hit rate drops below 50% despite sufficient capacity
+**Effort:** ~3 hours
 
-**Description**: Optional TTL on share links (auto-expire after X days)
+**Implementation:**
+- Track access frequency for each cache key
+- On cache hit, extend TTL proportionally to access frequency
+- On cache set, calculate initial TTL based on predicted access pattern
+- Use exponential backoff: 1 access = 15min, 10 accesses = 1hr, 100 accesses = 6hr
 
-**Use Cases**:
-- Temporary shares (event-specific memes)
-- Privacy control (auto-delete after sharing)
-- Storage cleanup (expire old unused shares)
-
-**Implementation**:
-```prisma
-model Asset {
-  // ...
-  shareSlug      String?   @unique
-  shareExpiresAt DateTime? // null = permanent
-}
-```
-
-**UX**:
-- Add "Expires in" dropdown when sharing (1 day, 7 days, 30 days, Never)
-- Show expiration date on share confirmation toast
-- Expired links show "This meme is no longer available" page
-
-**Value**: User control over privacy, reduces storage costs
-
-**Estimated Effort**: 3-4h
-
-**Why Deferred**: Adds complexity to MVP, most users want permanent shares
+**Complexity Warning:** Adds state tracking overhead. Only implement if demonstrated need.
 
 ---
 
-### Share with Custom Message
+## Testing Infrastructure
 
-**Description**: Allow users to add custom message when generating share link
+### Cache Integration Tests
+**Value:** Catch cache behavior issues before production
+**Trigger:** Migration to Vercel KV or Redis backend
+**Effort:** ~2 hours
 
-**UX**:
-```
-[Share Button Clicked]
-Modal opens:
-  "Share this meme"
-  Input: "Add a message (optional)"
-  [Copy Link] [Cancel]
-```
-
-**Implementation**: Message stored in URL params → shown on public page
-
-**Example**: `/m/abc123?msg=This%20is%20hilarious`
-
-**Value**: More personal sharing, increases engagement
-
-**Estimated Effort**: 2-3h
-
-**Why Deferred**: Adds UX complexity, most shares don't need messages
+**Implementation:**
+- Create `__tests__/integration/cache-integration.test.ts`
+- Test real backend (not mocked): spin up Redis in Docker for tests, or use Vercel KV test instance
+- Test scenarios: cache persistence across service restarts, concurrent access, TTL expiration
+- Use `testcontainers` package for Redis container management in tests
 
 ---
 
-## Now (Sprint-Ready, <2 weeks)
+### Cache Performance Benchmarks
+**Value:** Quantify performance impact of different backends
+**Trigger:** Evaluating Memory vs KV vs Redis backends
+**Effort:** ~1 hour
 
-### [CRITICAL SECURITY] SQL Injection in Advanced Search
-**File**: `app/api/search/advanced/route.ts:114-182`
-**Perspectives**: security-sentinel
-**Severity**: CRITICAL - Data exfiltration possible
-**Attack Vector**: Unparameterized SQL with user-controlled `mimeTypes` and `dateFrom` filters
+**Implementation:**
+- Create `__benchmarks__/cache-benchmark.ts` using `vitest bench` or `tinybench`
+- Benchmark operations: get (hit), get (miss), set, delete
+- Compare Memory vs Vercel KV vs Redis backends
+- Measure: latency (p50, p95, p99), throughput (ops/sec)
+
+**Baseline Expectations:**
+- Memory: <1ms p99
+- Vercel KV: 5-15ms p99 (network RTT)
+- Redis (same region): 2-5ms p99
+
+---
+
+## Nice-to-Have Improvements
+
+### Testing Infrastructure Enhancements (from PR #7 review)
+**Value:** Improved test coverage and developer experience
+**Trigger:** Implementing Redis/KV backend or debugging cache issues
+**Effort:** ~3 hours total
+**Source:** PR #7 code review feedback
+
+**Memory Leak Prevention (10 min):**
+- Add `resetCacheService()` function to `lib/cache/index.ts` for test cleanup
+- Allows tests to start with fresh cache state
+- Prevents singleton accumulating stale data across test runs
+
+**Additional Test Scenarios (2-3 hours):**
+- LRU eviction testing: Verify max size limits trigger eviction
+- TTL expiration testing: Advance time mocks to verify expiration behavior
+- Concurrent stress testing: High-volume parallel reads/writes
+- Would use test-specific backends or time mocking
+
+**TTL Behavior Documentation (15 min):**
+- Clarify per-item vs cache-wide TTL in `ICacheBackend` interface JSDoc
+- Current: Interface suggests per-item TTL, implementation uses cache-wide defaults
+- Document that `MemoryBackend` supports per-item TTL via LRUCache options
+- Future Redis/KV backends would naturally support per-item TTL
+
+### Cache Key Versioning
+**Value:** Invalidate all cache entries when embedding model changes
+**Effort:** ~30 minutes
+
+Add version prefix to cache keys:
 ```typescript
-// VULNERABLE: String interpolation
-const mimeList = filters.mimeTypes.map((m: string) => `'${m}'`).join(',');
-whereConditions.push(`a.mime IN (${mimeList})`);
-// Attacker sends: ["image/jpeg') OR 1=1--"] → returns all assets
+TEXT_EMBEDDING: (text: string) => `v2:txt:${hashString(text)}`
 ```
-**Fix**: Use Prisma.sql tagged templates with parameterized values
-**Effort**: 2h | **Risk Reduction**: CRITICAL
-**Acceptance**: Malicious inputs rejected/escaped, no unauthorized data access
 
-### [HIGH SECURITY] IDOR in Asset Update Endpoint
-**File**: `app/api/assets/[id]/route.ts:106-119`
-**Perspectives**: security-sentinel
-**Impact**: Users can modify other users' asset metadata (favorites, tags)
-**Issue**: Update operation uses only `id` without `ownerUserId` constraint
-**Fix**: Add `ownerUserId: userId` to `prisma.asset.update({ where: { id, ownerUserId: userId } })`
-**Effort**: 15m | **Risk Reduction**: HIGH
-**Acceptance**: Cannot update assets owned by other users
+Bump version when changing CLIP model or embedding dimension. All old cache entries automatically invalidated (different key prefix).
 
-### [PERFORMANCE] N+1 Queries in Search Results
-**File**: `app/api/search/route.ts:150-180`
-**Perspectives**: performance-pathfinder
-**Impact**: 500-800ms added latency per search
-**Issue**: Fetches tags individually for each search result (30 results = 31 queries)
-**Fix**: Batch fetch all tags in single query, build Map for O(1) lookups
+---
+
+### Namespace-Aware Cache Clearing
+**Value:** Clear only specific cache type (e.g., "clear all search caches")
+**Effort:** ~1 hour
+
+Implement `clear(namespace)` method that only clears specified namespace:
 ```typescript
-const assetIds = searchResults.map(r => r.id);
-const allTags = await prisma.assetTag.findMany({ where: { assetId: { in: assetIds } } });
-// Build Map, then format results with lookups
+await cache.clear('text-embeddings'); // Only clears txt: keys
+await cache.clear('search-results');  // Only clears search: keys
 ```
-**Effort**: 30m | **Impact**: 500-800ms → 50-100ms (5-8x improvement)
-**Acceptance**: Search response time <200ms for 30 results
 
-### [PERFORMANCE] Over-Fetching Embedding Vectors
-**File**: `app/api/assets/route.ts:227-245`
-**Perspectives**: performance-pathfinder
-**Impact**: 200-400ms added latency + 300KB unnecessary data transfer
-**Issue**: Includes full embedding vectors (768 floats × 100 assets = ~300KB) when only status needed
-**Fix**: Selective include - fetch only embedding metadata, not vector data
+Useful for debugging or when specific data type becomes stale.
+
+---
+
+### Cache Hit Rate Alerting
+**Value:** Proactive notification when cache performance degrades
+**Effort:** ~1 hour (depends on monitoring setup)
+
+Set up alert in monitoring system:
+- Alert when hit rate <40% over 15min window
+- Alert when cache latency p95 >100ms
+- Send to Slack/email for investigation
+
+---
+
+## Technical Debt Opportunities
+
+### Migrate Slug Cache to Unified Service
+**Current State:** `lib/slug-cache.ts` exists as separate three-tier implementation
+**Opportunity:** Merge into CacheService as specialized caching strategy
+**Effort:** ~3 hours
+**Benefit:** Single caching codebase, easier to maintain
+**Risk:** Slug cache is well-tested and stable, migration may introduce bugs
+**Recommendation:** Leave separate unless actively causing maintenance burden
+
+---
+
+### Type-Safe Cache Keys
+**Current State:** Cache keys are strings, easy to mistype or create inconsistent keys
+**Opportunity:** Create branded types for cache keys to enforce correct usage
+**Effort:** ~2 hours
+
 ```typescript
-include: {
-  embedding: {
-    select: { status: true, completedAt: true } // Omit imageEmbedding vector
-  }
+type TextEmbeddingKey = string & { __brand: 'TextEmbeddingKey' };
+type ImageEmbeddingKey = string & { __brand: 'ImageEmbeddingKey' };
+
+// Factory functions ensure correct key format
+function createTextEmbeddingKey(text: string): TextEmbeddingKey {
+  return `txt:${hashString(text)}` as TextEmbeddingKey;
 }
 ```
-**Effort**: 15m | **Impact**: 300KB → 20KB payload, 200-400ms → 50ms
-**Acceptance**: Asset list loads <300ms with 100 assets
 
-### [ARCHITECTURE] Consolidate Duplicate Cache Implementations
-**Files**: `lib/cache.ts` (291 lines) + `lib/multi-layer-cache.ts` (373 lines)
-**Perspectives**: complexity-archaeologist, architecture-guardian
-**Issue**: Two nearly identical cache implementations with different interfaces
-- Both use LRUCache with same TTLs
-- Different status enums, different storage formats
-- Developers confused which to use
-**Fix**: Delete `lib/cache.ts`, rename `MultiLayerCache` → `CacheService`, unify interface
-**Effort**: 3h | **Impact**: HIGH - Single source of truth, -291 duplicate lines
-**Acceptance**: All cache operations use single implementation, tests pass
-
-### [MAINTAINABILITY] Standardize API Error Responses
-**Files**: `app/api/**/route.ts` (24 routes)
-**Perspectives**: maintainability-maven, user-experience-advocate
-**Issue**: 3 different error handling patterns across API routes
-- Pattern A: Inline NextResponse.json
-- Pattern B: Try-catch with unstable_rethrow
-- Pattern C: createErrorResponse (exists but unused)
-**Fix**: Centralize on `lib/api-response.ts` with `apiError()` helper
-```typescript
-return apiError('No file provided', {
-  status: 400,
-  userMessage: 'Please select a file'
-});
-```
-**Effort**: 3h | **Impact**: HIGH - Uniform error handling, better UX
-**Acceptance**: All API routes use standardized error responses with requestId
+**Benefit:** Compile-time safety, prevents mixing up key types
+**Complexity:** Adds type gymnastics, may not be worth it for internal API
 
 ---
 
-## Next (This Quarter, <3 months)
+## Future Backend Considerations
 
-### [ARCHITECTURE] Split God Object: lib/db.ts
-**File**: `lib/db.ts:1-560` (16 exported functions, 7 distinct domains)
-**Perspectives**: complexity-archaeologist, architecture-guardian
-**Issue**: Single file mixing client init + user mgmt + assets + embeddings + vector search + analytics
-**Approach**: Extract to focused repositories
-```
-lib/repositories/
-  UserRepository.ts - user CRUD + sync
-  AssetRepository.ts - asset CRUD + pagination
-  EmbeddingRepository.ts - embeddings + vector search
-  SearchAnalyticsRepository.ts - search logging
-```
-**Effort**: 12h | **Impact**: HIGH - Enables testing, clear boundaries
-**Dependencies**: None
-**Acceptance**: Business logic testable without database, schema changes isolated
+### Cloudflare KV (If Migrating from Vercel)
+**Trigger:** Move to Cloudflare Workers/Pages from Vercel
+**Effort:** ~2 hours
+**Implementation:** Similar to VercelKVBackend, use Cloudflare KV bindings
 
-### [PERFORMANCE] Add Missing Database Index
-**File**: `app/api/search/route.ts:264-269`
-**Perspectives**: performance-pathfinder
-**Issue**: DISTINCT on `query` column without covering index → sequential scan
-**Impact**: 100-300ms for users with 1000+ searches
-**Migration**:
-```sql
-CREATE INDEX idx_search_logs_user_query_recent
-ON search_logs(user_id, query, "createdAt" DESC)
-WHERE "createdAt" > NOW() - INTERVAL '30 days';
-```
-**Effort**: 10m | **Impact**: 100-300ms → 5-10ms (10-30x improvement)
+### DynamoDB (If on AWS)
+**Trigger:** Migrate to AWS infrastructure
+**Effort:** ~4 hours
+**Considerations:** TTL requires DynamoDB TTL attribute, partition key design for even distribution
 
-### [ARCHITECTURE] Decompose Upload Route Monolith
-**File**: `app/api/upload/route.ts:39-648` (523 lines, 10 responsibilities)
-**Perspectives**: complexity-archaeologist, architecture-guardian
-**Issue**: Single POST handler mixing validation, processing, deduplication, blob storage, DB, tags, embeddings, cleanup
-**Approach**: Extract focused services
-```
-lib/services/
-  UploadValidator - file validation + duplicate detection
-  ImageProcessor - image processing + checksums
-  AssetPersister - DB transactions + rollback
-```
-**Effort**: 10h | **Impact**: HIGH - Testability, eliminates change amplification
-**Acceptance**: Route reduced from 523 → <100 lines, services unit tested
-
-### [PRODUCT] Collections & Folders
-**Perspectives**: product-visionary, user-experience-advocate
-**Business Case**: Removes scale ceiling at 100+ memes, unlocks power users (20% of users, 80% engagement)
-**Features**:
-- Create/edit/delete collections
-- Nest collections (hierarchical structure)
-- Drag-drop assets to collections
-- Collection-based views and filters
-**Schema**:
-```typescript
-model Collection {
-  id String @id
-  userId String
-  name String
-  parentId String? // Nesting
-  assets CollectionAsset[]
-}
-```
-**Effort**: 15h | **Value**: HIGH - Premium tier feature, power user retention
-**Acceptance**: Users can organize 500+ memes in nested collections
-
-### [UX] Embedding Generation Failure Notifications
-**File**: `app/api/upload/route.ts:614-647`
-**Perspectives**: user-experience-advocate
-**Issue**: Silent embedding failures → users don't know images aren't searchable
-**Fix**: Surface embedding status in UI
-- Toast notification on failure: "Upload complete, but search indexing failed for 2 images. [Retry]"
-- Visual indicator on image tiles (status badge)
-- Bulk retry action
-**Effort**: 3h | **Value**: HIGH - Critical for search functionality
-**Acceptance**: Users notified of embedding failures within 10s, can retry from UI
-
-### [TEST] Add Tests for Critical Business Logic
-**Files**: `app/api/upload/route.ts`, `app/api/search/route.ts`, `lib/db.ts`
-**Perspectives**: maintainability-maven
-**Gap**: Only 15% file coverage, zero tests for upload/search/database
-**Critical Paths**:
-```typescript
-// Upload: Duplicate handling, blob cleanup on DB failure, race conditions
-describe('POST /api/upload', () => {
-  it('should cleanup blob when DB insert fails with P2002')
-  it('should handle simultaneous uploads of same file')
-});
-
-// Search: Vector similarity, threshold fallback, cache integration
-describe('vectorSearch', () => {
-  it('should prevent SQL injection via embedding array')
-  it('should apply threshold filter correctly')
-});
-```
-**Effort**: 12h | **Impact**: HIGH - Prevent regressions, enable refactoring
-**Acceptance**: 70%+ coverage for upload, search, DB layer
-
----
-
-## Soon (Exploring, 3-6 months)
-
-### [PRODUCT] OCR & Text Extraction
-**Perspectives**: product-visionary
-**Business Case**: Solves 50% missing meme context (text overlays), differentiation opportunity
-**Features**:
-- Extract text from memes using Tesseract.js (MVP) or Vision API (premium)
-- Hybrid search: semantic + full-text matching
-- Auto-suggest tags from extracted text
-**Schema**: Add `extractedText`, `ocrConfidence`, `ocrProcessedAt` to Asset model
-**Effort**: 18h
-**Strategic Value**: HIGH - "AI that actually gets memes", premium justification
-
-### [PRODUCT] Freemium Model & Stripe Integration
-**Perspectives**: product-visionary
-**Tiers**:
-- **Free**: 500 memes, basic search, tags (up to 20), Sploot watermark on shares
-- **Pro** ($8/mo): Unlimited memes, advanced search, collections, premium OCR, analytics, 10GB storage
-- **Team** ($15/user/mo): Shared workspaces, permissions, SSO, 100GB storage, API access
-**Implementation**: Stripe checkout, webhooks, tier enforcement middleware, billing page
-**Effort**: 30h
-**Strategic Value**: CRITICAL - Sustainable business model, validates product-market fit
-
-### [ARCHITECTURE] Introduce Service Layer
-**Perspectives**: architecture-guardian
-**Issue**: API routes directly access Prisma → tight coupling, no business logic layer
-**Approach**: Create service layer between API and database
-```
-lib/services/
-  AssetService - asset business logic
-  SearchService - search + caching + analytics
-  EmbeddingService - embedding orchestration
-```
-**Effort**: 16h
-**Impact**: HIGH - Testability, proper layering, maintainability
-
-### [PRODUCT] Batch Operations & Multi-Select
-**Perspectives**: product-visionary, user-experience-advocate
-**Features**:
-- Select multiple memes (checkbox mode)
-- Bulk delete (with confirmation)
-- Bulk tag/untag
-- Bulk add to collection
-- Bulk favorite/unfavorite
-**API**: `POST /api/assets/batch { assetIds, action, params }`
-**Effort**: 10h
-**Value**: MEDIUM-HIGH - Power user retention, premium feature gate
-
----
-
-## Later (Someday/Maybe, 6+ months)
-
-### [PRODUCT] Team Workspaces & Collaboration
-**Business Case**: Opens B2B market (10x ARPU), team tier at $15/user/mo vs $8 individual, lower churn
-**Features**: Shared collections, RBAC, invitations, team billing, activity feed
-**Effort**: 40h
-
-### [PRODUCT] Native Mobile App (iOS/Android)
-**Business Case**: App Store discovery (30-50% growth), 2x engagement vs PWA, native features (share sheet, camera, push notifications)
-**Approach**: React Native (70% code reuse with web)
-**Effort**: 80h
-
-### [PRODUCT] Public API & Webhooks
-**Features**: REST API for assets/search/collections, webhook events, API keys, rate limiting, developer docs
-**Business Case**: Ecosystem growth, enterprise requirement, pro/team tier only
-**Effort**: 25h
-
-### [INNOVATION] AI Auto-Tagging
-**Features**: Suggest tags based on CLIP embeddings + OCR text, learn from accept/reject patterns
-**Business Case**: Reduces organization friction, premium feature
-**Effort**: 25h
-
-### [INNOVATION] Meme Generation
-**Features**: Template library (Drake, Distracted Boyfriend), text overlay generation, DALL-E integration
-**Business Case**: Unique differentiator, viral potential
-**Effort**: 40h
-
----
-
-## Learnings
-
-**From this grooming session:**
-
-### Security
-- **SQL injection found in advanced search** - Reminder to always use parameterized queries, even with Prisma raw SQL
-- **IDOR in update endpoint** - Auth check insufficient; must include ownership in WHERE clause of updates
-- **No rate limiting yet** - Defense-in-depth: auth alone not enough, need per-user/per-IP limits
-
-### Performance
-- **N+1 queries in search** - Common pattern: always batch-fetch related data after primary query
-- **Over-fetching embeddings** - Prisma includes should be selective; vectors are expensive to transfer
-- **Client-side sorting** - Database is 20-40x faster than JavaScript for sorting 1000+ items
-
-### Architecture
-- **Duplicate cache implementations** - Tactical debt from evolution; should consolidate when adding second implementation
-- **God object (db.ts)** - Started small, grew to 560 lines; split at 300-line threshold
-- **Missing service layer** - API routes coupled to database; refactor needed before scaling
-
-### Product
-- **Zero monetization infrastructure** - Brilliant tech, no business model; need freemium + Stripe
-- **No sharing features** - Private-only = no viral growth; biggest missing piece
-- **Single-user only** - B2B market 10x larger than B2C; team features = strategic priority
-
-### User Experience
-- **Silent failures** - Embedding errors not surfaced to users; every background job needs status UI
-- **Missing loading states** - Users anxious during long operations; show progress, not just spinners
-- **Poor error messages** - Technical jargon exposed to end users; need user-facing copy vs admin messaging
-
-### Maintainability
-- **15% test coverage** - Critical paths (upload, search, DB) untested; regressions ship to production
-- **3 error handling patterns** - Inconsistency slows development; standardize early
-- **Magic numbers undocumented** - Cache sizes, TTLs lack rationale; blocks informed tuning
-
----
-
-## Rejected Ideas
-
-**Why not included:**
-
-- **Progressive enhancement without JS** - React SPA fundamentally requires JavaScript; doesn't align with architecture
-- **Feature flags for UI changes** - Not going to production; unnecessary complexity for feature branch
-- **Encrypt localStorage preferences** - Non-sensitive UI state; encryption overhead unjustified
-- **Split large PR** - Cohesive refactor; splitting creates broken intermediate states
-- **CSS-only hover states** - Current JS approach works fine; premature optimization
-- **Intersection Observer for virtual scroll** - @tanstack/react-virtual already performant; micro-optimization
-
----
-
-## Priority Summary
-
-| Time Horizon | Focus | Est. Effort | Strategic Value |
-|--------------|-------|-------------|-----------------|
-| **Now** (0-2w) | Security fixes, performance quick wins, architecture foundation | 10h | Prevent vulnerabilities, 2-3x performance |
-| **Next** (3mo) | Repository pattern, collections, testing, UX polish | 62h | Enable scaling, unlock power users |
-| **Soon** (6mo) | Sharing, OCR, monetization, service layer | 86h | Viral growth, revenue, differentiation |
-| **Later** (12mo+) | Teams, mobile, API, AI features | 210h+ | Platform expansion, B2B market |
-
-**Total identified opportunities**: 28 items
-**Estimated total effort**: 368+ hours
-**Expected impact**: Security hardening + 5-8x performance + viral growth + monetization + market expansion
-
----
-
-**Next grooming**: Q1 2026 or after shipping Next horizon items
+### In-Memory + Disk Persistence (SQLite)
+**Trigger:** Single-server deployment, need persistence without external service
+**Effort:** ~3 hours
+**Implementation:** Use `better-sqlite3` for disk-backed cache with LRU eviction logic

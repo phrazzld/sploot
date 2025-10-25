@@ -3,7 +3,7 @@ import { unstable_rethrow } from 'next/navigation';
 import { isValidFileType, isValidFileSize } from '@/lib/blob';
 import { createEmbeddingService, EmbeddingError } from '@/lib/embeddings';
 import crypto from 'crypto';
-import { getMultiLayerCache, createMultiLayerCache } from '@/lib/multi-layer-cache';
+import { getCacheService } from '@/lib/cache';
 import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, upsertAssetEmbedding } from '@/lib/db';
 import logger from '@/lib/logger';
@@ -127,9 +127,11 @@ export async function POST(req: NextRequest) {
       embeddingError = error instanceof EmbeddingError ? error.message : 'Embedding service not configured';
     }
 
-    // Invalidate user cache after creating new asset
-    const multiCache = getMultiLayerCache() || createMultiLayerCache();
-    await multiCache.invalidateUserData(userId);
+    // Invalidate cache after creating new asset
+    // Clear only asset and search caches (preserve embeddings)
+    const cache = getCacheService();
+    await cache.clear('assets');
+    await cache.clear('search');
 
     return NextResponse.json({
       asset: {
