@@ -489,6 +489,9 @@ function ImageTileComponent({
                   <TooltipTrigger asChild>
                     <ShareButton
                       assetId={asset.id}
+                      blobUrl={asset.blobUrl}
+                      filename={asset.filename}
+                      mimeType={asset.mime}
                       size="icon"
                       className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/80 hover:text-primary"
                     />
