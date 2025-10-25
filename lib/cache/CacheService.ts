@@ -59,43 +59,75 @@ export class CacheService {
   // Text Embedding Methods
 
   async getTextEmbedding(text: string): Promise<number[] | null> {
-    const key = CACHE_KEYS.TEXT_EMBEDDING(text);
-    this.stats.totalRequests++;
+    try {
+      const key = CACHE_KEYS.TEXT_EMBEDDING(text);
+      this.stats.totalRequests++;
 
-    const embedding = await this.backend.get<number[]>(key);
-    if (embedding) {
-      this.incrementHit();
-      return embedding;
+      const embedding = await this.backend.get<number[]>(key);
+      if (embedding) {
+        this.incrementHit();
+        return embedding;
+      }
+
+      this.incrementMiss();
+      return null;
+    } catch (error) {
+      console.error('[CacheService] getTextEmbedding failed:', {
+        textPreview: text.substring(0, 50),
+        error: error instanceof Error ? error.message : String(error)
+      });
+      this.incrementMiss();
+      return null;
     }
-
-    this.incrementMiss();
-    return null;
   }
 
   async setTextEmbedding(text: string, embedding: number[]): Promise<void> {
-    const key = CACHE_KEYS.TEXT_EMBEDDING(text);
-    await this.backend.set(key, embedding);
+    try {
+      const key = CACHE_KEYS.TEXT_EMBEDDING(text);
+      await this.backend.set(key, embedding);
+    } catch (error) {
+      console.error('[CacheService] setTextEmbedding failed:', {
+        textPreview: text.substring(0, 50),
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   // Image Embedding Methods
 
   async getImageEmbedding(checksum: string): Promise<number[] | null> {
-    const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
-    this.stats.totalRequests++;
+    try {
+      const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
+      this.stats.totalRequests++;
 
-    const embedding = await this.backend.get<number[]>(key);
-    if (embedding) {
-      this.incrementHit();
-      return embedding;
+      const embedding = await this.backend.get<number[]>(key);
+      if (embedding) {
+        this.incrementHit();
+        return embedding;
+      }
+
+      this.incrementMiss();
+      return null;
+    } catch (error) {
+      console.error('[CacheService] getImageEmbedding failed:', {
+        checksum,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      this.incrementMiss();
+      return null;
     }
-
-    this.incrementMiss();
-    return null;
   }
 
   async setImageEmbedding(checksum: string, embedding: number[]): Promise<void> {
-    const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
-    await this.backend.set(key, embedding);
+    try {
+      const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
+      await this.backend.set(key, embedding);
+    } catch (error) {
+      console.error('[CacheService] setImageEmbedding failed:', {
+        checksum,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   // Search Results Methods
@@ -105,18 +137,28 @@ export class CacheService {
     query: string,
     filters: SearchFilters = {}
   ): Promise<any[] | null> {
-    const filterKey = JSON.stringify(filters);
-    const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
-    this.stats.totalRequests++;
+    try {
+      const filterKey = JSON.stringify(filters);
+      const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
+      this.stats.totalRequests++;
 
-    const results = await this.backend.get<any[]>(key);
-    if (results) {
-      this.incrementHit();
-      return results;
+      const results = await this.backend.get<any[]>(key);
+      if (results) {
+        this.incrementHit();
+        return results;
+      }
+
+      this.incrementMiss();
+      return null;
+    } catch (error) {
+      console.error('[CacheService] getSearchResults failed:', {
+        userId,
+        queryPreview: query.substring(0, 50),
+        error: error instanceof Error ? error.message : String(error)
+      });
+      this.incrementMiss();
+      return null;
     }
-
-    this.incrementMiss();
-    return null;
   }
 
   async setSearchResults(
@@ -125,19 +167,42 @@ export class CacheService {
     filters: SearchFilters,
     results: any[]
   ): Promise<void> {
-    const filterKey = JSON.stringify(filters);
-    const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
-    await this.backend.set(key, results);
+    try {
+      const filterKey = JSON.stringify(filters);
+      const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
+      await this.backend.set(key, results);
+    } catch (error) {
+      console.error('[CacheService] setSearchResults failed:', {
+        userId,
+        queryPreview: query.substring(0, 50),
+        resultsCount: results.length,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   // Cache Management Methods
 
   async invalidate(key: string): Promise<void> {
-    await this.backend.delete(key);
+    try {
+      await this.backend.delete(key);
+    } catch (error) {
+      console.error('[CacheService] invalidate failed:', {
+        key,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   async clear(namespace?: string): Promise<void> {
-    await this.backend.clear(namespace);
+    try {
+      await this.backend.clear(namespace);
+    } catch (error) {
+      console.error('[CacheService] clear failed:', {
+        namespace: namespace ?? 'all',
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
   }
 
   // Statistics Methods
