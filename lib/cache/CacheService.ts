@@ -61,8 +61,6 @@ export class CacheService {
   async getTextEmbedding(text: string): Promise<number[] | null> {
     try {
       const key = CACHE_KEYS.TEXT_EMBEDDING(text);
-      this.stats.totalRequests++;
-
       const embedding = await this.backend.get<number[]>(key);
       if (embedding) {
         this.incrementHit();
@@ -98,8 +96,6 @@ export class CacheService {
   async getImageEmbedding(checksum: string): Promise<number[] | null> {
     try {
       const key = CACHE_KEYS.IMAGE_EMBEDDING(checksum);
-      this.stats.totalRequests++;
-
       const embedding = await this.backend.get<number[]>(key);
       if (embedding) {
         this.incrementHit();
@@ -140,8 +136,6 @@ export class CacheService {
     try {
       const filterKey = JSON.stringify(filters);
       const key = CACHE_KEYS.SEARCH_RESULTS(userId, query, filterKey);
-      this.stats.totalRequests++;
-
       const results = await this.backend.get<any[]>(key);
       if (results) {
         this.incrementHit();
@@ -230,9 +224,11 @@ export class CacheService {
 
   private incrementHit(): void {
     this.stats.hits++;
+    this.stats.totalRequests++;
   }
 
   private incrementMiss(): void {
     this.stats.misses++;
+    this.stats.totalRequests++;
   }
 }
