@@ -178,9 +178,11 @@ export async function PATCH(
     });
 
     // Invalidate cache after update (favorites affect search results)
+    // Clear only asset and search caches (preserve embeddings)
     if (favorite !== undefined) {
       const cache = getCacheService();
-      await cache.clear();
+      await cache.clear('assets');
+      await cache.clear('search');
     }
 
     return NextResponse.json({
@@ -266,8 +268,10 @@ export async function DELETE(
       });
 
       // Invalidate cache after deletion
+      // Clear only asset and search caches (preserve embeddings)
       const cache = getCacheService();
-      await cache.clear();
+      await cache.clear('assets');
+      await cache.clear('search');
 
       return NextResponse.json({
         message: 'Asset permanently deleted',
@@ -281,8 +285,10 @@ export async function DELETE(
       });
 
       // Invalidate cache after soft deletion
+      // Clear only asset and search caches (preserve embeddings)
       const cache = getCacheService();
-      await cache.clear();
+      await cache.clear('assets');
+      await cache.clear('search');
 
       return NextResponse.json({
         message: 'Asset soft deleted',

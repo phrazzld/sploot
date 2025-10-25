@@ -128,9 +128,10 @@ export async function POST(req: NextRequest) {
     }
 
     // Invalidate cache after creating new asset
-    // Note: Using global clear for simplicity. Future: implement user-specific invalidation
+    // Clear only asset and search caches (preserve embeddings)
     const cache = getCacheService();
-    await cache.clear();
+    await cache.clear('assets');
+    await cache.clear('search');
 
     return NextResponse.json({
       asset: {
