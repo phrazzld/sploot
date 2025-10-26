@@ -14,6 +14,8 @@ import { UploadZone } from '@/components/upload/upload-zone';
 import { Heart } from 'lucide-react';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
+import { ShareButton } from '@/components/library/share-button';
+import { error as logError } from '@/lib/logger';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 import { CommandPalette, useCommandPalette } from '@/components/chrome/command-palette';
@@ -26,7 +28,7 @@ import { SortDropdown } from '@/components/chrome/sort-dropdown';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RotateCcw, X } from 'lucide-react';
+import { RotateCcw, X, Trash2 } from 'lucide-react';
 
 function AppPageClient() {
   const router = useRouter();
@@ -769,6 +771,85 @@ function AppPageClient() {
                 priority
               />
             </div>
+
+            {/* Action bar - always visible */}
+            <div className="absolute bottom-20 left-4 right-4 flex items-center justify-center gap-3 bg-black/50 backdrop-blur-sm p-3 rounded-lg">
+              {/* Favorite button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-10 w-10 text-white hover:bg-white/10',
+                  selectedAsset.favorite && 'text-green-500 hover:text-green-400'
+                )}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    const res = await fetch(`/api/assets/${selectedAsset.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ favorite: !selectedAsset.favorite }),
+                    });
+
+                    if (res.ok) {
+                      // Update modal state
+                      setSelectedAsset({ ...selectedAsset, favorite: !selectedAsset.favorite });
+                      // Update grid state
+                      handleAssetUpdate(selectedAsset.id, { favorite: !selectedAsset.favorite });
+                    }
+                  } catch (error) {
+                    logError('Failed to toggle favorite:', error);
+                  }
+                }}
+                aria-label={selectedAsset.favorite ? 'Remove from bangers' : 'Add to bangers'}
+              >
+                <Heart className={cn('h-5 w-5', selectedAsset.favorite && 'fill-current')} />
+              </Button>
+
+              {/* Share button */}
+              <ShareButton
+                assetId={selectedAsset.id}
+                blobUrl={selectedAsset.blobUrl}
+                filename={selectedAsset.filename}
+                mimeType={selectedAsset.mime}
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 text-white hover:bg-white/10"
+              />
+
+              {/* Delete button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 text-white hover:bg-white/10 hover:text-red-500"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${selectedAsset.filename}"?`)) {
+                    try {
+                      const res = await fetch(`/api/assets/${selectedAsset.id}`, {
+                        method: 'DELETE',
+                      });
+
+                      if (res.ok) {
+                        // Close modal
+                        setSelectedAsset(null);
+                        // Update grid state
+                        handleAssetDelete(selectedAsset.id);
+                        showToast('Asset deleted', 'success');
+                      }
+                    } catch (error) {
+                      logError('Failed to delete asset:', error);
+                      showToast('Failed to delete asset', 'error');
+                    }
+                  }
+                }}
+                aria-label="Delete meme"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            </div>
+
+            {/* Metadata overlay */}
             <div className={cn(
               "absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300",
               showMetadata ? 'opacity-100' : 'opacity-0'
