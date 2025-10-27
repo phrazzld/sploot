@@ -743,43 +743,19 @@ function AppPageClient() {
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedAsset(null)}
         >
-          {/* Close button - positioned at viewport level to never obscure image */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedAsset(null);
-            }}
-            className="fixed top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-[60]"
-            aria-label="Close preview"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* Top action bar - all controls in one row */}
+          <div className="fixed top-4 left-4 right-4 flex items-center justify-between z-[60]">
+            {/* Left side: empty for now, could add image counter later */}
+            <div />
 
-          <div
-            className="max-w-4xl max-h-[90vh] relative"
-            onClick={(e) => e.stopPropagation()}
-            onMouseMove={() => setShowMetadata(true)}
-            onMouseLeave={() => setShowMetadata(false)}
-          >
-            <div className="relative w-full h-full">
-              <Image
-                src={selectedAsset.blobUrl}
-                alt={selectedAsset.filename}
-                width={1920}
-                height={1080}
-                className="max-w-full max-h-[90vh] object-contain"
-                priority
-              />
-            </div>
-
-            {/* Action bar - always visible */}
-            <div className="absolute bottom-20 left-4 right-4 flex items-center justify-center gap-3 bg-black/50 backdrop-blur-sm p-3 rounded-lg">
+            {/* Right side: Action buttons + Close */}
+            <div className="flex items-center gap-2">
               {/* Favorite button */}
               <Button
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'h-10 w-10 text-white hover:bg-white/10',
+                  'h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70',
                   selectedAsset.favorite && 'text-green-500 hover:text-green-400'
                 )}
                 onClick={async (e) => {
@@ -814,14 +790,14 @@ function AppPageClient() {
                 mimeType={selectedAsset.mime}
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 text-white hover:bg-white/10"
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70"
               />
 
               {/* Delete button */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 text-white hover:bg-white/10 hover:text-red-500"
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-red-500"
                 onClick={async (e) => {
                   e.stopPropagation();
                   if (confirm(`Delete "${selectedAsset.filename}"?`)) {
@@ -847,9 +823,39 @@ function AppPageClient() {
               >
                 <Trash2 className="h-5 w-5" />
               </Button>
+
+              {/* Close button */}
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAsset(null);
+                }}
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                aria-label="Close preview"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+          </div>
+
+          <div
+            className="max-w-4xl max-h-[90vh] relative"
+            onClick={(e) => e.stopPropagation()}
+            onMouseMove={() => setShowMetadata(true)}
+            onMouseLeave={() => setShowMetadata(false)}
+          >
+            <div className="relative w-full h-full">
+              <Image
+                src={selectedAsset.blobUrl}
+                alt={selectedAsset.filename}
+                width={1920}
+                height={1080}
+                className="max-w-full max-h-[90vh] object-contain"
+                priority
+              />
             </div>
 
-            {/* Metadata overlay */}
+            {/* Metadata overlay - shows on hover */}
             <div className={cn(
               "absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300",
               showMetadata ? 'opacity-100' : 'opacity-0'
