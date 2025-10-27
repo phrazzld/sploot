@@ -755,7 +755,7 @@ function AppPageClient() {
                 variant="ghost"
                 size="icon"
                 className={cn(
-                  'h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70',
+                  'h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-green-400',
                   selectedAsset.favorite && 'text-green-500 hover:text-green-400'
                 )}
                 onClick={async (e) => {
@@ -790,7 +790,7 @@ function AppPageClient() {
                 mimeType={selectedAsset.mime}
                 variant="ghost"
                 size="icon"
-                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70"
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-blue-400"
               />
 
               {/* Delete button */}
@@ -825,16 +825,18 @@ function AppPageClient() {
               </Button>
 
               {/* Close button */}
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSelectedAsset(null);
                 }}
-                className="h-10 w-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70"
                 aria-label="Close preview"
               >
                 <X className="w-6 h-6" />
-              </button>
+              </Button>
             </div>
           </div>
 
