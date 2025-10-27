@@ -832,7 +832,7 @@ function AppPageClient() {
                   e.stopPropagation();
                   setSelectedAsset(null);
                 }}
-                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70"
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-white"
                 aria-label="Close preview"
               >
                 <X className="w-6 h-6" />
