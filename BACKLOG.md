@@ -429,3 +429,267 @@ function createTextEmbeddingKey(text: string): TextEmbeddingKey {
 **Trigger:** Single-server deployment, need persistence without external service
 **Effort:** ~3 hours
 **Implementation:** Use `better-sqlite3` for disk-backed cache with LRU eviction logic
+
+---
+
+# BACKLOG: Mobile-Friendly Enhancements
+
+**Context:** Mobile share & actions implementation (TODO.md). These items deferred as non-critical enhancements or alternative approaches.
+
+---
+
+## Future Enhancements
+
+### Server-Side Mobile Detection
+**Value:** Optimized initial render for mobile clients (buttons visible immediately without JS)
+**Trigger:** Measurable CLS/FCP improvements needed, or SSR optimization focus
+**Effort:** ~2-3 hours
+
+**Implementation:**
+- Add `ua-parser-js` dependency for user-agent parsing
+- Create middleware in `middleware.ts` to detect mobile clients
+- Set header `x-device-type: mobile|desktop` on request
+- Read header in components via `headers()` in React Server Components
+- Render mobile-optimized markup server-side (no hover classes)
+
+**Benefit:** Improved perceived performance, no layout shift when JS loads
+**Trade-off:** Increased server CPU for UA parsing on every request
+
+---
+
+### Progressive Web App Share Target
+**Value:** "Save to sploot" workflow - share images TO sploot from other apps
+**Trigger:** User feedback requesting save-to-library from camera/other apps
+**Effort:** ~4-6 hours
+
+**Implementation:**
+- Add `share_target` to `public/manifest.json`:
+  ```json
+  {
+    "share_target": {
+      "action": "/app/share-target",
+      "method": "POST",
+      "enctype": "multipart/form-data",
+      "params": {
+        "files": [{"name": "image", "accept": ["image/*"]}]
+      }
+    }
+  }
+  ```
+- Create `app/app/share-target/route.ts` POST handler
+- Extract file from FormData, process like upload
+- Redirect to library after save
+- Handle auth: require sign-in before accepting share
+
+**Benefit:** Native app-like workflow on mobile, differentiated feature
+**Complexity:** Additional surface area for uploads, authentication flow
+
+---
+
+### Touch Gesture Controls for Fullscreen Modal
+**Value:** More native app-like feel, cleaner UI on mobile
+**Trigger:** User testing shows desire for gesture navigation
+**Effort:** ~6-8 hours
+
+**Implementation:**
+- Add gesture library (`react-use-gesture` or `use-gesture`)
+- Implement swipe-up gesture in fullscreen modal to reveal action bar
+- Implement swipe-down gesture to dismiss modal
+- Add left/right swipe for next/previous image in library
+- Include smooth spring animations for gesture transitions
+- Add visual feedback during gesture (rubber band effect)
+
+**Benefit:** Enhanced tactile UX, reduced UI chrome
+**Risk:** Learning curve for users unfamiliar with gestures
+
+---
+
+### Haptic Feedback on Mobile Actions
+**Value:** Enhanced tactile response on mobile browsers
+**Trigger:** Pursuit of premium mobile experience
+**Effort:** ~1-2 hours
+
+**Implementation:**
+- Feature detect Vibration API: `navigator.vibrate`
+- Add haptic patterns:
+  - Favorite: Short pulse (50ms)
+  - Delete: Double pulse (50ms, pause, 50ms)
+  - Share: Triple pulse (light, medium, light)
+- Wrap in `useHaptic()` hook for reusability
+- Add user preference toggle in settings to disable
+
+**Browser Support:** Android Chrome (good), iOS Safari (no support - graceful no-op)
+**Benefit:** Marginal UX improvement on supported devices
+
+---
+
+### Long-Press Context Menu on Tiles
+**Value:** Cleaner UI, more actions available without permanent buttons
+**Trigger:** Action bar getting crowded with features (tags, copy, etc.)
+**Effort:** ~8-10 hours
+
+**Implementation:**
+- Detect long-press gesture (300ms threshold)
+- Show context menu overlay at touch point
+- Menu items: Share, Delete, Favorite, Copy URL, Download, View Details
+- Custom component (not native context menu for styling control)
+- Handle touch move during long-press (cancel if finger moves >10px)
+- Dismiss on background tap or action selection
+
+**Alternative to:** Always-visible buttons on mobile
+**Trade-off:** Hidden affordance (users must discover), but cleaner aesthetic
+
+---
+
+## Nice-to-Have Improvements
+
+### Share Analytics Tracking
+**Value:** Data-driven UX decisions about share method preference
+**Effort:** ~1 hour
+
+**Implementation:**
+- Add telemetry event when share button clicked
+- Track: method used (native/clipboard), success/failure, device type
+- Log to existing `/api/telemetry` endpoint
+- Create analytics dashboard showing share method distribution
+- Use data to prioritize further share UX improvements
+
+**Example Insight:** If 90% use native share, could remove clipboard fallback UI complexity
+
+---
+
+### Clipboard Fallback Modal for iOS Non-HTTPS
+**Value:** Better error recovery when clipboard API fails
+**Trigger:** Users reporting share failures on iOS in non-HTTPS contexts
+**Effort:** ~2 hours
+
+**Implementation:**
+- Detect clipboard write failure (iOS Safari blocks in some contexts)
+- Show modal with shareable URL in input field
+- Auto-select text for easy manual copy
+- Add "Copy Link" button with alternative clipboard approach (document.execCommand)
+- Dismiss modal after copy or cancel
+
+**Context:** Rare edge case - most deployments use HTTPS where clipboard works
+
+---
+
+### Share URL Shortening Integration
+**Value:** Marginally cleaner share links for social media
+**Effort:** ~3-4 hours
+**Assessment:** Low priority - current `/s/[slug]` already short (10 chars)
+
+**Implementation:**
+- Integrate bit.ly or similar API
+- Generate short URL on share click
+- Cache mapping in database (share_slug → short_url)
+- Additional API call + external dependency
+
+**Benefit:** Minimal - 10-char slug already quite short
+**Recommendation:** Defer unless user feedback specifically requests shorter links
+
+---
+
+### Image Download Button in Fullscreen Modal
+**Value:** Convenience for users who want local copy
+**Effort:** ~1 hour
+
+**Implementation:**
+- Add download button to fullscreen modal action bar
+- Fetch blob, create download link with `download` attribute
+- Filename from asset metadata
+- Handle cross-origin restrictions (fetch, create blob URL)
+
+**Use Case:** Power users building local collections, meme creators saving source
+
+---
+
+### Keyboard Shortcuts in Fullscreen Modal
+**Value:** Desktop power user efficiency
+**Effort:** ~2 hours
+
+**Implementation:**
+- Add keyboard event listener in modal
+- Shortcuts:
+  - Arrow keys: Next/previous image in library
+  - F: Toggle favorite
+  - S: Share
+  - D: Delete (with confirmation)
+  - ESC: Close modal (already works)
+- Show shortcut hints on hover or help overlay
+- Use existing `useKeyboardShortcut` hook
+
+**Benefit:** Faster navigation for desktop users browsing many images
+
+---
+
+## Technical Debt Opportunities
+
+### Consolidate Hover Detection
+**Current State:** Hover capability checked in multiple places (CSS media query, JS hook)
+**Opportunity:** Create single source of truth for hover detection
+**Effort:** ~1 hour
+
+**Implementation:**
+- Define CSS custom property: `--has-hover: 0|1`
+- Set in root based on `@media (hover: hover)` query
+- Read in JS: `getComputedStyle(document.documentElement).getPropertyValue('--has-hover')`
+- All components use single detection method
+
+**Benefit:** Easier maintenance, consistent behavior across components
+**Risk:** Minimal - well-tested pattern
+
+---
+
+### Refactor ShareButton Component API
+**Current State:** ShareButton takes `assetId`, internally fetches share URL
+**Opportunity:** Accept pre-fetched `shareUrl` prop for flexibility
+**Effort:** ~30 minutes
+
+**Implementation:**
+- Add optional `shareUrl?: string` prop
+- If provided, skip API call and use directly
+- If not provided, fetch as currently implemented (backwards compatible)
+- Update prop types and JSDoc
+
+**Benefit:** Reusable in more contexts (sharing external URLs, pre-fetched shares)
+**Use Case:** Sharing from search results where we might batch-fetch share URLs
+
+---
+
+### Extract Action Hooks for Reusability
+**Current State:** Favorite/delete logic duplicated between tiles and modal
+**Opportunity:** Extract to custom hooks (`useFavoriteToggle`, `useAssetDelete`)
+**Effort:** ~2 hours
+
+**Implementation:**
+- Create `hooks/use-favorite-toggle.ts`:
+  - Takes asset ID and current favorite state
+  - Returns `toggleFavorite` function
+  - Handles API call, optimistic updates, error handling
+  - Emits events for cache invalidation
+- Create `hooks/use-asset-delete.ts`:
+  - Takes asset ID
+  - Returns `deleteAsset` function with confirmation
+  - Handles API call, state cleanup, success toast
+- Update ImageTile and fullscreen modal to use hooks
+
+**Benefit:** DRY principle, easier testing, consistent behavior
+**Testing:** Unit test hooks in isolation with mocked fetch
+
+---
+
+### Fullscreen Modal State Management
+**Current State:** Modal state local to page component (`selectedAsset` state)
+**Opportunity:** Extract to URL state for deep linking to specific images
+**Effort:** ~3 hours
+
+**Implementation:**
+- Add `?image=[assetId]` query param when opening modal
+- Read query param on mount to auto-open modal
+- Update URL when navigating next/prev in modal
+- Remove param when closing modal
+- Enable shareable URLs like `/app?image=abc123`
+
+**Benefit:** Shareable URLs to specific images, browser back button closes modal
+**Use Case:** Sharing link to specific meme in your library (requires public share first)

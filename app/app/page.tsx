@@ -14,6 +14,8 @@ import { UploadZone } from '@/components/upload/upload-zone';
 import { Heart } from 'lucide-react';
 import { showToast } from '@/components/ui/toast';
 import { getEmbeddingQueueManager } from '@/lib/embedding-queue';
+import { ShareButton } from '@/components/library/share-button';
+import { error as logError } from '@/lib/logger';
 import type { EmbeddingQueueItem } from '@/lib/embedding-queue';
 import { useKeyboardShortcut, useSearchShortcut, useSlashSearchShortcut } from '@/hooks/use-keyboard-shortcut';
 import { CommandPalette, useCommandPalette } from '@/components/chrome/command-palette';
@@ -26,7 +28,7 @@ import { SortDropdown } from '@/components/chrome/sort-dropdown';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { RotateCcw, X } from 'lucide-react';
+import { RotateCcw, X, Trash2 } from 'lucide-react';
 
 function AppPageClient() {
   const router = useRouter();
@@ -741,17 +743,102 @@ function AppPageClient() {
           className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
           onClick={() => setSelectedAsset(null)}
         >
-          {/* Close button - positioned at viewport level to never obscure image */}
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedAsset(null);
-            }}
-            className="fixed top-4 right-4 w-10 h-10 bg-black/50 backdrop-blur-sm flex items-center justify-center text-white hover:bg-black/70 transition-colors z-[60]"
-            aria-label="Close preview"
-          >
-            <X className="w-6 h-6" />
-          </button>
+          {/* Top action bar - all controls in one row */}
+          <div className="fixed top-4 left-4 right-4 flex items-center justify-between z-[60]">
+            {/* Left side: empty for now, could add image counter later */}
+            <div />
+
+            {/* Right side: Action buttons + Close */}
+            <div className="flex items-center gap-2">
+              {/* Favorite button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-green-400',
+                  selectedAsset.favorite && 'text-green-500 hover:text-green-400'
+                )}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    const res = await fetch(`/api/assets/${selectedAsset.id}`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ favorite: !selectedAsset.favorite }),
+                    });
+
+                    if (res.ok) {
+                      // Update modal state
+                      setSelectedAsset({ ...selectedAsset, favorite: !selectedAsset.favorite });
+                      // Update grid state
+                      handleAssetUpdate(selectedAsset.id, { favorite: !selectedAsset.favorite });
+                    }
+                  } catch (error) {
+                    logError('Failed to toggle favorite:', error);
+                  }
+                }}
+                aria-label={selectedAsset.favorite ? 'Remove from bangers' : 'Add to bangers'}
+              >
+                <Heart className={cn('h-5 w-5', selectedAsset.favorite && 'fill-current')} />
+              </Button>
+
+              {/* Share button */}
+              <ShareButton
+                assetId={selectedAsset.id}
+                blobUrl={selectedAsset.blobUrl}
+                filename={selectedAsset.filename}
+                mimeType={selectedAsset.mime}
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-blue-400"
+              />
+
+              {/* Delete button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-red-500"
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  if (confirm(`Delete "${selectedAsset.filename}"?`)) {
+                    try {
+                      const res = await fetch(`/api/assets/${selectedAsset.id}`, {
+                        method: 'DELETE',
+                      });
+
+                      if (res.ok) {
+                        // Close modal
+                        setSelectedAsset(null);
+                        // Update grid state
+                        handleAssetDelete(selectedAsset.id);
+                        showToast('Asset deleted', 'success');
+                      }
+                    } catch (error) {
+                      logError('Failed to delete asset:', error);
+                      showToast('Failed to delete asset', 'error');
+                    }
+                  }
+                }}
+                aria-label="Delete meme"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+
+              {/* Close button */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedAsset(null);
+                }}
+                className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-white"
+                aria-label="Close preview"
+              >
+                <X className="w-6 h-6" />
+              </Button>
+            </div>
+          </div>
 
           <div
             className="max-w-4xl max-h-[90vh] relative"
@@ -769,6 +856,8 @@ function AppPageClient() {
                 priority
               />
             </div>
+
+            {/* Metadata overlay - shows on hover */}
             <div className={cn(
               "absolute bottom-4 left-4 right-4 bg-black/50 backdrop-blur-sm p-4 transition-opacity duration-300",
               showMetadata ? 'opacity-100' : 'opacity-0'

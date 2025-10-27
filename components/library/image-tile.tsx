@@ -8,6 +8,7 @@ import { error as logError } from '@/lib/logger';
 import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 import { useEmbeddingRetry } from '@/hooks/use-embedding-retry';
 import { useBlobCircuitBreaker } from '@/contexts/blob-circuit-breaker-context';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Heart, Trash2, ImageOff, Loader2, AlertCircle, Clock } from 'lucide-react';
@@ -54,6 +55,7 @@ function ImageTileComponent({
   });
   const deleteConfirmation = useDeleteConfirmation();
   const { recordBlobError, recordBlobSuccess } = useBlobCircuitBreaker();
+  const isMobile = useIsMobile();
 
   // Debug mode tracking
   const [debugInfo, setDebugInfo] = useState<{
@@ -483,14 +485,20 @@ function ImageTileComponent({
                 </Tooltip>
               </TooltipProvider>
 
-              {/* Share button - on hover */}
+              {/* Share button - always visible on mobile, hover-only on desktop */}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <ShareButton
                       assetId={asset.id}
+                      blobUrl={asset.blobUrl}
+                      filename={asset.filename}
+                      mimeType={asset.mime}
                       size="icon"
-                      className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/80 hover:text-primary"
+                      className={cn(
+                        'h-7 w-7 transition-all text-muted-foreground/80 hover:text-primary',
+                        isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      )}
                     />
                   </TooltipTrigger>
                   <TooltipContent side="top">
@@ -499,11 +507,14 @@ function ImageTileComponent({
                 </Tooltip>
               </TooltipProvider>
 
-              {/* Delete button - on hover */}
+              {/* Delete button - always visible on mobile, hover-only on desktop */}
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-muted-foreground/80 hover:text-red-500"
+                className={cn(
+                  'h-7 w-7 transition-all text-muted-foreground/80 hover:text-red-500',
+                  isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                )}
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDelete(e);
