@@ -13,7 +13,7 @@ export function CollectionGrid() {
         />
       ))}
 
-      <style jsx>{`
+      <style jsx global>{`
         @keyframes cascadeIn {
           from {
             opacity: 0;
