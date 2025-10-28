@@ -1,938 +1,212 @@
 # BACKLOG
 
----
-
-# PR #9 Landing Page Follow-Up Enhancements
-
-**Context:** Landing page redesign (PR #9) completed successfully. The following items identified in Claude AI code review are valid enhancements deferred for future iterations to avoid scope creep.
-
-**Source:** PR #9 Claude AI review (Oct 28, 2025)
+Last groomed: 2025-10-27
+Analyzed by: 7 specialized perspectives (complexity, architecture, security, performance, maintainability, UX, product)
 
 ---
 
-## Error Handling & Resilience
+## Now (Sprint-Ready, <2 weeks)
 
-### Landing Page Error Boundary
-**Value:** Graceful degradation if client component animations fail
-**Trigger:** Production stability focus or error monitoring shows issues
-**Effort:** ~1 hour
-**Context:** PR #9 Claude review Issue #4 (Medium severity)
-**Priority:** Nice-to-have defensive programming
+### [Monitoring] Implement Usage Analytics & Abuse Detection
+**Files**: `/app/api/upload/route.ts`, `/app/api/search/route.ts`
+**Perspectives**: security-sentinel
+**Impact**: Understanding real usage patterns before implementing limits; prevent sustained API abuse
+**Reality Check**: 1,000 uploads = $0.22 in embeddings (NOT "$1000 bill"). Hobby plan blocks at 1GB storage automatically (no surprise bills possible). Real power users importing meme collections = legitimate use case we should support.
+**Actual Abuse Scenario**: Sustained 600 req/min for 24 hours = $190 in embeddings (painful but not catastrophic). Detection needed: sustained max-rate usage >2 hours, avg file size >7MB.
+**Phase 1 (Monitor First - 2 weeks)**: Add metrics tracking - uploads/hour per user, daily totals, avg file size, embedding costs. Identify P99 usage patterns. NO rate limits yet - gather real data first.
+**Phase 2 (Protective Limits - After 1 month data)**: Implement soft limits based on real usage: 100 uploads/hour (supports bulk imports), 500/day (weekend collection import). Alert on sustained >200/hour for >2 hours.
+**Why These Limits**: 100/hour allows user to import 500-image collection in 5 hours (legitimate power user). Prevents sustained spam (36k/hour impossible). NOT "10/min" - that's hostile to real users.
+**Effort**: Phase 1: 4h (metrics) | Phase 2: 2h (limits based on data) | **Risk**: MEDIUM (cost manageable, Hobby plan self-protects)
+**Acceptance**: Metrics dashboard showing per-user upload patterns, alert system for sustained abuse (>200/hour sustained), friendly error messaging with upgrade path (not bare 429s)
 
-**Current State:**
-- Six landing components use "use client" directive for animations/interactions
-- AnimatedCircles, CollectionGrid, ScrollIndicator, ScrollChevron, SearchInput, OverlappingCircles
-- No error boundary wrapping these components
-- If IntersectionObserver fails (old browsers) or animation logic breaks, entire page could crash
+### [Security] Remove Error Details from Client Responses
+**File**: `/app/api/upload/route.ts:519, 556`
+**Perspectives**: security-sentinel
+**Impact**: Information disclosure - database schema, stack traces leak to client even in production
+**Fix**: Return generic error to client, log full details server-side only via structured logger
+**Effort**: 30m | **Risk**: HIGH
+**Acceptance**: Production errors show generic message, full details in Vercel logs only
 
-**Implementation:**
-1. Create `components/landing/landing-error-boundary.tsx`:
-   ```tsx
-   "use client";
-   import { Component, ReactNode } from "react";
+### [Performance] Fix N+1 Tag Queries in Upload
+**File**: `/app/api/upload/route.ts:146-180`
+**Perspectives**: performance-pathfinder
+**Impact**: 800ms additional latency when uploading with 5 tags (violates 2.5s upload SLO)
+**Current**: 4 queries per tag × 5 tags = 20 queries
+**Fix**: Batch operations - single `findMany` for existing tags, `createMany` for new tags, `createMany` for associations
+**Effort**: 1h | **Impact**: 800ms → 50ms (16x improvement)
+**Acceptance**: Upload with 5 tags completes in <100ms for tag operations, query count ≤3 regardless of tag count
 
-   export class LandingErrorBoundary extends Component<
-     { children: ReactNode; fallback?: ReactNode },
-     { hasError: boolean }
-   > {
-     state = { hasError: false };
+### [Performance] Fix N+1 Tag Queries in Search Results
+**File**: `/app/api/search/route.ts:147-178`
+**Perspectives**: performance-pathfinder
+**Impact**: 450ms search latency with 30 results (violates <500ms search SLO)
+**Current**: 1 vector search + 30 tag queries = 31 queries
+**Fix**: Single `assetTag.findMany` with `{ assetId: { in: assetIds } }`, build lookup map client-side
+**Effort**: 45m | **Impact**: 450ms → 120ms (3.75x improvement)
+**Acceptance**: Search with 30 results uses ≤2 database queries total, <200ms latency
 
-     static getDerivedStateFromError() {
-       return { hasError: true };
-     }
+### [UX] Replace Native Delete Confirmation with Modal
+**File**: `/app/app/page.tsx:803`
+**Perspectives**: user-experience-advocate
+**Impact**: CRITICAL - Data loss risk from accidental deletes (native `confirm()` too easy to mis-tap on mobile)
+**Fix**: Use existing `DeleteConfirmationModal` component (already in codebase) - shows image preview, clear warning, tap-friendly buttons
+**Effort**: 15m | **Impact**: Prevents accidental deletions
+**Acceptance**: Delete action shows modal with image preview, requires explicit confirmation, works on mobile
 
-     componentDidCatch(error: Error, info: React.ErrorInfo) {
-       console.error("Landing page error:", error, info);
-       // Optional: Send to error tracking service
-     }
-
-     render() {
-       if (this.state.hasError) {
-         return this.props.fallback || (
-           <div className="min-h-screen flex items-center justify-center">
-             <p className="font-mono text-muted-foreground">
-               Something went wrong. Please refresh the page.
-             </p>
-           </div>
-         );
-       }
-       return this.props.children;
-     }
-   }
-   ```
-
-2. Wrap landing sections in `app/page.tsx`:
-   ```tsx
-   import { LandingErrorBoundary } from "@/components/landing/landing-error-boundary";
-
-   // Wrap each section
-   <LandingErrorBoundary>
-     <section id="section-semantic-search">...</section>
-   </LandingErrorBoundary>
-   ```
-
-**Testing:**
-- Throw error in AnimatedCircles useEffect to verify boundary catches
-- Check console for error logging
-- Verify fallback UI renders
+### [Maintainability] Fix Type Safety in lib/db.ts
+**File**: `/lib/db.ts:37, 62, 116, 220, 274, 317`
+**Perspectives**: complexity-archaeologist, maintainability-maven
+**Impact**: 6+ `any` types break TypeScript safety in critical database operations - runtime errors slip through
+**Fix**: Define `PrismaTransaction`, `MockUser` types; replace `as any` with `satisfies` type assertions
+**Effort**: 2h | **Impact**: Compile-time safety for database layer
+**Acceptance**: Zero `any` types in lib/db.ts, all functions have explicit return types, tests pass
 
 ---
 
-## Accessibility Enhancements
+## Next (This Quarter, <3 months)
 
-### Focus Management After Scroll Navigation
-**Value:** Better screen reader UX when using section navigation
-**Trigger:** Accessibility audit or user feedback from screen reader users
-**Effort:** ~30 minutes
-**Context:** PR #9 Claude review Issue #5 (Low severity - A11y)
-**Priority:** Low - current smooth scroll works fine
+### [Architecture] Refactor Upload Route to Service Layer
+**File**: `/app/api/upload/route.ts:39-561` (669 lines in single function)
+**Perspectives**: complexity-archaeologist (temporal decomposition), architecture-guardian (business logic in API route)
+**Why**: 523-line function organized by execution order (validation → processing → upload → database → embedding) causes change amplification - every new feature requires editing deeply nested conditionals
+**Approach**: Extract services: `UploadValidator`, `ImageProcessor`, `DeduplicationChecker`, `BlobUploader`, `AssetRecorder`, `EmbeddingScheduler`. Clean orchestrator pattern in route handler.
+**Effort**: 6-8h | **Impact**: Enables testing business logic, reduces comprehension barrier, unlocks parallel feature development
 
-**Current State:**
-- ScrollIndicator and ScrollChevron implement smooth scrolling via `scrollIntoView()`
-- Focus remains on button after scroll completes
-- Screen reader users may lose context of which section they're now viewing
+### [Architecture] Decompose UploadZone God Component
+**File**: `/components/upload/upload-zone.tsx` (2001 lines)
+**Perspectives**: complexity-archaeologist, architecture-guardian (8 responsibilities: drag/drop, paste, queue, progress, embedding status, offline, error display, virtual scrolling)
+**Approach**: Split into 7 focused components: `UploadOrchestrator.tsx` (~150 lines), `FileValidator.ts`, `UploadNetworkClient.ts`, `UploadQueueService.ts`, `EmbeddingStatusTracker.tsx`, `UploadDropZone.tsx`, `UploadFileList.tsx`
+**Effort**: 16-24h | **Impact**: Most complex component, changed 46 times in 3 months - blocks maintainability
+**Dependencies**: None
 
-**Implementation:**
-Update `components/landing/scroll-chevron.tsx`:
-```tsx
-const handleScroll = () => {
-  const target = document.getElementById(targetId);
-  if (target) {
-    target.scrollIntoView({ behavior: "smooth", block: "start" });
+### [Architecture] Decompose Library Page Component
+**File**: `/app/app/page.tsx` (972 lines, 7 responsibilities)
+**Perspectives**: complexity-archaeologist, architecture-guardian
+**Approach**: Extract hooks (`useLibraryState.ts`, `useUrlSync.ts`) and components (`LibraryToolbar.tsx`, `ImageLightboxModal.tsx`, `EmbeddingRetryModal.tsx`). Page.tsx becomes ~150-line orchestrator.
+**Effort**: 10-14h | **Impact**: Second most complex file, unlocks parallel UI development
 
-    // Set focus after scroll animation completes
-    setTimeout(() => {
-      // Make section focusable
-      target.setAttribute("tabindex", "-1");
-      target.focus({ preventScroll: true });
-      // Announce to screen readers
-      target.setAttribute("aria-live", "polite");
-    }, 500); // Match scroll duration
-  }
-};
-```
+### [Maintainability] Standardize Error Handling Across API Routes
+**Files**: Multiple API routes (`/app/api/upload/route.ts`, `/app/api/search/route.ts`, etc.)
+**Perspectives**: maintainability-maven (3 different error patterns confuse developers)
+**Why**: Pattern 1: Throw exceptions. Pattern 2: Return error objects. Pattern 3: Custom error classes. Frontend must handle 3 different shapes.
+**Approach**: Create `lib/api-response.ts` with `errorResponse()` helper. Single `ApiErrorResponse` interface. Update 15 routes to use standard pattern.
+**Effort**: 4h | **Impact**: Consistent error UX, easier frontend error boundaries
 
-Update section elements in `app/page.tsx`:
-```tsx
-<section
-  id="section-semantic-search"
-  tabIndex={-1}
-  className="focus:outline-none focus:ring-2 focus:ring-primary/50"
->
-```
+### [Maintainability] Enforce Logger Usage via ESLint
+**Files**: 510+ raw `console.*` calls across 71 files vs well-designed `lib/logger.ts` being ignored
+**Perspectives**: maintainability-maven (production logs lack structured data)
+**Why**: Vercel logs missing context (asset ID, user ID, etc.) - impossible to debug production issues. Development vs production logging diverges.
+**Approach**: Add ESLint rule `no-console: error`. Bulk find-replace to structured logger calls. Add context objects to all log statements.
+**Effort**: 8h | **Impact**: Enable production debugging, queryable logs
 
-**Testing:**
-- Use VoiceOver (macOS) or NVDA (Windows)
-- Click scroll chevron
-- Verify screen reader announces new section
+### [Product] Implement Freemium Pricing Tiers
+**Scope**: New feature - monetization model
+**Perspectives**: product-visionary
+**Business Case**:
+- Currently no revenue while incurring Replicate API + Vercel Blob costs
+- Freemium standard for productivity tools ($10-50/mo)
+- 10-15% free → paid conversion typical for similar tools
+**Tiers**: Free (500 assets) → Pro ($12/mo, unlimited) → Team ($49/mo for 5 users)
+**Implementation**: Stripe integration, usage tracking/limits, billing portal, feature gates in API routes
+**Effort**: 5-7 weeks | **Value**: Creates recurring revenue stream
+**Acceptance**: Users can sign up for free, upgrade to Pro, billing works, limits enforced
 
----
+### [Performance] Move Client-Side Filtering to Server
+**File**: `/app/app/page.tsx:288-297`
+**Perspectives**: performance-pathfinder
+**Why**: Client-side filtering of search results after fetch wastes bandwidth & CPU. Filtering 100 results with tags takes ~80ms on each search.
+**Approach**: Add `favoriteOnly` and `tagId` query params to `/api/search` route. Move WHERE clauses to SQL. Reduce payload size 50%+.
+**Effort**: 30m | **Impact**: Eliminates client-side filtering lag
 
-### AnimatedCircles SVG Accessibility
-**Value:** Better screen reader description of Venn diagram visual
-**Trigger:** WCAG AAA compliance audit
-**Effort:** ~15 minutes
-**Context:** PR #9 Claude review Issue #7 (Low severity - A11y)
+### [Performance] Add Database Indexes
+**File**: Database schema
+**Perspectives**: performance-pathfinder
+**Why**: Missing composite index on `assets(owner_user_id, deleted_at)` causes sequential scan before vector search. 80ms additional latency on 10k+ asset libraries.
+**Approach**: `CREATE INDEX idx_assets_user_deleted ON assets(owner_user_id, deleted_at) WHERE deleted_at IS NULL;`
+**Effort**: 10m | **Impact**: 80ms → 5ms for user/deleted filtering
 
-**Current State:**
-- AnimatedCircles SVG has no title or role
-- OverlappingCircles has proper aria-label, but AnimatedCircles doesn't
-
-**Implementation:**
-Update `components/landing/animated-circles.tsx`:
-```tsx
-<svg
-  width={size}
-  height={size}
-  viewBox={`0 0 ${size} ${size}`}
-  className="w-64 h-64 md:w-[300px] md:h-[300px]"
-  role="img"
-  aria-labelledby="venn-diagram-title"
->
-  <title id="venn-diagram-title">
-    Venn diagram showing the intersection of text queries and image database,
-    representing semantic search matches
-  </title>
-  {/* ... circles ... */}
-</svg>
-```
+### [UX] Add Bulk Delete & Multi-Select
+**File**: `/app/app/page.tsx` (feature missing)
+**Perspectives**: user-experience-advocate
+**Why**: Deleting 20 accidental uploads requires 40 clicks (delete + confirm each). Frustrating, tedious workflow.
+**Approach**: Add multi-select mode with checkboxes in ImageGrid. Batch action bar when items selected. Single API call for bulk delete.
+**Effort**: 6h | **Impact**: 40 clicks → 3 clicks
+**Premium Gate**: Bulk actions limited to 10 assets on free, unlimited on Pro
 
 ---
 
-## Type Safety & Validation
+## Soon (Exploring, 3-6 months)
 
-### ScrollChevron TargetId Validation
-**Value:** Runtime safety against typos in section IDs
-**Trigger:** If scroll navigation bugs are reported
-**Effort:** ~30 minutes
-**Context:** PR #9 Claude review Issue #6 (Low severity)
+- **[Product] Team Workspaces & Collaboration** - Multi-user library access with permissions, shared upload/search/tagging, real-time updates. Opens B2B market (agencies, brands, creators). 10x TAM expansion. Team pricing $40-100/mo vs $10/mo individual. Requires implementing user-scoped cache invalidation (spec in old BACKLOG lines 257-328). (6-10 weeks)
 
-**Current Approach:**
-```tsx
-interface ScrollChevronProps {
-  targetId: string; // Any string accepted
-}
-```
+- **[Product] OCR Text Extraction for Search** - Extract text from meme overlays via Tesseract/Google Cloud Vision, enable hybrid search (semantic + full-text). Solves top user frustration: "can't find meme by text". 85% of memes contain text. Key differentiator vs competitors. (4-6 weeks)
 
-**Option A: TypeScript Literal Union (Recommended)**
-```tsx
-type SectionId =
-  | "section-semantic-search"
-  | "section-personal-library"
-  | "section-benefits";
+- **[Platform] Mobile App (React Native)** - iOS/Android native app with camera integration, "share to Sploot" from other apps, push notifications, true offline mode. 60% of meme consumption is mobile. PWA adoption: 4% vs 96% native install rates. App Store presence = discovery channel. (12-16 weeks, phased)
 
-interface ScrollChevronProps {
-  targetId: SectionId;
-}
-```
-- Pros: Compile-time safety, autocomplete in IDE
-- Cons: Must update type when adding sections
+- **[Integration] Public API & Developer Platform** - REST API v1, OAuth 2.0, Zapier integration, webhook system. Platform effects: developers build integrations → more valuable. 80% of enterprise deals require API. Unlocks 5000+ workflow integrations. (11-16 weeks)
 
-**Option B: Runtime Validation**
-```tsx
-const handleScroll = () => {
-  const target = document.getElementById(targetId);
-  if (!target) {
-    console.warn(`ScrollChevron: target element "${targetId}" not found`);
-    return;
-  }
-  target.scrollIntoView({ behavior: "smooth", block: "start" });
-};
-```
-- Pros: Catches issues at runtime, logs helpful warnings
-- Cons: No compile-time protection
+- **[Content] Video & GIF Semantic Search** - Support MP4/WebM uploads, FFmpeg processing, extract keyframes, generate embeddings per frame. Search across video content with timestamp results. 45% of meme shares are video/GIF. Unique capability (no competitor has video semantic search). (13-19 weeks, phased: GIF → video → search)
 
-**Recommendation:** Use Option A for type safety + Option B for defensive programming
+- **[Workflow] Smart Collections & Auto-Tagging** - AI-powered tag suggestions using CLIP embeddings, smart collections (auto-generated "Screenshots", "Text Memes"), duplicate detection via pHash. Power users can manage 1000+ assets. Premium feature for Pro tier. (8-12 weeks)
+
+- **[Testing] Test Coverage for Critical Paths** - Integration tests for upload route (concurrency, duplicate detection, blob cleanup), search route, auth flows. Current coverage: 0% on financial/data integrity code. Enables safe refactoring. (6h initial, ongoing)
+
+- **[Architecture] Repository Pattern for Database Layer** - Split `lib/db.ts` (559 lines, low cohesion) into domain repositories: `AssetRepository`, `EmbeddingRepository`, `TagRepository`. Testable via dependency injection. (3-4h)
+
+- **[Maintainability] Add Migration Guides for Deprecated Code** - Document how to migrate from `UploadFile` legacy interface to `FileMetadata` + `FileStreamProcessor`. Prevents technical debt accumulation. (1h)
+
+- **[UX] Search Empty State Guidance** - Educational empty state when no results: explain semantic search, show example queries, suggest alternatives. Users don't understand semantic search after one failed query. (1h)
 
 ---
 
-## UI/UX Polish
+## Later (Someday/Maybe, 6+ months)
 
-### Navigation Layout Shift Prevention
-**Value:** Prevent potential CLS from fixed nav interaction
-**Trigger:** If layout shift metrics degrade in Lighthouse
-**Effort:** ~15 minutes
-**Context:** PR #9 Claude review Issue #8 (Low severity - preventative)
+- **[Social] Public Profiles & Sharing** - `sploot.com/@username` public profiles, follow/follower system, trending page, embed widgets. Viral growth potential but conflicts with "private by design" positioning.
 
-**Current State:**
-- Top-right nav uses `position: fixed` without reserving space
-- Theme toggle and sign-in link could cause layout shift on interaction
+- **[Analytics] Usage Analytics Dashboard** - Upload trends, search patterns, most-used tags. Export for teams. Team tier differentiator.
 
-**Implementation:**
-```tsx
-<nav className="fixed top-0 right-0 z-50 p-6 flex items-center gap-4 pointer-events-none">
-  <div className="pointer-events-auto">
-    <ThemeToggle />
-  </div>
-  <Link
-    href="/sign-in"
-    className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
-  >
-    sign in
-  </Link>
-</nav>
-```
-- `pointer-events-none` on container prevents layout shift
-- `pointer-events-auto` on children restores interactivity
+- **[Export] Data Portability (GDPR)** - Export to ZIP with metadata.json, scheduled backups to Google Drive/Dropbox. Required for enterprise, trust signal.
 
-**Testing:**
-- Measure CLS before/after in Lighthouse
-- Verify nav remains clickable
+- **[Performance] Offline-First PWA Enhancement** - Full offline mode with IndexedDB cache, background sync for uploads when connection restored. Premium feature: 1GB cache vs 100MB free.
+
+- **[Content] Advanced Video Understanding** - Custom ML models for video content classification, scene detection, object recognition in videos.
+
+- **[Enterprise] Self-Hosted Deployment** - Docker/Kubernetes deployment option, custom integrations, SLA guarantees, dedicated support. Enterprise tier: custom pricing.
+
+- **[Platform] Browser Extension** - Right-click "Save to Sploot" from any webpage, quick capture toolbar, search from omnibox.
 
 ---
 
-# Cache Consolidation Future Enhancements
+## Learnings
 
-**Context:** Cache consolidation completed with memory-only backend and strategy pattern. These items deferred for multi-user scale or specific performance needs.
+**From this grooming session:**
 
----
+- **God objects accumulate silently:** UploadZone (2001 lines), LibraryPage (972 lines), UploadRoute (669 lines) - all grew iteratively without refactoring triggers. Need size thresholds (500 lines = review checkpoint).
 
-## Multi-User Readiness
+- **N+1 queries hide in loops:** Both critical performance issues (upload tags, search tags) follow same pattern - sequential queries inside `Promise.all(array.map(...))`. Should add ESLint rule to flag database calls inside map/forEach.
 
-### User-Scoped Cache Invalidation
-**Value:** Prevent one user's actions from evicting other users' caches
-**Trigger:** Multi-user launch (when sharing features added)
-**Effort:** ~2 hours
-**Context:** PR #7 Codex P1 feedback (4 inline comments)
-**Priority:** Required before multi-user release
+- **Type safety erosion compounds:** 6 `any` types in lib/db.ts spread to call sites (30+ total). One `any` → cascade of type loss. Strict TSConfig (`noImplicitAny: error`) needed.
 
-**Current Limitation:**
-- `cache.clear('assets')` clears ALL users' asset caches globally
-- `cache.clear('search')` clears ALL users' search results globally
-- One user favoriting an asset evicts cached data for everyone
-- Acceptable for single-user scope (per CLAUDE.md), regression for multi-user
+- **Error handling patterns diverge:** 3 different patterns emerged organically (throw, return error object, custom Error class). Need to establish pattern BEFORE building 3rd API route, not after 15th.
 
-**Previous Implementation:**
-- Used `invalidateUserData(userId)` function
-- Cleared only keys prefixed with specific userId
-- Example: cleared `search:user123:*` without affecting `search:user456:*`
+- **Product-market fit question:** Currently positioned as hobbyist tool (single-user meme library). Market analysis shows B2B opportunity (team workspaces, API, enterprise) is 10x larger. Strategic decision needed: stay niche or expand to professional market?
 
-**Required Implementation:**
+- **Monetization blocks growth:** Operating costs (Replicate, Vercel) accumulate without revenue model. Freemium is NOW priority, not future consideration.
 
-1. **Add user-scoped clear method to ICacheBackend:**
-   ```typescript
-   interface ICacheBackend {
-     // ... existing methods
-     clearUserData(userId: string, namespace?: string): Promise<void>;
-   }
-   ```
-
-2. **Implement in MemoryBackend:**
-   ```typescript
-   async clearUserData(userId: string, namespace?: string): Promise<void> {
-     const caches = namespace ? [this.getCacheForNamespace(namespace)] :
-                               [this.searchResults, this.assetMetadata];
-
-     for (const cache of caches) {
-       // LRU cache iteration: delete keys starting with namespace:userId:
-       for (const key of cache.keys()) {
-         if (key.startsWith(`search:${userId}:`) ||
-             key.startsWith(`assets:${userId}:`)) {
-           cache.delete(key);
-         }
-       }
-     }
-   }
-   ```
-
-3. **Update asset mutation routes** (4 locations):
-   - `app/api/assets/route.ts:134` (asset creation)
-   - `app/api/assets/[id]/route.ts:186` (favorite toggle)
-   - `app/api/assets/[id]/route.ts:274` (permanent delete)
-   - `app/api/assets/[id]/route.ts:291` (soft delete)
-
-   ```typescript
-   // Change from:
-   await cache.clear('assets');
-   await cache.clear('search');
-
-   // To:
-   await cache.clearUserData(userId, 'assets');
-   await cache.clearUserData(userId, 'search');
-   ```
-
-**Redis/KV Alternative:**
-- Redis: Use `SCAN` + `DEL` with pattern `search:${userId}:*`
-- Vercel KV: Use `scan()` with cursor and pattern matching
-- More efficient than LRU iteration for large datasets
-
-**Testing Requirements:**
-- Verify user A's cache unaffected when user B modifies assets
-- Test concurrent operations: user A and B both favoriting simultaneously
-- Measure performance impact of cache iteration (should be <10ms for 1000 entries)
-
-**Success Criteria:**
-- Cache hit rate remains high under multi-user load
-- One user's mutations don't evict other users' cached data
-- Backwards compatible with single-user behavior
+- **UX vs technical debt tradeoff:** 3 CRITICAL UX issues (delete confirmation, search guidance, upload progress) take 2h combined to fix. 3 CRITICAL architecture issues (god objects) take 32-46h. Ship UX wins first for user impact, then tackle architecture for velocity.
 
 ---
 
-## Future Backend Implementations
-
-### Vercel KV Backend (When Multi-User Scale Reached)
-**Value:** Persistent cache across deployments, shared across serverless function instances
-**Trigger:** Multi-user launch or hitting memory limits (>1GB cache footprint)
-**Effort:** ~2-3 hours
-
-**Implementation:**
-- Create `lib/cache/VercelKVBackend.ts` implementing `ICacheBackend`
-- Use existing `@vercel/kv` package (already in dependencies)
-- Implement get/set/delete using `kv.get()`, `kv.set()`, `kv.del()`
-- Handle JSON serialization/deserialization for complex objects
-- Map TTL seconds to KV's `ex` parameter
-- Add error handling for KV connection failures (fallback to memory or fail gracefully)
-
-**Swap:** Single line change in `lib/cache/index.ts`:
-```typescript
-const cacheServiceInstance = new CacheService(new VercelKVBackend());
-```
-
-**Cost Consideration:** Upstash free tier = 256MB + 500k commands/month. Estimate usage before adopting.
-
----
-
-### Redis Backend (Self-Hosted or Cloud Redis)
-**Value:** Full control over caching infrastructure, no vendor lock-in
-**Trigger:** Need for advanced Redis features (pub/sub, streams) or cost optimization at scale
-**Effort:** ~3-4 hours
-
-**Implementation:**
-- Add `ioredis` package dependency
-- Create `lib/cache/RedisBackend.ts` implementing `ICacheBackend`
-- Connection string from `REDIS_URL` environment variable
-- Handle connection pooling, reconnection logic
-- Implement pipelining for batch operations (future optimization)
-- Add health check method to verify Redis connectivity
-
-**Benefits over Vercel KV:**
-- Lower cost at high scale (self-hosted)
-- Advanced features: pub/sub for cache invalidation across instances
-- Better observability/monitoring options
-
----
-
-### Hybrid Two-Tier Backend (Memory L1 + KV/Redis L2)
-**Value:** Best of both worlds - 0ms L1 hits, persistent L2 cache
-**Trigger:** High cache hit rate (>70%) with need for persistence
-**Effort:** ~4-5 hours
-**Pattern:** Copy from existing `lib/slug-cache.ts` three-tier implementation
-
-**Implementation:**
-- Create `lib/cache/HybridBackend.ts` implementing `ICacheBackend`
-- Wrap existing MemoryBackend as L1 cache
-- Wrap VercelKVBackend or RedisBackend as L2 cache
-- On `get`: check L1 → if miss, check L2 → if hit, warm L1 → return
-- On `set`: write to both L1 and L2 in parallel
-- On `delete`: invalidate both L1 and L2
-- Add config for L1 TTL (shorter) vs L2 TTL (longer)
-
-**Optimization:** Async L2 writes - return immediately after L1 write, queue L2 write in background
-
-**Success Metrics:** L1 hit rate >70%, L2 hit rate >20%, combined latency <10ms p95
-
----
-
-## Cache Warming Strategies
-
-### Popular Query Pre-Warming (Multi-User Context)
-**Value:** Avoid cold cache performance hits after deployment
-**Trigger:** Multiple users experiencing cache misses for same popular searches
-**Effort:** ~2 hours
-
-**Implementation:**
-- Track search query frequency in database (or analytics)
-- Identify top 20 most common queries per user
-- After deployment, background job warms cache by generating embeddings for top queries
-- Schedule: Run on deployment, every 6 hours to refresh
-
-**Code from `multi-layer-cache.ts` WARMING config** (lines 24-28):
-```typescript
-WARMING: {
-  POPULAR_QUERIES_COUNT: 20,
-  RECENT_ASSETS_COUNT: 100,
-  REFRESH_INTERVAL: 15 * 60 * 1000, // 15 minutes
-}
-```
-
-**Metrics to Track:** Cache hit rate before/after warming, time to first search result
-
----
-
-### Asset Metadata Pre-Loading
-**Value:** Faster asset list rendering on homepage
-**Trigger:** Users complain about slow initial page load (>1s)
-**Effort:** ~1 hour
-
-**Implementation:**
-- On user login, background job fetches recent 100 assets and caches metadata
-- Populate `assets:${userId}:recent` cache key
-- Expire after 30 minutes to ensure freshness
-
-**Trade-off:** Increased database load on login vs faster initial render
-
----
-
-## Observability Enhancements
-
-### Prometheus Metrics Export
-**Value:** Production monitoring, alerting on low cache hit rates
-**Trigger:** Multi-user production deployment
-**Effort:** ~3 hours
-
-**Implementation:**
-- Add `prom-client` package
-- Create `lib/cache/ObservableCache.ts` decorator wrapping CacheService
-- Track metrics: cache hits/misses (counter), cache latency (histogram), cache size (gauge)
-- Export `/api/metrics` endpoint for Prometheus scraping
-- Set up Grafana dashboard for visualization
-
-**Metrics:**
-- `cache_requests_total{namespace, status}` - counter (hit/miss)
-- `cache_latency_ms{namespace, operation}` - histogram (get/set)
-- `cache_size_bytes{namespace}` - gauge (current size)
-
----
-
-### Structured Logging with Context
-**Value:** Debug cache issues in production
-**Trigger:** Unexplained cache behavior or performance degradation
-**Effort:** ~1 hour
-
-**Implementation:**
-- Add logging to CacheService: debug level for hits/misses, error level for failures
-- Include context: userId, query snippet (first 50 chars), cache key hash
-- Use structured logger (Winston or Pino) for JSON output
-- Log to Vercel logging or external service (Datadog, Sentry)
-
-**Example Log:**
-```json
-{
-  "level": "debug",
-  "msg": "Cache hit",
-  "namespace": "text-embeddings",
-  "keyHash": "a3f2c1",
-  "querySnippet": "funny cat meme...",
-  "userId": "user_123",
-  "timestamp": "2025-10-23T12:34:56Z"
-}
-```
-
----
-
-## Performance Optimizations
-
-### Batch Cache Operations
-**Value:** Reduce RTT for multiple cache lookups
-**Trigger:** Routes fetching embeddings for multiple images/texts in single request
-**Effort:** ~2 hours
-
-**Implementation:**
-- Add methods to ICacheBackend: `getMany(keys: string[]): Promise<Map<string, T>>`
-- Add methods to CacheService: `getTextEmbeddings(texts: string[]): Promise<Map<string, number[]>>`
-- For MemoryBackend: loop over keys (no real benefit, already in-process)
-- For RedisBackend: use MGET command or pipeline
-- For VercelKVBackend: parallelize with `Promise.all(keys.map(k => kv.get(k)))`
-
-**Use Case:** Upload endpoint generating embeddings for 10 images - batch fetch existing embeddings in single call
-
----
-
-### Compression for Large Values
-**Value:** Reduce memory footprint and network transfer for cached embeddings
-**Trigger:** Cache using >500MB memory or Vercel KV approaching storage limits
-**Effort:** ~2 hours
-
-**Implementation:**
-- Add compression layer in CacheService before backend.set()
-- Use `lz4` or `zstd` for fast compression (embeddings are floating point arrays, compress well)
-- Compress on set, decompress on get
-- Add `compressed: boolean` flag to cached values to handle migration
-
-**Expected Savings:** 768-dim float32 embeddings compress ~40-60% (3KB → 1.5KB)
-
----
-
-### Smart TTL Adjustment Based on Access Patterns
-**Value:** Keep frequently accessed items longer, evict stale items faster
-**Trigger:** Cache hit rate drops below 50% despite sufficient capacity
-**Effort:** ~3 hours
-
-**Implementation:**
-- Track access frequency for each cache key
-- On cache hit, extend TTL proportionally to access frequency
-- On cache set, calculate initial TTL based on predicted access pattern
-- Use exponential backoff: 1 access = 15min, 10 accesses = 1hr, 100 accesses = 6hr
-
-**Complexity Warning:** Adds state tracking overhead. Only implement if demonstrated need.
-
----
-
-## Testing Infrastructure
-
-### Cache Integration Tests
-**Value:** Catch cache behavior issues before production
-**Trigger:** Migration to Vercel KV or Redis backend
-**Effort:** ~2 hours
-
-**Implementation:**
-- Create `__tests__/integration/cache-integration.test.ts`
-- Test real backend (not mocked): spin up Redis in Docker for tests, or use Vercel KV test instance
-- Test scenarios: cache persistence across service restarts, concurrent access, TTL expiration
-- Use `testcontainers` package for Redis container management in tests
-
----
-
-### Cache Performance Benchmarks
-**Value:** Quantify performance impact of different backends
-**Trigger:** Evaluating Memory vs KV vs Redis backends
-**Effort:** ~1 hour
-
-**Implementation:**
-- Create `__benchmarks__/cache-benchmark.ts` using `vitest bench` or `tinybench`
-- Benchmark operations: get (hit), get (miss), set, delete
-- Compare Memory vs Vercel KV vs Redis backends
-- Measure: latency (p50, p95, p99), throughput (ops/sec)
-
-**Baseline Expectations:**
-- Memory: <1ms p99
-- Vercel KV: 5-15ms p99 (network RTT)
-- Redis (same region): 2-5ms p99
-
----
-
-## Nice-to-Have Improvements
-
-### Testing Infrastructure Enhancements (from PR #7 review)
-**Value:** Improved test coverage and developer experience
-**Trigger:** Implementing Redis/KV backend or debugging cache issues
-**Effort:** ~3 hours total
-**Source:** PR #7 code review feedback
-
-**Memory Leak Prevention (10 min):**
-- Add `resetCacheService()` function to `lib/cache/index.ts` for test cleanup
-- Allows tests to start with fresh cache state
-- Prevents singleton accumulating stale data across test runs
-
-**Additional Test Scenarios (2-3 hours):**
-- LRU eviction testing: Verify max size limits trigger eviction
-- TTL expiration testing: Advance time mocks to verify expiration behavior
-- Concurrent stress testing: High-volume parallel reads/writes
-- Would use test-specific backends or time mocking
-
-**TTL Behavior Documentation (15 min):**
-- Clarify per-item vs cache-wide TTL in `ICacheBackend` interface JSDoc
-- Current: Interface suggests per-item TTL, implementation uses cache-wide defaults
-- Document that `MemoryBackend` supports per-item TTL via LRUCache options
-- Future Redis/KV backends would naturally support per-item TTL
-
-### Cache Key Versioning
-**Value:** Invalidate all cache entries when embedding model changes
-**Effort:** ~30 minutes
-
-Add version prefix to cache keys:
-```typescript
-TEXT_EMBEDDING: (text: string) => `v2:txt:${hashString(text)}`
-```
-
-Bump version when changing CLIP model or embedding dimension. All old cache entries automatically invalidated (different key prefix).
-
----
-
-### Namespace-Aware Cache Clearing
-**Value:** Clear only specific cache type (e.g., "clear all search caches")
-**Effort:** ~1 hour
-
-Implement `clear(namespace)` method that only clears specified namespace:
-```typescript
-await cache.clear('text-embeddings'); // Only clears txt: keys
-await cache.clear('search-results');  // Only clears search: keys
-```
-
-Useful for debugging or when specific data type becomes stale.
-
----
-
-### Cache Hit Rate Alerting
-**Value:** Proactive notification when cache performance degrades
-**Effort:** ~1 hour (depends on monitoring setup)
-
-Set up alert in monitoring system:
-- Alert when hit rate <40% over 15min window
-- Alert when cache latency p95 >100ms
-- Send to Slack/email for investigation
-
----
-
-## Technical Debt Opportunities
-
-### Migrate Slug Cache to Unified Service
-**Current State:** `lib/slug-cache.ts` exists as separate three-tier implementation
-**Opportunity:** Merge into CacheService as specialized caching strategy
-**Effort:** ~3 hours
-**Benefit:** Single caching codebase, easier to maintain
-**Risk:** Slug cache is well-tested and stable, migration may introduce bugs
-**Recommendation:** Leave separate unless actively causing maintenance burden
-
----
-
-### Type-Safe Cache Keys
-**Current State:** Cache keys are strings, easy to mistype or create inconsistent keys
-**Opportunity:** Create branded types for cache keys to enforce correct usage
-**Effort:** ~2 hours
-
-```typescript
-type TextEmbeddingKey = string & { __brand: 'TextEmbeddingKey' };
-type ImageEmbeddingKey = string & { __brand: 'ImageEmbeddingKey' };
-
-// Factory functions ensure correct key format
-function createTextEmbeddingKey(text: string): TextEmbeddingKey {
-  return `txt:${hashString(text)}` as TextEmbeddingKey;
-}
-```
-
-**Benefit:** Compile-time safety, prevents mixing up key types
-**Complexity:** Adds type gymnastics, may not be worth it for internal API
-
----
-
-## Future Backend Considerations
-
-### Cloudflare KV (If Migrating from Vercel)
-**Trigger:** Move to Cloudflare Workers/Pages from Vercel
-**Effort:** ~2 hours
-**Implementation:** Similar to VercelKVBackend, use Cloudflare KV bindings
-
-### DynamoDB (If on AWS)
-**Trigger:** Migrate to AWS infrastructure
-**Effort:** ~4 hours
-**Considerations:** TTL requires DynamoDB TTL attribute, partition key design for even distribution
-
-### In-Memory + Disk Persistence (SQLite)
-**Trigger:** Single-server deployment, need persistence without external service
-**Effort:** ~3 hours
-**Implementation:** Use `better-sqlite3` for disk-backed cache with LRU eviction logic
-
----
-
-# BACKLOG: Mobile-Friendly Enhancements
-
-**Context:** Mobile share & actions implementation (TODO.md). These items deferred as non-critical enhancements or alternative approaches.
-
----
-
-## Future Enhancements
-
-### Server-Side Mobile Detection
-**Value:** Optimized initial render for mobile clients (buttons visible immediately without JS)
-**Trigger:** Measurable CLS/FCP improvements needed, or SSR optimization focus
-**Effort:** ~2-3 hours
-
-**Implementation:**
-- Add `ua-parser-js` dependency for user-agent parsing
-- Create middleware in `middleware.ts` to detect mobile clients
-- Set header `x-device-type: mobile|desktop` on request
-- Read header in components via `headers()` in React Server Components
-- Render mobile-optimized markup server-side (no hover classes)
-
-**Benefit:** Improved perceived performance, no layout shift when JS loads
-**Trade-off:** Increased server CPU for UA parsing on every request
-
----
-
-### Progressive Web App Share Target
-**Value:** "Save to sploot" workflow - share images TO sploot from other apps
-**Trigger:** User feedback requesting save-to-library from camera/other apps
-**Effort:** ~4-6 hours
-
-**Implementation:**
-- Add `share_target` to `public/manifest.json`:
-  ```json
-  {
-    "share_target": {
-      "action": "/app/share-target",
-      "method": "POST",
-      "enctype": "multipart/form-data",
-      "params": {
-        "files": [{"name": "image", "accept": ["image/*"]}]
-      }
-    }
-  }
-  ```
-- Create `app/app/share-target/route.ts` POST handler
-- Extract file from FormData, process like upload
-- Redirect to library after save
-- Handle auth: require sign-in before accepting share
-
-**Benefit:** Native app-like workflow on mobile, differentiated feature
-**Complexity:** Additional surface area for uploads, authentication flow
-
----
-
-### Touch Gesture Controls for Fullscreen Modal
-**Value:** More native app-like feel, cleaner UI on mobile
-**Trigger:** User testing shows desire for gesture navigation
-**Effort:** ~6-8 hours
-
-**Implementation:**
-- Add gesture library (`react-use-gesture` or `use-gesture`)
-- Implement swipe-up gesture in fullscreen modal to reveal action bar
-- Implement swipe-down gesture to dismiss modal
-- Add left/right swipe for next/previous image in library
-- Include smooth spring animations for gesture transitions
-- Add visual feedback during gesture (rubber band effect)
-
-**Benefit:** Enhanced tactile UX, reduced UI chrome
-**Risk:** Learning curve for users unfamiliar with gestures
-
----
-
-### Haptic Feedback on Mobile Actions
-**Value:** Enhanced tactile response on mobile browsers
-**Trigger:** Pursuit of premium mobile experience
-**Effort:** ~1-2 hours
-
-**Implementation:**
-- Feature detect Vibration API: `navigator.vibrate`
-- Add haptic patterns:
-  - Favorite: Short pulse (50ms)
-  - Delete: Double pulse (50ms, pause, 50ms)
-  - Share: Triple pulse (light, medium, light)
-- Wrap in `useHaptic()` hook for reusability
-- Add user preference toggle in settings to disable
-
-**Browser Support:** Android Chrome (good), iOS Safari (no support - graceful no-op)
-**Benefit:** Marginal UX improvement on supported devices
-
----
-
-### Long-Press Context Menu on Tiles
-**Value:** Cleaner UI, more actions available without permanent buttons
-**Trigger:** Action bar getting crowded with features (tags, copy, etc.)
-**Effort:** ~8-10 hours
-
-**Implementation:**
-- Detect long-press gesture (300ms threshold)
-- Show context menu overlay at touch point
-- Menu items: Share, Delete, Favorite, Copy URL, Download, View Details
-- Custom component (not native context menu for styling control)
-- Handle touch move during long-press (cancel if finger moves >10px)
-- Dismiss on background tap or action selection
-
-**Alternative to:** Always-visible buttons on mobile
-**Trade-off:** Hidden affordance (users must discover), but cleaner aesthetic
-
----
-
-## Nice-to-Have Improvements
-
-### Share Analytics Tracking
-**Value:** Data-driven UX decisions about share method preference
-**Effort:** ~1 hour
-
-**Implementation:**
-- Add telemetry event when share button clicked
-- Track: method used (native/clipboard), success/failure, device type
-- Log to existing `/api/telemetry` endpoint
-- Create analytics dashboard showing share method distribution
-- Use data to prioritize further share UX improvements
-
-**Example Insight:** If 90% use native share, could remove clipboard fallback UI complexity
-
----
-
-### Clipboard Fallback Modal for iOS Non-HTTPS
-**Value:** Better error recovery when clipboard API fails
-**Trigger:** Users reporting share failures on iOS in non-HTTPS contexts
-**Effort:** ~2 hours
-
-**Implementation:**
-- Detect clipboard write failure (iOS Safari blocks in some contexts)
-- Show modal with shareable URL in input field
-- Auto-select text for easy manual copy
-- Add "Copy Link" button with alternative clipboard approach (document.execCommand)
-- Dismiss modal after copy or cancel
-
-**Context:** Rare edge case - most deployments use HTTPS where clipboard works
-
----
-
-### Share URL Shortening Integration
-**Value:** Marginally cleaner share links for social media
-**Effort:** ~3-4 hours
-**Assessment:** Low priority - current `/s/[slug]` already short (10 chars)
-
-**Implementation:**
-- Integrate bit.ly or similar API
-- Generate short URL on share click
-- Cache mapping in database (share_slug → short_url)
-- Additional API call + external dependency
-
-**Benefit:** Minimal - 10-char slug already quite short
-**Recommendation:** Defer unless user feedback specifically requests shorter links
-
----
-
-### Image Download Button in Fullscreen Modal
-**Value:** Convenience for users who want local copy
-**Effort:** ~1 hour
-
-**Implementation:**
-- Add download button to fullscreen modal action bar
-- Fetch blob, create download link with `download` attribute
-- Filename from asset metadata
-- Handle cross-origin restrictions (fetch, create blob URL)
-
-**Use Case:** Power users building local collections, meme creators saving source
-
----
-
-### Keyboard Shortcuts in Fullscreen Modal
-**Value:** Desktop power user efficiency
-**Effort:** ~2 hours
-
-**Implementation:**
-- Add keyboard event listener in modal
-- Shortcuts:
-  - Arrow keys: Next/previous image in library
-  - F: Toggle favorite
-  - S: Share
-  - D: Delete (with confirmation)
-  - ESC: Close modal (already works)
-- Show shortcut hints on hover or help overlay
-- Use existing `useKeyboardShortcut` hook
-
-**Benefit:** Faster navigation for desktop users browsing many images
-
----
-
-## Technical Debt Opportunities
-
-### Consolidate Hover Detection
-**Current State:** Hover capability checked in multiple places (CSS media query, JS hook)
-**Opportunity:** Create single source of truth for hover detection
-**Effort:** ~1 hour
-
-**Implementation:**
-- Define CSS custom property: `--has-hover: 0|1`
-- Set in root based on `@media (hover: hover)` query
-- Read in JS: `getComputedStyle(document.documentElement).getPropertyValue('--has-hover')`
-- All components use single detection method
-
-**Benefit:** Easier maintenance, consistent behavior across components
-**Risk:** Minimal - well-tested pattern
-
----
-
-### Refactor ShareButton Component API
-**Current State:** ShareButton takes `assetId`, internally fetches share URL
-**Opportunity:** Accept pre-fetched `shareUrl` prop for flexibility
-**Effort:** ~30 minutes
-
-**Implementation:**
-- Add optional `shareUrl?: string` prop
-- If provided, skip API call and use directly
-- If not provided, fetch as currently implemented (backwards compatible)
-- Update prop types and JSDoc
-
-**Benefit:** Reusable in more contexts (sharing external URLs, pre-fetched shares)
-**Use Case:** Sharing from search results where we might batch-fetch share URLs
-
----
-
-### Extract Action Hooks for Reusability
-**Current State:** Favorite/delete logic duplicated between tiles and modal
-**Opportunity:** Extract to custom hooks (`useFavoriteToggle`, `useAssetDelete`)
-**Effort:** ~2 hours
-
-**Implementation:**
-- Create `hooks/use-favorite-toggle.ts`:
-  - Takes asset ID and current favorite state
-  - Returns `toggleFavorite` function
-  - Handles API call, optimistic updates, error handling
-  - Emits events for cache invalidation
-- Create `hooks/use-asset-delete.ts`:
-  - Takes asset ID
-  - Returns `deleteAsset` function with confirmation
-  - Handles API call, state cleanup, success toast
-- Update ImageTile and fullscreen modal to use hooks
-
-**Benefit:** DRY principle, easier testing, consistent behavior
-**Testing:** Unit test hooks in isolation with mocked fetch
-
----
-
-### Fullscreen Modal State Management
-**Current State:** Modal state local to page component (`selectedAsset` state)
-**Opportunity:** Extract to URL state for deep linking to specific images
-**Effort:** ~3 hours
-
-**Implementation:**
-- Add `?image=[assetId]` query param when opening modal
-- Read query param on mount to auto-open modal
-- Update URL when navigating next/prev in modal
-- Remove param when closing modal
-- Enable shareable URLs like `/app?image=abc123`
-
-**Benefit:** Shareable URLs to specific images, browser back button closes modal
-**Use Case:** Sharing link to specific meme in your library (requires public share first)
+## Archive Notes
+
+**Completed work moved to git history:**
+- ✅ PR #9 landing page redesign (merged Oct 2025)
+- ✅ Cache consolidation with strategy pattern (merged Oct 2025)
+- ✅ Mobile share & actions (merged Oct 2025)
+
+**Deferred as low-value:**
+- Landing page error boundaries (nice-to-have defensive programming, no production errors observed)
+- Animation polish (scroll indicators, reduced motion support completed)
+- PWA manifest tweaks (current implementation sufficient)
+
+**Multi-user cache invalidation spec:** Preserved in git history (old BACKLOG.md lines 257-328) for when team workspaces implemented. Design reviewed and approved, just needs execution trigger.
