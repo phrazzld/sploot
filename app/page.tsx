@@ -9,6 +9,7 @@ import { AnimatedCircles } from "@/components/landing/animated-circles";
 import { CollectionGrid } from "@/components/landing/collection-grid";
 import { BenefitIcons } from "@/components/landing/benefit-icons";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { ScrollChevron } from "@/components/landing/scroll-chevron";
 
 export default async function Home() {
   const { userId } = await getAuth();
@@ -74,7 +75,7 @@ export default async function Home() {
       </section>
 
       {/* Section 1: Semantic Search - Left text, Right visual */}
-      <section className="min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+      <section id="section-semantic-search" className="relative min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
         <div className="max-w-7xl mx-auto w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
             {/* Text - Left */}
@@ -95,10 +96,11 @@ export default async function Home() {
             </div>
           </div>
         </div>
+        <ScrollChevron targetId="section-personal-library" />
       </section>
 
       {/* Section 2: Personal Library - Right text, Left visual */}
-      <section className="min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+      <section id="section-personal-library" className="relative min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
         <div className="max-w-7xl mx-auto w-full">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
             {/* Visual - Left */}
@@ -109,20 +111,21 @@ export default async function Home() {
             {/* Text - Right */}
             <div className="space-y-6 order-2">
               <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
-                for your personal
-                <br />
-                meme library
+                personal library
               </h2>
               <p className="text-xl md:text-2xl text-muted-foreground font-light">
-                organized. searchable. instant.
+                organized. searchable.
+                <br />
+                instant.
               </p>
             </div>
           </div>
         </div>
+        <ScrollChevron targetId="section-benefits" />
       </section>
 
       {/* Section 3: Benefits - Center text with icons and CTA */}
-      <section className="min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+      <section id="section-benefits" className="relative min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
         <div className="max-w-4xl mx-auto w-full text-center space-y-12">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
             private. fast.
@@ -132,9 +135,8 @@ export default async function Home() {
           <BenefitIcons />
           <Button
             asChild
-            variant="outline"
             size="lg"
-            className="font-mono text-sm px-8 py-6"
+            className="font-mono text-sm px-8 py-6 shadow-lg shadow-primary/20"
           >
             <Link href="/sign-up">create free account</Link>
           </Button>
