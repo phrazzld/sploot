@@ -4,8 +4,11 @@ import { getAuth } from "@/lib/auth/server";
 import { Button } from "@/components/ui/button";
 import { OverlappingCircles } from "@/components/landing/overlapping-circles";
 import { SearchInput } from "@/components/landing/search-input";
+import { ScrollIndicator } from "@/components/landing/scroll-indicator";
+import { AnimatedCircles } from "@/components/landing/animated-circles";
+import { CollectionGrid } from "@/components/landing/collection-grid";
+import { BenefitIcons } from "@/components/landing/benefit-icons";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { ChevronDown } from "lucide-react";
 
 export default async function Home() {
   const { userId } = await getAuth();
@@ -67,24 +70,66 @@ export default async function Home() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 animate-bounce">
-          <ChevronDown className="h-6 w-6 text-muted-foreground" />
+        <ScrollIndicator />
+      </section>
+
+      {/* Section 1: Semantic Search - Left text, Right visual */}
+      <section className="min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            {/* Text - Left */}
+            <div className="space-y-6 order-2 md:order-1">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
+                semantic search
+              </h2>
+              <p className="text-xl md:text-2xl text-muted-foreground font-light">
+                type what you remember,
+                <br />
+                get what you need
+              </p>
+            </div>
+
+            {/* Visual - Right */}
+            <div className="flex items-center justify-center order-1 md:order-2">
+              <AnimatedCircles />
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Below-the-fold: Large typography statement */}
-      <section className="px-6 py-32 md:py-48 border-t border-border">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
+      {/* Section 2: Personal Library - Right text, Left visual */}
+      <section className="min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            {/* Visual - Left */}
+            <div className="flex items-center justify-center order-1">
+              <CollectionGrid />
+            </div>
+
+            {/* Text - Right */}
+            <div className="space-y-6 order-2">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
+                for your personal
+                <br />
+                meme library
+              </h2>
+              <p className="text-xl md:text-2xl text-muted-foreground font-light">
+                organized. searchable. instant.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Section 3: Benefits - Center text with icons */}
+      <section className="min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+        <div className="max-w-4xl mx-auto w-full text-center">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
-            semantic search
+            private. fast.
             <br />
-            for your personal
-            <br />
-            meme library
+            works everywhere.
           </h2>
-          <p className="text-2xl md:text-3xl text-muted-foreground font-light">
-            private. fast. works everywhere.
-          </p>
+          <BenefitIcons />
         </div>
       </section>
 
