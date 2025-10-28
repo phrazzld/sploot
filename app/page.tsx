@@ -4,9 +4,8 @@ import { getAuth } from "@/lib/auth/server";
 import { Button } from "@/components/ui/button";
 import { OverlappingCircles } from "@/components/landing/overlapping-circles";
 import { SearchInput } from "@/components/landing/search-input";
-import { FeatureCard } from "@/components/landing/feature-card";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { Search, Lock, Zap, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 export default async function Home() {
   const { userId } = await getAuth();
@@ -73,34 +72,36 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Features section */}
-      <section className="px-6 py-24 border-t border-border">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12">
-            <FeatureCard
-              icon={Search}
-              title="semantic search"
-              description="type what you remember, get what you need. our ai understands context and meaning, not just tags."
-            />
-            <FeatureCard
-              icon={Lock}
-              title="private & secure"
-              description="your collection stays locked behind auth. no algorithms, no timeline pollution, just your vault."
-            />
-            <FeatureCard
-              icon={Zap}
-              title="works everywhere"
-              description="install on any device. stays fast whether you're on desktop, mobile, or that tablet from 2019."
-            />
-          </div>
+      {/* Below-the-fold: Large typography statement */}
+      <section className="px-6 py-32 md:py-48 border-t border-border">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
+            semantic search
+            <br />
+            for your personal
+            <br />
+            meme library
+          </h2>
+          <p className="text-2xl md:text-3xl text-muted-foreground font-light">
+            private. fast. works everywhere.
+          </p>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="px-6 py-12 border-t border-border">
+      {/* Footer: Minimal */}
+      <footer className="px-6 py-8 border-t border-border">
         <div className="max-w-6xl mx-auto text-center">
           <p className="font-mono text-xs text-muted-foreground">
-            built with ❤️ for meme enthusiasts everywhere
+            <a
+              href="https://github.com/phrazzld/sploot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              github
+            </a>
+            {" • "}
+            © 2025 sploot
           </p>
         </div>
       </footer>
