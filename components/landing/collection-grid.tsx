@@ -4,8 +4,8 @@ export function CollectionGrid() {
       {Array.from({ length: 9 }).map((_, i) => (
         <div
           key={i}
-          className="aspect-square rounded-lg border border-border
-                     transition-colors duration-200 hover:border-primary"
+          className="aspect-square rounded-lg border border-primary/20 bg-primary/5
+                     transition-colors duration-200 hover:border-primary hover:bg-primary/10"
         />
       ))}
     </div>

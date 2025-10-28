@@ -121,15 +121,23 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Section 3: Benefits - Center text with icons */}
+      {/* Section 3: Benefits - Center text with icons and CTA */}
       <section className="min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
-        <div className="max-w-4xl mx-auto w-full text-center">
+        <div className="max-w-4xl mx-auto w-full text-center space-y-12">
           <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
             private. fast.
             <br />
             works everywhere.
           </h2>
           <BenefitIcons />
+          <Button
+            asChild
+            variant="outline"
+            size="lg"
+            className="font-mono text-sm px-8 py-6"
+          >
+            <Link href="/sign-up">create free account</Link>
+          </Button>
         </div>
       </section>
 
