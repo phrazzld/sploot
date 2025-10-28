@@ -38,6 +38,10 @@ export function Navbar({
         'z-50',
         // Height: 56px
         'h-14',
+        // iOS PWA safe area support - push navbar below status bar/notch
+        'pt-[env(safe-area-inset-top)]',
+        'pl-[env(safe-area-inset-left)]',
+        'pr-[env(safe-area-inset-right)]',
         // Background and border - using shadcn design tokens
         'bg-background border-b border-border backdrop-blur-sm',
         // Layout
@@ -92,7 +96,8 @@ export function Navbar({
 /**
  * Spacer component to push content below the fixed navbar
  * Use this in layouts to prevent content from going under the navbar
+ * Accounts for both navbar height (56px/3.5rem) and iOS safe area inset
  */
 export function NavbarSpacer() {
-  return <div className="h-14" />;
+  return <div className="h-[calc(3.5rem+env(safe-area-inset-top))]" />;
 }

@@ -200,6 +200,15 @@ select:focus-visible {
   }
 }
 
+/* iOS PWA Safe Area Support */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
 /* Override Tailwind rounded-* classes to use CSS variable for consistent radius */
 .rounded-sm {
   border-radius: var(--radius-sm) !important;
