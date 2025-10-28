@@ -744,7 +744,7 @@ function AppPageClient() {
           onClick={() => setSelectedAsset(null)}
         >
           {/* Top action bar - all controls in one row */}
-          <div className="fixed top-4 left-4 right-4 flex items-center justify-between z-[60]">
+          <div className="fixed top-[calc(1rem+env(safe-area-inset-top))] left-[calc(1rem+env(safe-area-inset-left))] right-[calc(1rem+env(safe-area-inset-right))] flex items-center justify-between z-[60]">
             {/* Left side: empty for now, could add image counter later */}
             <div />
 
