@@ -164,7 +164,7 @@ select:focus-visible {
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.067 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
+  --primary: oklch(0.62 0.25 280);
   --primary-foreground: oklch(0.067 0 0);
   --secondary: oklch(0.067 0 0);
   --secondary-foreground: oklch(0.985 0 0);

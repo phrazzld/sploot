@@ -1,23 +1,15 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getAuth } from "@/lib/auth/server";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import {
-  Search,
-  Lock,
-  Zap,
-  Sparkles,
-  ArrowRight,
-  LogIn,
-  Upload as UploadIcon,
-  Brain,
-  Download,
-  CheckCircle2
-} from "lucide-react";
+import { OverlappingCircles } from "@/components/landing/overlapping-circles";
+import { SearchInput } from "@/components/landing/search-input";
+import { ScrollIndicator } from "@/components/landing/scroll-indicator";
+import { AnimatedCircles } from "@/components/landing/animated-circles";
+import { CollectionGrid } from "@/components/landing/collection-grid";
+import { BenefitIcons } from "@/components/landing/benefit-icons";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { ScrollChevron } from "@/components/landing/scroll-chevron";
 
 export default async function Home() {
   const { userId } = await getAuth();
@@ -29,249 +21,145 @@ export default async function Home() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Status bar */}
-      <div className="border-b border-border bg-background px-6 py-2">
-        <div className="mx-auto max-w-6xl font-mono text-xs flex items-center justify-between">
-          <Badge variant="outline" className="font-mono text-xs">
-            [system online] sploot v1.0.0 [ready]
-          </Badge>
-          <div className="hidden md:flex gap-2">
-            <Badge variant="secondary" className="font-mono text-xs gap-1">
-              <Sparkles className="h-3 w-3" />
-              ai-powered
-            </Badge>
-            <Badge variant="secondary" className="font-mono text-xs gap-1">
-              <Lock className="h-3 w-3" />
-              private
-            </Badge>
-            <Badge variant="secondary" className="font-mono text-xs gap-1">
-              <Zap className="h-3 w-3" />
-              blazing fast
-            </Badge>
-          </div>
-        </div>
-      </div>
+      {/* Top navigation */}
+      <nav className="fixed top-0 right-0 z-50 p-6 flex items-center gap-4">
+        <ThemeToggle />
+        <Link
+          href="/sign-in"
+          className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors"
+        >
+          sign in
+        </Link>
+      </nav>
 
-      <div className="mx-auto max-w-6xl px-6 py-12 md:py-16 space-y-8">
-        {/* Hero section */}
-        <Card>
-          <CardHeader>
-            <div className="font-mono text-xs text-muted-foreground mb-2">
-              name
-            </div>
-            <CardTitle className="font-mono text-4xl leading-tight tracking-wider md:text-6xl">
+      {/* Hero section - centered, minimal */}
+      <section className="min-h-screen flex flex-col items-center justify-center px-6 py-20">
+        <div className="w-full max-w-4xl mx-auto flex flex-col items-center space-y-12 text-center">
+          {/* Overlapping circles logo */}
+          <OverlappingCircles
+            size={224}
+            strokeWidth={3}
+            className="opacity-0 animate-[fadeIn_1s_ease-out_forwards]"
+          />
+
+          {/* Heading */}
+          <div className="space-y-4 opacity-0 animate-[fadeIn_1s_ease-out_0.15s_forwards]">
+            <h1 className="text-6xl md:text-7xl lg:text-8xl font-light tracking-tight">
               sploot
-            </CardTitle>
-            <CardDescription className="font-mono text-lg md:text-xl mt-4">
-              your private meme search engine
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="font-mono text-sm text-muted-foreground md:text-base">
-              find any reaction in seconds. ai-powered search for your personal meme vault.
+            </h1>
+            <p className="text-xl md:text-2xl text-muted-foreground font-normal">
+              find your memes
             </p>
-          </CardContent>
-          <CardFooter className="flex-col sm:flex-row gap-3">
-            <Button asChild className="w-full sm:w-auto gap-2 font-mono">
-              <Link href="/sign-up">
-                <ArrowRight className="h-4 w-4" />
-                start your collection
-              </Link>
+          </div>
+
+          {/* Search input (visual only) */}
+          <div className="w-full opacity-0 animate-[fadeIn_1s_ease-out_0.3s_forwards]">
+            <SearchInput placeholder="disappointed drake..." />
+          </div>
+
+          {/* CTA */}
+          <div className="opacity-0 animate-[fadeIn_1s_ease-out_0.45s_forwards]">
+            <Button
+              asChild
+              variant="outline"
+              size="lg"
+              className="font-mono text-sm px-8 py-6"
+            >
+              <Link href="/sign-up">create free account</Link>
             </Button>
-            <Button asChild variant="outline" className="w-full sm:w-auto gap-2 font-mono">
-              <Link href="/sign-in">
-                <LogIn className="h-4 w-4" />
-                sign in
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
-
-        <Separator />
-
-        {/* Value proposition alert */}
-        <Alert>
-          <Sparkles className="h-4 w-4" />
-          <AlertDescription className="font-mono text-sm">
-            type what you remember, get what you need. semantic search understands context — search for "disappointed drake" or "guy looking back" and sploot knows exactly what you mean. no manual tagging required.
-          </AlertDescription>
-        </Alert>
-
-        {/* Features grid */}
-        <div className="space-y-4">
-          <h2 className="font-mono text-xs text-muted-foreground">features</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Semantic Search */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 rounded-md bg-primary/10 text-primary">
-                    <Search className="h-5 w-5" />
-                  </div>
-                </div>
-                <CardTitle className="font-mono text-sm">semantic search</CardTitle>
-                <CardDescription className="font-mono text-xs">
-                  type "disappointed drake" or "guy looking back" — our ai knows exactly what you mean
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            {/* Private & Secure */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 rounded-md bg-primary/10 text-primary">
-                    <Lock className="h-5 w-5" />
-                  </div>
-                </div>
-                <CardTitle className="font-mono text-sm">private & secure</CardTitle>
-                <CardDescription className="font-mono text-xs">
-                  your collection stays locked behind auth. no algorithms, no timeline pollution, just your vault
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            {/* Works Everywhere */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="p-2 rounded-md bg-primary/10 text-primary">
-                    <Zap className="h-5 w-5" />
-                  </div>
-                </div>
-                <CardTitle className="font-mono text-sm">works everywhere</CardTitle>
-                <CardDescription className="font-mono text-xs">
-                  install on any device. stays fast whether you're on desktop, mobile, or that tablet from 2019
-                </CardDescription>
-              </CardHeader>
-            </Card>
           </div>
         </div>
 
-        <Separator />
+        {/* Scroll indicator */}
+        <ScrollIndicator />
+      </section>
 
-        {/* How it works */}
-        <div className="space-y-6">
-          <h2 className="font-mono text-xs text-muted-foreground">how it works</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="relative">
-                <div className="p-4 rounded-lg bg-primary/10 text-primary">
-                  <UploadIcon className="h-8 w-8" />
-                </div>
-                <Badge className="absolute -top-2 -right-2 font-mono h-6 w-6 flex items-center justify-center p-0">
-                  1
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-mono text-sm font-semibold">upload</h3>
-                <p className="font-mono text-xs text-muted-foreground">
-                  drop your memes. paste from clipboard. drag and drop. whatever works.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="relative">
-                <div className="p-4 rounded-lg bg-primary/10 text-primary">
-                  <Brain className="h-8 w-8" />
-                </div>
-                <Badge className="absolute -top-2 -right-2 font-mono h-6 w-6 flex items-center justify-center p-0">
-                  2
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-mono text-sm font-semibold">ai understands</h3>
-                <p className="font-mono text-xs text-muted-foreground">
-                  our models analyze each image. no tagging needed. it just works.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-col items-center text-center space-y-3">
-              <div className="relative">
-                <div className="p-4 rounded-lg bg-primary/10 text-primary">
-                  <CheckCircle2 className="h-8 w-8" />
-                </div>
-                <Badge className="absolute -top-2 -right-2 font-mono h-6 w-6 flex items-center justify-center p-0">
-                  3
-                </Badge>
-              </div>
-              <div className="space-y-1">
-                <h3 className="font-mono text-sm font-semibold">instant results</h3>
-                <p className="font-mono text-xs text-muted-foreground">
-                  type what you remember. find it in milliseconds. copy and paste anywhere.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Demo section */}
-        <div className="space-y-4">
-          <h2 className="font-mono text-xs text-muted-foreground">what it looks like</h2>
-          <Card>
-            <CardContent className="p-6 space-y-4">
-              <div className="flex items-center gap-2 p-3 border rounded-md bg-muted/50">
-                <Search className="h-4 w-4 text-muted-foreground" />
-                <span className="font-mono text-sm text-muted-foreground">
-                  guy tapping head meme...
-                </span>
-              </div>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[1, 2, 3, 4].map((i) => (
-                  <div
-                    key={i}
-                    className="aspect-square rounded-md bg-muted border flex items-center justify-center"
-                  >
-                    <span className="font-mono text-xs text-muted-foreground">
-                      result {i}
-                    </span>
-                  </div>
-                ))}
-              </div>
-              <p className="font-mono text-xs text-muted-foreground text-center">
-                search thousands of memes in milliseconds
+      {/* Section 1: Semantic Search - Left text, Right visual */}
+      <section id="section-semantic-search" className="relative min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            {/* Text - Left */}
+            <div className="space-y-6 order-2 md:order-1">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
+                semantic search
+              </h2>
+              <p className="text-xl md:text-2xl text-muted-foreground font-light">
+                type what you remember,
+                <br />
+                get what you need
               </p>
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* Visual - Right */}
+            <div className="flex items-center justify-center order-1 md:order-2">
+              <AnimatedCircles />
+            </div>
+          </div>
         </div>
+        <ScrollChevron targetId="section-personal-library" />
+      </section>
 
-        <Separator />
+      {/* Section 2: Personal Library - Right text, Left visual */}
+      <section id="section-personal-library" className="relative min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+        <div className="max-w-7xl mx-auto w-full">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 md:gap-16 items-center">
+            {/* Visual - Left */}
+            <div className="flex items-center justify-center order-1">
+              <CollectionGrid />
+            </div>
 
-        {/* Final CTA */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="font-mono text-lg">ready to start?</CardTitle>
-            <CardDescription className="font-mono text-sm">
-              built for the chronically online. save responsibly.
-            </CardDescription>
-          </CardHeader>
-          <CardFooter className="flex-col sm:flex-row gap-3">
-            <Button asChild className="w-full sm:w-auto gap-2 font-mono">
-              <Link href="/sign-up">
-                <ArrowRight className="h-4 w-4" />
-                create free account
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="w-full sm:w-auto gap-2 font-mono">
-              <Link href="/sign-in">
-                <LogIn className="h-4 w-4" />
-                sign in
-              </Link>
-            </Button>
-          </CardFooter>
-        </Card>
+            {/* Text - Right */}
+            <div className="space-y-6 order-2">
+              <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
+                personal library
+              </h2>
+              <p className="text-xl md:text-2xl text-muted-foreground font-light">
+                organized. searchable.
+                <br />
+                instant.
+              </p>
+            </div>
+          </div>
+        </div>
+        <ScrollChevron targetId="section-benefits" />
+      </section>
 
-        {/* Footer */}
-        <div className="pt-8 pb-4 text-center">
+      {/* Section 3: Benefits - Center text with icons and CTA */}
+      <section id="section-benefits" className="relative min-h-screen flex items-center border-t border-border px-6 py-12 md:py-20">
+        <div className="max-w-4xl mx-auto w-full text-center space-y-12">
+          <h2 className="text-4xl md:text-5xl lg:text-6xl font-light leading-tight tracking-tight">
+            private. fast.
+            <br />
+            works everywhere.
+          </h2>
+          <BenefitIcons />
+          <Button
+            asChild
+            size="lg"
+            className="font-mono text-sm px-8 py-6 shadow-lg shadow-primary/20"
+          >
+            <Link href="/sign-up">create free account</Link>
+          </Button>
+        </div>
+      </section>
+
+      {/* Footer: Minimal */}
+      <footer className="px-6 py-8 border-t border-border">
+        <div className="max-w-6xl mx-auto text-center">
           <p className="font-mono text-xs text-muted-foreground">
-            built with ❤️ for meme enthusiasts everywhere
+            <a
+              href="https://github.com/phrazzld/sploot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:text-foreground transition-colors"
+            >
+              github
+            </a>
+            {" • "}
+            © 2025 sploot
           </p>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }
