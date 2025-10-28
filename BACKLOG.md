@@ -1,4 +1,247 @@
-# BACKLOG: Cache Consolidation Future Enhancements
+# BACKLOG
+
+---
+
+# PR #9 Landing Page Follow-Up Enhancements
+
+**Context:** Landing page redesign (PR #9) completed successfully. The following items identified in Claude AI code review are valid enhancements deferred for future iterations to avoid scope creep.
+
+**Source:** PR #9 Claude AI review (Oct 28, 2025)
+
+---
+
+## Error Handling & Resilience
+
+### Landing Page Error Boundary
+**Value:** Graceful degradation if client component animations fail
+**Trigger:** Production stability focus or error monitoring shows issues
+**Effort:** ~1 hour
+**Context:** PR #9 Claude review Issue #4 (Medium severity)
+**Priority:** Nice-to-have defensive programming
+
+**Current State:**
+- Six landing components use "use client" directive for animations/interactions
+- AnimatedCircles, CollectionGrid, ScrollIndicator, ScrollChevron, SearchInput, OverlappingCircles
+- No error boundary wrapping these components
+- If IntersectionObserver fails (old browsers) or animation logic breaks, entire page could crash
+
+**Implementation:**
+1. Create `components/landing/landing-error-boundary.tsx`:
+   ```tsx
+   "use client";
+   import { Component, ReactNode } from "react";
+
+   export class LandingErrorBoundary extends Component<
+     { children: ReactNode; fallback?: ReactNode },
+     { hasError: boolean }
+   > {
+     state = { hasError: false };
+
+     static getDerivedStateFromError() {
+       return { hasError: true };
+     }
+
+     componentDidCatch(error: Error, info: React.ErrorInfo) {
+       console.error("Landing page error:", error, info);
+       // Optional: Send to error tracking service
+     }
+
+     render() {
+       if (this.state.hasError) {
+         return this.props.fallback || (
+           <div className="min-h-screen flex items-center justify-center">
+             <p className="font-mono text-muted-foreground">
+               Something went wrong. Please refresh the page.
+             </p>
+           </div>
+         );
+       }
+       return this.props.children;
+     }
+   }
+   ```
+
+2. Wrap landing sections in `app/page.tsx`:
+   ```tsx
+   import { LandingErrorBoundary } from "@/components/landing/landing-error-boundary";
+
+   // Wrap each section
+   <LandingErrorBoundary>
+     <section id="section-semantic-search">...</section>
+   </LandingErrorBoundary>
+   ```
+
+**Testing:**
+- Throw error in AnimatedCircles useEffect to verify boundary catches
+- Check console for error logging
+- Verify fallback UI renders
+
+---
+
+## Accessibility Enhancements
+
+### Focus Management After Scroll Navigation
+**Value:** Better screen reader UX when using section navigation
+**Trigger:** Accessibility audit or user feedback from screen reader users
+**Effort:** ~30 minutes
+**Context:** PR #9 Claude review Issue #5 (Low severity - A11y)
+**Priority:** Low - current smooth scroll works fine
+
+**Current State:**
+- ScrollIndicator and ScrollChevron implement smooth scrolling via `scrollIntoView()`
+- Focus remains on button after scroll completes
+- Screen reader users may lose context of which section they're now viewing
+
+**Implementation:**
+Update `components/landing/scroll-chevron.tsx`:
+```tsx
+const handleScroll = () => {
+  const target = document.getElementById(targetId);
+  if (target) {
+    target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+    // Set focus after scroll animation completes
+    setTimeout(() => {
+      // Make section focusable
+      target.setAttribute("tabindex", "-1");
+      target.focus({ preventScroll: true });
+      // Announce to screen readers
+      target.setAttribute("aria-live", "polite");
+    }, 500); // Match scroll duration
+  }
+};
+```
+
+Update section elements in `app/page.tsx`:
+```tsx
+<section
+  id="section-semantic-search"
+  tabIndex={-1}
+  className="focus:outline-none focus:ring-2 focus:ring-primary/50"
+>
+```
+
+**Testing:**
+- Use VoiceOver (macOS) or NVDA (Windows)
+- Click scroll chevron
+- Verify screen reader announces new section
+
+---
+
+### AnimatedCircles SVG Accessibility
+**Value:** Better screen reader description of Venn diagram visual
+**Trigger:** WCAG AAA compliance audit
+**Effort:** ~15 minutes
+**Context:** PR #9 Claude review Issue #7 (Low severity - A11y)
+
+**Current State:**
+- AnimatedCircles SVG has no title or role
+- OverlappingCircles has proper aria-label, but AnimatedCircles doesn't
+
+**Implementation:**
+Update `components/landing/animated-circles.tsx`:
+```tsx
+<svg
+  width={size}
+  height={size}
+  viewBox={`0 0 ${size} ${size}`}
+  className="w-64 h-64 md:w-[300px] md:h-[300px]"
+  role="img"
+  aria-labelledby="venn-diagram-title"
+>
+  <title id="venn-diagram-title">
+    Venn diagram showing the intersection of text queries and image database,
+    representing semantic search matches
+  </title>
+  {/* ... circles ... */}
+</svg>
+```
+
+---
+
+## Type Safety & Validation
+
+### ScrollChevron TargetId Validation
+**Value:** Runtime safety against typos in section IDs
+**Trigger:** If scroll navigation bugs are reported
+**Effort:** ~30 minutes
+**Context:** PR #9 Claude review Issue #6 (Low severity)
+
+**Current Approach:**
+```tsx
+interface ScrollChevronProps {
+  targetId: string; // Any string accepted
+}
+```
+
+**Option A: TypeScript Literal Union (Recommended)**
+```tsx
+type SectionId =
+  | "section-semantic-search"
+  | "section-personal-library"
+  | "section-benefits";
+
+interface ScrollChevronProps {
+  targetId: SectionId;
+}
+```
+- Pros: Compile-time safety, autocomplete in IDE
+- Cons: Must update type when adding sections
+
+**Option B: Runtime Validation**
+```tsx
+const handleScroll = () => {
+  const target = document.getElementById(targetId);
+  if (!target) {
+    console.warn(`ScrollChevron: target element "${targetId}" not found`);
+    return;
+  }
+  target.scrollIntoView({ behavior: "smooth", block: "start" });
+};
+```
+- Pros: Catches issues at runtime, logs helpful warnings
+- Cons: No compile-time protection
+
+**Recommendation:** Use Option A for type safety + Option B for defensive programming
+
+---
+
+## UI/UX Polish
+
+### Navigation Layout Shift Prevention
+**Value:** Prevent potential CLS from fixed nav interaction
+**Trigger:** If layout shift metrics degrade in Lighthouse
+**Effort:** ~15 minutes
+**Context:** PR #9 Claude review Issue #8 (Low severity - preventative)
+
+**Current State:**
+- Top-right nav uses `position: fixed` without reserving space
+- Theme toggle and sign-in link could cause layout shift on interaction
+
+**Implementation:**
+```tsx
+<nav className="fixed top-0 right-0 z-50 p-6 flex items-center gap-4 pointer-events-none">
+  <div className="pointer-events-auto">
+    <ThemeToggle />
+  </div>
+  <Link
+    href="/sign-in"
+    className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors pointer-events-auto"
+  >
+    sign in
+  </Link>
+</nav>
+```
+- `pointer-events-none` on container prevents layout shift
+- `pointer-events-auto` on children restores interactivity
+
+**Testing:**
+- Measure CLS before/after in Lighthouse
+- Verify nav remains clickable
+
+---
+
+# Cache Consolidation Future Enhancements
 
 **Context:** Cache consolidation completed with memory-only backend and strategy pattern. These items deferred for multi-user scale or specific performance needs.
 
