@@ -3,7 +3,6 @@
 import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
@@ -14,6 +13,7 @@ import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { EmbeddingStatusIndicator } from '@/components/upload/embedding-status-indicator';
 import { UploadDropZone } from '@/components/upload/upload-drop-zone';
+import { UploadFileList } from '@/components/upload/upload-file-list';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
 import type { ProgressStats } from './upload-progress-header';
@@ -47,176 +47,6 @@ interface FileMetadata {
 // Legacy interface for backward compatibility during migration
 interface UploadFile extends FileMetadata {
   file: File;
-}
-
-// Virtualized file list component for performance with large batches
-function VirtualizedFileList({
-  fileMetadata,
-  setFileMetadata,
-  formatFileSize,
-  router,
-  retryUpload,
-  removeFile
-}: {
-  fileMetadata: Map<string, FileMetadata>;
-  setFileMetadata: React.Dispatch<React.SetStateAction<Map<string, FileMetadata>>>;
-  formatFileSize: (bytes: number) => string;
-  router: any; // NextJS router instance
-  retryUpload: (metadata: FileMetadata) => void;
-  removeFile: (id: string) => void;
-}) {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  // Convert Map values to array for virtualization and maintain order
-  const filesArray = useMemo(() => {
-    return Array.from(fileMetadata.values()).sort((a, b) => a.addedAt - b.addedAt);
-  }, [fileMetadata]);
-
-  const virtualizer = useVirtualizer({
-    count: filesArray.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 64, // Fixed height of 64px per file item as specified
-    overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
-  });
-
-  const virtualItems = virtualizer.getVirtualItems();
-
-  return (
-    <div
-      ref={parentRef}
-      className="h-[400px] overflow-y-auto space-y-2"
-      style={{
-        contain: 'strict',
-      }}
-    >
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
-        {virtualItems.map((virtualItem) => {
-          const file = filesArray[virtualItem.index];
-          return (
-            <div
-              key={virtualItem.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start}px)`,
-              }}
-            >
-              <Card className="h-[60px] p-3 flex items-center rounded-md">
-                <div className="flex items-center gap-3 w-full">
-                  {/* File icon/preview */}
-                  <div className="w-12 h-12 bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 rounded">
-                    {file.blobUrl ? (
-                      <Image
-                        src={file.blobUrl}
-                        alt={file.name}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl">🖼️</span>
-                    )}
-                  </div>
-
-                  {/* File info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {formatFileSize(file.size)}
-                    </p>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {file.status === 'uploading' && (
-                      <div className="flex items-center gap-2">
-                        <Progress value={file.progress} className="w-24 h-1" />
-                        <Badge variant="default" className="gap-1">
-                          <Loader2 className="size-3 animate-spin" />
-                          {file.progress}%
-                        </Badge>
-                      </div>
-                    )}
-
-                    {file.status === 'queued' && (
-                      <Badge variant="outline">Queued</Badge>
-                    )}
-
-                    {file.status === 'success' && (
-                      <EmbeddingStatusIndicator
-                        file={file}
-                        onStatusChange={(status, error) => {
-                          setFileMetadata(prev => {
-                            const updated = new Map(prev);
-                            const metadata = updated.get(file.id);
-                            if (metadata) {
-                              updated.set(file.id, {
-                                ...metadata,
-                                embeddingStatus: status,
-                                embeddingError: error
-                              });
-                            }
-                            return updated;
-                          });
-                        }}
-                      />
-                    )}
-
-                    {file.status === 'duplicate' && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="secondary" className="text-yellow-500">Already exists</Badge>
-                        {file.needsEmbedding ? (
-                          <Badge variant="default" className="gap-1"><Loader2 className="size-3 animate-spin" />Indexing</Badge>
-                        ) : (
-                          <Button
-                            onClick={() => {
-                              if (file.assetId) {
-                                router.push(`/app?highlight=${file.assetId}`);
-                              }
-                            }}
-                            size="sm"
-                            variant="link"
-                            className="h-auto p-0 underline"
-                          >
-                            view
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {file.status === 'error' && file.errorDetails && (
-                      <UploadErrorDisplay
-                        error={file.errorDetails}
-                        fileId={file.id}
-                        fileName={file.name}
-                        onRetry={() => retryUpload(file)}
-                        onDismiss={() => removeFile(file.id)}
-                      />
-                    )}
-
-                    {file.status === 'pending' && (
-                      <Badge variant="outline">Waiting...</Badge>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 interface UploadZoneProps {
@@ -1496,13 +1326,21 @@ export function UploadZone({
 
           {/* File list - use virtual scrolling when > 20 files */}
           {filesArray.length > 20 ? (
-            <VirtualizedFileList
-              fileMetadata={fileMetadata}
-              setFileMetadata={setFileMetadata}
+            <UploadFileList
+              files={fileMetadata}
+              onFileUpdate={(id, updates) => {
+                setFileMetadata(prev => {
+                  const updated = new Map(prev);
+                  const metadata = updated.get(id);
+                  if (metadata) {
+                    updated.set(id, { ...metadata, ...updates });
+                  }
+                  return updated;
+                });
+              }}
               formatFileSize={formatFileSize}
-              router={router}
-              retryUpload={retryUpload}
-              removeFile={removeFile}
+              onRetry={retryUpload}
+              onRemove={removeFile}
             />
           ) : (
             <div className="space-y-2">
