@@ -112,7 +112,7 @@ Extract service layer following existing patterns:
 ## Phase 2: UploadZone Component Decomposition (16-24h)
 
 ### [2.1] Extract File Validation Logic
-- [ ] Create useFileValidation hook with validation rules
+- [x] Create useFileValidation hook with validation rules
   ```
   Files: hooks/use-file-validation.ts (new), components/upload/upload-zone.tsx:500-650
   Approach: Extract ALLOWED_FILE_TYPES, MAX_FILE_SIZE checks into reusable hook
@@ -120,11 +120,12 @@ Extract service layer following existing patterns:
   Success: Validation logic reusable, clear separation from UI state
   Test: Unit tests for boundary cases (0 bytes, 10MB + 1 byte, malicious extensions)
   Module: Pure validation logic, zero UI coupling
-  Time: 1h
+  Time: 1h (actual: 1h)
+  Commit: 71d4945 - 24 tests passing
   ```
 
 ### [2.2] Extract Upload Network Client
-- [ ] Create UploadNetworkClient service for API communication
+- [x] Create UploadNetworkClient service for API communication
   ```
   Files: lib/upload/upload-network-client.ts (new), components/upload/upload-zone.tsx:800-1100
   Approach: Encapsulate fetch() calls, progress tracking, retry logic
@@ -132,11 +133,12 @@ Extract service layer following existing patterns:
   Success: Network logic isolated, progress callbacks standardized
   Test: Unit tests with mock fetch, integration test for retry on 5xx
   Module: Hides fetch API + progress event complexity
-  Time: 2h
+  Time: 2h (actual: 2h)
+  Commit: 0003ca8 - 17 tests passing
   ```
 
 ### [2.3] Extract Upload Queue Service
-- [ ] Create UploadQueueService for queue management + concurrency control
+- [x] Create UploadQueueService for queue management + concurrency control
   ```
   Files: lib/upload/upload-queue-service.ts (new), components/upload/upload-zone.tsx:1200-1500
   Approach: Queue data structure + concurrency limiter (max 4 parallel uploads)
@@ -144,7 +146,8 @@ Extract service layer following existing patterns:
   Success: Queue management reusable, concurrency enforced consistently
   Test: Unit tests for queue ordering, integration test for concurrency limit
   Module: Deep - simple enqueue/dequeue interface hides scheduling complexity
-  Time: 2.5h
+  Time: 2.5h (actual: 3h including test fixes)
+  Commit: 7a60372 - 11 tests passing
   ```
 
 ### [2.4] Extract Embedding Status Tracker
