@@ -1324,155 +1324,23 @@ export function UploadZone({
             </CardContent>
           </Card>
 
-          {/* File list - use virtual scrolling when > 20 files */}
-          {filesArray.length > 20 ? (
-            <UploadFileList
-              files={fileMetadata}
-              onFileUpdate={(id, updates) => {
-                setFileMetadata(prev => {
-                  const updated = new Map(prev);
-                  const metadata = updated.get(id);
-                  if (metadata) {
-                    updated.set(id, { ...metadata, ...updates });
-                  }
-                  return updated;
-                });
-              }}
-              formatFileSize={formatFileSize}
-              onRetry={retryUpload}
-              onRemove={removeFile}
-            />
-          ) : (
-            <div className="space-y-2">
-              {filesArray.map((file) => (
-              <Card
-                key={file.id}
-                className="p-3"
-              >
-                <div className="flex items-center gap-3">
-                  {/* File icon/preview */}
-                  <div className="w-12 h-12 bg-muted flex items-center justify-center overflow-hidden rounded">
-                    {file.blobUrl ? (
-                      <Image
-                        src={file.blobUrl}
-                        alt={file.name}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl">🖼️</span>
-                    )}
-                  </div>
-
-                  {/* File info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {formatFileSize(file.size)}
-                    </p>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {file.status === 'uploading' && (
-                      <div className="flex items-center gap-2">
-                        <Progress value={file.progress} className="w-24 h-1" />
-                        <Badge variant="default" className="gap-1">
-                          <Loader2 className="size-3 animate-spin" />
-                          {file.progress}%
-                        </Badge>
-                      </div>
-                    )}
-
-                    {file.status === 'queued' && (
-                      <Badge variant="outline">Queued</Badge>
-                    )}
-
-                    {file.status === 'success' && (
-                      <EmbeddingStatusIndicator
-                        file={file}
-                        onStatusChange={(status, error) => {
-                          setFileMetadata(prev => {
-                            const updated = new Map(prev);
-                            const metadata = updated.get(file.id);
-                            if (metadata) {
-                              updated.set(file.id, {
-                                ...metadata,
-                                embeddingStatus: status,
-                                embeddingError: error
-                              });
-                            }
-                            return updated;
-                          });
-                        }}
-                      />
-                    )}
-
-                    {file.status === 'duplicate' && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="secondary" className="text-yellow-500">Already exists</Badge>
-                        {file.needsEmbedding ? (
-                          <Badge variant="default" className="gap-1"><Loader2 className="size-3 animate-spin" />Indexing</Badge>
-                        ) : (
-                          <Button
-                            onClick={() => {
-                              if (file.assetId) {
-                                router.push(`/app?highlight=${file.assetId}`);
-                              }
-                            }}
-                            size="sm"
-                            variant="link"
-                            className="h-auto p-0 underline"
-                          >
-                            view
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {file.status === 'error' && (
-                      <Button
-                        onClick={() => retryUpload(file)}
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive underline"
-                      >
-                        Retry
-                      </Button>
-                    )}
-
-                    <Button
-                      onClick={() => removeFile(file.id)}
-                      size="icon-sm"
-                      variant="ghost"
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Error display */}
-                {file.error && file.errorDetails && (
-                  <div className="mt-2">
-                    <UploadErrorDisplay
-                      error={file.errorDetails}
-                      fileId={file.id}
-                      fileName={file.name}
-                      onRetry={() => retryUpload(file)}
-                      onDismiss={() => removeFile(file.id)}
-                    />
-                  </div>
-                )}
-                {file.error && !file.errorDetails && (
-                  <p className="text-destructive text-xs mt-2">{file.error}</p>
-                )}
-              </Card>
-              ))}
-            </div>
-          )}
+          {/* File list */}
+          <UploadFileList
+            files={fileMetadata}
+            onFileUpdate={(id, updates) => {
+              setFileMetadata(prev => {
+                const updated = new Map(prev);
+                const metadata = updated.get(id);
+                if (metadata) {
+                  updated.set(id, { ...metadata, ...updates });
+                }
+                return updated;
+              });
+            }}
+            formatFileSize={formatFileSize}
+            onRetry={retryUpload}
+            onRemove={removeFile}
+          />
 
           {hasSuccessfulUploads && (
             <Card>
