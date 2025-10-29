@@ -1,10 +1,10 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, useMemo, DragEvent, ClipboardEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { Loader2, Upload, CheckCircle2, AlertCircle, X } from 'lucide-react';
+import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
@@ -13,6 +13,7 @@ import { useFileValidation } from '@/hooks/use-file-validation';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { EmbeddingStatusIndicator } from '@/components/upload/embedding-status-indicator';
+import { UploadDropZone } from '@/components/upload/upload-drop-zone';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
 import type { ProgressStats } from './upload-progress-header';
@@ -255,7 +256,6 @@ export function UploadZone({
   const fileMetadataRef = useRef(fileMetadata);
   // Store File objects temporarily only during active upload
   const fileObjects = useRef(new Map<string, File>());
-  const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(false);
   const [recoveryCount, setRecoveryCount] = useState(0);
@@ -263,9 +263,6 @@ export function UploadZone({
   const [isPreparing, setIsPreparing] = useState(false);
   const [preparingFileCount, setPreparingFileCount] = useState(0);
   const [preparingTotalSize, setPreparingTotalSize] = useState(0);
-  const [isProcessingPulse, setIsProcessingPulse] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const uploadStatsRef = useRef({ successful: 0, failed: 0 });
   const [currentConcurrency, setCurrentConcurrency] = useState(6);
@@ -1170,76 +1167,6 @@ export function UploadZone({
     }
   };
 
-  // Drag and drop handlers
-  const handleDragEnter = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current++;
-    if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
-      setIsDragging(true);
-    }
-  };
-
-  const handleDragLeave = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current--;
-    if (dragCounter.current === 0) {
-      setIsDragging(false);
-    }
-  };
-
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    dragCounter.current = 0;
-
-    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-      const fileCount = e.dataTransfer.files.length;
-      showToast(`Processing ${fileCount} ${fileCount === 1 ? 'file' : 'files'}...`, 'info');
-      setIsProcessingPulse(true);
-      setTimeout(() => setIsProcessingPulse(false), 1000);
-      processFiles(e.dataTransfer.files);
-    }
-  };
-
-  // Paste handler
-  const handlePaste = (e: ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    const files: File[] = [];
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (file) files.push(file);
-      }
-    }
-
-    if (files.length > 0) {
-      showToast(`Processing ${files.length} ${files.length === 1 ? 'image' : 'images'} from clipboard...`, 'info');
-      setIsProcessingPulse(true);
-      setTimeout(() => setIsProcessingPulse(false), 1000);
-      processFiles(files);
-    }
-  };
-
-  // File input handler
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const fileCount = e.target.files.length;
-      showToast(`Processing ${fileCount} selected ${fileCount === 1 ? 'file' : 'files'}...`, 'info');
-      setIsProcessingPulse(true);
-      setTimeout(() => setIsProcessingPulse(false), 1000);
-      processFiles(e.target.files);
-    }
-  };
 
   // Remove file from list
   const removeFile = (id: string) => {
@@ -1409,11 +1336,7 @@ export function UploadZone({
   };
 
   return (
-    <div
-      className="w-full"
-      onPaste={handlePaste}
-      tabIndex={0}
-    >
+    <div className="w-full">
       {/* Background sync status (only when enabled) */}
       {showSyncStatus && (
         <Alert className="mb-4">
@@ -1461,76 +1384,14 @@ export function UploadZone({
       )}
 
       {/* Drop Zone */}
-      <Card
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={cn(
-          'relative border-2 border-dashed transition-all duration-200 cursor-pointer',
-          'hover:border-primary hover:bg-primary/5',
-          isDragging
-            ? 'border-primary bg-primary/10 scale-[1.02]'
-            : 'border-border',
-          isProcessingPulse && 'animate-pulse'
-        )}
-      >
-        {/* Preparing overlay */}
-        {isPreparing && (
-          <div className="absolute inset-0 z-10 bg-background/95 flex flex-col items-center justify-center animate-in fade-in duration-200 rounded-xl">
-            <Loader2 className="size-8 text-primary animate-spin mb-3" />
-            <p className="font-medium mb-1">
-              Preparing {preparingFileCount} {preparingFileCount === 1 ? 'file' : 'files'}...
-            </p>
-            <p className="text-muted-foreground text-sm">
-              {preparingTotalSize < 1024 * 1024
-                ? `${(preparingTotalSize / 1024).toFixed(0)} KB`
-                : `${(preparingTotalSize / (1024 * 1024)).toFixed(1)} MB`}
-            </p>
-          </div>
-        )}
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className={cn(
-            'size-16 mb-4 rounded-lg flex items-center justify-center transition-all duration-200',
-            isDragging ? 'bg-primary/20 scale-110' : 'bg-muted'
-          )}>
-            <Upload className={cn('size-8 transition-colors', isDragging ? 'text-primary' : 'text-muted-foreground')} />
-          </div>
-
-          <p className="font-medium mb-1">
-            {isDragging ? 'Drop your images here' : 'Drag & drop images here'}
-          </p>
-          <p className="text-muted-foreground text-sm mb-4">
-            or click to browse • paste from clipboard
-          </p>
-          <p className="text-muted-foreground/60 text-xs">
-            JPEG, PNG, WebP, GIF • Max 10MB per file
-          </p>
-          {enableBackgroundSync && supportsBackgroundSync && (
-            <Badge variant="outline" className="mt-2 text-xs">
-              Background sync enabled
-            </Badge>
-          )}
-        </CardContent>
-
-        {/* Accent stripe when dragging */}
-        {isDragging && (
-          <div className="absolute inset-0 pointer-events-none rounded-xl">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl" />
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-xl" />
-          </div>
-        )}
-      </Card>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept={ALLOWED_FILE_TYPES.join(',')}
-        onChange={handleFileSelect}
-        className="hidden"
+      <UploadDropZone
+        onFilesAdded={(files) => processFiles(files)}
+        allowedFileTypes={ALLOWED_FILE_TYPES}
+        isPreparing={isPreparing}
+        preparingFileCount={preparingFileCount}
+        preparingTotalSize={preparingTotalSize}
+        enableBackgroundSync={enableBackgroundSync}
+        supportsBackgroundSync={supportsBackgroundSync}
       />
 
       {/* File list */}
