@@ -261,13 +261,18 @@ export async function POST(req: NextRequest) {
 
     logger.error('Upload endpoint error', {
       error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
       duration: Date.now() - startTime,
     });
 
+    // Return generic error to client, full details logged server-side only
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Upload failed',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+        error: 'Upload failed',
+        // Only include error details in development for debugging
+        details: process.env.NODE_ENV === 'development'
+          ? (error instanceof Error ? error.message : String(error))
+          : undefined,
       },
       { status: 500 }
     );
