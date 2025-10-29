@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { Loader2, Upload, CheckCircle2, AlertCircle, X } from 'lucide-react';
-import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 import { useBackgroundSync } from '@/hooks/use-background-sync';
+import { useFileValidation } from '@/hooks/use-file-validation';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
 import { useEmbeddingStatusSubscription } from '@/contexts/embedding-status-context';
@@ -426,6 +426,7 @@ export function UploadZone({
   const { isOffline } = useOffline();
   const router = useRouter();
   const uploadQueueManager = getUploadQueueManager();
+  const { validateFile, ALLOWED_FILE_TYPES } = useFileValidation();
 
   // Progress throttling to reduce re-renders
   const progressThrottleMap = useRef<Map<string, { lastUpdate: number; lastPercent: number }>>(new Map());
@@ -607,17 +608,6 @@ export function UploadZone({
     uploadingCount,
     errorCount,
   } = useBackgroundSync();
-
-  // Handle file validation
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return `Invalid file type: ${file.name}. Only JPEG, PNG, WebP, and GIF are allowed.`;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return `File too large: ${file.name}. Maximum size is 10MB.`;
-    }
-    return null;
-  };
 
   // Process files for upload with background sync support
   const FILE_PROCESSING_CHUNK_SIZE = 20; // Process files in chunks to prevent UI freezing
