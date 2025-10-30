@@ -6,22 +6,12 @@ import {
 } from '@/lib/upload/embedding-scheduler-service';
 import * as db from '@/lib/db';
 import * as embeddings from '@/lib/embeddings';
+import { EmbeddingError } from '@/lib/embeddings';
 import * as nextServer from 'next/server';
-
-// Mock EmbeddingError class for testing
-class EmbeddingError extends Error {
-  retryable: boolean;
-  constructor(message: string, retryable = false) {
-    super(message);
-    this.name = 'EmbeddingError';
-    this.retryable = retryable;
-  }
-}
 
 // Mock dependencies
 vi.mock('next/server');
 vi.mock('@/lib/db');
-vi.mock('@/lib/embeddings');
 vi.mock('@/lib/logger');
 
 describe('EmbeddingSchedulerService', () => {
@@ -58,11 +48,7 @@ describe('EmbeddingSchedulerService', () => {
     });
 
     mockCreateEmbeddingService = vi.fn();
-    Object.defineProperty(vi.mocked(embeddings), 'createEmbeddingService', {
-      value: mockCreateEmbeddingService,
-      writable: true,
-      configurable: true,
-    });
+    vi.spyOn(embeddings, 'createEmbeddingService').mockImplementation(mockCreateEmbeddingService);
 
     // Reset all mocks
     vi.clearAllMocks();
@@ -151,7 +137,7 @@ describe('EmbeddingSchedulerService', () => {
           EmbeddingScheduleError
         );
         await expect(service.scheduleEmbedding(baseParams)).rejects.toThrow(
-          'Failed to generate embedding synchronously'
+          'Failed to initialize embedding service'
         );
 
         // Verify failure was marked in DB
@@ -174,7 +160,7 @@ describe('EmbeddingSchedulerService', () => {
         mockPrisma.assetEmbedding.findUnique.mockResolvedValue(null);
         const mockEmbeddingService = {
           embedImage: vi.fn().mockRejectedValue(
-            new EmbeddingError('API rate limit exceeded', true)
+            new EmbeddingError('API rate limit exceeded', 429, true)
           ),
         };
         mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService);
@@ -429,7 +415,7 @@ describe('EmbeddingSchedulerService', () => {
         const mockEmbeddingService = {
           embedImage: vi
             .fn()
-            .mockRejectedValue(new EmbeddingError('Temporary failure', true)),
+            .mockRejectedValue(new EmbeddingError('Temporary failure', 500, true)),
         };
         mockCreateEmbeddingService.mockReturnValue(mockEmbeddingService);
         mockPrisma.assetEmbedding.upsert.mockResolvedValue({});
