@@ -394,26 +394,11 @@ function AppPageClient() {
 
   const gridContainerClassName = 'h-full overflow-y-auto overflow-x-hidden';
 
-  // Sort assets by filename or shuffle if needed (since API doesn't support these)
+  // Sort assets by filename if needed (shuffle now handled server-side)
   const sortedAssets = useMemo(() => {
-    // Shuffle: Fisher-Yates algorithm with persistent seed
+    // Shuffle: handled server-side via API
     if (sortBy === 'shuffle') {
-      // Use a seed based on assets length and first asset ID for consistency during session
-      const seed = assets.length > 0 ? assets[0].id.charCodeAt(0) + assets.length : 0;
-
-      // Seeded random number generator
-      let s = seed;
-      const seededRandom = () => {
-        s = (s * 9301 + 49297) % 233280;
-        return s / 233280;
-      };
-
-      const shuffled = [...assets];
-      for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(seededRandom() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-      }
-      return shuffled;
+      return assets; // Use server-provided order
     }
 
     // Name sorting: client-side since DB doesn't support it
