@@ -69,11 +69,12 @@ export interface AssetUpdate {
 
 export interface UseAssetsOptions {
   initialLimit?: number;
-  sortBy?: 'createdAt' | 'favorite' | 'size';
+  sortBy?: 'createdAt' | 'favorite' | 'size' | 'shuffle';
   sortOrder?: 'asc' | 'desc';
   filterFavorites?: boolean;
   autoLoad?: boolean;
   tagId?: string;
+  shuffleSeed?: number;
 }
 
 export interface UploadResponse {

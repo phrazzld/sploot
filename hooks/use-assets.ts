@@ -12,6 +12,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
     filterFavorites,
     autoLoad = true,
     tagId,
+    shuffleSeed,
   } = options;
 
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -82,6 +83,10 @@ export function useAssets(options: UseAssetsOptions = {}) {
 
         if (tagId) {
           params.set('tagId', tagId);
+        }
+
+        if (shuffleSeed !== undefined && sortBy === 'shuffle') {
+          params.set('shuffleSeed', shuffleSeed.toString());
         }
 
         const response = await fetch(`/api/assets?${params}`, {
@@ -205,7 +210,7 @@ export function useAssets(options: UseAssetsOptions = {}) {
         }
       }
     },
-    [offset, initialLimit, sortBy, sortOrder, filterFavorites, tagId] // Removed loading and hasMore from dependencies
+    [offset, initialLimit, sortBy, sortOrder, filterFavorites, tagId, shuffleSeed] // Removed loading and hasMore from dependencies
   );
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
