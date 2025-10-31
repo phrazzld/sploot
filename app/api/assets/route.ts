@@ -177,6 +177,7 @@ export async function GET(req: NextRequest) {
   let sortOrder: 'asc' | 'desc' = 'desc';
   let favorite: string | null = null;
   let tagId: string | null = null;
+  let shuffleSeed: number | undefined = undefined;
 
   try {
     // Parse query params INSIDE try block to catch URL parsing errors
@@ -194,6 +195,19 @@ export async function GET(req: NextRequest) {
     // Validate and type-cast sortOrder to Prisma's expected literal type
     const sortOrderParam = searchParams.get('sortOrder') || 'desc';
     sortOrder = sortOrderParam === 'asc' ? 'asc' : 'desc';
+
+    // Parse and validate shuffleSeed
+    const shuffleSeedParam = searchParams.get('shuffleSeed');
+    if (shuffleSeedParam) {
+      const parsed = parseInt(shuffleSeedParam, 10);
+      if (isNaN(parsed) || parsed < 0 || parsed > 1000000) {
+        return NextResponse.json(
+          { error: 'Invalid shuffleSeed parameter. Must be integer 0-1000000.' },
+          { status: 400 }
+        );
+      }
+      shuffleSeed = parsed;
+    }
 
     favorite = searchParams.get('favorite');
     tagId = searchParams.get('tagId');
