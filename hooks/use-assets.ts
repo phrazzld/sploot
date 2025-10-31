@@ -331,8 +331,8 @@ interface SearchMetadata {
   latencyMs?: number;
 }
 
-export function useSearchAssets(query: string, options: { limit?: number; threshold?: number; enabled?: boolean } = {}) {
-  const { limit = 50, threshold = 0.2, enabled = true } = options;
+export function useSearchAssets(query: string, options: { limit?: number; threshold?: number; enabled?: boolean; shuffleSeed?: number } = {}) {
+  const { limit = 50, threshold = 0.2, enabled = true, shuffleSeed } = options;
 
   const [assets, setAssets] = useState<Asset[]>([]);
   const [loading, setLoading] = useState(false);
@@ -372,6 +372,7 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
           query: query.trim(),
           limit,
           threshold,
+          ...(shuffleSeed !== undefined && { shuffleSeed }),
         }),
         signal: controller.signal,
       });
@@ -440,7 +441,7 @@ export function useSearchAssets(query: string, options: { limit?: number; thresh
         setLoading(false);
       }
     }
-  }, [query, limit, threshold]);
+  }, [query, limit, threshold, shuffleSeed]);
 
   const updateAsset = useCallback((id: string, updates: Partial<Asset>) => {
     setAssets((prev) =>

@@ -178,7 +178,7 @@ function AppPageClient() {
     deleteAsset: deleteSearchAsset,
     search: runInlineSearch,
     metadata: searchMetadata,
-  } = useSearchAssets(libraryQuery, { limit: 50, threshold: 0.2 });
+  } = useSearchAssets(libraryQuery, { limit: 50, threshold: 0.2, shuffleSeed });
 
   // Set isClient flag once mounted
   useEffect(() => {
