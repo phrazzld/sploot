@@ -82,9 +82,22 @@ export async function POST(req: NextRequest) {
 
     // Step 1: Validate file
     const fileBuffer = Buffer.from(await file.arrayBuffer());
-    validator.validateFileType(file.type);
-    validator.validateFileSize(file.size);
-    validator.validateTags(tags);
+    const validationResult = validator.validateUpload(file, tags);
+    if (!validationResult.valid) {
+      const error = validationResult.error!;
+      logger.warn('Upload validation failed', {
+        userId,
+        errorType: error.errorType,
+        filename: file.name,
+        size: file.size,
+        type: file.type
+      });
+
+      return NextResponse.json(
+        { success: false, error: error.userMessage },
+        { status: error.statusCode }
+      );
+    }
 
     logger.info('File validated', {
       userId,
@@ -221,7 +234,15 @@ export async function POST(req: NextRequest) {
         error: dbError instanceof Error ? dbError.message : String(dbError),
       });
 
-      await uploader.cleanup(uploadResult.mainUrl, uploadResult.thumbnailUrl);
+      try {
+        await uploader.cleanup(uploadResult.mainUrl, uploadResult.thumbnailUrl);
+      } catch (cleanupError) {
+        // Log but don't throw - blob may already be deleted in race condition
+        logger.warn('Blob cleanup failed (may already be deleted)', {
+          userId,
+          error: cleanupError instanceof Error ? cleanupError.message : String(cleanupError),
+        });
+      }
 
       // Check if it was a duplicate constraint violation (race condition)
       if (dbError instanceof Error && dbError.message.includes('Unique constraint')) {

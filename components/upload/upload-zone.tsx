@@ -741,6 +741,9 @@ export function UploadZone({
           // Max retries reached
           uploadStatsRef.current.failed++;
           console.error(`[Upload] File ${metadata.name} failed permanently after 3 retries:`, error);
+          // Clean up file object to prevent memory leak
+          fileObjects.current.delete(fileId);
+          progressThrottleMap.current.delete(fileId);
         }
       }
     }
@@ -1006,6 +1009,7 @@ export function UploadZone({
       return newMap;
     });
     fileObjects.current.delete(id);
+    progressThrottleMap.current.delete(id);
   };
 
   // Retry failed upload
