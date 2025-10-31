@@ -69,7 +69,7 @@ function AppPageClient() {
   } = useDeleteConfirmation();
 
   // Use sort preferences hook with localStorage persistence and debouncing
-  const { sortBy, direction: sortOrder, handleSortChange, getSortColumn } = useSortPreferences();
+  const { sortBy, direction: sortOrder, shuffleSeed, handleSortChange, getSortColumn } = useSortPreferences();
   const [failedEmbeddings, setFailedEmbeddings] = useState<EmbeddingQueueItem[]>([]);
   const [showRetryModal, setShowRetryModal] = useState(false);
   const [retryProgress, setRetryProgress] = useState({ current: 0, total: 0, processing: false });
@@ -148,6 +148,7 @@ function AppPageClient() {
     autoLoad: true,
     filterFavorites: bangersOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,
+    shuffleSeed,
   });
 
   // Listen for asset upload events and refresh the library
