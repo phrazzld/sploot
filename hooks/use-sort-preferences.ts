@@ -10,6 +10,7 @@ const DEBOUNCE_DELAY = 100; // 100ms as specified
 interface SortPreferences {
   sortBy: SortOption;
   direction: SortDirection;
+  shuffleSeed?: number;
 }
 
 /**
@@ -20,12 +21,13 @@ export function useSortPreferences() {
   // Initialize state with defaults
   const [sortBy, setSortBy] = useState<SortOption>('recent');
   const [direction, setDirection] = useState<SortDirection>('desc');
+  const [shuffleSeed, setShuffleSeed] = useState<number | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(true);
   const isMountedRef = useRef(false);
 
   // Debounce the preferences for localStorage writes
   const debouncedPreferences = useDebounce(
-    { sortBy, direction },
+    { sortBy, direction, shuffleSeed },
     DEBOUNCE_DELAY
   );
 
@@ -40,12 +42,15 @@ export function useSortPreferences() {
         // Validate the parsed data
         if (
           parsed.sortBy &&
-          ['recent', 'date', 'size', 'name'].includes(parsed.sortBy) &&
+          ['recent', 'date', 'size', 'name', 'shuffle'].includes(parsed.sortBy) &&
           parsed.direction &&
           ['asc', 'desc'].includes(parsed.direction)
         ) {
           setSortBy(parsed.sortBy);
           setDirection(parsed.direction);
+          if (parsed.shuffleSeed !== undefined) {
+            setShuffleSeed(parsed.shuffleSeed);
+          }
         }
       }
     } catch (error) {
@@ -69,6 +74,7 @@ export function useSortPreferences() {
       const preferences: SortPreferences = {
         sortBy: debouncedPreferences.sortBy,
         direction: debouncedPreferences.direction,
+        shuffleSeed: debouncedPreferences.shuffleSeed,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
     } catch (error) {
@@ -81,6 +87,14 @@ export function useSortPreferences() {
     (newSortBy: SortOption, newDirection: SortDirection) => {
       setSortBy(newSortBy);
       setDirection(newDirection);
+
+      // Generate new seed when shuffle activated
+      if (newSortBy === 'shuffle') {
+        const newSeed = Math.floor(Math.random() * 1000000);
+        setShuffleSeed(newSeed);
+      } else {
+        setShuffleSeed(undefined); // Clear seed for other sorts
+      }
     },
     []
   );
@@ -112,6 +126,7 @@ export function useSortPreferences() {
   return {
     sortBy,
     direction,
+    shuffleSeed,
     isLoading,
     handleSortChange,
     resetPreferences,
