@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { getCacheService } from '@/lib/cache';
 import { getAuthWithUser, requireUserIdWithSync } from '@/lib/auth/server';
 import { prisma, upsertAssetEmbedding } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import logger from '@/lib/logger';
 import { logError } from '@/lib/vercel-logger';
 import { createErrorResponse } from '@/lib/error-response';
@@ -240,23 +241,58 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    // Handle shuffle with seeded randomization
+    if (shuffleSeed !== undefined) {
+      // Normalize seed to 0-1 range for PostgreSQL setseed()
+      const normalizedSeed = shuffleSeed / 1000000;
+      await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`;
+    }
+
     const [assets, total] = await Promise.all([
-      prisma.asset.findMany({
-        where,
-        take: limit,
-        skip: offset,
-        orderBy: sortBy === 'createdAt'
-          ? { createdAt: sortOrder }
-          : { updatedAt: sortOrder },
-        include: {
-          embedding: true,
-          tags: {
+      shuffleSeed !== undefined
+        ? // Shuffle query using ORDER BY RANDOM()
+          prisma.$queryRaw<Array<any>>`
+            SELECT
+              a.id,
+              a.blob_url as "blobUrl",
+              a.pathname,
+              a.mime,
+              a.width,
+              a.height,
+              a.favorite,
+              a.size,
+              a."createdAt",
+              a."updatedAt"
+            FROM "assets" a
+            WHERE
+              a.owner_user_id = ${userId}
+              AND a.deleted_at IS NULL
+              ${favorite !== null ? Prisma.sql`AND a.favorite = ${favorite === 'true'}` : Prisma.empty}
+              ${tagId ? Prisma.sql`AND EXISTS (
+                SELECT 1 FROM "asset_tags" at
+                WHERE at.asset_id = a.id AND at.tag_id = ${tagId}
+              )` : Prisma.empty}
+            ORDER BY RANDOM()
+            LIMIT ${limit}
+            OFFSET ${offset}
+          `
+        : // Normal query with Prisma ORM
+          prisma.asset.findMany({
+            where,
+            take: limit,
+            skip: offset,
+            orderBy: sortBy === 'createdAt'
+              ? { createdAt: sortOrder }
+              : { updatedAt: sortOrder },
             include: {
-              tag: true,
+              embedding: true,
+              tags: {
+                include: {
+                  tag: true,
+                },
+              },
             },
-          },
-        },
-      }),
+          }),
       prisma.asset.count({ where }),
     ]);
 
@@ -271,11 +307,11 @@ export async function GET(req: NextRequest) {
       height: asset.height,
       favorite: asset.favorite,
       createdAt: asset.createdAt,
-      embedding: asset.embedding,
-      tags: asset.tags.map((at: any) => ({
+      embedding: asset.embedding || undefined,
+      tags: asset.tags ? asset.tags.map((at: any) => ({
         id: at.tag.id,
         name: at.tag.name,
-      })),
+      })) : [],
     }));
 
     return NextResponse.json({
