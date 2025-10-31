@@ -313,7 +313,7 @@ Time: 15m
 
 ## Phase 2: Shuffle for Search Results (2-3 hours)
 
-- [ ] **Task 2.1: Add shuffleSeed Support to /api/search Route**
+- [x] **Task 2.1: Add shuffleSeed Support to /api/search Route**
 
 ```
 Files: app/api/search/route.ts:10-100
@@ -342,7 +342,7 @@ Time: 1.5h
 
 ---
 
-- [ ] **Task 2.2: Update vectorSearch() in lib/db.ts for Shuffle Support**
+- [x] **Task 2.2: Update vectorSearch() in lib/db.ts for Shuffle Support**
 
 ```
 Files: lib/db.ts:459-534
@@ -381,7 +381,7 @@ Time: 1h
 
 ---
 
-- [ ] **Task 2.3: Wire Search Shuffle from Frontend**
+- [x] **Task 2.3: Wire Search Shuffle from Frontend**
 
 ```
 Files: app/app/page.tsx (search integration)
