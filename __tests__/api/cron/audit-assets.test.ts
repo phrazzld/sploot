@@ -440,6 +440,10 @@ describe('/api/cron/audit-assets', () => {
 
   describe('Error Handling', () => {
     it('should handle unexpected errors gracefully', async () => {
+      // Mock development environment to test error details
+      const originalEnv = process.env.NODE_ENV;
+      process.env.NODE_ENV = 'development';
+
       mockPrisma.asset.findMany.mockRejectedValue(new Error('Database connection failed'));
 
       // Suppress console.error
@@ -450,10 +454,11 @@ describe('/api/cron/audit-assets', () => {
 
       expect(response.status).toBe(500);
       expect(data.error).toBe('Failed to audit assets');
-      expect(data.details).toBe('Database connection failed');
+      expect(data.details).toBe('Database connection failed'); // Only present in development
       expect(data.stats).toBeDefined();
 
       consoleErrorSpy.mockRestore();
+      process.env.NODE_ENV = originalEnv;
     });
   });
 });

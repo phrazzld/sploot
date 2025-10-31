@@ -193,7 +193,10 @@ export async function GET(request: NextRequest) {
       {
         error: 'Failed to audit assets',
         stats,
-        details: error instanceof Error ? error.message : 'Unknown error',
+        // Only include error details in development for debugging
+        details: process.env.NODE_ENV === 'development'
+          ? (error instanceof Error ? error.message : 'Unknown error')
+          : undefined,
       },
       { status: 500 }
     );

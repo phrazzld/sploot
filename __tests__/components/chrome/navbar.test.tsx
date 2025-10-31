@@ -128,7 +128,7 @@ describe('NavbarSpacer', () => {
 
     const spacer = container.firstChild as HTMLElement;
     expect(spacer).toBeInTheDocument();
-    expect(spacer).toHaveClass('h-14');
+    expect(spacer).toHaveClass('h-[calc(3.5rem+env(safe-area-inset-top))]');
   });
 
   it('should match navbar height (56px / h-14)', () => {
@@ -138,8 +138,8 @@ describe('NavbarSpacer', () => {
     const navbar = navbarContainer.querySelector('nav');
     const spacer = spacerContainer.firstChild as HTMLElement;
 
-    // Both should have h-14 class
+    // Navbar has h-14 class, spacer includes safe area inset
     expect(navbar).toHaveClass('h-14');
-    expect(spacer).toHaveClass('h-14');
+    expect(spacer).toHaveClass('h-[calc(3.5rem+env(safe-area-inset-top))]');
   });
 });

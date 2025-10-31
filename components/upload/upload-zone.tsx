@@ -1,20 +1,19 @@
 'use client';
 
-import { useState, useRef, useCallback, useEffect, useMemo, DragEvent, ClipboardEvent } from 'react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { Loader2, Upload, CheckCircle2, AlertCircle, X } from 'lucide-react';
-import { ALLOWED_FILE_TYPES, MAX_FILE_SIZE } from '@/lib/blob';
+import { Loader2, CheckCircle2, AlertCircle, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useOffline } from '@/hooks/use-offline';
 import { useUploadQueue } from '@/hooks/use-upload-queue';
 import { useBackgroundSync } from '@/hooks/use-background-sync';
+import { useFileValidation } from '@/hooks/use-file-validation';
 import { UploadErrorDisplay } from '@/components/upload/upload-error-display';
 import { getUploadErrorDetails, UploadErrorDetails } from '@/lib/upload-errors';
-import { useEmbeddingStatusSubscription } from '@/contexts/embedding-status-context';
-import { useSSEEmbeddingUpdates } from '@/hooks/use-sse-updates';
-import { getSSEClient } from '@/lib/sse-client';
+import { EmbeddingStatusIndicator } from '@/components/upload/embedding-status-indicator';
+import { UploadDropZone } from '@/components/upload/upload-drop-zone';
+import { UploadFileList } from '@/components/upload/upload-file-list';
 import { getUploadQueueManager, useUploadRecovery } from '@/lib/upload-queue';
 import { showToast } from '@/components/ui/toast';
 import type { ProgressStats } from './upload-progress-header';
@@ -48,328 +47,6 @@ interface FileMetadata {
 // Legacy interface for backward compatibility during migration
 interface UploadFile extends FileMetadata {
   file: File;
-}
-
-// Component to handle inline embedding status display
-function EmbeddingStatusIndicator({
-  file,
-  onStatusChange
-}: {
-  file: FileMetadata;
-  onStatusChange: (status: 'pending' | 'processing' | 'ready' | 'failed', error?: string) => void;
-}) {
-  const [showStatus, setShowStatus] = useState(true);
-  const [autoHideTimer, setAutoHideTimer] = useState<NodeJS.Timeout | null>(null);
-
-  // Use centralized embedding status subscription (polling fallback)
-  const embeddingStatus = useEmbeddingStatusSubscription(
-    file.assetId,
-    {
-      enabled: !!file.assetId && file.needsEmbedding === true,
-      onStatusChange: (status) => {
-        // Map status to expected format
-        if (status.status === 'processing') {
-          onStatusChange('processing');
-        } else if (status.status === 'ready' && status.hasEmbedding) {
-          onStatusChange('ready');
-          // Auto-dismiss success after 3s
-          const timer = setTimeout(() => setShowStatus(false), 3000);
-          setAutoHideTimer(timer);
-        } else if (status.status === 'failed') {
-          onStatusChange('failed', status.error);
-        } else if (status.status === 'pending') {
-          onStatusChange('pending');
-        }
-      },
-      onSuccess: () => {
-        // Already handled in onStatusChange
-      },
-      onError: (error) => {
-        // Already handled in onStatusChange
-      },
-    }
-  );
-
-  // Use SSE for real-time updates
-  useSSEEmbeddingUpdates(
-    file.assetId ? [file.assetId] : [],
-    {
-      enabled: !!file.assetId && file.needsEmbedding === true,
-      onUpdate: (update) => {
-        if (update.assetId === file.assetId) {
-          logger.debug(`[SSE] Received update for asset ${file.assetId}:`, update.status);
-
-          // Map SSE status to component status
-          if (update.status === 'processing') {
-            onStatusChange('processing');
-          } else if (update.status === 'ready' && update.hasEmbedding) {
-            onStatusChange('ready');
-            // Auto-dismiss success after 3s
-            if (autoHideTimer) clearTimeout(autoHideTimer);
-            const timer = setTimeout(() => setShowStatus(false), 3000);
-            setAutoHideTimer(timer);
-          } else if (update.status === 'failed') {
-            onStatusChange('failed', update.error);
-          } else if (update.status === 'pending') {
-            onStatusChange('pending');
-          }
-        }
-      }
-    }
-  );
-
-  // Connect to SSE on mount if needed
-  useEffect(() => {
-    if (file.assetId && file.needsEmbedding) {
-      const client = getSSEClient();
-      // Ensure SSE client is connected for this asset
-      if (client.getState() === 'disconnected') {
-        logger.debug(`[SSE] Connecting for asset ${file.assetId}`);
-        client.connect([file.assetId]);
-      }
-    }
-  }, [file.assetId, file.needsEmbedding]);
-
-  // Clean up timer on unmount
-  useEffect(() => {
-    return () => {
-      if (autoHideTimer) {
-        clearTimeout(autoHideTimer);
-      }
-    };
-  }, [autoHideTimer]);
-
-  // If embedding is not needed or status is hidden, show simple success
-  if (!file.needsEmbedding || !showStatus) {
-    return <Badge variant="secondary" className="text-green-500 gap-1"><CheckCircle2 className="size-3" />Ready</Badge>;
-  }
-
-  // Retry handler for failed embeddings
-  const handleRetry = async () => {
-    if (embeddingStatus.retry) {
-      await embeddingStatus.retry();
-    }
-  };
-
-  // Display based on embedding status
-  switch (file.embeddingStatus) {
-    case 'pending':
-      return (
-        <div className="flex items-center gap-2 text-xs">
-          <Badge variant="secondary" className="text-green-500"><CheckCircle2 className="size-3" />Uploaded</Badge>
-          <Badge variant="secondary" className="text-yellow-500">Preparing...</Badge>
-        </div>
-      );
-
-    case 'processing':
-      return (
-        <div className="flex items-center gap-2 text-xs">
-          <Badge variant="secondary" className="text-green-500"><CheckCircle2 className="size-3" />Uploaded</Badge>
-          <Badge variant="default" className="gap-1">
-            <Loader2 className="size-3 animate-spin" />
-            Indexing
-          </Badge>
-        </div>
-      );
-
-    case 'ready':
-      return (
-        <Badge variant="secondary" className="text-green-500 gap-1 animate-in fade-in duration-200">
-          <CheckCircle2 className="size-3" />
-          Ready to search
-        </Badge>
-      );
-
-    case 'failed':
-      return (
-        <div className="flex items-center gap-2 text-xs">
-          <Badge variant="secondary" className="text-yellow-500"><AlertCircle className="size-3" />Upload complete</Badge>
-          <Badge variant="destructive">Search prep failed</Badge>
-          <Button
-            onClick={handleRetry}
-            size="sm"
-            variant="link"
-            disabled={!embeddingStatus.retry}
-            className="h-auto p-0 text-primary underline"
-          >
-            Retry
-          </Button>
-        </div>
-      );
-
-    default:
-      return <Badge variant="secondary" className="text-green-500"><CheckCircle2 className="size-3" /></Badge>;
-  }
-}
-
-// Virtualized file list component for performance with large batches
-function VirtualizedFileList({
-  fileMetadata,
-  setFileMetadata,
-  formatFileSize,
-  router,
-  retryUpload,
-  removeFile
-}: {
-  fileMetadata: Map<string, FileMetadata>;
-  setFileMetadata: React.Dispatch<React.SetStateAction<Map<string, FileMetadata>>>;
-  formatFileSize: (bytes: number) => string;
-  router: any; // NextJS router instance
-  retryUpload: (metadata: FileMetadata) => void;
-  removeFile: (id: string) => void;
-}) {
-  const parentRef = useRef<HTMLDivElement>(null);
-
-  // Convert Map values to array for virtualization and maintain order
-  const filesArray = useMemo(() => {
-    return Array.from(fileMetadata.values()).sort((a, b) => a.addedAt - b.addedAt);
-  }, [fileMetadata]);
-
-  const virtualizer = useVirtualizer({
-    count: filesArray.length,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 64, // Fixed height of 64px per file item as specified
-    overscan: 5, // Render 5 extra items outside viewport for smooth scrolling
-  });
-
-  const virtualItems = virtualizer.getVirtualItems();
-
-  return (
-    <div
-      ref={parentRef}
-      className="h-[400px] overflow-y-auto space-y-2"
-      style={{
-        contain: 'strict',
-      }}
-    >
-      <div
-        style={{
-          height: `${virtualizer.getTotalSize()}px`,
-          width: '100%',
-          position: 'relative',
-        }}
-      >
-        {virtualItems.map((virtualItem) => {
-          const file = filesArray[virtualItem.index];
-          return (
-            <div
-              key={virtualItem.key}
-              style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: `${virtualItem.size}px`,
-                transform: `translateY(${virtualItem.start}px)`,
-              }}
-            >
-              <Card className="h-[60px] p-3 flex items-center rounded-md">
-                <div className="flex items-center gap-3 w-full">
-                  {/* File icon/preview */}
-                  <div className="w-12 h-12 bg-muted flex items-center justify-center overflow-hidden flex-shrink-0 rounded">
-                    {file.blobUrl ? (
-                      <Image
-                        src={file.blobUrl}
-                        alt={file.name}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl">🖼️</span>
-                    )}
-                  </div>
-
-                  {/* File info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {formatFileSize(file.size)}
-                    </p>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {file.status === 'uploading' && (
-                      <div className="flex items-center gap-2">
-                        <Progress value={file.progress} className="w-24 h-1" />
-                        <Badge variant="default" className="gap-1">
-                          <Loader2 className="size-3 animate-spin" />
-                          {file.progress}%
-                        </Badge>
-                      </div>
-                    )}
-
-                    {file.status === 'queued' && (
-                      <Badge variant="outline">Queued</Badge>
-                    )}
-
-                    {file.status === 'success' && (
-                      <EmbeddingStatusIndicator
-                        file={file}
-                        onStatusChange={(status, error) => {
-                          setFileMetadata(prev => {
-                            const updated = new Map(prev);
-                            const metadata = updated.get(file.id);
-                            if (metadata) {
-                              updated.set(file.id, {
-                                ...metadata,
-                                embeddingStatus: status,
-                                embeddingError: error
-                              });
-                            }
-                            return updated;
-                          });
-                        }}
-                      />
-                    )}
-
-                    {file.status === 'duplicate' && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="secondary" className="text-yellow-500">Already exists</Badge>
-                        {file.needsEmbedding ? (
-                          <Badge variant="default" className="gap-1"><Loader2 className="size-3 animate-spin" />Indexing</Badge>
-                        ) : (
-                          <Button
-                            onClick={() => {
-                              if (file.assetId) {
-                                router.push(`/app?highlight=${file.assetId}`);
-                              }
-                            }}
-                            size="sm"
-                            variant="link"
-                            className="h-auto p-0 underline"
-                          >
-                            view
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {file.status === 'error' && file.errorDetails && (
-                      <UploadErrorDisplay
-                        error={file.errorDetails}
-                        fileId={file.id}
-                        fileName={file.name}
-                        onRetry={() => retryUpload(file)}
-                        onDismiss={() => removeFile(file.id)}
-                      />
-                    )}
-
-                    {file.status === 'pending' && (
-                      <Badge variant="outline">Waiting...</Badge>
-                    )}
-                  </div>
-                </div>
-              </Card>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
 }
 
 interface UploadZoneProps {
@@ -409,7 +86,6 @@ export function UploadZone({
   const fileMetadataRef = useRef(fileMetadata);
   // Store File objects temporarily only during active upload
   const fileObjects = useRef(new Map<string, File>());
-  const [isDragging, setIsDragging] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showRecoveryNotification, setShowRecoveryNotification] = useState(false);
   const [recoveryCount, setRecoveryCount] = useState(0);
@@ -417,15 +93,13 @@ export function UploadZone({
   const [isPreparing, setIsPreparing] = useState(false);
   const [preparingFileCount, setPreparingFileCount] = useState(0);
   const [preparingTotalSize, setPreparingTotalSize] = useState(0);
-  const [isProcessingPulse, setIsProcessingPulse] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounter = useRef(0);
   const activeUploadsRef = useRef<Set<string>>(new Set());
   const uploadStatsRef = useRef({ successful: 0, failed: 0 });
   const [currentConcurrency, setCurrentConcurrency] = useState(6);
   const { isOffline } = useOffline();
   const router = useRouter();
   const uploadQueueManager = getUploadQueueManager();
+  const { validateFile, ALLOWED_FILE_TYPES } = useFileValidation();
 
   // Progress throttling to reduce re-renders
   const progressThrottleMap = useRef<Map<string, { lastUpdate: number; lastPercent: number }>>(new Map());
@@ -607,17 +281,6 @@ export function UploadZone({
     uploadingCount,
     errorCount,
   } = useBackgroundSync();
-
-  // Handle file validation
-  const validateFile = (file: File): string | null => {
-    if (!ALLOWED_FILE_TYPES.includes(file.type)) {
-      return `Invalid file type: ${file.name}. Only JPEG, PNG, WebP, and GIF are allowed.`;
-    }
-    if (file.size > MAX_FILE_SIZE) {
-      return `File too large: ${file.name}. Maximum size is 10MB.`;
-    }
-    return null;
-  };
 
   // Process files for upload with background sync support
   const FILE_PROCESSING_CHUNK_SIZE = 20; // Process files in chunks to prevent UI freezing
@@ -1078,6 +741,9 @@ export function UploadZone({
           // Max retries reached
           uploadStatsRef.current.failed++;
           console.error(`[Upload] File ${metadata.name} failed permanently after 3 retries:`, error);
+          // Clean up file object to prevent memory leak
+          fileObjects.current.delete(fileId);
+          progressThrottleMap.current.delete(fileId);
         }
       }
     }
@@ -1334,76 +1000,6 @@ export function UploadZone({
     }
   };
 
-  // Drag and drop handlers
-  const handleDragEnter = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current++;
-    if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
-      setIsDragging(true);
-    }
-  };
-
-  const handleDragLeave = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current--;
-    if (dragCounter.current === 0) {
-      setIsDragging(false);
-    }
-  };
-
-  const handleDragOver = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    dragCounter.current = 0;
-
-    if (e.dataTransfer?.files && e.dataTransfer.files.length > 0) {
-      const fileCount = e.dataTransfer.files.length;
-      showToast(`Processing ${fileCount} ${fileCount === 1 ? 'file' : 'files'}...`, 'info');
-      setIsProcessingPulse(true);
-      setTimeout(() => setIsProcessingPulse(false), 1000);
-      processFiles(e.dataTransfer.files);
-    }
-  };
-
-  // Paste handler
-  const handlePaste = (e: ClipboardEvent) => {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-
-    const files: File[] = [];
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type.indexOf('image') !== -1) {
-        const file = items[i].getAsFile();
-        if (file) files.push(file);
-      }
-    }
-
-    if (files.length > 0) {
-      showToast(`Processing ${files.length} ${files.length === 1 ? 'image' : 'images'} from clipboard...`, 'info');
-      setIsProcessingPulse(true);
-      setTimeout(() => setIsProcessingPulse(false), 1000);
-      processFiles(files);
-    }
-  };
-
-  // File input handler
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const fileCount = e.target.files.length;
-      showToast(`Processing ${fileCount} selected ${fileCount === 1 ? 'file' : 'files'}...`, 'info');
-      setIsProcessingPulse(true);
-      setTimeout(() => setIsProcessingPulse(false), 1000);
-      processFiles(e.target.files);
-    }
-  };
 
   // Remove file from list
   const removeFile = (id: string) => {
@@ -1413,6 +1009,7 @@ export function UploadZone({
       return newMap;
     });
     fileObjects.current.delete(id);
+    progressThrottleMap.current.delete(id);
   };
 
   // Retry failed upload
@@ -1573,11 +1170,7 @@ export function UploadZone({
   };
 
   return (
-    <div
-      className="w-full"
-      onPaste={handlePaste}
-      tabIndex={0}
-    >
+    <div className="w-full">
       {/* Background sync status (only when enabled) */}
       {showSyncStatus && (
         <Alert className="mb-4">
@@ -1625,76 +1218,14 @@ export function UploadZone({
       )}
 
       {/* Drop Zone */}
-      <Card
-        onDragEnter={handleDragEnter}
-        onDragLeave={handleDragLeave}
-        onDragOver={handleDragOver}
-        onDrop={handleDrop}
-        onClick={() => fileInputRef.current?.click()}
-        className={cn(
-          'relative border-2 border-dashed transition-all duration-200 cursor-pointer',
-          'hover:border-primary hover:bg-primary/5',
-          isDragging
-            ? 'border-primary bg-primary/10 scale-[1.02]'
-            : 'border-border',
-          isProcessingPulse && 'animate-pulse'
-        )}
-      >
-        {/* Preparing overlay */}
-        {isPreparing && (
-          <div className="absolute inset-0 z-10 bg-background/95 flex flex-col items-center justify-center animate-in fade-in duration-200 rounded-xl">
-            <Loader2 className="size-8 text-primary animate-spin mb-3" />
-            <p className="font-medium mb-1">
-              Preparing {preparingFileCount} {preparingFileCount === 1 ? 'file' : 'files'}...
-            </p>
-            <p className="text-muted-foreground text-sm">
-              {preparingTotalSize < 1024 * 1024
-                ? `${(preparingTotalSize / 1024).toFixed(0)} KB`
-                : `${(preparingTotalSize / (1024 * 1024)).toFixed(1)} MB`}
-            </p>
-          </div>
-        )}
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <div className={cn(
-            'size-16 mb-4 rounded-lg flex items-center justify-center transition-all duration-200',
-            isDragging ? 'bg-primary/20 scale-110' : 'bg-muted'
-          )}>
-            <Upload className={cn('size-8 transition-colors', isDragging ? 'text-primary' : 'text-muted-foreground')} />
-          </div>
-
-          <p className="font-medium mb-1">
-            {isDragging ? 'Drop your images here' : 'Drag & drop images here'}
-          </p>
-          <p className="text-muted-foreground text-sm mb-4">
-            or click to browse • paste from clipboard
-          </p>
-          <p className="text-muted-foreground/60 text-xs">
-            JPEG, PNG, WebP, GIF • Max 10MB per file
-          </p>
-          {enableBackgroundSync && supportsBackgroundSync && (
-            <Badge variant="outline" className="mt-2 text-xs">
-              Background sync enabled
-            </Badge>
-          )}
-        </CardContent>
-
-        {/* Accent stripe when dragging */}
-        {isDragging && (
-          <div className="absolute inset-0 pointer-events-none rounded-xl">
-            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary rounded-l-xl" />
-            <div className="absolute right-0 top-0 bottom-0 w-1 bg-green-500 rounded-r-xl" />
-          </div>
-        )}
-      </Card>
-
-      {/* Hidden file input */}
-      <input
-        ref={fileInputRef}
-        type="file"
-        multiple
-        accept={ALLOWED_FILE_TYPES.join(',')}
-        onChange={handleFileSelect}
-        className="hidden"
+      <UploadDropZone
+        onFilesAdded={(files) => processFiles(files)}
+        allowedFileTypes={ALLOWED_FILE_TYPES}
+        isPreparing={isPreparing}
+        preparingFileCount={preparingFileCount}
+        preparingTotalSize={preparingTotalSize}
+        enableBackgroundSync={enableBackgroundSync}
+        supportsBackgroundSync={supportsBackgroundSync}
       />
 
       {/* File list */}
@@ -1797,147 +1328,23 @@ export function UploadZone({
             </CardContent>
           </Card>
 
-          {/* File list - use virtual scrolling when > 20 files */}
-          {filesArray.length > 20 ? (
-            <VirtualizedFileList
-              fileMetadata={fileMetadata}
-              setFileMetadata={setFileMetadata}
-              formatFileSize={formatFileSize}
-              router={router}
-              retryUpload={retryUpload}
-              removeFile={removeFile}
-            />
-          ) : (
-            <div className="space-y-2">
-              {filesArray.map((file) => (
-              <Card
-                key={file.id}
-                className="p-3"
-              >
-                <div className="flex items-center gap-3">
-                  {/* File icon/preview */}
-                  <div className="w-12 h-12 bg-muted flex items-center justify-center overflow-hidden rounded">
-                    {file.blobUrl ? (
-                      <Image
-                        src={file.blobUrl}
-                        alt={file.name}
-                        width={48}
-                        height={48}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-2xl">🖼️</span>
-                    )}
-                  </div>
-
-                  {/* File info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">
-                      {file.name}
-                    </p>
-                    <p className="text-muted-foreground text-xs">
-                      {formatFileSize(file.size)}
-                    </p>
-                  </div>
-
-                  {/* Status */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {file.status === 'uploading' && (
-                      <div className="flex items-center gap-2">
-                        <Progress value={file.progress} className="w-24 h-1" />
-                        <Badge variant="default" className="gap-1">
-                          <Loader2 className="size-3 animate-spin" />
-                          {file.progress}%
-                        </Badge>
-                      </div>
-                    )}
-
-                    {file.status === 'queued' && (
-                      <Badge variant="outline">Queued</Badge>
-                    )}
-
-                    {file.status === 'success' && (
-                      <EmbeddingStatusIndicator
-                        file={file}
-                        onStatusChange={(status, error) => {
-                          setFileMetadata(prev => {
-                            const updated = new Map(prev);
-                            const metadata = updated.get(file.id);
-                            if (metadata) {
-                              updated.set(file.id, {
-                                ...metadata,
-                                embeddingStatus: status,
-                                embeddingError: error
-                              });
-                            }
-                            return updated;
-                          });
-                        }}
-                      />
-                    )}
-
-                    {file.status === 'duplicate' && (
-                      <div className="flex items-center gap-2 text-xs">
-                        <Badge variant="secondary" className="text-yellow-500">Already exists</Badge>
-                        {file.needsEmbedding ? (
-                          <Badge variant="default" className="gap-1"><Loader2 className="size-3 animate-spin" />Indexing</Badge>
-                        ) : (
-                          <Button
-                            onClick={() => {
-                              if (file.assetId) {
-                                router.push(`/app?highlight=${file.assetId}`);
-                              }
-                            }}
-                            size="sm"
-                            variant="link"
-                            className="h-auto p-0 underline"
-                          >
-                            view
-                          </Button>
-                        )}
-                      </div>
-                    )}
-
-                    {file.status === 'error' && (
-                      <Button
-                        onClick={() => retryUpload(file)}
-                        size="sm"
-                        variant="ghost"
-                        className="text-destructive hover:text-destructive underline"
-                      >
-                        Retry
-                      </Button>
-                    )}
-
-                    <Button
-                      onClick={() => removeFile(file.id)}
-                      size="icon-sm"
-                      variant="ghost"
-                    >
-                      <X className="size-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Error display */}
-                {file.error && file.errorDetails && (
-                  <div className="mt-2">
-                    <UploadErrorDisplay
-                      error={file.errorDetails}
-                      fileId={file.id}
-                      fileName={file.name}
-                      onRetry={() => retryUpload(file)}
-                      onDismiss={() => removeFile(file.id)}
-                    />
-                  </div>
-                )}
-                {file.error && !file.errorDetails && (
-                  <p className="text-destructive text-xs mt-2">{file.error}</p>
-                )}
-              </Card>
-              ))}
-            </div>
-          )}
+          {/* File list */}
+          <UploadFileList
+            files={fileMetadata}
+            onFileUpdate={(id, updates) => {
+              setFileMetadata(prev => {
+                const updated = new Map(prev);
+                const metadata = updated.get(id);
+                if (metadata) {
+                  updated.set(id, { ...metadata, ...updates });
+                }
+                return updated;
+              });
+            }}
+            formatFileSize={formatFileSize}
+            onRetry={retryUpload}
+            onRemove={removeFile}
+          />
 
           {hasSuccessfulUploads && (
             <Card>

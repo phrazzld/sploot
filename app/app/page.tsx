@@ -29,6 +29,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RotateCcw, X, Trash2 } from 'lucide-react';
+import { DeleteConfirmationModal, useDeleteConfirmation } from '@/components/ui/delete-confirmation-modal';
 
 function AppPageClient() {
   const router = useRouter();
@@ -56,6 +57,16 @@ function AppPageClient() {
 
   // Keyboard shortcuts help state
   const { isOpen: isHelpOpen, openHelp, closeHelp } = useKeyboardShortcutsHelp();
+
+  // Delete confirmation modal state
+  const {
+    isOpen: isDeleteModalOpen,
+    targetAsset: deleteTargetAsset,
+    loading: isDeleting,
+    setLoading: setIsDeleting,
+    openConfirmation: openDeleteConfirmation,
+    closeConfirmation: closeDeleteConfirmation,
+  } = useDeleteConfirmation();
 
   // Use sort preferences hook with localStorage persistence and debouncing
   const { sortBy, direction: sortOrder, handleSortChange, getSortColumn } = useSortPreferences();
@@ -456,6 +467,38 @@ function AppPageClient() {
     [deleteAsset, deleteSearchAsset]
   );
 
+  // Handler for performing the actual delete with modal integration
+  const handleDeleteAsset = useCallback(
+    async (assetId: string) => {
+      setIsDeleting(true);
+      try {
+        const res = await fetch(`/api/assets/${assetId}`, {
+          method: 'DELETE',
+        });
+
+        if (res.ok) {
+          // Close lightbox modal if open
+          if (selectedAsset?.id === assetId) {
+            setSelectedAsset(null);
+          }
+          // Close delete confirmation modal
+          closeDeleteConfirmation();
+          // Update grid state
+          handleAssetDelete(assetId);
+          showToast('Asset deleted', 'success');
+        } else {
+          throw new Error('Delete request failed');
+        }
+      } catch (error) {
+        logError('Failed to delete asset:', error);
+        showToast('Failed to delete asset', 'error');
+      } finally {
+        setIsDeleting(false);
+      }
+    },
+    [selectedAsset, setIsDeleting, closeDeleteConfirmation, handleAssetDelete]
+  );
+
   // Trigger refresh when filters or sort preferences change
   useEffect(() => {
     const prev = filtersRef.current;
@@ -798,25 +841,18 @@ function AppPageClient() {
                 variant="ghost"
                 size="icon"
                 className="h-10 w-10 bg-black/50 backdrop-blur-sm text-white hover:bg-black/70 hover:text-red-500"
-                onClick={async (e) => {
+                onClick={(e) => {
                   e.stopPropagation();
-                  if (confirm(`Delete "${selectedAsset.filename}"?`)) {
-                    try {
-                      const res = await fetch(`/api/assets/${selectedAsset.id}`, {
-                        method: 'DELETE',
-                      });
+                  // Check if skip confirmation preference is set
+                  const shouldSkip = openDeleteConfirmation({
+                    id: selectedAsset.id,
+                    imageUrl: selectedAsset.thumbnailUrl || selectedAsset.blobUrl,
+                    imageName: selectedAsset.filename,
+                  });
 
-                      if (res.ok) {
-                        // Close modal
-                        setSelectedAsset(null);
-                        // Update grid state
-                        handleAssetDelete(selectedAsset.id);
-                        showToast('Asset deleted', 'success');
-                      }
-                    } catch (error) {
-                      logError('Failed to delete asset:', error);
-                      showToast('Failed to delete asset', 'error');
-                    }
+                  // If skip preference is set, delete immediately
+                  if (shouldSkip) {
+                    handleDeleteAsset(selectedAsset.id);
                   }
                 }}
                 aria-label="Delete meme"
@@ -954,6 +990,23 @@ function AppPageClient() {
       <KeyboardShortcutsHelp
         isOpen={isHelpOpen}
         onClose={closeHelp}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={closeDeleteConfirmation}
+        onConfirm={() => {
+          if (deleteTargetAsset) {
+            handleDeleteAsset(deleteTargetAsset.id);
+          }
+        }}
+        title="Delete Image"
+        description="Are you sure you want to delete this image? This action cannot be undone."
+        imageUrl={deleteTargetAsset?.imageUrl}
+        imageName={deleteTargetAsset?.imageName}
+        loading={isDeleting}
+        showDontAskAgain={true}
       />
     </div>
   );
