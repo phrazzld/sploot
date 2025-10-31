@@ -462,13 +462,21 @@ export async function vectorSearch(
   options?: {
     limit?: number;
     threshold?: number;
+    shuffleSeed?: number;
   }
 ) {
   if (!prisma) {
     return [];
   }
 
-  const { limit = 30, threshold } = options || {};
+  const { limit = 30, threshold, shuffleSeed } = options || {};
+
+  // Handle shuffle with seeded randomization
+  if (shuffleSeed !== undefined) {
+    // Normalize seed to 0-1 range for PostgreSQL setseed()
+    const normalizedSeed = shuffleSeed / 1000000;
+    await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`;
+  }
 
   // Convert embedding array to pgvector format
   const vectorSql = Prisma.sql`ARRAY[${Prisma.join(queryEmbedding)}]::vector`;
@@ -511,7 +519,7 @@ export async function vectorSearch(
       WHERE
         a.owner_user_id = ${userId}
         AND a.deleted_at IS NULL
-      ORDER BY ae.image_embedding <=> ${vectorSql}
+      ORDER BY ${shuffleSeed !== undefined ? Prisma.sql`RANDOM()` : Prisma.sql`ae.image_embedding <=> ${vectorSql}`}
       LIMIT ${fetchLimit}
     `);
 
