@@ -243,9 +243,19 @@ export async function GET(req: NextRequest) {
 
     // Handle shuffle with seeded randomization
     if (shuffleSeed !== undefined) {
-      // Normalize seed to 0-1 range for PostgreSQL setseed()
-      const normalizedSeed = shuffleSeed / 1000000;
-      await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`;
+      try {
+        // Normalize seed to 0-1 range for PostgreSQL setseed()
+        const normalizedSeed = shuffleSeed / 1000000;
+        await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`;
+      } catch (seedError) {
+        // Log setseed error but don't fail the request - fall back to unseed random
+        logger.error('Failed to set shuffle seed', {
+          requestId,
+          shuffleSeed,
+          error: seedError instanceof Error ? seedError.message : seedError,
+        });
+        // Continue with query - will use unseeded RANDOM() which still shuffles
+      }
     }
 
     const [assets, total] = await Promise.all([

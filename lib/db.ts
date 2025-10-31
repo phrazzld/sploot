@@ -473,9 +473,18 @@ export async function vectorSearch(
 
   // Handle shuffle with seeded randomization
   if (shuffleSeed !== undefined) {
-    // Normalize seed to 0-1 range for PostgreSQL setseed()
-    const normalizedSeed = shuffleSeed / 1000000;
-    await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`;
+    try {
+      // Normalize seed to 0-1 range for PostgreSQL setseed()
+      const normalizedSeed = shuffleSeed / 1000000;
+      await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`;
+    } catch (seedError) {
+      // Log setseed error but don't fail the search - fall back to unseeded random
+      logger.error('Failed to set shuffle seed in vectorSearch', {
+        shuffleSeed,
+        error: seedError instanceof Error ? seedError.message : seedError,
+      });
+      // Continue with query - will use unseeded RANDOM() which still shuffles
+    }
   }
 
   // Convert embedding array to pgvector format
