@@ -7,6 +7,13 @@ Analyzed by: 7 specialized perspectives (complexity, architecture, security, per
 
 ## Now (Sprint-Ready, <2 weeks)
 
+- better share experience, styling, attribution
+- "add to sploot" option on web, on mobile
+  * browser extension? mobile app? is there another way?
+- fullscreen meme should really be dedicated meme detail page
+  * meme detail page should obvi be fullscreen meme with action buttons, but should also show "related memes" ie memes with highest semantic similarity
+- make search faster
+
 ### [Monitoring] Implement Usage Analytics & Abuse Detection
 **Files**: `/app/api/upload/route.ts`, `/app/api/search/route.ts`
 **Perspectives**: security-sentinel
