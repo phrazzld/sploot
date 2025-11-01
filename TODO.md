@@ -554,7 +554,783 @@ Time: 30m
 
 ---
 
-## Next Steps
+## Phase 4: PR Review Fixes (Critical Issues - 3.5 hours)
+
+**Context**: PR #11 review identified 3 P1 merge-blocking bugs related to Prisma connection pooling and search relevance. All phases 1-3 complete but need fixes before merge.
+
+**Review Sources**: Codex Bot (3 P1 inline comments), Claude Code (comprehensive review)
+
+**Root Cause**: PostgreSQL `setseed()` is session-scoped. Prisma connection pool assigns different connections to sequential `$executeRaw` and `$queryRaw` calls, causing seed to be lost. Current search shuffle replaces similarity ranking entirely with random order.
+
+---
+
+### Critical Fix Tasks
+
+- [x] **Task 4.1: Create Seeded Random Utility Module**
+
+**File**: `lib/seeded-random.ts` (NEW FILE)
+**Purpose**: Deterministic PRNG for application-level shuffle (needed for Task 4.3)
+**Algorithm**: Mulberry32 - fast, deterministic, sufficient quality for UI
+**Time**: 20m
+
+**Implementation**:
+
+1. Create new file `lib/seeded-random.ts`
+2. Implement Mulberry32 seeded PRNG:
+   ```typescript
+   /**
+    * Mulberry32 seeded PRNG - deterministic random number generator
+    *
+    * @param seed - Integer seed value (0-1000000)
+    * @returns Function that generates random numbers in [0, 1)
+    *
+    * @example
+    * const rng = createSeededRandom(12345);
+    * console.log(rng()); // 0.6011037230491638
+    * console.log(rng()); // 0.6764709055423737
+    */
+   export function createSeededRandom(seed: number): () => number {
+     return function() {
+       let t = (seed += 0x6D2B79F5);
+       t = Math.imul(t ^ (t >>> 15), t | 1);
+       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+     };
+   }
+   ```
+
+3. Implement Fisher-Yates shuffle with seeded random:
+   ```typescript
+   /**
+    * Deterministic Fisher-Yates shuffle using seeded PRNG
+    *
+    * @param array - Array to shuffle (not mutated)
+    * @param seed - Integer seed value for deterministic shuffle
+    * @returns New shuffled array (same seed = same order)
+    *
+    * @example
+    * shuffleWithSeed([1,2,3], 42); // [2,1,3]
+    * shuffleWithSeed([1,2,3], 42); // [2,1,3] (identical)
+    * shuffleWithSeed([1,2,3], 99); // [3,2,1] (different seed)
+    */
+   export function shuffleWithSeed<T>(array: T[], seed: number): T[] {
+     const result = [...array];
+     const random = createSeededRandom(seed);
+
+     for (let i = result.length - 1; i > 0; i--) {
+       const j = Math.floor(random() * (i + 1));
+       [result[i], result[j]] = [result[j], result[i]];
+     }
+
+     return result;
+   }
+   ```
+
+**Success criteria**: Module exports both functions with correct TypeScript types. Seeded random produces deterministic sequences (same seed = same numbers). Shuffle produces deterministic ordering.
+
+**Testing**: Will add unit tests in Task 4.4
+
+---
+
+- [x] **Task 4.2: Fix Asset Shuffle Connection Pooling Bug**
+
+**File**: `app/api/assets/route.ts:244-289`
+**Bug**: `setseed()` and `$queryRaw` run on different connections → shuffle not deterministic
+**Codex Priority**: P1 (Merge-Blocking)
+**Time**: 45m
+
+**Problem Analysis**:
+```typescript
+// CURRENT (BROKEN):
+if (shuffleSeed !== undefined) {
+  await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`; // Connection A
+}
+const [assets, total] = await Promise.all([
+  shuffleSeed !== undefined
+    ? prisma.$queryRaw`SELECT ... ORDER BY RANDOM()`  // Connection B ❌
+    : // normal query
+]);
+// Result: seed never affects query, pagination non-deterministic
+```
+
+**Root Cause**: Prisma connection pool returns `$executeRaw` connection to pool before `$queryRaw` executes. `setseed()` state lost between calls.
+
+**Implementation**:
+
+1. **Remove separate setseed() call** (delete lines 245-258):
+   - Remove the try-catch block that calls `await prisma.$executeRaw`
+   - Remove graceful degradation error handling (no longer needed)
+
+2. **Combine setseed() and query in single raw SQL statement** (modify lines 261-289):
+   ```typescript
+   const [assets, total] = await Promise.all([
+     shuffleSeed !== undefined
+       ? // FIXED: Combined statement guarantees same connection
+         prisma.$queryRaw<Array<{
+           id: string;
+           blobUrl: string;
+           pathname: string;
+           mime: string;
+           width: number | null;
+           height: number | null;
+           favorite: boolean;
+           size: number;
+           createdAt: Date;
+           updatedAt: Date;
+         }>>`
+           -- Set seed first (session-scoped to this connection)
+           SELECT setseed(${normalizedSeed});
+
+           -- Query with ORDER BY RANDOM() uses seeded PRNG
+           SELECT
+             a.id,
+             a.blob_url as "blobUrl",
+             a.pathname,
+             a.mime,
+             a.width,
+             a.height,
+             a.favorite,
+             a.size,
+             a."createdAt",
+             a."updatedAt"
+           FROM "assets" a
+           WHERE
+             a.owner_user_id = ${userId}
+             AND a.deleted_at IS NULL
+             ${favoriteOnly ? Prisma.sql`AND a.favorite = true` : Prisma.empty}
+             ${tagId ? Prisma.sql`AND EXISTS (
+               SELECT 1 FROM "asset_tags" at
+               WHERE at.asset_id = a.id AND at.tag_id = ${tagId}
+             )` : Prisma.empty}
+           ORDER BY RANDOM()
+           LIMIT ${limit}
+           OFFSET ${offset}
+         `
+       : // Normal query unchanged
+         prisma.$queryRaw<Array<{...}>>`
+           SELECT
+             a.id,
+             a.blob_url as "blobUrl",
+             a.pathname,
+             a.mime,
+             a.width,
+             a.height,
+             a.favorite,
+             a.size,
+             a."createdAt",
+             a."updatedAt"
+           FROM "assets" a
+           WHERE
+             a.owner_user_id = ${userId}
+             AND a.deleted_at IS NULL
+             ${favoriteOnly ? Prisma.sql`AND a.favorite = true` : Prisma.empty}
+             ${tagId ? Prisma.sql`AND EXISTS (
+               SELECT 1 FROM "asset_tags" at
+               WHERE at.asset_id = a.id AND at.tag_id = ${tagId}
+             )` : Prisma.empty}
+           ORDER BY ${Prisma.raw(
+             `a."${sortBy === 'createdAt' ? 'createdAt' : 'updatedAt'}" ${sortOrder}`
+           )}
+           LIMIT ${limit}
+           OFFSET ${offset}
+         `,
+
+     // Total count query (unchanged)
+     prisma.$queryRaw<Array<{ count: bigint }>>`
+       SELECT COUNT(*) as count
+       FROM "assets" a
+       WHERE
+         a.owner_user_id = ${userId}
+         AND a.deleted_at IS NULL
+         ${favoriteOnly ? Prisma.sql`AND a.favorite = true` : Prisma.empty}
+         ${tagId ? Prisma.sql`AND EXISTS (
+           SELECT 1 FROM "asset_tags" at
+           WHERE at.asset_id = a.id AND at.tag_id = ${tagId}
+         )` : Prisma.empty}
+     `,
+   ]);
+   ```
+
+3. **Update result mapping** (lines 291-310):
+   - Type assertion may be needed: `const assetsData = assets as Array<{...}>`
+   - Map to Asset type with camelCase conversions
+
+**Success criteria**: Same `shuffleSeed` produces identical asset order across multiple API requests. Pagination stable - scrolling shows same assets in same positions. Different seeds produce different orders. Filters (favorite, tagId) work with shuffle.
+
+**Verification**: After implementation, test with:
+```bash
+# Same seed should return same first asset ID
+curl "http://localhost:3000/api/assets?shuffleSeed=12345&limit=1" | jq '.assets[0].id'
+curl "http://localhost:3000/api/assets?shuffleSeed=12345&limit=1" | jq '.assets[0].id'
+# Should be identical ✅
+```
+
+---
+
+- [x] **Task 4.3: Fix Search Shuffle Connection Pooling Bug** (SKIPPED - superseded by Task 4.4)
+
+**File**: `lib/db.ts:475-533`
+**Bug**: Same connection pooling issue in `vectorSearch()` function
+**Codex Priority**: P1 (Merge-Blocking)
+**Time**: 45m
+**Note**: Task 4.4 implements better solution (app-level shuffle) that doesn't need database setseed()
+
+**Problem Analysis**:
+```typescript
+// CURRENT (BROKEN):
+if (shuffleSeed !== undefined) {
+  await prisma.$executeRaw`SELECT setseed(${normalizedSeed})`; // Connection A
+}
+const results = await prisma.$queryRaw`...ORDER BY RANDOM()`; // Connection B ❌
+```
+
+**Implementation**:
+
+1. **Wrap setseed() and query in transaction** (modify lines 475-533):
+   ```typescript
+   // Execute vector similarity search
+   const results = shuffleSeed !== undefined
+     ? // FIXED: Transaction guarantees same connection for both statements
+       await prisma.$transaction(async (tx) => {
+         // Set seed first (session-scoped to this transaction's connection)
+         await tx.$executeRaw`SELECT setseed(${shuffleSeed / 1000000})`;
+
+         // Query with seeded RANDOM() in same connection
+         return tx.$queryRaw<
+           Array<{
+             id: string;
+             blob_url: string;
+             pathname: string;
+             mime: string;
+             width: number | null;
+             height: number | null;
+             favorite: boolean;
+             size: number;
+             created_at: Date;
+             distance: number;
+           }>
+         >(Prisma.sql`
+           SELECT
+             a.id,
+             a.blob_url,
+             a.pathname,
+             a.mime,
+             a.width,
+             a.height,
+             a.favorite,
+             a.size,
+             a."createdAt" AS created_at,
+             1 - (ae.image_embedding <=> ${vectorSql}) AS distance
+           FROM "assets" a
+           INNER JOIN "asset_embeddings" ae ON a.id = ae.asset_id
+           WHERE
+             a.owner_user_id = ${userId}
+             AND a.deleted_at IS NULL
+           ORDER BY RANDOM()
+           LIMIT ${fetchLimit}
+         `);
+       })
+     : // No shuffle: order by similarity (unchanged)
+       await prisma.$queryRaw<Array<{...}>>`
+         SELECT
+           a.id,
+           a.blob_url,
+           a.pathname,
+           a.mime,
+           a.width,
+           a.height,
+           a.favorite,
+           a.size,
+           a."createdAt" AS created_at,
+           1 - (ae.image_embedding <=> ${vectorSql}) AS distance
+         FROM "assets" a
+         INNER JOIN "asset_embeddings" ae ON a.id = ae.asset_id
+         WHERE
+           a.owner_user_id = ${userId}
+           AND a.deleted_at IS NULL
+         ORDER BY ae.image_embedding <=> ${vectorSql}
+         LIMIT ${fetchLimit}
+       `;
+   ```
+
+2. **Remove old setseed() call** (delete lines 475-488):
+   - Delete the try-catch block with standalone `$executeRaw`
+   - Remove error handling (now inside transaction)
+
+3. **Update ORDER BY clause** (no longer needed in query):
+   - Remove conditional ORDER BY logic (line 531)
+   - Shuffle branch uses `ORDER BY RANDOM()` in transaction
+   - Normal branch uses `ORDER BY ae.image_embedding <=> ...`
+
+**Success criteria**: Same `shuffleSeed` produces identical search result order across pagination. Transaction ensures seed and query execute on same connection. No transaction errors in logs.
+
+---
+
+- [x] **Task 4.4: Preserve Semantic Ranking in Search Shuffle**
+
+**File**: `lib/db.ts:459-560`
+**Bug**: `ORDER BY RANDOM()` replaces similarity ranking → search returns random results, not relevant results
+**Codex Priority**: P1 (Merge-Blocking) - UX Impact
+**Time**: 1h
+
+**Problem Analysis**:
+```typescript
+// CURRENT (BROKEN):
+ORDER BY ${shuffleSeed !== undefined
+  ? Prisma.sql`RANDOM()`           // Random library sample ❌
+  : Prisma.sql`ae.image_embedding <=> ${vectorSql}`  // Relevant results ✅
+}
+// Result: User searches "cat" → sees random dogs/cars/screenshots passing 0.2 threshold
+```
+
+**Root Cause**: Shuffle overrides similarity ranking completely. Returns random 50 from all 500 results above threshold, mixing barely-relevant (0.21 similarity) with highly-relevant (0.95 similarity).
+
+**Solution**: Fetch top N by similarity, randomize that subset in application code.
+
+**Implementation**:
+
+1. **Import seeded random utility** (line 1):
+   ```typescript
+   import { shuffleWithSeed } from './seeded-random';
+   ```
+
+2. **Always fetch by similarity** (modify lines 499-533):
+   - Remove shuffle from ORDER BY clause
+   - Always use `ORDER BY ae.image_embedding <=> ${vectorSql}`
+   - Adjust fetchLimit when shuffling (fetch more for better randomization pool)
+
+   ```typescript
+   // Calculate fetch limit based on shuffle needs
+   const fetchLimit = shuffleSeed !== undefined
+     ? Math.min(limit * 3, 120)  // Fetch 3x for better shuffle pool
+     : (typeof threshold === 'number' && threshold > 0
+         ? Math.min(limit * 3, 120)
+         : limit);
+
+   try {
+     // ALWAYS order by similarity (no shuffle in database)
+     const results = await prisma.$queryRaw<
+       Array<{
+         id: string;
+         blob_url: string;
+         pathname: string;
+         mime: string;
+         width: number | null;
+         height: number | null;
+         favorite: boolean;
+         size: number;
+         created_at: Date;
+         distance: number;
+       }>
+     >(Prisma.sql`
+       SELECT
+         a.id,
+         a.blob_url,
+         a.pathname,
+         a.mime,
+         a.width,
+         a.height,
+         a.favorite,
+         a.size,
+         a."createdAt" AS created_at,
+         1 - (ae.image_embedding <=> ${vectorSql}) AS distance
+       FROM "assets" a
+       INNER JOIN "asset_embeddings" ae ON a.id = ae.asset_id
+       WHERE
+         a.owner_user_id = ${userId}
+         AND a.deleted_at IS NULL
+       ORDER BY ae.image_embedding <=> ${vectorSql}
+       LIMIT ${fetchLimit}
+     `);
+   ```
+
+3. **Filter by threshold** (after query, before shuffle):
+   ```typescript
+     // Filter by threshold if provided
+     const filteredResults = typeof threshold === 'number' && threshold > 0
+       ? results.filter((r) => r.distance >= threshold)
+       : results;
+   ```
+
+4. **Shuffle in application code** (after filtering):
+   ```typescript
+     // Shuffle top results if seed provided
+     const finalResults = shuffleSeed !== undefined
+       ? shuffleWithSeed(filteredResults, shuffleSeed).slice(0, limit)
+       : filteredResults.slice(0, limit);
+
+     return finalResults.map((r) => ({
+       id: r.id,
+       blobUrl: r.blob_url,
+       pathname: r.pathname,
+       mime: r.mime,
+       width: r.width,
+       height: r.height,
+       favorite: r.favorite,
+       size: r.size,
+       createdAt: r.created_at,
+     }));
+   } catch (error) {
+     // ... existing error handling
+   }
+   ```
+
+5. **Remove transaction wrapper from Task 4.3**:
+   - Since we're no longer using `ORDER BY RANDOM()` in database
+   - No longer need `setseed()` for search shuffle
+   - Shuffle happens in application code, not database
+   - **Revert Task 4.3 changes** if already applied
+
+**Success criteria**: Search results always semantically relevant (high similarity scores). Shuffle randomizes order within top N results. Same seed produces same shuffled order. User searches "cat" + shuffle → sees cat memes in random order (not dogs/cars).
+
+**Performance note**: Application-level shuffle of 30-120 items is <1ms overhead. Total search latency still <500ms.
+
+---
+
+- [x] **Task 4.5: Add Unit Tests for Seeded Random Utility**
+
+**File**: `__tests__/lib/seeded-random.test.ts` (NEW FILE)
+**Purpose**: Validate deterministic PRNG and Fisher-Yates shuffle
+**Time**: 30m
+
+**Implementation**:
+
+1. Create test file `__tests__/lib/seeded-random.test.ts`
+
+2. Add tests for `createSeededRandom`:
+   ```typescript
+   import { describe, test, expect } from 'vitest';
+   import { createSeededRandom, shuffleWithSeed } from '@/lib/seeded-random';
+
+   describe('createSeededRandom', () => {
+     test('same seed produces identical sequence', () => {
+       const rng1 = createSeededRandom(12345);
+       const rng2 = createSeededRandom(12345);
+
+       const sequence1 = [rng1(), rng1(), rng1()];
+       const sequence2 = [rng2(), rng2(), rng2()];
+
+       expect(sequence1).toEqual(sequence2);
+     });
+
+     test('different seeds produce different sequences', () => {
+       const rng1 = createSeededRandom(12345);
+       const rng2 = createSeededRandom(54321);
+
+       const sequence1 = [rng1(), rng1()];
+       const sequence2 = [rng2(), rng2()];
+
+       expect(sequence1).not.toEqual(sequence2);
+     });
+
+     test('generates numbers in [0, 1) range', () => {
+       const rng = createSeededRandom(42);
+
+       for (let i = 0; i < 100; i++) {
+         const value = rng();
+         expect(value).toBeGreaterThanOrEqual(0);
+         expect(value).toBeLessThan(1);
+       }
+     });
+
+     test('seed 0 is valid', () => {
+       const rng = createSeededRandom(0);
+       const value = rng();
+
+       expect(typeof value).toBe('number');
+       expect(value).toBeGreaterThanOrEqual(0);
+       expect(value).toBeLessThan(1);
+     });
+
+     test('max seed (1000000) is valid', () => {
+       const rng = createSeededRandom(1000000);
+       const value = rng();
+
+       expect(typeof value).toBe('number');
+       expect(value).toBeGreaterThanOrEqual(0);
+       expect(value).toBeLessThan(1);
+     });
+   });
+   ```
+
+3. Add tests for `shuffleWithSeed`:
+   ```typescript
+   describe('shuffleWithSeed', () => {
+     test('produces deterministic shuffle', () => {
+       const array = [1, 2, 3, 4, 5];
+       const result1 = shuffleWithSeed(array, 12345);
+       const result2 = shuffleWithSeed(array, 12345);
+
+       expect(result1).toEqual(result2);
+     });
+
+     test('different seeds produce different orders', () => {
+       const array = [1, 2, 3, 4, 5];
+       const result1 = shuffleWithSeed(array, 12345);
+       const result2 = shuffleWithSeed(array, 54321);
+
+       expect(result1).not.toEqual(result2);
+     });
+
+     test('does not mutate input array', () => {
+       const array = [1, 2, 3, 4, 5];
+       const original = [...array];
+
+       shuffleWithSeed(array, 42);
+
+       expect(array).toEqual(original);
+     });
+
+     test('preserves all elements', () => {
+       const array = [1, 2, 3, 4, 5];
+       const result = shuffleWithSeed(array, 42);
+
+       expect(result).toHaveLength(array.length);
+       expect(result.sort()).toEqual(array.sort());
+     });
+
+     test('handles single element array', () => {
+       const array = [42];
+       const result = shuffleWithSeed(array, 123);
+
+       expect(result).toEqual([42]);
+     });
+
+     test('handles empty array', () => {
+       const array: number[] = [];
+       const result = shuffleWithSeed(array, 123);
+
+       expect(result).toEqual([]);
+     });
+
+     test('works with object arrays', () => {
+       const array = [
+         { id: 1, name: 'a' },
+         { id: 2, name: 'b' },
+         { id: 3, name: 'c' },
+       ];
+       const result1 = shuffleWithSeed(array, 999);
+       const result2 = shuffleWithSeed(array, 999);
+
+       expect(result1).toEqual(result2);
+       expect(result1).toHaveLength(3);
+     });
+   });
+   ```
+
+**Success criteria**: All tests pass. Tests cover determinism, range validation, edge cases (empty array, single element), and type safety (object arrays).
+
+**Run tests**: `pnpm test seeded-random`
+
+---
+
+### Code Quality & Documentation Tasks
+
+- [x] **Task 4.6: Extract Magic Number Constants**
+
+**Files**: `hooks/use-sort-preferences.ts:93`, `app/api/assets/route.ts:207`
+**Purpose**: DRY principle, single source of truth for max seed value
+**Time**: 5m
+
+**Implementation**:
+
+1. **In `hooks/use-sort-preferences.ts`** (add at top, line ~10):
+   ```typescript
+   // Shuffle seed range: 0-1000000 for user-friendly integer values
+   // Normalized to 0.0-1.0 for PostgreSQL setseed() in API/DB layer
+   const MAX_SHUFFLE_SEED = 1000000;
+   ```
+
+2. **Update seed generation** (line 93):
+   ```typescript
+   const newSeed = Math.floor(Math.random() * MAX_SHUFFLE_SEED);
+   ```
+
+3. **In `app/api/assets/route.ts`** (add at top, line ~10):
+   ```typescript
+   const MAX_SHUFFLE_SEED = 1000000;
+   ```
+
+4. **Update validation** (line 207):
+   ```typescript
+   if (isNaN(parsed) || parsed < 0 || parsed > MAX_SHUFFLE_SEED) {
+     return NextResponse.json(
+       { error: `Invalid shuffleSeed parameter. Must be integer 0-${MAX_SHUFFLE_SEED}.` },
+       { status: 400 }
+     );
+   }
+   ```
+
+**Success criteria**: MAX_SHUFFLE_SEED defined in both files. Validation uses constant in error message. No hardcoded `1000000` values remain.
+
+---
+
+- [x] **Task 4.7: Add Seed Normalization Comments**
+
+**Files**: `app/api/assets/route.ts:248` (if Task 4.2 not applied), `lib/db.ts:478` (if Task 4.3 applied)
+**Purpose**: Explain non-obvious division by 1000000
+**Time**: 2m
+
+**Implementation**:
+
+1. **In `app/api/assets/route.ts`** (if separate setseed call exists):
+   ```typescript
+   // PostgreSQL setseed() requires seed in range [0.0, 1.0]
+   // Client generates seeds 0-1000000 for user-friendly integers (no decimals)
+   // Normalize: 0 → 0.0, 500000 → 0.5, 1000000 → 1.0
+   const normalizedSeed = shuffleSeed / 1000000;
+   ```
+
+2. **In `lib/db.ts`** (if transaction setseed exists):
+   ```typescript
+   // Same normalization comment as above
+   await tx.$executeRaw`SELECT setseed(${shuffleSeed / 1000000})`;
+   ```
+
+**Note**: If Task 4.2 implemented (single raw SQL), add comment in SQL:
+```typescript
+-- Normalize seed 0-1000000 → 0.0-1.0 for PostgreSQL setseed()
+SELECT setseed(${normalizedSeed});
+```
+
+**Success criteria**: Normalization formula explained with inline comments. Future developers understand why division by 1000000.
+
+---
+
+- [x] **Task 4.8: Add JSDoc to useSortPreferences Hook**
+
+**File**: `hooks/use-sort-preferences.ts:18-25`
+**Purpose**: Document shuffle seed lifecycle and localStorage persistence
+**Time**: 10m
+
+**Implementation**:
+
+1. **Add JSDoc above hook export** (line ~18):
+   ```typescript
+   /**
+    * Manages sort preferences with localStorage persistence.
+    *
+    * ## Shuffle Seed Lifecycle
+    *
+    * **Generation**: Random integer 0-1000000 when shuffle activated
+    * - Triggered by: User clicks shuffle in sort dropdown
+    * - Range: 0-1000000 (user-friendly integers)
+    * - Randomness: Math.random() (non-cryptographic, sufficient for UI)
+    *
+    * **Persistence**: Stored in localStorage (survives browser close)
+    * - Key: 'sploot-sort-preferences'
+    * - Survives: Tab close, browser restart
+    * - Cleared: When user switches to other sort options
+    *
+    * **Determinism**: Same seed produces same shuffle order
+    * - Used by: API routes to seed PostgreSQL RANDOM()
+    * - Pagination: Stable order across infinite scroll
+    * - Cache: SWR invalidates on seed change
+    *
+    * @returns Sort state and handlers
+    * @returns {SortOption} sortBy - Current sort option ('recent'|'date'|'size'|'name'|'shuffle')
+    * @returns {SortDirection} direction - Sort direction ('asc'|'desc')
+    * @returns {number|undefined} shuffleSeed - Current shuffle seed (undefined if not shuffling)
+    * @returns {function} handleSortChange - Update sort option and generate/clear seed
+    *
+    * @example
+    * const { sortBy, shuffleSeed, handleSortChange } = useSortPreferences();
+    *
+    * // Activate shuffle → generates new seed (e.g., 742891)
+    * handleSortChange('shuffle', 'asc');
+    *
+    * // Switch to recent → clears seed
+    * handleSortChange('recent', 'desc');
+    */
+   export function useSortPreferences() {
+     // ... existing implementation
+   }
+   ```
+
+**Success criteria**: JSDoc covers seed lifecycle (generation, persistence, clearing), explains determinism, includes usage example.
+
+---
+
+- [x] **Task 4.9: Verify Cache Service Type Safety**
+
+**File**: `app/api/search/route.ts:55-59` and cache service implementation
+**Purpose**: Ensure shuffleSeed properly typed in cache options
+**Time**: 5m
+
+**Implementation**:
+
+1. **Locate cache service types** (likely `lib/cache.ts` or similar):
+   - Search for CacheService interface or CacheOptions type
+   - Check if `shuffleSeed?: number` exists in options
+
+2. **If missing, add to cache options interface**:
+   ```typescript
+   interface CacheOptions {
+     query: string;
+     limit?: number;
+     threshold?: number;
+     shuffleSeed?: number;  // ADD THIS
+   }
+   ```
+
+3. **Verify usage in `app/api/search/route.ts`**:
+   ```typescript
+   // Should compile without type errors
+   await cacheService.set(cacheKey, {
+     query,
+     limit,
+     threshold,
+     shuffleSeed,  // Should be typed correctly
+   });
+   ```
+
+**Success criteria**: `pnpm type-check` passes. Cache service types include `shuffleSeed` in options interface. No type assertions or `any` needed.
+
+---
+
+- [x] **Task 4.10: Document Shuffle Query Field Selection**
+
+**File**: `app/api/assets/route.ts:264`
+**Purpose**: Explain why shuffle query selects different fields
+**Time**: 2m
+
+**Implementation**:
+
+1. **Add comment above shuffle query** (line ~264):
+   ```typescript
+   // Shuffle query selects minimal fields for performance:
+   // - Omits embedding data (not needed for display, reduces payload)
+   // - Includes only fields required by frontend Asset interface
+   // - Normal query includes embeddings for potential future semantic features
+   shuffleSeed !== undefined
+     ? prisma.$queryRaw`...`
+     : // ...
+   ```
+
+**Success criteria**: Comment explains field selection rationale. Future developers understand why shuffle and normal queries differ.
+
+---
+
+## Summary
+
+**Critical Fixes (Required for Merge)**:
+- Tasks 4.1-4.5: Fix connection pooling bugs, preserve search relevance (3.5h)
+
+**Code Quality (Optional but Recommended)**:
+- Tasks 4.6-4.10: Extract constants, add documentation (30m)
+
+**Total Estimated Time**: 4 hours
+
+**Next Steps**:
+1. Implement critical fixes (4.1-4.5) in order
+2. Run `pnpm type-check && pnpm lint && pnpm test` after each task
+3. Test manually with shuffle + pagination + search
+4. Optionally apply code quality tasks (4.6-4.10)
+5. Push to PR for re-review
+
+---
+
+## Original Next Steps (Pre-Review)
 
 1. Create feature branch: `git checkout -b feat/server-side-shuffle`
 2. Start with Phase 1 Task 1.1 (useSortPreferences)
