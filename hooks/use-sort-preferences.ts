@@ -6,6 +6,9 @@ import type { SortOption, SortDirection } from '@/components/chrome/sort-dropdow
 
 const STORAGE_KEY = 'sploot-sort-preferences';
 const DEBOUNCE_DELAY = 100; // 100ms as specified
+// Shuffle seed range: 0-1000000 for user-friendly integer values
+// Normalized to 0.0-1.0 for PostgreSQL setseed() in API/DB layer
+const MAX_SHUFFLE_SEED = 1000000;
 
 interface SortPreferences {
   sortBy: SortOption;
@@ -82,7 +85,15 @@ export function useSortPreferences() {
     }
   }, [debouncedPreferences, isLoading]);
 
-  // Handler for sort changes
+  /**
+   * Update sort preferences and generate new shuffle seed if needed.
+   *
+   * When switching to 'shuffle' mode, generates a random seed in range [0, MAX_SHUFFLE_SEED].
+   * For all other sort modes, clears the shuffle seed to undefined.
+   *
+   * @param newSortBy - The sort option to apply ('recent', 'date', 'size', 'name', 'shuffle')
+   * @param newDirection - The sort direction ('asc' or 'desc')
+   */
   const handleSortChange = useCallback(
     (newSortBy: SortOption, newDirection: SortDirection) => {
       setSortBy(newSortBy);
@@ -90,7 +101,7 @@ export function useSortPreferences() {
 
       // Generate new seed when shuffle activated
       if (newSortBy === 'shuffle') {
-        const newSeed = Math.floor(Math.random() * 1000000);
+        const newSeed = Math.floor(Math.random() * MAX_SHUFFLE_SEED);
         setShuffleSeed(newSeed);
       } else {
         setShuffleSeed(undefined); // Clear seed for other sorts
@@ -99,7 +110,11 @@ export function useSortPreferences() {
     []
   );
 
-  // Reset preferences to defaults
+  /**
+   * Reset all sort preferences to default values.
+   *
+   * Clears localStorage and resets to: sortBy='recent', direction='desc', shuffleSeed=undefined
+   */
   const resetPreferences = useCallback(() => {
     setSortBy('recent');
     setDirection('desc');
@@ -108,7 +123,14 @@ export function useSortPreferences() {
     }
   }, []);
 
-  // Map sort options to database column names for actual queries
+  /**
+   * Map UI sort options to Prisma/database column names.
+   *
+   * Translates user-facing sort options into actual database field names for queries.
+   *
+   * @param option - The UI sort option ('recent', 'date', 'size', 'name', 'shuffle')
+   * @returns Database column name ('createdAt', 'size', 'pathname')
+   */
   const getSortColumn = useCallback((option: SortOption): string => {
     switch (option) {
       case 'recent':

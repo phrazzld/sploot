@@ -11,6 +11,10 @@ import logger from '@/lib/logger';
 import { logError } from '@/lib/vercel-logger';
 import { createErrorResponse } from '@/lib/error-response';
 
+// Shuffle seed range: 0-1000000 for user-friendly integer values
+// Normalized to 0.0-1.0 for PostgreSQL setseed() in shuffle queries
+const MAX_SHUFFLE_SEED = 1000000;
+
 export async function POST(req: NextRequest) {
   const requestId = crypto.randomUUID();
 
@@ -201,9 +205,9 @@ export async function GET(req: NextRequest) {
     const shuffleSeedParam = searchParams.get('shuffleSeed');
     if (shuffleSeedParam) {
       const parsed = parseInt(shuffleSeedParam, 10);
-      if (isNaN(parsed) || parsed < 0 || parsed > 1000000) {
+      if (isNaN(parsed) || parsed < 0 || parsed > MAX_SHUFFLE_SEED) {
         return NextResponse.json(
-          { error: 'Invalid shuffleSeed parameter. Must be integer 0-1000000.' },
+          { error: `Invalid shuffleSeed parameter. Must be integer 0-${MAX_SHUFFLE_SEED}.` },
           { status: 400 }
         );
       }
@@ -243,14 +247,16 @@ export async function GET(req: NextRequest) {
 
     // Normalize seed to 0-1 range for PostgreSQL setseed()
     // PostgreSQL setseed() requires seed in range [0.0, 1.0]
-    // Client generates seeds 0-1000000 for user-friendly integers (no decimals)
-    // Normalize: 0 → 0.0, 500000 → 0.5, 1000000 → 1.0
-    const normalizedSeed = shuffleSeed !== undefined ? shuffleSeed / 1000000 : null;
+    // Client generates seeds 0-MAX_SHUFFLE_SEED for user-friendly integers (no decimals)
+    // Normalize: 0 → 0.0, 500000 → 0.5, MAX_SHUFFLE_SEED → 1.0
+    const normalizedSeed = shuffleSeed !== undefined ? shuffleSeed / MAX_SHUFFLE_SEED : null;
 
     const [assets, total] = await Promise.all([
       shuffleSeed !== undefined
         ? // FIXED: Combined setseed() and query in single statement
           // Guarantees both execute on same connection for deterministic shuffle
+          // Field selection: Excludes embedding/tag data since shuffle query cannot JOIN
+          // (Raw SQL for determinism, not ORM). Client formats response with empty arrays.
           prisma.$queryRaw<Array<any>>`
             SELECT setseed(${normalizedSeed});
 
