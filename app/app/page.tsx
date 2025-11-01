@@ -143,8 +143,8 @@ function AppPageClient() {
     refresh,
   } = useAssets({
     initialLimit: 100,
-    sortBy: actualSortBy as 'createdAt' | 'size' | 'favorite' | undefined,
-    sortOrder: actualSortOrder as 'asc' | 'desc',
+    sortBy: sortBy,
+    sortOrder: sortOrder,
     autoLoad: true,
     filterFavorites: bangersOnly ? true : undefined,
     tagId: tagIdParam ?? undefined,

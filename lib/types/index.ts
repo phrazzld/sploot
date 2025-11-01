@@ -69,7 +69,7 @@ export interface AssetUpdate {
 
 export interface UseAssetsOptions {
   initialLimit?: number;
-  sortBy?: 'createdAt' | 'favorite' | 'size' | 'shuffle';
+  sortBy?: 'recent' | 'date' | 'size' | 'name' | 'shuffle' | 'createdAt' | 'favorite';
   sortOrder?: 'asc' | 'desc';
   filterFavorites?: boolean;
   autoLoad?: boolean;

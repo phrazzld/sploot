@@ -190,11 +190,14 @@ export async function GET(req: NextRequest) {
     limit = parseInt(searchParams.get('limit') || '50', 10);
     offset = parseInt(searchParams.get('offset') || '0', 10);
 
-    // Validate and type-cast sortBy to valid Prisma field names
+    // Validate and type-cast sortBy to valid field names
+    // Accept both database columns and special modes like 'shuffle'
     const sortByParam = searchParams.get('sortBy') || 'createdAt';
-    const validSortFields = ['createdAt', 'updatedAt'] as const;
-    sortBy = validSortFields.includes(sortByParam as any)
-      ? (sortByParam as 'createdAt' | 'updatedAt')
+    const validSortFields = ['createdAt', 'updatedAt', 'shuffle', 'pathname', 'size', 'favorite'] as const;
+    // For non-shuffle queries, only createdAt and updatedAt are supported
+    // (shuffle mode uses raw SQL, size/pathname/favorite need ORM implementation)
+    sortBy = (sortByParam === 'createdAt' || sortByParam === 'updatedAt')
+      ? sortByParam
       : 'createdAt';
 
     // Validate and type-cast sortOrder to Prisma's expected literal type

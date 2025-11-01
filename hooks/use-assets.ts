@@ -57,10 +57,34 @@ export function useAssets(options: UseAssetsOptions = {}) {
 
       try {
         const currentOffset = reset ? 0 : offset;
+
+        // Map UI sort values to API/database column names
+        // Handles both UI values ('recent', 'name') and database values ('createdAt', 'size')
+        let apiSortBy: string;
+        switch (sortBy) {
+          case 'recent':
+          case 'date':
+            apiSortBy = 'createdAt';
+            break;
+          case 'name':
+            apiSortBy = 'pathname';
+            break;
+          case 'shuffle':
+            apiSortBy = 'shuffle'; // Keep as-is for API shuffle detection
+            break;
+          case 'size':
+          case 'favorite':
+          case 'createdAt':
+            apiSortBy = sortBy; // Already database column names
+            break;
+          default:
+            apiSortBy = 'createdAt';
+        }
+
         const params = new URLSearchParams({
           limit: initialLimit.toString(),
           offset: currentOffset.toString(),
-          sortBy,
+          sortBy: apiSortBy,
           sortOrder,
         });
 
